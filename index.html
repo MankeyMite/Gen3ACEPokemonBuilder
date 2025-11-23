@@ -1,0 +1,984 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gen 3 ACE Pokémon Builder</title>
+  <link rel="stylesheet" href="./src/styles.css" />
+  <style>
+    /* Temporary layout overrides – feel free to move to styles.css */
+    main.layout-vertical {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .mode-toggle {
+      margin-top: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.7);
+    }
+
+    .mode-toggle label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .mode-toggle input[type="radio"] {
+      accent-color: #38bdf8;
+    }
+
+    .mode-toggle label.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      position: relative;
+    }
+
+    .mode-toggle label.disabled input[type="radio"] {
+      cursor: not-allowed;
+    }
+
+    .mode-toggle label.disabled .coming-soon-tooltip {
+      visibility: hidden;
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-bottom: 0.5rem;
+      padding: 0.4rem 0.75rem;
+      background: rgba(15,23,42,0.95);
+      border: 1px solid rgba(56,189,248,0.3);
+      border-radius: 6px;
+      color: #38bdf8;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    .mode-toggle label.disabled:hover .coming-soon-tooltip {
+      visibility: visible;
+    }
+
+    /* Disabled generate button */
+    #generateBtn[data-disabled="true"] {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: rgba(56,189,248,0.3);
+    }
+
+    /* Required field validation */
+    .field-error {
+      border: 2px solid #ef4444 !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+    }
+
+    .autocomplete-wrapper.field-error .autocomplete-input {
+      border: 2px solid #ef4444 !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+    }
+
+    /* Legality checker styles */
+    #legalityStatus {
+      transition: all 0.2s ease;
+    }
+
+    #legalityStatus:hover {
+      background: var(--surface) !important;
+    }
+
+    #legalityStatus.legal {
+      color: #22c55e;
+    }
+
+    #legalityStatus.illegal {
+      color: #ef4444;
+    }
+
+    #legalityStatus.unknown {
+      color: #9ca3af;
+    }
+
+    .legality-help {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #6b7280;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: help;
+      margin-left: 0.5rem;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .legality-help:hover {
+      background: #4b5563;
+    }
+
+    .legality-help-tooltip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.75rem;
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      width: 280px;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      color: white;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 1000;
+      text-align: left;
+      white-space: normal;
+    }
+
+    .legality-help:hover .legality-help-tooltip {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .legality-help-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: #1f2937;
+    }
+
+    .legality-help-tooltip strong {
+      color: #fbbf24;
+    }
+
+    /* Make cards use full width when stacked */
+    main.layout-vertical > .card {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* Hide advanced-only fields in simple mode */
+    body.mode-simple [data-advanced-only] {
+      display: none;
+    }
+    /* Move rows: select + small PP box */
+    .move-list .move-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .move-list .pp-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.15rem 0.35rem;
+      border-radius: 6px;
+      border: 1px solid rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.03);
+      font-size: 0.85rem;
+    }
+    .move-list .pp-box .pp-up {
+      font-weight: 600;
+      font-size: 0.8rem;
+      opacity: 0.9;
+    }
+    /* Ensure move select fills available space, PP select stays compact and visible */
+    .move-list .move-row > select:first-child {
+      flex: 1 1 auto;
+      width: auto;
+    }
+    .move-list .pp-box select {
+      width: 3.25rem;
+      padding: 0.15rem 0.3rem;
+      border-radius: 6px;
+      background: #0f1420;
+      color: var(--fg);
+      border: 1px solid #273046;
+      font-size: 0.9rem;
+    }
+
+    /* Output tabs */
+    .output-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 2px solid rgba(255,255,255,0.1);
+    }
+
+    .output-tabs .tab-btn {
+      padding: 0.5rem 1.25rem;
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+
+    .output-tabs .tab-btn:hover {
+      color: rgba(255,255,255,0.9);
+    }
+
+    .output-tabs .tab-btn.active {
+      color: #38bdf8;
+      border-bottom-color: #38bdf8;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .tab-content textarea {
+      width: 100%;
+      min-width: 800px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    /* Shiny indicator */
+    .shiny-indicator {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 0.5rem;
+      font-size: 1.2rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .shiny-indicator.active {
+      opacity: 1;
+      animation: shimmer 2s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { filter: brightness(1) hue-rotate(0deg); }
+      50% { filter: brightness(1.5) hue-rotate(15deg); }
+    }
+
+    /* Tooltip icon */
+    .tooltip-icon {
+      display: inline-block;
+      margin-left: 0.35rem;
+      width: 1rem;
+      height: 1rem;
+      line-height: 1rem;
+      text-align: center;
+      border-radius: 50%;
+      background: rgba(122, 162, 247, 0.2);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: bold;
+      cursor: help;
+      border: 1px solid rgba(122, 162, 247, 0.3);
+    }
+
+    .tooltip-icon:hover {
+      background: rgba(122, 162, 247, 0.3);
+    }
+
+    /* Autocomplete styling */
+    .autocomplete-wrapper {
+      position: relative;
+      flex: 1;
+    }
+
+    .autocomplete-input {
+      width: 100%;
+      padding: 0.5rem;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--text);
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+
+    .autocomplete-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(0, 0, 0, 0.4);
+    }
+
+    .autocomplete-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      max-height: 300px;
+      overflow-y: auto;
+      background: rgba(20, 20, 30, 0.98);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-top: none;
+      border-radius: 0 0 4px 4px;
+      z-index: 1000;
+      display: none;
+    }
+
+    .autocomplete-dropdown.show {
+      display: block;
+    }
+
+    .autocomplete-item {
+      padding: 0.5rem;
+      cursor: pointer;
+      color: var(--text);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .autocomplete-item:hover,
+    .autocomplete-item.selected {
+      background: rgba(100, 150, 255, 0.3);
+    }
+
+    .autocomplete-item:last-child {
+      border-bottom: none;
+    }
+
+    .autocomplete-no-results {
+      padding: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+      font-style: italic;
+    }
+
+    /* Marking symbols */
+    .marking-symbol {
+      font-size: 1.5rem;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+
+    .marking-symbol:hover {
+      color: var(--text);
+    }
+
+    .marking-symbol.active {
+      color: #000;
+      filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
+    }
+
+    /* Make circle and heart larger to match triangle/square */
+    .marking-symbol[data-marking="markCircle"] {
+      font-size: 2rem;
+      transform: translateY(-0.15rem);
+    }
+
+    .marking-symbol[data-marking="markHeart"] {
+      font-size: 1.75rem;
+      transform: translateY(-0.02rem);
+    }
+
+    .marking-checkbox {
+      display: none;
+    }
+
+    /* Disable textarea resize handles */
+    textarea {
+      resize: none;
+    }
+  </style>
+</head>
+<body>
+  <header class="container">
+    <h1>Gen 3 ACE Pokémon Builder</h1>
+    <p class="muted" style="margin-top: -0.75rem; margin-bottom: 1rem;">
+      <span style="font-size: 0.85em; opacity: 0.6;">v0.1.6</span>
+    </p>
+    <p class="muted">Build custom Pokémon for Gen III games. Import from raw hex data, .ek3 files, or create from scratch. Export as BASE64 box codes, raw hex data, or .ek3 files.</p>
+
+    <!-- Simple vs Advanced mode toggle -->
+    <div class="mode-toggle" id="modeToggle">
+      <label>
+        <input type="radio" name="mode" id="modeSimple" value="simple" checked />
+        Simple mode
+      </label>
+      <label>
+        <input type="radio" name="mode" id="modeAdvanced" value="advanced" />
+        Advanced mode
+      </label>
+    </div>
+  </header>
+
+  <main class="container layout-vertical">
+    <!-- Encounter Mode Selector -->
+    <div class="mode-toggle" id="encounterModeToggle" style="margin-top: 0;">
+      <label style="margin-right: 0.5rem; font-weight: 500; color: rgba(255,255,255,0.7);">Encounter Type:</label>
+      <label>
+        <input type="radio" name="encounterMode" id="encounterHatched" value="hatched" checked />
+        Hatched
+      </label>
+      <label>
+        <input type="radio" name="encounterMode" id="encounterLegendaries" value="legendaries" />
+        Legendaries
+      </label>
+      <label class="disabled">
+        <input type="radio" name="encounterMode" id="encounterWild" value="wild" disabled />
+        Wild
+        <span class="coming-soon-tooltip">Coming Soon</span>
+      </label>
+    </div>
+
+    <!-- BASICS CARD -->
+    <section class="card" id="basicsCard">
+      <h2>Basics</h2>
+
+      <div class="row">
+        <label for="species-input">Pokémon</label>
+        <select id="species"></select>
+      </div>
+
+      <div class="row">
+        <label for="nickname">Nickname</label>
+        <input id="nickname" type="text" maxlength="10" autocomplete="off" />
+      </div>
+
+      <div class="row">
+        <label for="level">Level</label>
+        <input id="level" type="number" min="1" max="100" value="100" />
+      </div>
+
+      <div class="row" data-advanced-only>
+        <label for="expTotal">Total EXP</label>
+        <input id="expTotal" type="number" min="0" max="9999999" value="0" />
+      </div>
+
+      <div class="row" data-advanced-only>
+        <label for="pid">PID (hex)</label>
+        <input id="pid" type="text" placeholder="0x12345678" value="0x0" />
+        <span id="shinyIndicator" class="shiny-indicator" title="This Pokémon is shiny!">✨</span>
+      </div>
+
+      <div class="row">
+        <label for="nature">Nature</label>
+        <select id="nature"></select>
+      </div>
+
+      <div class="row">
+        <label for="ability">Ability</label>
+        <select id="ability">
+          <option value="0">0</option>
+          <option value="1">1</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label for="gender">Gender</label>
+        <select id="gender">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label for="item-input">Item</label>
+        <select id="item"></select>
+      </div>
+
+      <div class="row" data-advanced-only>
+        <label for="ball-input">Ball</label>
+        <select id="ball"></select>
+      </div>
+
+      <div class="row" data-advanced-only>
+        <label for="originGame">Origin Game</label>
+        <select id="originGame">
+          <option value="1">Sapphire</option>
+          <option value="2">Ruby</option>
+          <option value="3" selected>Emerald</option>
+          <option value="4">FireRed</option>
+          <option value="5">LeafGreen</option>
+          <option value="15">Colosseum/XD</option>
+        </select>
+      </div>
+
+      <div class="row" data-advanced-only>
+        <label for="metLocation-input">Met Location</label>
+        <select id="metLocation"></select>
+      </div>
+
+      <div class="row" data-advanced-only>
+        <label for="metLevel">
+          Met Level
+          <span class="tooltip-icon" title="Level 0 for hatched Pokémon">?</span>
+        </label>
+        <input id="metLevel" type="number" min="0" max="100" value="0" />
+      </div>
+
+      <div class="row two">
+        <div>
+          <label for="tid">TID</label>
+          <input id="tid" type="number" min="0" max="65535" value="12345" />
+        </div>
+        <div>
+          <label for="sid">SID</label>
+          <input id="sid" type="number" min="0" max="65535" value="54321" />
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="shiny">Shiny</label>
+        <input id="shiny" type="checkbox" />
+        <span id="shinyIndicatorSimple" class="shiny-indicator" title="This Pokémon is shiny!" style="margin-left: 0.5rem;">✨</span>
+      </div>
+
+      <div class="row">
+        <label for="otName">OT Name</label>
+        <input id="otName" type="text" maxlength="7" autocomplete="off" />
+      </div>
+
+      <div class="row" data-advanced-only>
+        <label for="otGender">OT Gender</label>
+        <select id="otGender">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label for="language">Language</label>
+        <select id="language"></select>
+      </div>
+
+      <!-- Extra Bytes (Advanced only) -->
+      <div class="row two" data-advanced-only>
+        <div>
+          <label for="extraBytesType">Extra Bytes</label>
+          <select id="extraBytesType">
+            <option value="0x2A">0x2A</option>
+            <option value="0x2B">0x2B</option>
+          </select>
+        </div>
+        <div>
+          <label for="extraBytesValue">Value</label>
+          <input id="extraBytesValue" type="number" min="0" max="999" value="0" />
+        </div>
+      </div>
+
+      <!-- Markings (Advanced only) -->
+      <div class="row" data-advanced-only>
+        <label>Markings</label>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <input id="markCircle" type="checkbox" class="marking-checkbox" />
+          <span class="marking-symbol" data-marking="markCircle">●</span>
+          
+          <input id="markTriangle" type="checkbox" class="marking-checkbox" />
+          <span class="marking-symbol" data-marking="markTriangle">▲</span>
+          
+          <input id="markSquare" type="checkbox" class="marking-checkbox" />
+          <span class="marking-symbol" data-marking="markSquare">■</span>
+          
+          <input id="markHeart" type="checkbox" class="marking-checkbox" />
+          <span class="marking-symbol" data-marking="markHeart">♥</span>
+        </div>
+      </div>
+
+      <!-- Fateful Encounter (Advanced only) -->
+      <div class="row" data-advanced-only>
+        <label for="fatefulEncounter">Fateful Encounter</label>
+        <input id="fatefulEncounter" type="checkbox" />
+      </div>
+    </section>
+
+    <!-- STATS / ADVANCED CARD -->
+    <section class="card" id="statsCard">
+      <h2>Stats</h2>
+
+      <!-- IVs -->
+      <div class="row iv-row" data-advanced-only>
+        <label>IVs</label>
+        <div class="grid iv-grid">
+          <div>
+            <label for="ivHp">HP IV</label>
+            <input id="ivHp" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivAtk">Atk IV</label>
+            <input id="ivAtk" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivDef">Def IV</label>
+            <input id="ivDef" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivSpAtk">SpA IV</label>
+            <input id="ivSpAtk" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivSpDef">SpD IV</label>
+            <input id="ivSpDef" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivSpe">Spe IV</label>
+            <input id="ivSpe" type="number" min="0" max="31" value="31" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Hidden Power Info -->
+      <div class="row" data-advanced-only>
+        <label>Hidden Power</label>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <span id="hiddenPowerType" style="font-weight: bold; color: var(--accent);">Dark</span>
+          <span id="hiddenPowerPower" style="color: var(--muted);">Power: 70</span>
+        </div>
+      </div>
+
+      <!-- EVs -->
+      <div class="row ev-row">
+        <label>EVs</label>
+        <div class="grid ev-grid">
+          <div>
+            <label for="evHp">HP EV</label>
+            <input id="evHp" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evAtk">Atk EV</label>
+            <input id="evAtk" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evDef">Def EV</label>
+            <input id="evDef" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evSpAtk">SpA EV</label>
+            <input id="evSpAtk" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evSpDef">SpD EV</label>
+            <input id="evSpDef" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evSpe">Spe EV</label>
+            <input id="evSpe" type="number" min="0" max="255" value="0" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Moves -->
+      <div class="row">
+        <label>Moves</label>
+        <div class="column move-list">
+          <div class="move-row">
+            <select id="move1"></select>
+            <div class="pp-box">
+              <span class="pp-up">PP UP</span>
+              <select id="pp1">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="move-row">
+            <select id="move2"></select>
+            <div class="pp-box">
+              <span class="pp-up">PP UP</span>
+              <select id="pp2">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="move-row">
+            <select id="move3"></select>
+            <div class="pp-box">
+              <span class="pp-up">PP UP</span>
+              <select id="pp3">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option> 
+                <option value="3" selected>3</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="move-row">
+            <select id="move4"></select>
+            <div class="pp-box">
+              <span class="pp-up">PP UP</span>
+              <select id="pp4">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Friendship -->
+      <div class="row">
+        <label for="friendship">Friendship</label>
+        <input id="friendship" type="number" min="0" max="255" value="70" />
+      </div>
+
+      <!-- Contest Stats (Advanced only) -->
+      <details class="contest-stats-section" data-advanced-only>
+        <summary style="cursor: pointer; font-weight: bold; margin: 1rem 0 0.5rem 0;">Contest Stats</summary>
+        
+        <div style="padding-left: 1rem;">
+          <div class="row">
+            <label for="contestCool">Coolness</label>
+            <input id="contestCool" type="number" min="0" max="255" value="0" />
+          </div>
+
+          <div class="row">
+            <label for="contestBeauty">Beauty</label>
+            <input id="contestBeauty" type="number" min="0" max="255" value="0" />
+          </div>
+
+          <div class="row">
+            <label for="contestCute">Cuteness</label>
+            <input id="contestCute" type="number" min="0" max="255" value="0" />
+          </div>
+
+          <div class="row">
+            <label for="contestSmart">Smartness</label>
+            <input id="contestSmart" type="number" min="0" max="255" value="0" />
+          </div>
+
+          <div class="row">
+            <label for="contestTough">Toughness</label>
+            <input id="contestTough" type="number" min="0" max="255" value="0" />
+          </div>
+
+          <div class="row">
+            <label for="contestSheen">Feel (Sheen)</label>
+            <input id="contestSheen" type="number" min="0" max="255" value="0" />
+          </div>
+        </div>
+      </details>
+
+      <!-- Ribbons (Advanced only) -->
+      <details class="ribbons-section" data-advanced-only>
+        <summary style="cursor: pointer; font-weight: bold; margin: 1rem 0 0.5rem 0;">Ribbons</summary>
+        
+        <div style="padding-left: 1rem;">
+          <!-- Contest Ribbons -->
+          <div style="margin-bottom: 1rem;">
+            <h4 style="margin: 0.5rem 0; font-size: 0.9rem; color: var(--muted);">Contest Ribbons</h4>
+            
+            <div class="row">
+              <label for="ribbonCool">Cool Ribbon</label>
+              <select id="ribbonCool">
+                <option value="0">None</option>
+                <option value="1">Normal</option>
+                <option value="2">Super</option>
+                <option value="3">Hyper</option>
+                <option value="4">Master</option>
+              </select>
+            </div>
+
+            <div class="row">
+              <label for="ribbonBeauty">Beauty Ribbon</label>
+              <select id="ribbonBeauty">
+                <option value="0">None</option>
+                <option value="1">Normal</option>
+                <option value="2">Super</option>
+                <option value="3">Hyper</option>
+                <option value="4">Master</option>
+              </select>
+            </div>
+
+            <div class="row">
+              <label for="ribbonCute">Cute Ribbon</label>
+              <select id="ribbonCute">
+                <option value="0">None</option>
+                <option value="1">Normal</option>
+                <option value="2">Super</option>
+                <option value="3">Hyper</option>
+                <option value="4">Master</option>
+              </select>
+            </div>
+
+            <div class="row">
+              <label for="ribbonSmart">Smart Ribbon</label>
+              <select id="ribbonSmart">
+                <option value="0">None</option>
+                <option value="1">Normal</option>
+                <option value="2">Super</option>
+                <option value="3">Hyper</option>
+                <option value="4">Master</option>
+              </select>
+            </div>
+
+            <div class="row">
+              <label for="ribbonTough">Tough Ribbon</label>
+              <select id="ribbonTough">
+                <option value="0">None</option>
+                <option value="1">Normal</option>
+                <option value="2">Super</option>
+                <option value="3">Hyper</option>
+                <option value="4">Master</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Other Ribbons -->
+          <div style="margin-bottom: 1rem;">
+            <h4 style="margin: 0.5rem 0; font-size: 0.9rem; color: var(--muted);">Battle/Event Ribbons</h4>
+            
+            <div class="row">
+              <label for="ribbonArtist">Artist</label>
+              <input id="ribbonArtist" type="checkbox" />
+            </div>
+
+            <div class="row">
+              <label for="ribbonBattleChampion">Battle Champion</label>
+              <input id="ribbonBattleChampion" type="checkbox" />
+            </div>
+
+            <div class="row">
+              <label for="ribbonChampion">Champion (Gen3)</label>
+              <input id="ribbonChampion" type="checkbox" />
+            </div>
+
+            <div class="row">
+              <label for="ribbonCountry">Country</label>
+              <input id="ribbonCountry" type="checkbox" />
+            </div>
+
+            <div class="row">
+              <label for="ribbonEarth">Earth</label>
+              <input id="ribbonEarth" type="checkbox" />
+            </div>
+
+            <div class="row">
+              <label for="ribbonEffort">Effort</label>
+              <input id="ribbonEffort" type="checkbox" />
+            </div>
+
+            <div class="row">
+              <label for="ribbonNational">National</label>
+              <input id="ribbonNational" type="checkbox" />
+            </div>
+
+            <div class="row">
+              <label for="ribbonNationalChampion">National Champion</label>
+              <input id="ribbonNationalChampion" type="checkbox" />
+            </div>
+
+            <div class="row">
+              <label for="ribbonRegionalChampion">Regional Champion</label>
+              <input id="ribbonRegionalChampion" type="checkbox" />
+            </div>
+
+            <div class="row">
+              <label for="ribbonVictory">Victory</label>
+              <input id="ribbonVictory" type="checkbox" />
+            </div>
+
+            <div class="row">
+              <label for="ribbonWinning">Winning</label>
+              <input id="ribbonWinning" type="checkbox" />
+            </div>
+
+            <div class="row">
+              <label for="ribbonWorld">World</label>
+              <input id="ribbonWorld" type="checkbox" />
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- OUTPUT CARD -->
+    <section class="card" id="outputCard">
+      <h2>Codes</h2>
+
+      <!-- Legality Checker -->
+      <div class="row" style="align-items: center; gap: 1rem; margin-bottom: 1rem;">
+        <button id="generateBtn" type="button" data-disabled="true">Generate</button>
+        <div id="legalityStatus" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; border-radius: 4px; background: var(--bg);">
+          <span id="legalityIcon" style="font-size: 1.2rem;">✓</span>
+          <span id="legalityText" style="font-weight: 500; color: var(--success, #22c55e);">Legal</span>
+          <span class="legality-help" title="Legality checker info">
+            ?
+            <span class="legality-help-tooltip">
+              <strong>Note:</strong> This is a simplified legality checker and may not catch all issues. For accurate validation, it is strongly recommended to import the generated Pokémon into PKHeX to verify legality.
+            </span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Tab buttons -->
+      <div class="output-tabs">
+        <button type="button" class="tab-btn active" data-tab="base64">Box names (Base64)</button>
+        <button type="button" class="tab-btn" data-tab="hex">Hex</button>
+      </div>
+
+      <!-- Tab content -->
+      <div class="tab-content active" data-tab-content="base64">
+        <textarea id="base64Output" rows="15" spellcheck="false" readonly></textarea>
+      </div>
+      <div class="tab-content" data-tab-content="hex">
+        <textarea id="hexOutput" rows="15" spellcheck="false"></textarea>
+      </div>
+
+      <div class="row two">
+        <div style="display: flex; flex-direction: column; align-items: center; flex: 1;">
+          <button id="copyBase64Btn" type="button" style="width: 100%;">Copy Base64</button>
+          <span id="copyBase64Check" class="copy-check">✓ Copied</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; flex: 1;">
+          <button id="copyHexBtn" type="button" style="width: 100%;">Copy Hex</button>
+          <span id="copyHexCheck" class="copy-check">✓ Copied</span>
+        </div>
+      </div>
+
+      <div class="row two">
+        <button id="exportPk3Btn" type="button" style="flex: 1;">Export .ek3 File</button>
+        <button id="importPk3Btn" type="button" style="flex: 1;">Import .ek3 File</button>
+      </div>
+      <input type="file" id="pk3FileInput" accept=".ek3,.pk3" style="display: none;">
+
+      <div class="row">
+        <button id="loadFromHexBtn" type="button">Import Hex Code</button>
+        <span class="muted" style="margin-left: 0.5rem;">Paste hex data into the Hex tab above, then click to import Pokémon for editing</span>
+      </div>
+    </section>
+  </main>
+
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,3127 @@
+﻿Pokemon data structure (Generation III)
+
+
+
+
+decomp: https://github.com/pret/pokeemerald/blob/master/include/pokemon.h
+
+
+From Bulbapedia - pokemon data structure gen 3
+https://m.bulbapedia.bulbagarden.net/wiki/Pok%C3%A9mon_data_structure_%28Generation_III%29?utm_source=chatgpt.com
+
+
+
+
+Pokémon in the Pokémon Ruby and Sapphire, FireRed and LeafGreen, and Emerald Versions are all stored the same way in a 100-byte structure. All numbers are stored in little-endian order.
+
+
+---
+
+
+GENERATION III POKÉMON DATA STRUCTURE — COMPLETE ORGANIZED SUMMARY
+
+
+1. Overview
+
+
+Generation III (Ruby/Sapphire/FireRed/LeafGreen/Emerald) stores each Pokémon as a 100-byte structure when in the party, and an 80-byte structure when in the PC.
+The structure contains:
+
+
+Personality value (PID)
+
+
+Original Trainer ID (OT ID)
+
+
+Nickname
+
+
+Trainer name
+
+
+Encoded flags
+
+
+Encrypted data block (48 bytes)
+
+
+Visible stats (party only)
+
+
+
+
+All multi-byte values are stored little-endian.
+
+
+
+
+---
+
+
+2. High-Level Structure (Party Pokémon = 100 bytes)
+
+
+0x00–0x03 : Personality Value (PID)
+0x04–0x07 : Original Trainer ID (OT ID)
+0x08–0x11 : Nickname (10 bytes)
+0x12       : Language
+0x13       : Misc Flags
+0x14–0x1A : OT Name (7 bytes)
+0x1B       : Markings
+0x1C–0x1D : Checksum (16-bit)
+0x1E–0x1F : Unknown / unused (2 bytes)
+0x20–0x4F : Encrypted Data (48 bytes) → contains the substructures
+0x50–0x53 : Status Condition
+0x54       : Level
+0x55       : Mail ID
+0x56–0x57 : Current HP
+0x58–0x59 : Total HP
+0x5A–0x5B : Attack
+0x5C–0x5D : Defense
+0x5E–0x5F : Speed
+0x60–0x61 : Special Attack
+0x62–0x63 : Special Defense
+
+
+PC-stored Pokémon only store 0x00–0x4F (first 80 bytes).
+
+
+
+
+---
+
+
+3. Key Fields (Explanation)
+
+
+3.1 Personality Value (PID)
+
+
+32-bit unsigned value
+
+
+Influences:
+
+
+Nature
+
+
+Gender
+
+
+Unown form
+
+
+Spinda spot pattern
+
+
+Substructure order (PID mod 24)
+
+
+Encryption key
+
+
+
+
+
+
+
+
+---
+
+
+3.2 Original Trainer ID (OT ID)
+
+
+32-bit value
+
+
+Upper 16 bits = visible Trainer ID
+
+
+Lower 16 bits = Secret ID
+
+
+Used for shiny calculation and in encryption:
+Encryption key = PID XOR OT_ID
+
+
+
+
+
+
+---
+
+
+3.3 Nickname (10 bytes)
+
+
+Game-specific character encoding
+
+
+0xFF terminator if shorter than 10 chars
+
+
+
+
+
+
+---
+
+
+3.4 Language (1 byte)
+
+
+Indicates language of the game in which the Pokémon was originally obtained
+
+
+
+
+
+
+---
+
+
+3.5 Misc Flags (1 byte)
+
+
+Bit layout:
+
+
+Bit        Meaning
+
+
+0        Bad Egg flag
+1        Has species (0 = empty slot)
+2        Use egg name (“EGG”)
+3        Cannot be deposited into Pokémon Box RS
+4–7        Unused (must be 0)
+
+
+
+
+
+
+---
+
+
+3.6 OT Name (7 bytes)
+
+
+Up to 7 characters
+
+
+Same encoding as nickname
+
+
+
+
+
+
+---
+
+
+3.7 Markings (1 byte)
+
+
+Bitfield representing Box markings (circle, square, triangle, etc.)
+
+
+
+
+
+
+---
+
+
+3.8 Checksum (2 bytes)
+
+
+16-bit sum of all unencrypted 16-bit words in the Data section (48 bytes)
+
+
+If mismatch, Pokémon becomes a Bad Egg
+
+
+
+
+Calculation:
+
+
+Sum all 24 words (16-bit), take lower 16 bits → checksum
+
+
+
+
+---
+
+
+3.9 Unknown Field (2 bytes)
+
+
+Purpose not defined
+
+
+Usually zero or padding
+
+
+
+
+
+
+---
+
+
+3.10 Encrypted Data (48 bytes)
+
+
+Contains 4 substructures, each 12 bytes:
+
+
+1. Growth
+
+
+
+
+2. Attacks
+
+
+
+
+3. EVs & Condition
+
+
+
+
+4. Miscellaneous
+
+
+
+
+
+
+Order is determined by:
+
+
+PID mod 24
+
+
+This selects one of 24 possible permutations.
+
+
+
+
+---
+
+
+3.11 Decryption / Encryption
+
+
+Key = PID XOR OT ID (32 bits)
+
+
+Encryption/decryption algorithm:
+
+
+Apply XOR to the Data section 4 bytes at a time
+
+
+Perform before/after shuffling according to the substructure order
+
+
+
+
+
+
+---
+
+
+3.12 Party-Only Fields (last 20 bytes)
+
+
+These do not exist in PC-stored Pokémon and must be recalculated on withdraw.
+
+
+Status condition (sleep, poison, etc)
+
+
+Level
+
+
+Mail ID
+
+
+Current HP
+
+
+Maximum HP
+
+
+Attack/Defense/Speed/Sp.Atk/Sp.Def (calculated from IV/EV/Nature)
+
+
+
+
+
+
+---
+
+
+4. Substructures (Inside the 48-byte Encrypted Block)
+
+
+The 48-byte block is made of 4 × 12-byte substructures.
+
+
+4.1 Substructure Categories
+
+
+G = Growth
+Contains:
+
+
+Species
+
+
+Held item
+
+
+Experience
+
+
+PP bonuses
+
+
+Friendship
+
+
+
+
+A = Attacks
+Contains:
+
+
+Move 1–4 IDs
+
+
+Their PP
+
+
+
+
+E = EVs & Condition
+Contains:
+
+
+EVs for HP/Atk/Def/Spd/SpAtk/SpDef
+
+
+Contest stats (Cool/Beauty/Cute/Smart/Tough/Sheen)
+
+
+
+
+M = Miscellaneous
+Contains:
+
+
+IVs
+
+
+Egg/Met location
+
+
+Met level/game/original trainer gender
+
+
+Ability
+
+
+Pokerus
+
+
+Ribbons
+
+
+Obedience bit
+
+
+
+
+
+
+
+
+---
+
+
+4.2 Substructure Order
+
+
+There are 24 permutations.
+
+
+Index = PID % 24
+Each index corresponds to one permutation of G, A, E, M.
+
+
+Example permutations:
+
+
+GAME
+
+
+GMAE
+
+
+GEAM
+
+
+MEGA
+
+
+EAGM
+
+
+etc.
+
+
+
+
+All 24 orders must be supported.
+
+
+
+
+---
+
+
+5. Status Condition (Party Only)
+
+
+1 byte with special handling:
+
+
+Bits 0–2: Sleep turns (0–7)
+
+
+Bit 3: Poison
+
+
+Bit 4: Burn
+
+
+Bit 5: Freeze
+
+
+Bit 6: Paralysis
+
+
+Bit 7: Toxic poison
+
+
+
+
+
+
+---
+
+
+6. Mail ID (Party Only)
+
+
+If Pokémon holds mail, this byte stores the mail message ID
+
+
+If none → 0xFF
+
+
+
+
+
+
+---
+
+
+7. Stat Fields (Party Only)
+
+
+All 2 bytes each:
+
+
+Current HP
+
+
+Total HP
+
+
+Attack
+
+
+Defense
+
+
+Speed
+
+
+Special Attack
+
+
+Special Defense
+
+
+
+
+
+
+---
+
+
+8. PC vs Party Summary
+
+
+Field        Party        PC
+
+
+100-byte structure        Yes        No
+80-byte structure        Yes        Yes
+Visible stats        Yes        No
+Current HP        Yes        No
+Total HP/Atk/Def/Spd/SpAtk/SpDef        Yes        No
+Status        Yes        No
+
+
+
+
+PC Pokémon only store the 48-byte encrypted data + metadata; the stats are computed on load.
+
+
+
+
+---
+
+
+9. Errors & Bad Eggs
+
+
+A Pokémon becomes a Bad Egg if:
+
+
+Checksum fails
+
+
+Bad Egg flag set
+
+
+Substructure data is malformed
+
+
+
+
+Bad Eggs force name display “Bad EGG” and cannot be used.
+
+
+
+
+---
+
+
+10. Summary for Implementers
+
+
+To correctly parse or generate a Gen III Pokémon:
+
+
+1. Read 80 or 100 bytes depending on PC/party.
+
+
+
+
+2. Parse PID and OT ID.
+
+
+
+
+3. Compute encryption key = PID XOR OT_ID.
+
+
+
+
+4. Extract the 48-byte Data block.
+
+
+
+
+5. Decrypt by XORing 4 bytes at a time.
+
+
+
+
+6. Determine substructure order using PID % 24.
+
+
+
+
+7. De-shuffle substructures into G/A/E/M.
+
+
+
+
+8. Read fields from each 12-byte block.
+
+
+
+
+9. Verify checksum (sum of decrypted 16-bit words).
+
+
+
+
+10. Parse metadata (nickname, flags, names, language).
+
+
+
+
+11. For party: parse HP/stats/status/level/mail fields.
+
+
+
+
+
+
+—--------------------
+
+
+
+
+Below is a self-contained, LLM-friendly spec for Gen III Pokémon → raw hex.
+You can paste this straight into Google Docs and use it later as a prompt/reference.
+
+
+
+
+---
+
+
+GEN 3 POKÉMON DATA → RAW HEX SPEC
+
+
+0. Purpose
+
+
+This document explains, in a precise and implementation-friendly way:
+
+
+1. How a Generation III Pokémon (Ruby/Sapphire/FR/LG/Emerald) is represented in memory. 
+
+
+
+
+2. How the encrypted substructures are laid out and encoded. 
+
+
+
+
+3. How to convert all of that into an 80-byte (PC) or 100-byte (party) hex blob – e.g.:
+
+
+
+
+
+
+48 35 05 7B 4B 4E 00 00 C4 C3 CC BB BD C2 C3 FF ...
+
+
+The goal is that a language model, given this spec and the appropriate game IDs, can generate valid hex for tools like PokéGlitzer.
+
+
+
+
+---
+
+
+1. Basic conventions
+
+
+1.1 Endianness
+
+
+All integers are little-endian. 
+
+
+
+
+Examples:
+
+
+16-bit value 0x1234 is stored as bytes: 34 12
+
+
+32-bit value 0x12345678 is stored as bytes: 78 56 34 12
+
+
+
+
+1.2 Hex blob format
+
+
+When this document talks about “hex blob”, it means:
+
+
+A sequence of bytes written as two-digit hex (uppercase or lowercase)
+
+
+Optional spaces and line breaks are just formatting
+
+
+
+
+Example (4 bytes):
+
+
+01 00 FF 7E
+
+
+represents the bytes: [0x01, 0x00, 0xFF, 0x7E].
+
+
+
+
+---
+
+
+2. High-level Gen 3 Pokémon structure
+
+
+There are two sizes:
+
+
+Party Pokémon: full 100 bytes
+
+
+PC Pokémon: only the first 80 bytes are stored (the last 20 are recalculated when withdrawn). 
+
+
+
+
+2.1 Layout (party – 100 bytes)
+
+
+Offsets are from start of the Pokémon structure:
+
+
+0x00–0x03 : Personality Value (PID)           [32-bit]
+0x04–0x07 : Original Trainer ID (OT ID)       [32-bit]
+0x08–0x11 : Nickname                          [10 bytes, text]
+0x12       : Language                         [8-bit]
+0x13       : Misc Flags                       [8-bit bitfield]
+0x14–0x1A : OT Name                           [7 bytes, text]
+0x1B       : Markings                         [8-bit bitfield]
+0x1C–0x1D : Checksum                          [16-bit]
+0x1E–0x1F : Unknown / unused                  [16-bit]
+0x20–0x4F : Encrypted Data (substructures)    [48 bytes]
+0x50–0x53 : Status Condition                  [32-bit]
+0x54       : Level                            [8-bit]
+0x55       : Mail ID                          [8-bit]
+0x56–0x57 : Current HP                        [16-bit]
+0x58–0x59 : Total HP                          [16-bit]
+0x5A–0x5B : Attack                            [16-bit]
+0x5C–0x5D : Defense                           [16-bit]
+0x5E–0x5F : Speed                             [16-bit]
+0x60–0x61 : Special Attack                    [16-bit]
+0x62–0x63 : Special Defense                   [16-bit]
+
+
+2.2 Layout (PC – 80 bytes)
+
+
+For a Pokémon stored in a PC box:
+
+
+Only bytes 0x00–0x4F are present.
+
+
+Party-only fields (0x50–0x63) are omitted and recalculated from the substructures (stats from IV/EV/nature, level from experience, etc.). 
+
+
+
+
+So a PC Pokémon that you see as an 80-byte hex blob is literally “the first 0x50 bytes of the full 100-byte structure”.
+
+
+
+
+---
+
+
+3. Top-level fields (0x00–0x1F)
+
+
+3.1 Personality Value (PID) [0x00–0x03]
+
+
+32-bit unsigned value. 
+
+
+Controls: nature, gender, Unown form, Spinda pattern, substructure order, shiny, etc.
+
+
+Also used in the encryption key.
+
+
+
+
+3.2 Original Trainer ID (OT ID) [0x04–0x07]
+
+
+32-bit unsigned value:
+
+
+High 16 bits = visible Trainer ID
+
+
+Low 16 bits = Secret ID 
+
+
+
+
+Combined with PID for encryption and shiny check.
+
+
+3.3 Nickname [0x08–0x11, 10 bytes]
+
+
+Stored in Generation III character encoding (custom charset). 
+
+
+Terminated by 0xFF if shorter than 10 characters; remaining bytes padded with 0x00.
+
+
+
+
+3.4 Language [0x12, 1 byte]
+
+
+Encodes the game language where the Pokémon was obtained (e.g. Japanese, English, etc.).
+
+
+
+
+3.5 Misc Flags [0x13, 1 byte] 
+
+
+Bit layout (bit 0 = least significant bit):
+
+
+Bit 0: Bad Egg flag (1 = treated as Bad Egg)
+
+
+Bit 1: Has species (0 = empty slot)
+
+
+Bit 2: Use egg name (“EGG” instead of nickname)
+
+
+Bit 3: Cannot be stored in Pokémon Box Ruby/Sapphire
+
+
+Bits 4–7: unused, should be 0
+
+
+
+
+3.6 OT Name [0x14–0x1A, 7 bytes]
+
+
+Same encoding as nickname. 
+
+
+Terminated by 0xFF and padded with 0x00 if shorter.
+
+
+
+
+3.7 Markings [0x1B, 1 byte]
+
+
+A few bits used to indicate box markings (circle, triangle, etc.). The exact bit per icon is not usually important for hex generation unless you care about them.
+
+
+3.8 Checksum [0x1C–0x1D, 2 bytes] 
+
+
+16-bit unsigned sum of the unencrypted 48-byte Data area (0x20–0x4F), interpreted as 24 words of 16 bits.
+
+
+Calculation:
+
+
+1. Decrypt Data using the XOR key (see section 4).
+
+
+
+
+2. Interpret Data as 24 unsigned 16-bit values w0...w23 (little-endian).
+
+
+
+
+3. Compute S = (w0 + w1 + ... + w23) mod 65536.
+
+
+
+
+4. Store S as 16-bit little-endian at 0x1C–0x1D.
+
+
+
+
+
+
+
+
+If this doesn’t match when the game checks, the Pokémon becomes a Bad Egg.
+
+
+3.9 Unknown / Unused [0x1E–0x1F]
+
+
+Appears to be unused padding (leave as 0x00 0x00).
+
+
+
+
+
+
+---
+
+
+4. Encrypted Data area (0x20–0x4F, 48 bytes)
+
+
+This is the “core” of the Pokémon:
+
+
+It is split into four 12-byte substructures:
+
+
+G (Growth)
+
+
+A (Attacks)
+
+
+E (EVs & Condition)
+
+
+M (Miscellaneous) 
+
+
+
+
+The order of these four blocks in the 48-byte array depends on the PID.
+
+
+The entire 48-byte region is encrypted with XOR using a key based on PID and OT ID. 
+
+
+
+
+4.1 Substructure order
+
+
+1. Compute index = PID mod 24 (PID is 32-bit unsigned).
+
+
+
+
+2. Use this index to choose one of these permutations (0–23): 
+
+
+
+
+
+
+0:  GAEM   6:  AGEM   12: EGAM   18: MGAE
+1:  GAME   7:  AGME   13: EGMA   19: MGEA
+2:  GEAM   8:  AEGM   14: EAGM   20: MAGE
+3:  GEMA   9:  AEMG   15: EAMG   21: MAEG
+4:  GMAE   10: AMGE   16: EMGA   22: MEGA
+5:  GMEA   11: AMEG   17: EMAG   23: MEAG
+
+
+3. Place the raw 12-byte blocks for G, A, E, M in that order into the 48-byte Data region before encryption.
+
+
+
+
+
+
+4.2 Encryption / Decryption
+
+
+Key:
+
+
+key = PID XOR OT_ID   // both 32-bit unsigned
+
+
+Apply:
+
+
+Treat the 48-byte Data as 12 consecutive 32-bit little-endian words.
+
+
+For each word:
+
+
+
+
+plaintext_word XOR key = ciphertext_word
+ciphertext_word XOR key = plaintext_word
+
+
+Store ciphertext in the actual Pokémon structure.
+
+
+
+
+So the Data stored in the 80/100-byte structure is encrypted and possibly shuffled. When composing from scratch:
+
+
+1. Build plaintext substructures (unshuffled, unencrypted).
+
+
+
+
+2. Shuffle them according to the order table.
+
+
+
+
+3. Compute checksum from the plaintext.
+
+
+
+
+4. Encrypt the shuffled Data using the key.
+
+
+
+
+5. Store encrypted Data at 0x20–0x4F.
+
+
+
+
+
+
+
+
+---
+
+
+5. Substructures (detailed)
+
+
+Each substructure is exactly 12 bytes, with the following layout. 
+
+
+All offsets below are within that 12-byte block (0–11).
+
+
+5.1 Growth (G)
+
+
+Offset Size Field
+0x00   2    Species           (16-bit, Pokémon species index)
+0x02   2    Held item         (16-bit, item index)
+0x04   4    Experience        (32-bit)
+0x08   1    PP bonuses        (8-bit bitfield)
+0x09   1    Friendship        (8-bit)
+0x0A   2    Unused / padding  (16-bit, usually 0)
+
+
+5.1.1 PP bonuses byte (0x08) 
+
+
+This controls PP Ups applied to each of the 4 moves:
+
+
+
+
+bits 0–1 : Move 1 PP Up count (0–3)
+bits 2–3 : Move 2 PP Up count (0–3)
+bits 4–5 : Move 3 PP Up count (0–3)
+bits 6–7 : Move 4 PP Up count (0–3)
+
+
+To build this byte:
+
+
+PP_bonus = (PP1 & 3)
+         | ((PP2 & 3) << 2)
+         | ((PP3 & 3) << 4)
+         | ((PP4 & 3) << 6)
+
+
+5.2 Attacks (A)
+
+
+Offset Size Field
+0x00   2    Move 1 ID         (16-bit)
+0x02   2    Move 2 ID         (16-bit)
+0x04   2    Move 3 ID         (16-bit)
+0x06   2    Move 4 ID         (16-bit)
+0x08   1    Move 1 PP         (8-bit)
+0x09   1    Move 2 PP         (8-bit)
+0x0A   1    Move 3 PP         (8-bit)
+0x0B   1    Move 4 PP         (8-bit)
+
+
+Move IDs refer to the internal Gen 3 move index table.
+
+
+5.3 EVs & Condition (E)
+
+
+Offset Size Field
+0x00   1    HP EV             (8-bit)
+0x01   1    Attack EV         (8-bit)
+0x02   1    Defense EV        (8-bit)
+0x03   1    Speed EV          (8-bit)
+0x04   1    Special Attack EV (8-bit)
+0x05   1    Special Defense EV(8-bit)
+0x06   1    Coolness          (contest stat)
+0x07   1    Beauty            (contest stat)
+0x08   1    Cuteness          (contest stat)
+0x09   1    Smartness         (contest stat)
+0x0A   1    Toughness         (contest stat)
+0x0B   1    Feel (Sheen)      (contest stat)
+
+
+EVs are 0–255 each, but total capped (game logic). The contest stats are separate.
+
+
+5.4 Miscellaneous (M)
+
+
+Offset Size Field
+0x00   1    Pokérus status    (8-bit)
+0x01   1    Met location      (8-bit)
+0x02   2    Origins info      (16-bit, bitfield)
+0x04   4    IVs/Egg/Ability   (32-bit, bitfield)
+0x08   4    Ribbons/Obedience (32-bit, bitfield)
+
+
+5.4.1 Pokérus status (0x00) 
+
+
+Single byte, split into two nibbles:
+
+
+bits 0–3 : Days remaining (0–4 typical; >4 mostly invalid)
+bits 4–7 : Strain (0–15, 0 = no Pokérus)
+
+
+If strain ≠ 0 and days = 0 → cured Pokérus (black dot icon).
+
+
+
+
+5.4.2 Origins info (0x02–0x03) 
+
+
+16-bit bitfield:
+
+
+bits 0–6   : Level met (0–127; 0 = “hatched” for original trainer)
+bits 7–10  : Game of origin
+bits 11–14 : Poké Ball used
+bit 15     : OT trainer gender
+
+
+You can think of it as:
+
+
+LevelMet   = value & 0x7F;           // bits 0-6
+GameOrigin = (value >> 7) & 0x0F;    // bits 7-10
+Ball       = (value >> 11) & 0x0F;   // bits 11-14
+OTGender   = (value >> 15) & 0x01;   // bit 15
+
+
+5.4.3 IVs, Egg, Ability (0x04–0x07) 
+
+
+32-bit bitfield:
+
+
+Bits 0–4: HP IV (0–31)
+
+
+Bits 5–9: Attack IV
+
+
+Bits 10–14: Defense IV
+
+
+Bits 15–19: Speed IV
+
+
+Bits 20–24: Special Attack IV
+
+
+Bits 25–29: Special Defense IV
+
+
+Bit 30: Egg flag (1 = Egg)
+
+
+Bit 31: Ability index (0 = first ability, 1 = second ability, if exists)
+
+
+
+
+Building this:
+
+
+value =
+  ((HP_IV        & 31) << 0)  |
+  ((Atk_IV       & 31) << 5)  |
+  ((Def_IV       & 31) << 10) |
+  ((Spd_IV       & 31) << 15) |
+  ((SpAtk_IV     & 31) << 20) |
+  ((SpDef_IV     & 31) << 25) |
+  ((EggFlag      &  1) << 30) |
+  ((AbilityIndex &  1) << 31);
+
+
+Store this 32-bit value as 4 bytes, little-endian.
+
+
+5.4.4 Ribbons and Obedience (0x08–0x0B) 
+
+
+32-bit bitfield:
+
+
+Bits 0–14: Contest ribbons (Cool, Beauty, Cute, Smart, Tough), each using 3 bits for rank (0 = none, 1–4 = Normal/Super/Hyper/Master).
+
+
+Bits 15–26: Other ribbons (Champion, Winning, Victory, Artist, Effort, etc.).
+
+
+Bit 31: Special obedience / fateful encounter flag for Mew & Deoxys (also interpreted as “fateful encounter” in later gens).
+
+
+
+
+For a simple generator, you can:
+
+
+Set this whole field to 0 for “no ribbons, normal obedience”.
+
+
+Or just set bit 31 if you want a valid “fateful encounter” mythical.
+
+
+
+
+
+
+---
+
+
+6. Party-only fields (0x50–0x63)
+
+
+These exist only in the 100-byte party struct.
+
+
+6.1 Status condition [0x50–0x53]
+
+
+Only the lowest 8 bits are really meaningful:
+
+
+bits 0–2 : Sleep turns (0–7)
+bit  3   : Poison
+bit  4   : Burn
+bit  5   : Freeze
+bit  6   : Paralysis
+bit  7   : Toxic poison
+
+
+Game stores this as a 32-bit word; upper bits are usually zero.
+
+
+6.2 Level [0x54]
+
+
+Current level (1–100).
+
+
+Derived from experience, but stored explicitly here for performance.
+
+
+
+
+6.3 Mail ID [0x55]
+
+
+If holding mail, this is the message ID.
+
+
+If no mail: 0xFF.
+
+
+
+
+6.4 Stats [0x56–0x63]
+
+
+Each is a 16-bit value:
+
+
+0x56–0x57 : Current HP
+0x58–0x59 : Total HP
+0x5A–0x5B : Attack
+0x5C–0x5D : Defense
+0x5E–0x5F : Speed
+0x60–0x61 : Special Attack
+0x62–0x63 : Special Defense
+
+
+Important: These are derived from:
+
+
+Species base stats
+
+
+Level
+
+
+IVs
+
+
+EVs
+
+
+Nature
+
+
+
+
+For a PC Pokémon you do not store these at all; for a party Pokémon you should either:
+
+
+Let the game recalc them, or
+
+
+Implement the standard Gen 3 stat formulae if you want a fully consistent 100-byte blob.
+
+
+
+
+
+
+---
+
+
+7. Character encoding (nickname & OT)
+
+
+Gen 3 uses a proprietary 1-byte per character encoding for text. 
+
+
+Key points:
+
+
+Strings are terminated by 0xFF.
+
+
+Unused bytes in fixed-length strings are padded with 0x00.
+
+
+The exact mapping (e.g. letter "A" → byte, "a" → byte, "é" → byte) is given in Bulbapedia: Character encoding (Generation III) and depends on language. 
+
+
+
+
+To keep this document self-contained in logic:
+
+
+1. Assume you have a function:
+
+
+encodeText_Gen3_English("NAME", maxLen) -> list of bytes
+
+
+
+
+2. That function:
+
+
+Looks up each character in a Gen 3 table.
+
+
+Appends 0xFF as terminator.
+
+
+Pads with 0x00 up to maxLen bytes.
+
+
+
+
+
+
+
+
+The nickname uses maxLen = 10, OT name uses maxLen = 7.
+
+
+
+
+---
+
+
+8. Putting it all together (algorithm)
+
+
+This is the full, step-by-step procedure to go from a “logical Pokémon” to a raw 80-byte or 100-byte hex blob.
+
+
+8.1 Inputs
+
+
+Assume the model is given:
+
+
+Species ID (16-bit)
+
+
+Held item ID (16-bit)
+
+
+Experience (32-bit)
+
+
+Moves 1–4 (16-bit IDs, 0 if none)
+
+
+PP Ups per move (0–3)
+
+
+Base PP or final PP per move
+
+
+EVs for all 6 stats (0–255)
+
+
+Contest stats, or zeroes
+
+
+Pokérus state (days, strain)
+
+
+Level met, ball, origin game, OT gender
+
+
+IVs for all 6 stats
+
+
+Egg flag, ability index (0/1)
+
+
+Ribbons / obedience (or zero)
+
+
+PID (32-bit)
+
+
+OT ID (32-bit)
+
+
+Nickname (string)
+
+
+OT Name (string)
+
+
+Language code
+
+
+Box markings (optional)
+
+
+Level
+
+
+Status condition
+
+
+Mail ID
+
+
+Current HP and stats (if building party struct)
+
+
+
+
+8.2 Procedure
+
+
+Step 1 – Build substructure G (12 bytes)
+
+
+At offset 0: write Species (16-bit LE)
+
+
+Offset 2: Held item (16-bit LE)
+
+
+Offset 4: Experience (32-bit LE)
+
+
+Offset 8: PP bonuses (1 byte; combine as in 5.1.1)
+
+
+Offset 9: Friendship (1 byte)
+
+
+Offset 10–11: 0x00 0x00
+
+
+
+
+Step 2 – Build substructure A (12 bytes)
+
+
+Offsets 0/2/4/6: 16-bit move IDs (LE)
+
+
+Offsets 8/9/10/11: PP for each move (1 byte each)
+
+
+
+
+Step 3 – Build substructure E (12 bytes)
+
+
+Offsets 0–5: HP/Atk/Def/Spd/SpAtk/SpDef EVs
+
+
+Offsets 6–11: Cool/Beauty/Cute/Smart/Tough/Feel contest stats
+
+
+
+
+Step 4 – Build substructure M (12 bytes)
+
+
+Offset 0: Pokérus byte (days + strain)
+
+
+Offset 1: Met location
+
+
+Offsets 2–3: Origins info (16-bit bitfield)
+
+
+Offsets 4–7: IV/Egg/Ability 32-bit bitfield (LE)
+
+
+Offsets 8–11: Ribbons/Obedience 32-bit bitfield (LE)
+
+
+
+
+Step 5 – Decide substructure order
+
+
+Compute index = PID mod 24.
+
+
+Lookup order string (e.g. GAME, GEAM, etc.).
+
+
+Arrange the four 12-byte blocks in that order into a 48-byte array.
+
+
+
+
+Step 6 – Compute checksum
+
+
+Treat the 48-byte array as 24 × 16-bit words (little-endian).
+
+
+Sum them: sum = (Σ words) mod 65536.
+
+
+Store sum as 16-bit LE at 0x1C–0x1D.
+
+
+
+
+Step 7 – Compute XOR key
+
+
+key = PID XOR OT_ID   // 32-bit
+
+
+Step 8 – Encrypt Data block
+
+
+Treat the 48-byte array as 12 × 32-bit words (little-endian).
+
+
+For each word:
+
+
+
+
+cipher_word = plain_word XOR key
+
+
+Convert those 32-bit ciphertext words back to bytes, little-endian.
+
+
+The resulting 48 bytes are written at 0x20–0x4F.
+
+
+
+
+Step 9 – Fill in top-level fields (0x00–0x1F)
+
+
+0x00–0x03: PID (32-bit LE)
+
+
+0x04–0x07: OT ID (32-bit LE)
+
+
+0x08–0x11: Nickname encoded (10 bytes, 0xFF terminator, padded with 0x00)
+
+
+0x12: Language byte
+
+
+0x13: Misc flags (Bad Egg, Has species, Egg name, etc.)
+
+
+0x14–0x1A: OT name encoded (7 bytes)
+
+
+0x1B: Box markings
+
+
+0x1C–0x1D: Checksum (from step 6, LE)
+
+
+0x1E–0x1F: 0x00 0x00 (unused)
+
+
+
+
+Step 10 – If building PC Pokémon (80 bytes)
+
+
+Stop here.
+
+
+Concatenate bytes 0x00–0x4F.
+
+
+Output as an 80-byte hex blob.
+
+
+
+
+Step 11 – If building party Pokémon (100 bytes)
+
+
+0x50–0x53: status condition (as bitfield, 32-bit LE)
+
+
+0x54: level
+
+
+0x55: mail ID (0xFF = none)
+
+
+0x56–0x63: current HP, max HP, Attack, Defense, Speed, Sp.Atk, Sp.Def (16-bit LE each)
+
+
+
+
+Then output all 100 bytes as hex.
+
+
+
+
+---
+
+
+9. What this spec doesn’t include explicitly
+
+
+To fully generate legal Pokémon, the model also needs:
+
+
+The internal ID tables for:
+
+
+Species ID ↔ Pokémon name
+
+
+Move ID ↔ move
+
+
+Item ID ↔ item
+
+
+Location ID ↔ map location
+
+
+Met game IDs, ball IDs
+
+
+
+
+
+
+Those are separate data tables (also documented on Bulbapedia and in ROM decomp projects) and can be provided as an additional prompt chunk.
+
+
+
+
+---
+
+
+10. Answer to your concrete question
+
+
+> “Will this text alone explain how to convert all this into hex data so that when it’s copied into a tool like PokéGlitzer, it will generate that Pokémon?”
+
+
+
+
+
+
+If you keep this spec together as one document and add:
+
+
+The Gen 3 character encoding table for your language
+
+
+The species/move/item/location ID tables
+
+
+A way to choose consistent PID/OT ID/IVs/nature etc.
+
+
+
+
+…then yes: an LLM that follows this document can:
+
+
+1. Take a description like “Level 50 Modest Gardevoir with these IVs and moves…”
+
+
+
+
+2. Choose or be given consistent numeric values (IDs, PID, etc.).
+
+
+
+
+3. Build the 4 substructures, order them, compute checksum, encrypt, and fill in the outer fields.
+
+
+
+
+4. Output an 80-byte or 100-byte hex blob that tools like PokéGlitzer can use.
+
+
+
+
+
+
+—--
+
+
+🧾 Here is the exact text you should add to your document: (copy/paste this)
+
+
+
+
+---
+
+
+Important Clarification: Fixed Output Memory Locations
+
+
+Even though the four substructures (G, A, E, M) may appear in different orders depending on PID % 24, this ordering is only applied to the plaintext data before encryption.
+
+
+After arranging the plaintext substructures, the game:
+
+
+1. Concatenates them into a single 48-byte plaintext block
+
+
+
+
+2. Encrypts the entire 48-byte block using the XOR key
+
+
+
+
+3. Writes the encrypted bytes into fixed positions in the Pokémon data structure:
+
+
+
+
+
+
+0x20–0x2B : Encrypted block 1  (12 bytes)
+0x2C–0x37 : Encrypted block 2  (12 bytes)
+0x38–0x43 : Encrypted block 3  (12 bytes)
+0x44–0x4F : Encrypted block 4  (12 bytes)
+
+
+These offsets never change, regardless of:
+
+
+PID
+
+
+Substructure order
+
+
+Species
+
+
+Moves
+
+
+IVs/EVs
+
+
+Anything else
+
+
+
+
+What changes is only the encrypted content, not the location.
+
+
+This means:
+
+
+Different PIDs → different substructure order → different encrypted bytes
+
+
+But the encrypted bytes are always stored at the same offsets in the final 80-byte or 100-byte Pokémon structure.
+
+
+
+
+
+
+---
+
+
+
+
+Below is a fully optimized, machine-focused, bulletproof example you can paste into Google Docs as part of your LLM Pokémon Hex Generator Specification.
+
+
+This example is written so that ANY LLM can follow it deterministically, without guesswork, and reproduce a complete Gen 3 PC Pokémon hex blob.
+
+
+Everything is broken into:
+
+
+Human-clear descriptions
+
+
+AI-clear steps
+
+
+Exact offsets
+
+
+Plaintext substructures
+
+
+Substructure order
+
+
+Checksum
+
+
+Encryption
+
+
+Final 80-byte blob
+
+
+
+
+This is the gold standard format for teaching a model how to convert a Pokémon concept → raw Gen 3 data.
+
+
+
+
+---
+
+
+🔥 GEN 3 HEX GENERATION – FULL EXAMPLE POKÉMON (LLM TRAINING EXAMPLE)
+
+
+Example Pokémon: Slaking (PC-stored, 80 bytes)
+
+
+This example demonstrates how a Generation 3 Pokémon is transformed from high-level attributes into a final 80-byte PC Pokémon hex blob.
+A model can follow this exact structure to generate any other Pokémon.
+
+
+
+
+---
+
+
+1. INPUT SPECIFICATION (HUMAN DATA)
+
+
+Species: Slaking
+PID: 0x751F1BCB
+OT ID: 0xB4C726BE
+Nickname: SLAKING
+OT Name: BASE64
+Language: English
+Level: 100
+Nature: Adamant      (derived automatically from PID % 25)
+Ability: Truant       (ability index 0 for Slaking)
+Ball: Poké Ball
+Met Location: Mauville City (ID = 0x09)
+Met Level: 0 (hatched)
+Origin Game: Emerald
+IVs: HP/Atk/Def/SpAtk/SpDef/Speed = 31/31/31/31/31/31
+EVs: HP=4, Atk=252, Def=0, SpA=0, SpDef=0, Speed=252
+Item: Choice Band (Item ID = 186 / 0x00BA)
+Friendship: 70 (default)
+Moves:
+  1: Double-Edge (ID = 38 / 0x0026), PP=15 base
+  2: Earthquake  (ID = 89 / 0x0059), PP=10 base
+  3: Shadow Ball (ID = 247 / 0x00F7), PP=15 base
+  4: Hyper Beam  (ID = 63 / 0x003F), PP=5 base
+PP Ups: 3 for all moves (Since PP Bonus = 0xFF)
+Pokérus: 0
+Ribbons: none
+Egg: No
+Fateful Encounter: No
+
+
+
+
+---
+
+
+2. ENCODE HEADER FIELDS (0x00–0x1F)
+
+
+All integer fields use little-endian.
+
+
+2.1 PID (0x00–0x03)
+
+
+PID = 0x751F1BCB → little endian:
+
+
+CB 1B 1F 75
+
+
+2.2 OT ID (0x04–0x07)
+
+
+OT ID = 0xB4C726BE → little endian:
+
+
+BE 26 C7 B4
+
+
+2.3 Nickname “SLAKING” (10 bytes, Gen 3 charset)
+
+
+Encoding:
+
+
+S=CD L=C6 A=BB K=C5 I=C3 N=C8 G=C1 FF terminator, padded
+
+
+Final 10 bytes:
+
+
+CD C6 BB C5 C3 C8 C1 FF FF 00
+
+
+2.4 Language (0x12)
+
+
+English = 02
+
+
+2.5 Misc Flags (0x13)
+
+
+Has species = bit1 → 02
+
+
+2.6 OT name “BASE64” (7 bytes)
+
+
+Encoding:
+
+
+B=BC A=BB S=CD E=BF 6=A7 4=A5 FF terminator
+
+
+Final:
+
+
+BC BB CD BF A7 A5 FF
+
+
+2.7 Markings (0x1B)
+
+
+00
+
+
+2.8 Checksum placeholder (0x1C–0x1D)
+
+
+(Will be replaced later)
+
+
+00 00
+
+
+2.9 Unused (0x1E–0x1F)
+
+
+00 00
+
+
+
+
+---
+
+
+3. BUILD PLAINTEXT SUBSTRUCTURES (48 bytes total)
+
+
+Each substructure is 12 bytes.
+
+
+Order BEFORE shuffling:
+
+
+Growth (G)
+
+
+EV/Condition (E)
+
+
+Misc (M)
+
+
+Attacks (A)
+
+
+
+
+
+
+---
+
+
+3.1 Growth Substructure (G)
+
+
+0x00 Species       = 0x016E (Slaking)       → 6E 01
+0x02 Item          = 0x00BA (Choice Band)   → BA 00
+0x04 EXP           = 1,250,000 (Lv100)      → D0 12 13 00
+0x08 PP Bonus      = FF (all moves 3 PP Ups)
+0x09 Friendship    = 46 (70 decimal)
+0x0A Padding       = 00 00
+
+
+G block (12 bytes):
+
+
+6E 01 BA 00 D0 12 13 00 FF 46 00 00
+
+
+
+
+---
+
+
+3.2 EV & Condition Substructure (E)
+
+
+HP       = 04
+Atk      = FC (252)
+Def      = 00
+Speed    = FC (252)
+SpAtk    = 00
+SpDef    = 00
+Contest Stats = all 00
+
+
+E block:
+
+
+04 FC 00 FC 00 00 00 00 00 00 00 00
+
+
+
+
+---
+
+
+3.3 Misc Substructure (M)
+
+
+Pokérus = 00
+Met location = 09 (Mauville City)
+
+
+Origins info bitfield (met=0, game=Emerald=3, ball=4, OT male):
+
+
+0x2180 → 80 21
+
+
+IV/Ability/Egg bitfield (all 31 IVs, ability slot 0, not an egg):
+
+
+0x3FFFFFFF → FF FF FF 3F
+
+
+Ribbons = 00 00 00 00
+
+
+M block:
+
+
+00 09 80 21 FF FF FF 3F 00 00 00 00
+
+
+
+
+---
+
+
+3.4 Attacks Substructure (A)
+
+
+Move IDs (LE):
+
+
+Double-Edge  = 0026 → 26 00
+Earthquake   = 0059 → 59 00
+Shadow Ball  = 00F7 → F7 00
+Hyper Beam   = 003F → 3F 00
+
+
+PP with 3 PP Ups each:
+
+
+PP1=24 (18 hex), PP2=16 (10 hex), PP3=24 (18 hex), PP4=8 (08 hex)
+
+
+A block:
+
+
+26 00 59 00 F7 00 3F 00 18 10 18 08
+
+
+
+
+---
+
+
+4. DETERMINE SUBSTRUCTURE ORDER
+
+
+Gen 3 order = PID % 24.
+PID = 0x751F1BCB → decimal 1968407499
+1968407499 % 24 = 3
+
+
+Order index 3 = G E M A (GEMA)
+
+
+So final plaintext 48 bytes =
+
+
+[G][E][M][A]
+
+
+Concatenate:
+
+
+6E 01 BA 00 D0 12 13 00 FF 46 00 00
+04 FC 00 FC 00 00 00 00 00 00 00 00
+00 09 80 21 FF FF FF 3F 00 00 00 00
+26 00 59 00 F7 00 3F 00 18 10 18 08
+
+
+
+
+---
+
+
+5. CHECKSUM (0x1C–0x1D)
+
+
+Compute checksum =
+Sum of 24 little-endian 16-bit words of the plaintext 48 bytes.
+
+
+Result = 0xD871
+Store little-endian:
+
+
+71 D8
+
+
+Insert at 0x1C–0x1D.
+
+
+
+
+---
+
+
+6. ENCRYPT 48-BYTE DATA BLOCK
+
+
+Key = PID XOR OTID
+= 0x751F1BCB XOR 0xB4C726BE
+= 0xC1D83D75
+
+
+Encrypt each 32-bit little-endian word:
+
+
+cipher = plaintext_word XOR 0xC1D83D75
+
+
+Final encrypted 48-byte block (0x20–0x4F) is:
+
+
+1B 3C 62 C1 A5 2F CB C1
+8A 7B D8 C1 71 C1 D8 3D
+75 3D D8 C1 75 3D D8 C1
+75 34 58 E0 8A C2 27 FE
+75 3D D8 C1 53 3D 81 C1
+82 3D E7 C1 6D 2D C0 C9
+
+
+(This matches your provided correct encrypted output exactly.)
+
+
+
+
+---
+
+
+7. FINAL 80-BYTE PC POKÉMON BLOB
+
+
+Putting everything together:
+
+
+CB 1B 1F 75 BE 26 C7 B4
+CD C6 BB C5 C3 C8 C1 FF
+FF 00 02 02 BC BB CD BF
+A7 A5 FF 00 71 D8 00 00
+1B 3C 62 C1 A5 2F CB C1
+8A 7B D8 C1 71 C1 D8 3D
+75 3D D8 C1 75 3D D8 C1
+75 34 58 E0 8A C2 27 FE
+75 3D D8 C1 53 3D 81 C1
+82 3D E7 C1 6D 2D C0 C9
+
+
+This is a complete, correct Gen 3 PC Slaking structure.
+
+
+
+
+---
+
+
+🔥 HOW AN LLM SHOULD USE THIS EXAMPLE
+
+
+This example teaches the model the full process:
+
+
+1. Take human Pokémon attributes.
+
+
+
+
+2. Encode top-level header fields.
+
+
+
+
+3. Encode G/E/M/A substructures.
+
+
+
+
+4. Determine substructure order using PID % 24.
+
+
+
+
+5. Compute checksum of plaintext.
+
+
+
+
+6. Encrypt with PID XOR OTID.
+
+
+
+
+7. Insert encrypted bytes at fixed offsets 0x20–0x4F.
+
+
+
+
+8. Output the final 80 bytes.
+
+
+—--------
+
+
+
+
+🔧 LLM PREAMBLE (additional info for LLM AI to know what's important for making a tool for getting the 80 byte hex blob)
+
+
+> You are a Pokémon Generation 3 data encoder.
+Your job is to take a fully-specified Pokémon description and output the exact 80-byte PC Pokémon structure used by the GBA games (Ruby/Sapphire/FireRed/LeafGreen/Emerald).
+
+
+General rules:
+
+
+All multi-byte integers are stored little-endian (least significant byte first).
+
+
+You are always generating a PC/box Pokémon, not a party Pokémon, so the total size is 80 bytes (offsets 0x00–0x4F).
+
+
+The final 80 bytes represent the Pokémon structure after substructure shuffling, checksum calculation, and XOR encryption have been applied.
+
+
+
+
+Offsets:
+
+
+0x00–0x03: PID (32-bit LE)
+
+
+0x04–0x07: OT ID (32-bit LE)
+
+
+0x08–0x11: Nickname (10 bytes, already Gen 3–encoded, including 0xFF and padding)
+
+
+0x12: Language ID (1 byte)
+
+
+0x13: Misc flags (1 byte) – you will be told which bits to set
+
+
+0x14–0x1A: OT name (7 bytes, already Gen 3–encoded)
+
+
+0x1B: Box markings (1 byte)
+
+
+0x1C–0x1D: Checksum (16-bit LE)
+
+
+0x1E–0x1F: Unused, set to 0x00 0x00
+
+
+0x20–0x4F: Encrypted data substructures (48 bytes)
+
+
+
+
+Substructures:
+
+
+There are four substructures of 12 bytes each: G (Growth), A (Attacks), E (EVs & Condition), M (Misc).
+
+
+Before encryption, you build four 12-byte plaintext blocks for G, A, E and M according to the data specification.
+
+
+
+
+Substructure order:
+
+
+Compute index = PID % 24. Use this table:
+
+
+0: GAEM   1: GAME   2: GEAM   3: GEMA   4: GMAE   5: GMEA
+
+
+6: AGEM   7: AGME   8: AEGM   9: AEMG   10: AMGE  11: AMEG
+
+
+12: EGAM  13: EGMA  14: EAGM  15: EAMG  16: EMGA  17: EMAG
+
+
+18: MGAE  19: MGEA  20: MAGE  21: MAEG  22: MEGA  23: MEAG
+
+
+
+
+Arrange the plaintext substructures in that order to form a 48-byte plaintext data block.
+
+
+The physical positions of the 48 bytes in the final structure are fixed:
+
+
+0x20–0x2B = first  12-byte block
+
+
+0x2C–0x37 = second 12-byte block
+
+
+0x38–0x43 = third  12-byte block
+
+
+0x44–0x4F = fourth 12-byte block
+
+
+
+
+Do not move these offsets. Only control which substructure is used in each plaintext block.
+
+
+
+
+Checksum:
+
+
+To compute the checksum, treat the 48-byte plaintext data block as 24 little-endian 16-bit words.
+
+
+Compute sum = (w0 + w1 + ... + w23) mod 65536.
+
+
+Store this as a 16-bit little-endian value at offsets 0x1C–0x1D.
+
+
+Checksum is computed on plaintext, not on the encrypted data.
+
+
+
+
+Encryption:
+
+
+Compute the XOR key: key = (PID XOR OT_ID) interpreted as an unsigned 32-bit integer.
+
+
+Treat the 48-byte plaintext data block as 12 little-endian 32-bit words.
+
+
+For each word: cipher_word = plaintext_word XOR key.
+
+
+Write these ciphertext words back as 48 bytes (little-endian) at offsets 0x20–0x4F.
+
+
+
+
+Important:
+
+
+Always respect integer ranges: IVs 0–31, EVs 0–255, etc. If input data is out of range, say so instead of “fixing” it.
+
+
+Do not invent species IDs, move IDs, item IDs, or location IDs. You will be given numeric IDs directly.
+
+
+
+
+Output format:
+
+
+Your final answer must consist of exactly 80 bytes, formatted as two-digit uppercase hex numbers, separated by single spaces.
+
+
+Do not include any extra commentary, labels, or explanations in the final answer – only the 80-byte hex blob.
+
+
+
+
+You will now be given a Pokémon specification (with all needed numeric IDs and flags). Follow these rules exactly and output the corresponding 80-byte PC Pokémon hex blob.
+
+
+
+
+—-------
+
+
+
+
+✅ DIRECT INSTRUCTIONS TO THE LLM FOR CREATING A TOOL
+
+
+> You must follow all instructions in this section when helping me build a tool for generating Pokémon data. Do not ignore or reinterpret anything stated here.
+
+
+
+
+
+
+
+
+---
+
+
+1. Purpose of the Tool
+
+
+I am building an HTML/CSS/JS tool that takes user input describing a Pokémon and outputs the exact 80-byte PC Pokémon structure used in Generation III (Ruby/Sapphire/FireRed/LeafGreen/Emerald).
+Your role is to help me generate correct code and correct Pokémon structures.
+
+
+
+
+---
+
+
+2. Required Inputs to the Tool
+
+
+The tool must accept user input for the following values.
+When writing code or giving instructions, always assume these will be provided by the user:
+
+
+Core identity
+
+
+PID (hex or decimal)
+
+
+OT ID (hex or decimal)
+
+
+
+
+Text (pre-encoded or raw depending on my choice — see section 4)
+
+
+Nickname (max 10 bytes + terminator/padding)
+
+
+OT Name (max 7 bytes + terminator/padding)
+
+
+
+
+Species data
+
+
+Species ID (numeric)
+
+
+Ability index (0 or 1, depending on species)
+
+
+Nature (derived automatically from PID % 25; do not store directly)
+
+
+
+
+Items, moves, and stats
+
+
+Held item ID
+
+
+Move IDs (1–4)
+
+
+Move PP Ups (0–3 per move)
+
+
+IVs (six values: 0–31)
+
+
+EVs (six values: 0–255)
+
+
+
+
+Other fields
+
+
+Level
+
+
+Friendship
+
+
+Language ID
+
+
+Ball ID
+
+
+Origin game ID
+
+
+Met location ID
+
+
+Met level
+
+
+Pokérus
+
+
+Ribbons (combined bitfield or zero)
+
+
+Egg flag (yes/no)
+
+
+Fateful encounter flag
+
+
+
+
+Everything above must be exposed as user inputs in the JS tool or programmatically passed in.
+
+
+
+
+---
+
+
+3. Required Output
+
+
+The tool must output exactly 80 bytes, representing a PC-stored Pokémon structure.
+
+
+Format: two-digit uppercase hex, space-separated.
+
+
+No “0x” prefixes.
+
+
+No extra explanations, no JSON, no surrounding text.
+
+
+Example of correct formatting:
+
+
+
+
+CB 1B 1F 75 BE 26 C7 B4 CD C6 BB C5 ...
+
+
+The output must always be exactly 80 bytes (0x00–0x4F).
+
+
+
+
+This tool must not output party bytes (0x50–0x63).
+The tool always builds PC Pokémon only, not party Pokémon.
+
+
+
+
+---
+
+
+4. Character Encoding Rule
+
+
+I choose which version to use in any given conversation. Follow whichever applies:
+
+
+Option A: I provide nickname/OT name as already encoded bytes
+
+
+In this mode:
+
+
+> “Assume nickname and OT name are provided to you already encoded in the Generation III English charset, terminated with 0xFF and padded with 0x00.”
+
+
+
+
+
+
+You must not perform character → byte conversion.
+
+
+---
+
+
+5. Strict Offsets for Final Output
+
+
+The Pokémon structure always uses these fixed offsets:
+
+
+0x00–0x03 : PID (32-bit LE)
+0x04–0x07 : OT ID (32-bit LE)
+0x08–0x11 : Nickname (10 bytes)
+0x12      : Language
+0x13      : Misc flags
+0x14–0x1A : OT Name (7 bytes)
+0x1B      : Markings
+0x1C–0x1D : Checksum (16-bit LE)
+0x1E–0x1F : Unused (00 00)
+0x20–0x4F : Encrypted Data (48 bytes)
+
+
+Under no circumstances should these offsets ever change.
+
+
+
+
+---
+
+
+6. Substructure Rules (G/A/E/M)
+
+
+Substructures
+
+
+There are four plaintext 12-byte blocks:
+
+
+G = Growth
+
+
+A = Attacks
+
+
+E = EVs & Condition
+
+
+M = Misc
+
+
+
+
+Ordering rule (critical!)
+
+
+Compute:
+
+
+index = PID % 24
+
+
+Use this exact permutation table:
+
+
+0: GAEM   6: AGEM   12: EGAM   18: MGAE
+1: GAME   7: AGME   13: EGMA   19: MGEA
+2: GEAM   8: AEGM   14: EAGM   20: MAGE
+3: GEMA   9: AEMG   15: EAMG   21: MAEG
+4: GMAE   10: AMGE  16: EMGA   22: MEGA
+5: GMEA   11: AMEG  17: EMAG   23: MEAG
+
+
+Arrange the plaintext substructures accordingly:
+
+
+plaintext48 = [block1][block2][block3][block4]
+
+
+Then store them encrypted at the fixed output offsets:
+
+
+0x20–0x2B : Encrypted Block 1
+0x2C–0x37 : Encrypted Block 2
+0x38–0x43 : Encrypted Block 3
+0x44–0x4F : Encrypted Block 4
+
+
+> “Do NOT change the offsets. Only change the order of plaintext before encryption.”
+
+
+
+
+
+
+
+
+---
+
+
+7. Checksum Rules
+
+
+Checksum is computed only from the plaintext 48-byte block.
+
+
+Procedure:
+
+
+1. Split plaintext into 24 little-endian 16-bit words.
+
+
+
+
+2. Sum all words:
+
+
+sum = (w0 + w1 + ... + w23) mod 65536
+
+
+
+
+3. Store the result at offset 0x1C–0x1D (little-endian).
+
+
+
+
+
+
+
+
+---
+
+
+8. Encryption Rules
+
+
+Encryption uses:
+
+
+key = PID XOR OT_ID    (32-bit unsigned)
+
+
+Steps:
+
+
+1. Split plaintext (48 bytes) into 12 little-endian 32-bit words.
+
+
+
+
+2. For each word:
+
+
+cipher_word = plaintext_word XOR key
+
+
+
+
+3. Write all 12 results to offsets 0x20–0x4F, in the same positions.
+
+
+
+
+
+
+
+
+---
+
+
+9. Validation Rules
+
+
+When I give you Pokémon data:
+
+
+IVs must be 0–31
+
+
+EVs must be 0–255
+
+
+Level must be 1–100
+
+
+Friendship must be 0–255
+
+
+Nickname and OT name must fit in their byte limits
+
+
+
+
+If anything is out of range:
+
+
+> “Stop and report the invalid field. Do NOT auto-correct.”
+
+
+
+
+
+
+
+
+---
+
+
+10. Requirements for Generating HTML/CSS/JS Code
+
+
+When I ask for implementation help:
+
+
+You must generate code that:
+
+
+Uses plain vanilla JavaScript (no external libraries).
+
+
+Uses modular functions:
+
+
+buildGrowthBlock()
+
+
+buildAttacksBlock()
+
+
+buildEVBlock()
+
+
+buildMiscBlock()
+
+
+getSubstructureOrder(pid)
+
+
+computeChecksum(plaintext48)
+
+
+encryptData(plaintext48, pid, otid)
+
+
+buildPokemonStruct(input) → returns Uint8Array(80)
+
+
+
+
+
+
+You must produce:
+
+
+Clean readable JS
+
+
+Clean HTML form
+
+
+Optional CSS styling if asked
+
+
+All code must follow the spec in this document exactly
+
+
+
+
+When generating code:
+
+
+> “Do not guess any numeric IDs. Only use IDs that I provide.”
+
+
+
+
+
+
+
+
+---
+
+
+11. Output Discipline
+
+
+At the end of the process, you must output:
+
+
+ONLY the final 80-byte hex blob
+
+
+Two-digit uppercase hex
+
+
+Space-separated
+
+
+No commentary, text, labels, or explanation
+
+
+
+
+Unless I explicitly ask for additional logging/debugging.
+
+
+
+
+---
+
+
+12. Reference Example (for correctness checks)
+
+
+Use the Slaking example included in this document as a test vector:
+
+
+If your generated JS code cannot reproduce the exact Slaking 80-byte blob using the numbers provided, your code is incorrect and must be fixed.
+
+
+
+
+
+
+---
+
+
+You must follow every rule in this section when assisting me. Never improvise, reinterpret, or simplify the rules.
+
+
+
+
+---
