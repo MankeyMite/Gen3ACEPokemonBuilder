@@ -114,7 +114,7 @@ This tool is designed for educational purposes and use with legally obtained gam
 
 ### Development Note
 
-This tool was created primarily using GitHub Copilot in Visual Studio Code. While extensive testing has been done, there may be undiscovered bugs or edge cases. Please report any issues you encounter!
+This tool was created primarily using GitHub Copilot in Visual Studio Code v1.106.2. While extensive testing has been done, there may be undiscovered bugs or edge cases. Please report any issues you encounter!
 
 ## 🗂️ Project Structure
 
