@@ -81,11 +81,14 @@ h1,h2{
 }
 
 h1 {
-  font-size: 2rem;
-  background: linear-gradient(135deg, #48d597 0%, #4a9eff 50%, #e74c3c 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--fg);
+  /* stronger glow + subtle colored rim to make it pop */
+  text-shadow: 0 6px 22px rgba(0,0,0,0.65),
+               0 0 12px rgba(74,158,255,0.22),
+               0 0 6px rgba(72,213,151,0.08);
+  letter-spacing: 0.4px;
 }
 
 .muted{color:var(--muted)}

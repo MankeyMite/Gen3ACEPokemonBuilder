@@ -9,7 +9,7 @@ import { LOCATIONS } from './data/locations.gen3.js';
 import { PID_PRESETS } from './data/pid_presets.gen3.js';
 import { STATIC_ENCOUNTERS, isLegendary, isBreedable, isGiftPokemon } from './data/staticEncounters.gen3.js';
 import { getLegendaryPreset, isColosseumXDLegendary } from './data/legendaryPresets.gen3.js';
-import { buildPokemonBytes, toHexString, toFormattedHex, toBase64Emerald, coreSource, parsePokemonBytes } from './lib/gen3/builder.js';
+import { buildPokemonBytes, toHexString, toFormattedHex, toBase64Emerald, coreSource, parsePokemonBytes, buildDecryptedPokemonFile } from './lib/gen3/builder.js';
 import { GROUP, expForLevel, levelForExp } from './lib/exp.js';
 import EXP_GROUPS from './data/expGroups.gen3.js';
 import { ABILITIES, getAbilityName } from './data/abilities.gen3.js';
@@ -64,13 +64,13 @@ const GENDER_THRESHOLDS = {
   29: 255, 30: 255, 31: 255,  // Nidoran♀ line
   113: 255, 242: 255, 440: 255, // Chansey line
   238: 255, 124: 255,          // Smoochum, Jynx
-  314: 255,                    // Illumise
+  387: 255,                    // Illumise
   
   // Male-only species (threshold 0)
   32: 0, 33: 0, 34: 0,    // Nidoran♂ line
   106: 0, 107: 0, 236: 0, 237: 0, // Hitmons
   128: 0,                  // Tauros
-  313: 0,                  // Volbeat
+  386: 0,                  // Volbeat
   
   // Genderless (threshold -1)
   81: -1, 82: -1, 462: -1,   // Magnemite line
@@ -84,10 +84,12 @@ const GENDER_THRESHOLDS = {
   243: -1, 244: -1, 245: -1, // Legendary beasts
   249: -1, 250: -1,          // Lugia, Ho-Oh
   251: -1,                   // Celebi
-  377: -1, 378: -1, 379: -1, // Regis
-  380: -1, 381: -1,          // Lati@s
-  382: -1, 383: -1, 384: -1, // Weather trio
-  385: -1, 386: -1,          // Jirachi, Deoxys
+  398: -1,                   // Beldum
+  399: -1, 400: -1,          // Metang, Metagross
+  401: -1, 402: -1, 403: -1, // Regis
+  407: -1, 408: -1,          // Lati@s
+  404: -1, 405: -1, 406: -1, // Weather trio
+  409: -1, 410: -1,          // Jirachi, Deoxys
   
   // Most others default to 50/50 (threshold 127) if not specified
 };
@@ -210,6 +212,9 @@ function createAutocomplete(selectEl, list, opts = {}) {
   // Create dropdown
   const dropdown = document.createElement('div');
   dropdown.className = 'autocomplete-dropdown';
+  // Limit dropdown height to 5 items and make it scrollable
+  dropdown.style.maxHeight = '160px'; // ~32px per item * 5
+  dropdown.style.overflowY = 'auto';
   
   // Store current selection
   let selectedId = '';
@@ -268,18 +273,17 @@ function createAutocomplete(selectEl, list, opts = {}) {
       return;
     }
     
+    // Show all filtered items, but dropdown is scrollable and visually limited to 5
     filtered.forEach((item, idx) => {
       const div = document.createElement('div');
       div.className = 'autocomplete-item';
       div.textContent = item.name;
       div.dataset.id = item.id;
       div.dataset.index = idx;
-      
       div.addEventListener('mousedown', (e) => {
         e.preventDefault();
         selectItem(item);
       });
-      
       dropdown.appendChild(div);
     });
   }
@@ -797,8 +801,8 @@ function boot(){
           errors.push('Mew must have Emerald as origin game');
         }
       }
-      // Jirachi (385) and Celebi (251)
-      else if ([385, 251].includes(speciesId)) {
+      // Jirachi (409) and Celebi (251)
+      else if ([409, 251].includes(speciesId)) {
         if (![1, 2].includes(currentOriginGame)) {
           errors.push('Jirachi and Celebi must have Ruby or Sapphire as origin game');
         }
@@ -822,8 +826,8 @@ function boot(){
           errors.push('Lugia and Ho-Oh must have Emerald, FireRed, or LeafGreen as origin game');
         }
       }
-      // Latios (381) and Latias (380)
-      else if ([380, 381].includes(speciesId)) {
+      // Latios (408) and Latias (407)
+      else if ([407, 408].includes(speciesId)) {
         if ([1, 2].includes(currentOriginGame)) {
           // Ruby/Sapphire not yet implemented
           return {
@@ -835,8 +839,8 @@ function boot(){
           errors.push('Latios and Latias must have Emerald as origin game');
         }
       }
-      // Kyogre (382)
-      else if (speciesId === 382) {
+      // Kyogre (404)
+      else if (speciesId === 404) {
         if (![1, 3].includes(currentOriginGame)) {
           errors.push('Kyogre must have Emerald or Sapphire as origin game');
         } else if (currentOriginGame === 1) {
@@ -849,8 +853,8 @@ function boot(){
           }
         }
       }
-      // Groudon (383)
-      else if (speciesId === 383) {
+      // Groudon (405)
+      else if (speciesId === 405) {
         if (![2, 3].includes(currentOriginGame)) {
           errors.push('Groudon must have Emerald or Ruby as origin game');
         } else if (currentOriginGame === 2) {
@@ -871,8 +875,8 @@ function boot(){
       }
       
       // Check fateful encounter requirement for specific legendaries
-      // Mew (151), Lugia (249), Ho-Oh (250), Deoxys (386), Latios (381), Latias (380)
-      const fatefulEncounterRequired = [151, 249, 250, 386, 381, 380];
+      // Mew (151), Lugia (249), Ho-Oh (250), Deoxys (410), Latios (408), Latias (407)
+      const fatefulEncounterRequired = [151, 249, 250, 410, 408, 407];
       const fatefulCheckbox = $('#fatefulEncounter');
       
       if (fatefulEncounterRequired.includes(speciesId)) {
@@ -896,8 +900,8 @@ function boot(){
       // Check illegal ribbons for legendary mode
       // Define legendary categories
       const xdColosseumDogs = [243, 244, 245]; // Raikou, Entei, Suicune
-      const battleFrontierAllowed = [380, 381, 144, 145, 146, 377, 378, 379]; // Latias, Latios, Articuno, Zapdos, Moltres, Regirock, Regice, Registeel
-      const battleFrontierBanned = [251, 150, 151, 384, 382, 383, 385, 386]; // Celebi, Mewtwo, Mew, Rayquaza, Kyogre, Groudon, Jirachi, Deoxys
+      const battleFrontierAllowed = [407, 408, 144, 145, 146, 401, 402, 403]; // Latias, Latios, Articuno, Zapdos, Moltres, Regirock, Regice, Registeel
+      const battleFrontierBanned = [251, 150, 151, 406, 404, 405, 409, 410]; // Celebi, Mewtwo, Mew, Rayquaza, Kyogre, Groudon, Jirachi, Deoxys
       
       let illegalLegendaryRibbons = [];
       
@@ -999,7 +1003,6 @@ function boot(){
   speciesAutocomplete = createAutocomplete($('#species'), SPECIES, {
     onSelect: (item) => {
       const speciesId = Number(item.id);
-      
       // Update nickname when species is selected
       const species = SPECIES.find(s => s[0] === speciesId);
       if (species) {
@@ -1022,17 +1025,15 @@ function boot(){
           $('#nickname').value = species[1].toUpperCase();
         }
       }
-      
       // Update ability select based on species
       updateAbilitySelect(speciesId);
-      
       // Uncheck shiny since species changed (gender ratios may differ)
       const shinyCheckbox = document.querySelector('#shiny');
       if (shinyCheckbox && shinyCheckbox.checked) {
         shinyCheckbox.checked = false;
         checkShiny();
       }
-      // Handle encounter mode for this species
+      // Always update gender dropdown for selected species
       handleEncounterModeChange(speciesId);
       // Validate form
       validateForm();
@@ -1041,7 +1042,11 @@ function boot(){
   
   // Apply initial species filter for default mode (breedable)
   updateSpeciesListForMode();
-  createAutocomplete($('#item'), ITEMS, { placeholder: '— None —' });
+  // Filter out items with IDs 259-288 and 339-376
+  const filteredItems = ITEMS.filter(([id, name]) => {
+    return !((id >= 259 && id <= 288) || (id >= 339 && id <= 376));
+  });
+  createAutocomplete($('#item'), filteredItems, { placeholder: '— None —' });
   createAutocomplete($('#move1'), MOVES, { placeholder: '— Empty —', onSelect: validateForm });
   createAutocomplete($('#move2'), MOVES, { placeholder: '— Empty —', onSelect: validateForm });
   createAutocomplete($('#move3'), MOVES, { placeholder: '— Empty —', onSelect: validateForm });
@@ -1340,11 +1345,50 @@ function boot(){
   function handleEncounterModeChange(speciesId) {
     const mode = currentEncounterMode;
     const genderSelect = $('#gender');
-    
+    // Set gender options based on species gender threshold
+    if (genderSelect) {
+      const threshold = getGenderThreshold(speciesId);
+      genderSelect.innerHTML = '';
+      if (threshold === 255) {
+        // Female only
+        const opt = document.createElement('option');
+        opt.value = 'F';
+        opt.textContent = 'Female';
+        genderSelect.appendChild(opt);
+        genderSelect.value = 'F';
+        genderSelect.disabled = true;
+      } else if (threshold === 0) {
+        // Male only
+        const opt = document.createElement('option');
+        opt.value = 'M';
+        opt.textContent = 'Male';
+        genderSelect.appendChild(opt);
+        genderSelect.value = 'M';
+        genderSelect.disabled = true;
+      } else if (threshold === -1) {
+        // Genderless
+        const opt = document.createElement('option');
+        opt.value = 'N';
+        opt.textContent = 'Genderless';
+        genderSelect.appendChild(opt);
+        genderSelect.value = 'N';
+        genderSelect.disabled = true;
+      } else {
+        // Both male and female
+        const optM = document.createElement('option');
+        optM.value = 'M';
+        optM.textContent = 'Male';
+        genderSelect.appendChild(optM);
+        const optF = document.createElement('option');
+        optF.value = 'F';
+        optF.textContent = 'Female';
+        genderSelect.appendChild(optF);
+        genderSelect.disabled = false;
+      }
+    }
     if (mode === 'legendaries' && STATIC_ENCOUNTERS[speciesId]) {
       // For legendary encounters, apply preset data
       applyStaticEncounterPreset(speciesId);
-      
       // Make gender read-only for legendaries (can still update from PID, but user can't manually change)
       if (genderSelect) {
         genderSelect.style.pointerEvents = 'none';
@@ -1358,19 +1402,16 @@ function boot(){
       const levelInput = $('#level');
       const fatefulCheckbox = $('#fatefulEncounter');
       const originGameSelect = $('#originGame');
-      
       // Re-enable gender selection
       if (genderSelect) {
         genderSelect.style.pointerEvents = '';
         genderSelect.style.opacity = '';
         genderSelect.style.cursor = '';
       }
-      
       // Reset met location to Mauville City (location ID 9)
       if (metLocationSelect) {
         metLocationSelect.value = '9';
       }
-      
       // Reset met level to 0 (hatched)
       if (metLevelInput) {
         metLevelInput.value = '0';
@@ -1520,8 +1561,8 @@ function boot(){
     }
     
     // Auto-check fateful encounter for specific legendaries
-    // Mew (151), Lugia (249), Ho-Oh (250), Deoxys (386), Latios (381), Latias (380)
-    const fatefulEncounterRequired = [151, 249, 250, 386, 381, 380];
+    // Mew (151), Lugia (249), Ho-Oh (250), Deoxys (410), Latios (408), Latias (407)
+    const fatefulEncounterRequired = [151, 249, 250, 410, 408, 407];
     if (fatefulEncounterRequired.includes(speciesId)) {
       const fatefulCheckbox = $('#fatefulEncounter');
       if (fatefulCheckbox) {
@@ -1581,6 +1622,8 @@ function boot(){
     
     // Update legality status after applying preset
     updateLegalityStatus();
+
+    console.log(`Applied legendary preset for species ${speciesId}`);
   }
 
   /**
@@ -2083,10 +2126,29 @@ function boot(){
     showCopyConfirmation('copyBase64Check');
   });
   $('#loadFromHexBtn').addEventListener('click', onLoadFromHex);
-  $('#exportPk3Btn').addEventListener('click', onExportPk3);
-  $('#importPk3Btn').addEventListener('click', ()=> {
-    $('#pk3FileInput').click();
+  // Wire export/import buttons: keep .ek3 export, add .pk3 (decrypted) export,
+  // and a unified Import Pokémon button that accepts .ek3 or .pk3 files.
+  $('#exportEk3Btn')?.addEventListener('click', onExportPk3);
+  $('#exportPk3Btn')?.addEventListener('click', () => {
+    try {
+      const cfg = collect();
+      const bytes = buildDecryptedPokemonFile(cfg);
+      const blob = new Blob([bytes], { type: 'application/octet-stream' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      const speciesEntry = SPECIES.find(s => s[0] === cfg.speciesId);
+      const speciesName = speciesEntry ? String(speciesEntry[1]) : 'Pokemon';
+      // Prefer species name for filenames; sanitize and collapse underscores
+      const rawName = speciesName || 'Pokemon';
+      const safeName = rawName.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '') || 'Pokemon';
+      a.download = `${safeName}.pk3`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (err) {
+      alert('Error exporting .pk3 file: ' + err.message);
+    }
   });
+  $('#importPokemonBtn')?.addEventListener('click', ()=> { $('#pk3FileInput').click(); });
   $('#pk3FileInput').addEventListener('change', onImportPk3);
 }
 
@@ -2215,6 +2277,8 @@ function calculateShinyPID(tid, sid, nature, targetGender, speciesId, ability) {
   }
   
   // Fallback: return a non-shiny PID with correct nature and gender
+  console.warn('Could not generate shiny PID after', maxAttempts, 'attempts');
+  
   let genderByte;
   if (targetGender === 'female') {
     genderByte = Math.floor(Math.random() * 127);
@@ -2665,11 +2729,13 @@ function onExportPk3() {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     
-    // Generate filename based on species name or use generic name
+    // Generate filename based on species name (prefer English species name)
     const speciesId = cfg.speciesId;
-    const speciesName = SPECIES.find(s => s[0] === speciesId)?.[1] || 'Pokemon';
-    const nickname = cfg.nickname || speciesName;
-    a.download = `${nickname.replace(/[^a-z0-9]/gi, '_')}.ek3`;
+    const speciesEntry = SPECIES.find(s => s[0] === speciesId);
+    const speciesName = speciesEntry ? String(speciesEntry[1]) : 'Pokemon';
+    const rawName = speciesName || 'Pokemon';
+    const safeName = rawName.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '') || 'Pokemon';
+    a.download = `${safeName}.ek3`;
     
     a.click();
     URL.revokeObjectURL(a.href);
@@ -2713,12 +2779,39 @@ function onImportPk3(event) {
       
       // Populate all fields (same as onLoadFromHex)
       $('#species').value = String(data.speciesId);
+      // Update ability select options based on species (do this here because
+      // the updateAbilitySelect function is defined inside boot() and not
+      // directly callable from this scope)
+      (function setAbilityOptionsForSpecies(speciesId, abilityBit){
+        const abilitySelect = document.querySelector('#ability');
+        if (!abilitySelect) return;
+        const abilities = getSpeciesAbilities(Number(speciesId));
+        if (!abilities) {
+          abilitySelect.innerHTML = `\n        <option value="0">0</option>\n        <option value="1">1</option>\n      `;
+          abilitySelect.value = String(abilityBit ?? '0');
+          return;
+        }
+        const [ability0Id, ability1Id] = abilities;
+        const ability0Name = getAbilityName(ability0Id);
+        const ability1Name = getAbilityName(ability1Id);
+        if (ability0Id === ability1Id) {
+          abilitySelect.innerHTML = `<option value="0">${ability0Name}</option>`;
+          abilitySelect.value = '0';
+        } else {
+          abilitySelect.innerHTML = `\n        <option value="0">${ability0Name}</option>\n        <option value="1">${ability1Name}</option>\n      `;
+          // set ability to imported bit if valid, otherwise default to 0
+          if (abilityBit === 0 || abilityBit === 1 || String(abilityBit) === '0' || String(abilityBit) === '1') {
+            abilitySelect.value = String(abilityBit);
+          } else {
+            abilitySelect.value = '0';
+          }
+        }
+      })(data.speciesId, data.abilityBit);
       $('#item').value = String(data.itemId);
       $('#level').value = String(levelForExp(expGroup, data.totalExp));
       $('#expTotal').value = String(data.totalExp);
       $('#pid').value = '0x' + data.pid.toString(16).toUpperCase().padStart(8, '0');
       $('#nature').value = String(data.natureIndex);
-      $('#ability').value = String(data.abilityBit);
       $('#tid').value = String(data.tid);
       $('#sid').value = String(data.sid);
       $('#ball').value = String(data.ballId);
@@ -2823,14 +2916,63 @@ function onImportPk3(event) {
       
       // Check shiny status
       checkShiny();
-      
+
       // Update Hidden Power display based on loaded IVs
       updateHiddenPower();
-      
-      // Now regenerate the hex and base64 outputs with proper formatting
-      onGenerate();
-      
-      alert('Pokémon imported from .ek3 file successfully!');
+
+      // Ensure species-specific UI updates (abilities, gender options)
+      const speciesId = Number(data.speciesId) || 0;
+      try {
+        updateAbilitySelect(speciesId);
+      } catch (e) {
+        // ignore if function not available
+      }
+      try {
+        handleEncounterModeChange(speciesId);
+      } catch (e) {}
+
+      // Dispatch change/input events for key fields so listeners run
+      const dispatchIfPresent = (sel, type='change') => {
+        const el = document.querySelector(sel);
+        if (!el) return;
+        try {
+          el.dispatchEvent(new Event(type, { bubbles: true }));
+        } catch (e) {}
+      };
+
+      // Fields that affect validation: species, nature, moves, otName
+      dispatchIfPresent('#species');
+      dispatchIfPresent('#nature');
+      dispatchIfPresent('#move1');
+      dispatchIfPresent('#move2');
+      dispatchIfPresent('#move3');
+      dispatchIfPresent('#move4');
+      dispatchIfPresent('#otName', 'input');
+
+      // Re-run form validation so Generate button state updates
+      try { validateForm(); } catch (e) {}
+
+      // Imported Pokémon may be event/custom or otherwise unverifiable.
+      // Force the legality checker into 'unknown' (grey question-mark) mode
+      // to indicate the result should be verified in PKHeX.
+      try {
+        const statusEl = $('#legalityStatus');
+        const iconEl = $('#legalityIcon');
+        const textEl = $('#legalityText');
+        if (statusEl && iconEl && textEl) {
+          statusEl.className = 'unknown';
+          iconEl.textContent = '?';
+          iconEl.style.color = '#9ca3af';
+          textEl.textContent = 'Legal?';
+          textEl.style.color = '#9ca3af';
+          statusEl.title = 'Imported Pokémon — legality unknown; please verify in PKHeX.';
+        }
+      } catch (e) {}
+
+      // Also run the general updater so any other UI reacts to the import
+      try { updateLegalityStatus(); } catch (e) {}
+
+      alert('Pokémon imported from .ek3 file successfully! The form has been re-validated.');
     } catch (err) {
       alert('Error importing .ek3 file: ' + err.message);
     }

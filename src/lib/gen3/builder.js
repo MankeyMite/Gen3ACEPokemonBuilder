@@ -198,6 +198,127 @@ export function buildPokemonBytes(cfg){
   };
 }
 
+// Build decrypted 80-byte Pokémon structure and return a 100-byte PKHeX-style
+// decrypted file (first 80 bytes = PC Pokémon structure, trailing 20 bytes = zeros).
+export function buildDecryptedPokemonFile(cfg){
+  // We'll replicate the same substructure construction as in buildPokemonBytes
+  const otid = ((cfg.sid & 0xFFFF) << 16) | (cfg.tid & 0xFFFF);
+  let pid = (cfg.pid && cfg.pid !== 0) ? (cfg.pid >>> 0) : pickPidStub(cfg.natureIndex);
+  const key = (pid ^ otid) >>> 0;
+
+  // Build decrypted substructures (G,A,E,M) exactly as in buildPokemonBytes
+  const G = new Uint8Array(12);
+  const A = new Uint8Array(12);
+  const E = new Uint8Array(12);
+  const M = new Uint8Array(12);
+
+  // G
+  writeU16LE(G, 0, cfg.speciesId);
+  writeU16LE(G, 2, cfg.itemId);
+  writeU32LE(G, 4, cfg.totalExp & 0xFFFFFFFF);
+  const ppBonuses = ((cfg.pps[0] & 3) << 0) | ((cfg.pps[1] & 3) << 2) | ((cfg.pps[2] & 3) << 4) | ((cfg.pps[3] & 3) << 6);
+  G[8] = ppBonuses;
+  G[9] = cfg.friendship & 0xFF;
+
+  // A
+  writeU16LE(A, 0, (cfg.moves[0] ?? 0) & 0xFFFF);
+  writeU16LE(A, 2, (cfg.moves[1] ?? 0) & 0xFFFF);
+  writeU16LE(A, 4, (cfg.moves[2] ?? 0) & 0xFFFF);
+  writeU16LE(A, 6, (cfg.moves[3] ?? 0) & 0xFFFF);
+  for (let i = 0; i < 4; i++) {
+    const moveId = cfg.moves[i] ?? 0;
+    const ppUps = cfg.pps[i] ?? 0;
+    const move = MOVES_MAP[moveId];
+    let basePP = move && typeof move.basePP === 'number' ? move.basePP : 0;
+    let maxPP = basePP > 0 ? Math.floor(basePP * (1 + 0.2 * Math.min(ppUps, 3))) : 0;
+    A[8 + i] = Math.max(0, Math.min(maxPP, 255));
+  }
+
+  // E
+  E[0] = cfg.evs.hp & 0xFF;
+  E[1] = cfg.evs.atk & 0xFF;
+  E[2] = cfg.evs.def & 0xFF;
+  E[3] = cfg.evs.spe & 0xFF;
+  E[4] = cfg.evs.spa & 0xFF;
+  E[5] = cfg.evs.spd & 0xFF;
+  E[6] = (cfg.contest?.cool ?? 0) & 0xFF;
+  E[7] = (cfg.contest?.beauty ?? 0) & 0xFF;
+  E[8] = (cfg.contest?.cute ?? 0) & 0xFF;
+  E[9] = (cfg.contest?.smart ?? 0) & 0xFF;
+  E[10] = (cfg.contest?.tough ?? 0) & 0xFF;
+  E[11] = (cfg.contest?.sheen ?? 0) & 0xFF;
+
+  // M
+  M[0] = 0;
+  M[1] = (cfg.metLocationId ?? 0) & 0xFF;
+  let originsInfo = ((cfg.metLevel ?? cfg.level) & 0x7F) | (((cfg.originGame ?? 3) & 0x0F) << 7) | (((cfg.ballId ?? 0) & 0x0F) << 11) | (((cfg.otGender ?? 0) & 0x01) << 15);
+  writeU16LE(M, 2, originsInfo & 0xFFFF);
+  const ivWord = packIVWord({ hp: cfg.ivs.hp, atk: cfg.ivs.atk, def: cfg.ivs.def, spe: cfg.ivs.spe, spa: cfg.ivs.spa, spd: cfg.ivs.spd }, 0, cfg.abilityBit);
+  writeU32LE(M, 4, ivWord);
+  let ribbonWord = 0;
+  ribbonWord |= ((cfg.ribbons?.cool ?? 0) & 0x7) << 0;
+  ribbonWord |= ((cfg.ribbons?.beauty ?? 0) & 0x7) << 3;
+  ribbonWord |= ((cfg.ribbons?.cute ?? 0) & 0x7) << 6;
+  ribbonWord |= ((cfg.ribbons?.smart ?? 0) & 0x7) << 9;
+  ribbonWord |= ((cfg.ribbons?.tough ?? 0) & 0x7) << 12;
+  if (cfg.ribbons?.champion) ribbonWord |= (1 << 15);
+  if (cfg.ribbons?.winning) ribbonWord |= (1 << 16);
+  if (cfg.ribbons?.victory) ribbonWord |= (1 << 17);
+  if (cfg.ribbons?.artist) ribbonWord |= (1 << 18);
+  if (cfg.ribbons?.effort) ribbonWord |= (1 << 19);
+  if (cfg.ribbons?.battleChampion) ribbonWord |= (1 << 20);
+  if (cfg.ribbons?.regionalChampion) ribbonWord |= (1 << 21);
+  if (cfg.ribbons?.nationalChampion) ribbonWord |= (1 << 22);
+  if (cfg.ribbons?.country) ribbonWord |= (1 << 23);
+  if (cfg.ribbons?.national) ribbonWord |= (1 << 24);
+  if (cfg.ribbons?.earth) ribbonWord |= (1 << 25);
+  if (cfg.ribbons?.world) ribbonWord |= (1 << 26);
+  if (cfg.ribbons?.fatefulEncounter) ribbonWord |= (1 << 31);
+  writeU32LE(M, 8, ribbonWord >>> 0);
+
+  // Concatenate decrypted in GAEM order
+  const order = GAEM_PERMUTATIONS[pid % 24];
+  const map = {G,A,E,M};
+  const decrypted48 = new Uint8Array(48);
+  let off = 0;
+  for(const tag of order){
+    decrypted48.set(map[tag], off);
+    off += 12;
+  }
+
+  const csum = checksum16(decrypted48);
+
+  // Build final 80-byte total with decrypted substructures
+  const total = new Uint8Array(80);
+  let p = 0;
+  writeU32LE(total, p, pid); p += 4;
+  writeU32LE(total, p, otid); p += 4;
+  const nick = encodeNickname(cfg.nickname || '');
+  total.set(nick, p); p += 10;
+  total[p++] = cfg.languageId & 0xFF;
+  total[p++] = 0x02;
+  const ot = encodeOT(cfg.otName || 'TRAINER');
+  total.set(ot, p); p += 7;
+  let markings = 0;
+  if (cfg.markings?.circle) markings |= (1 << 0);
+  if (cfg.markings?.triangle) markings |= (1 << 1);
+  if (cfg.markings?.square) markings |= (1 << 2);
+  if (cfg.markings?.heart) markings |= (1 << 3);
+  total[p++] = markings;
+  writeU16LE(total, p, csum); p += 2;
+  const extraBytes = cfg.extraBytes ?? 0;
+  writeU16LE(total, p, extraBytes & 0xFFFF); p += 2;
+  // Set decrypted substructures directly
+  total.set(decrypted48, 0x20);
+
+  // Build a 100-byte PKHeX-style decrypted file (pad with zeros)
+  const out = new Uint8Array(100);
+  out.set(total, 0);
+  // remaining 20 bytes left as zeros
+
+  return out;
+}
+
 // --- Utilities & stubs ---
 
 // very simple PID picker that respects natureIndex (pid % 25 == nature)
@@ -343,15 +464,41 @@ export function parsePokemonBytes(hexString) {
   // Read extra bytes (2 bytes at 0x1E-0x1F)
   const extraBytes = bytes[0x1E] | (bytes[0x1F] << 8);
   
-  // Decrypt substructures
+  // Decrypt substructures if needed. Some tools export decrypted PC data
+  // (e.g. .pk3) where the 48-byte substructures are already plaintext. To
+  // detect which case we have, try both (XOR with key vs no-op) and pick the
+  // one whose checksum matches the stored checksum in the header.
   const key = (pid ^ otid) >>> 0;
   const encrypted48 = bytes.slice(0x20, 0x50);
-  const decrypted48 = new Uint8Array(48);
-  
-  for (let i = 0; i < 48; i += 4) {
-    const enc = readU32LE(encrypted48, i);
-    const plain = (enc ^ key) >>> 0;
-    writeU32LE(decrypted48, i, plain);
+  const tryCandidate = (useXor) => {
+    const out = new Uint8Array(48);
+    for (let i = 0; i < 48; i += 4) {
+      const word = readU32LE(encrypted48, i);
+      const plain = useXor ? ((word ^ key) >>> 0) : (word >>> 0);
+      writeU32LE(out, i, plain);
+    }
+    return out;
+  };
+
+  // Compute checksum for XOR-decrypted candidate
+  const decryptedCandidate = tryCandidate(true);
+  const checksumCandidate = checksum16(decryptedCandidate);
+
+  let decrypted48;
+  if (checksumCandidate === checksum) {
+    // Encrypted in file; XOR decryption produced matching checksum
+    decrypted48 = decryptedCandidate;
+  } else {
+    // Try treating the block as already decrypted (no XOR)
+    const plainCandidate = tryCandidate(false);
+    const checksumPlain = checksum16(plainCandidate);
+    if (checksumPlain === checksum) {
+      decrypted48 = plainCandidate;
+    } else {
+      // Fallback: prefer XOR-decrypted (original behavior) but warn
+      console.warn('Could not match checksum with or without XOR; using XOR-decrypted by default');
+      decrypted48 = decryptedCandidate;
+    }
   }
   
   // Determine substructure order

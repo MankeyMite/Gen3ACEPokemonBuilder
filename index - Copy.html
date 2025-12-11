@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gen3 ACE Pokémon Builder</title>
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+  <header class="container">
+    <h1>Gen3 ACE Pokémon Builder</h1>
+    <p class="muted">Build a legal, perfect shiny Pokémon and export as Base64-ready box codes.</p>
+  </header>
+
+  <main class="container grid">
+    <section class="card">
+      <h2>Basics</h2>
+      <div class="row">
+        <label for="species">Species</label>
+        <select id="species"></select>
+      </div>
+      <div class="row">
+        <label for="level">Level</label>
+        <input id="level" type="number" min="1" max="100" value="50" />
+      </div>
+      <div class="row">
+        <label for="nature">Nature</label>
+        <select id="nature"></select>
+      </div>
+      <div class="row">
+        <label for="ability">Ability (if 2)</label>
+        <select id="ability">
+          <option value="0">Ability 0</option>
+          <option value="1">Ability 1</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="gender">Gender</label>
+        <select id="gender">
+          <option value="any">No preference</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="item">Held Item</label>
+        <select id="item"></select>
+      </div>
+      <div class="row">
+        <label for="ball">Ball</label>
+        <select id="ball"></select>
+      </div>
+      <div class="row">
+        <label for="metLocation">Met Location</label>
+        <select id="metLocation"></select>
+      </div>
+      <div class="row two">
+        <div>
+          <label for="tid">TID</label>
+          <input id="tid" type="number" min="0" max="65535" value="12345" />
+        </div>
+        <div>
+          <label for="sid">SID</label>
+          <input id="sid" type="number" min="0" max="65535" value="54321" />
+        </div>
+      </div>
+      <div class="row">
+        <label for="ot">OT Name</label>
+        <input id="ot" type="text" maxlength="7" value="AUGUST" />
+      </div>
+      <div class="row">
+        <label for="nickname">Nickname</label>
+        <input id="nickname" type="text" maxlength="10" placeholder="(optional)" />
+      </div>
+      <div class="row">
+        <label for="language">Language</label>
+        <select id="language"></select>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Stats</h2>
+      <div class="row six">
+        <div><label>HP IV</label><input id="iv_hp" type="number" min="0" max="31" value="31"></div>
+        <div><label>Atk IV</label><input id="iv_atk" type="number" min="0" max="31" value="31"></div>
+        <div><label>Def IV</</label><input id="iv_def" type="number" min="0" max="31" value="31"></div>
+        <div><label>SpA IV</label><input id="iv_spa" type="number" min="0" max="31" value="31"></div>
+        <div><label>SpD IV</label><input id="iv_spd" type="number" min="0" max="31" value="31"></div>
+        <div><label>Spe IV</label><input id="iv_spe" type="number" min="0" max="31" value="31"></div>
+      </div>
+      <div class="row six">
+        <div><label>HP EV</label><input id="ev_hp" type="number" min="0" max="255" value="0"></div>
+        <div><label>Atk EV</label><input id="ev_atk" type="number" min="0" max="255" value="0"></div>
+        <div><label>Def EV</label><input id="ev_def" type="number" min="0" max="255" value="0"></div>
+        <div><label>SpA EV</label><input id="ev_spa" type="number" min="0" max="255" value="0"></div>
+        <div><label>SpD EV</label><input id="ev_spd" type="number" min="0" max="255" value="0"></div>
+        <div><label>Spe EV</label><input id="ev_spe" type="number" min="0" max="255" value="0"></div>
+      </div>
+      <div class="row">
+        <label>Moves</label>
+        <div class="moves">
+          <select id="move1"></select>
+          <select id="move2"></select>
+          <select id="move3"></select>
+          <select id="move4"></select>
+        </div>
+      </div>
+      <div class="row">
+        <label for="friendship">Friendship</label>
+        <input id="friendship" type="number" min="0" max="255" value="70" />
+      </div>
+      <div class="row">
+        <label for="shiny">Shiny</label>
+        <input id="shiny" type="checkbox" checked />
+      </div>
+      <div class="row">
+        <button id="generate">Generate</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Output</h2>
+      <textarea id="output" rows="14" spellcheck="false" readonly></textarea>
+      <div class="actions">
+        <button id="copyHex">Copy Hex</button>
+        <button id="copyB64">Copy Base64</button>
+        <button id="download">Download JSON</button>
+      </div>
+      <details>
+        <summary>Show source code (core)</summary>
+        <pre id="coreSource"></pre>
+      </details>
+    </section>
+  </main>
+
+  <footer class="container muted">
+    <p>Made by MankeyMite • This is an early scaffold. Data tables & exact offsets will be filled in.</p>
+  </footer>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
