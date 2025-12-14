@@ -107,7 +107,6 @@ export const MEDIUM_FAST = [
   353, 354, // Plusle, Minun
   355, // Mawile
   358, // Swablu
-  361, 362, // Duskull, Dusclops
   363, 367, 368, // Roselia, Gulpin, Swalot, 
   370, 371, 372, // Whismur, Loudred, Exploud
   385, // Castform
@@ -183,6 +182,7 @@ export const FAST = [
   242, // Blissey
   353, 354, // Plusle, Minun
   355, 356, // Mawile, Meditite
+  361, 362, // Duskull, Dusclops
   377, 378, // Shuppet, Banette
   411, // Chimecho
 ];
