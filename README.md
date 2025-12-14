@@ -3,7 +3,7 @@
 > A browser-based tool for creating Gen III Pokémon using the Arbitrary Code Execution (ACE) glitch
 > Link: https://mankeymite.github.io/Gen3ACEPokemonBuilder/
 
-[![Version](https://img.shields.io/badge/version-0.1.7--alpha-blue.svg)](https://github.com/yourusername/pkmn-ace-tool)
+[![Version](https://img.shields.io/badge/version-0.1.8--alpha-blue.svg)](https://github.com/yourusername/pkmn-ace-tool)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## 🎮 Features
@@ -102,7 +102,7 @@ The tool generates proper Gen III Pokémon data structures:
 
 ### Alpha Release Limitations
 
-This is an **alpha release** (v0.1.6). Known limitations:
+This is an **alpha release**. Known limitations:
 - Wild encounter mode is not yet implemented
 - Colosseum/XD origin game support is incomplete
 - Custom PID validation returns "unknown" status
@@ -162,16 +162,6 @@ Contributions are welcome! This is an alpha release and there's plenty of room f
 - Documentation improvements
 
 Please open an issue before starting work on major features.
-
-## 📝 Version History
-
-### v0.1.7-alpha (Current)
-- Initial alpha release
-- Hatched and Legendary encounter modes
-- Comprehensive legality checker
-- Event Pokémon presets (Mew, Celebi, WISHMKR Jirachi)
-- Gen 3 themed UI
-- Multiple export formats
 
 ## 📄 License
 

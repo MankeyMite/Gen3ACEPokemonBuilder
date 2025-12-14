@@ -91,7 +91,7 @@ export function buildPokemonBytes(cfg){
   // IVs + Egg + Ability (offset 0x04-0x07, 32-bit LE)
   const ivWord = packIVWord({
     hp: cfg.ivs.hp, atk: cfg.ivs.atk, def: cfg.ivs.def, spe: cfg.ivs.spe, spa: cfg.ivs.spa, spd: cfg.ivs.spd
-  }, 0, cfg.abilityBit);
+  }, cfg.isEgg ? 1 : 0, cfg.abilityBit);
   writeU32LE(M, 4, ivWord);
   
   // Ribbons & Obedience (offset 0x08-0x0B, 32-bit LE)
@@ -169,7 +169,10 @@ export function buildPokemonBytes(cfg){
   total[p++] = cfg.languageId & 0xFF;             // 0x12: Language (1 byte)
   
   // Misc Flags (0x13): bit 1 = has species (always 1 for valid)
-  total[p++] = 0x02;                              // 0x13: Misc Flags (has species)
+  // 0x13: Misc Flags (bit 1 = has species, bit 2 = use egg name)
+  let miscFlags = 0x02; // has species
+  if (cfg.isEgg) miscFlags |= 0x04; // use egg name / egg flag
+  total[p++] = miscFlags;                          // 0x13: Misc Flags
   
   // OT name (7 bytes) — proper Gen 3 encoding, 0xFF-padded
   const ot = encodeOT(cfg.otName || 'TRAINER');
@@ -253,7 +256,7 @@ export function buildDecryptedPokemonFile(cfg){
   M[1] = (cfg.metLocationId ?? 0) & 0xFF;
   let originsInfo = ((cfg.metLevel ?? cfg.level) & 0x7F) | (((cfg.originGame ?? 3) & 0x0F) << 7) | (((cfg.ballId ?? 0) & 0x0F) << 11) | (((cfg.otGender ?? 0) & 0x01) << 15);
   writeU16LE(M, 2, originsInfo & 0xFFFF);
-  const ivWord = packIVWord({ hp: cfg.ivs.hp, atk: cfg.ivs.atk, def: cfg.ivs.def, spe: cfg.ivs.spe, spa: cfg.ivs.spa, spd: cfg.ivs.spd }, 0, cfg.abilityBit);
+  const ivWord = packIVWord({ hp: cfg.ivs.hp, atk: cfg.ivs.atk, def: cfg.ivs.def, spe: cfg.ivs.spe, spa: cfg.ivs.spa, spd: cfg.ivs.spd }, cfg.isEgg ? 1 : 0, cfg.abilityBit);
   writeU32LE(M, 4, ivWord);
   let ribbonWord = 0;
   ribbonWord |= ((cfg.ribbons?.cool ?? 0) & 0x7) << 0;
@@ -276,15 +279,16 @@ export function buildDecryptedPokemonFile(cfg){
   if (cfg.ribbons?.fatefulEncounter) ribbonWord |= (1 << 31);
   writeU32LE(M, 8, ribbonWord >>> 0);
 
-  // Concatenate decrypted in GAEM order
-  const order = GAEM_PERMUTATIONS[pid % 24];
+  // For PKHeX-style decrypted output we must use the canonical GAEM order
+  // (G, A, E, M) regardless of PID permutation. PKHeX expects decrypted
+  // files to contain substructures in this fixed order.
   const map = {G,A,E,M};
   const decrypted48 = new Uint8Array(48);
-  let off = 0;
-  for(const tag of order){
-    decrypted48.set(map[tag], off);
-    off += 12;
-  }
+  // canonical GAEM order
+  decrypted48.set(map['G'], 0);
+  decrypted48.set(map['A'], 12);
+  decrypted48.set(map['E'], 24);
+  decrypted48.set(map['M'], 36);
 
   const csum = checksum16(decrypted48);
 
@@ -296,7 +300,10 @@ export function buildDecryptedPokemonFile(cfg){
   const nick = encodeNickname(cfg.nickname || '');
   total.set(nick, p); p += 10;
   total[p++] = cfg.languageId & 0xFF;
-  total[p++] = 0x02;
+  // 0x13: Misc Flags (bit 1 = has species, bit 2 = use egg name)
+  let miscFlags2 = 0x02;
+  if (cfg.isEgg) miscFlags2 |= 0x04;
+  total[p++] = miscFlags2;
   const ot = encodeOT(cfg.otName || 'TRAINER');
   total.set(ot, p); p += 7;
   let markings = 0;
@@ -445,6 +452,7 @@ export function parsePokemonBytes(hexString) {
   const nickname = decodeName(nicknameBytes);
   
   const languageId = bytes[0x12];
+  const miscFlags = bytes[0x13];
   
   // Read OT name (7 bytes at 0x14)
   const otBytes = bytes.slice(0x14, 0x1B);
@@ -485,35 +493,51 @@ export function parsePokemonBytes(hexString) {
   const checksumCandidate = checksum16(decryptedCandidate);
 
   let decrypted48;
+  let usedXor = true;
   if (checksumCandidate === checksum) {
     // Encrypted in file; XOR decryption produced matching checksum
     decrypted48 = decryptedCandidate;
+    usedXor = true;
   } else {
     // Try treating the block as already decrypted (no XOR)
     const plainCandidate = tryCandidate(false);
     const checksumPlain = checksum16(plainCandidate);
     if (checksumPlain === checksum) {
       decrypted48 = plainCandidate;
+      usedXor = false;
     } else {
       // Fallback: prefer XOR-decrypted (original behavior) but warn
       console.warn('Could not match checksum with or without XOR; using XOR-decrypted by default');
       decrypted48 = decryptedCandidate;
+      usedXor = true;
     }
   }
   
-  // Determine substructure order
-  const order = GAEM_PERMUTATIONS[pid % 24];
-  const map = {};
-  let off = 0;
-  for (const tag of order) {
-    map[tag] = decrypted48.slice(off, off + 12);
-    off += 12;
+  // Determine substructure order.
+  // If the file was XOR-decrypted (encrypted on-disk), substructures are stored
+  // in PID-dependent permutation order and must be mapped using GAEM_PERMUTATIONS.
+  // If the file was already plaintext (typical for .pk3 exports we generate),
+  // assume canonical GAEM order (G,A,E,M) at offsets 0,12,24,36 respectively.
+  let G, A, E, M;
+  if (usedXor) {
+    const order = GAEM_PERMUTATIONS[pid % 24];
+    const map = {};
+    let off = 0;
+    for (const tag of order) {
+      map[tag] = decrypted48.slice(off, off + 12);
+      off += 12;
+    }
+    G = map.G;
+    A = map.A;
+    E = map.E;
+    M = map.M;
+  } else {
+    // canonical GAEM order
+    G = decrypted48.slice(0, 12);
+    A = decrypted48.slice(12, 24);
+    E = decrypted48.slice(24, 36);
+    M = decrypted48.slice(36, 48);
   }
-  
-  const G = map.G;
-  const A = map.A;
-  const E = map.E;
-  const M = map.M;
   
   // Parse Growth (G)
   const speciesId = G[0] | (G[1] << 8);
@@ -575,6 +599,11 @@ export function parsePokemonBytes(hexString) {
     spd: (ivWord >> 25) & 0x1F
   };
   const abilityBit = (ivWord >> 31) & 1;
+
+  // Egg bit is stored in the IV word (bit 30). Also some tools mark egg in
+  // the header misc flags (bit 2). Consider Pokémon an egg if either is set.
+  const eggFromIv = (ivWord >>> 30) & 1;
+  const isEggFinal = Boolean(miscFlags & 0x04) || Boolean(eggFromIv);
   
   // Parse ribbons (32-bit bitfield)
   const ribbonWord = readU32LE(M, 8);
@@ -608,6 +637,8 @@ export function parsePokemonBytes(hexString) {
     nickname,
     otName,
     languageId,
+    miscFlags,
+    isEgg: isEggFinal,
     extraBytes,
     markings,
     speciesId,
@@ -627,6 +658,9 @@ export function parsePokemonBytes(hexString) {
     abilityBit,
     natureIndex,
     ribbons
+    ,
+    // Debug: whether XOR decryption was used when parsing
+    usedXor
   };
 }
 

@@ -415,7 +415,7 @@
   <header class="container">
     <h1>Gen 3 ACE Pokémon Builder</h1>
     <p class="muted" style="margin-top: -0.75rem; margin-bottom: 1rem;">
-      <span style="font-size: 0.85em; opacity: 0.8;">v0.1.7</span>
+      <span style="font-size: 0.85em; opacity: 0.8;">v0.1.8</span>
     </p>
     <p class="muted">Build custom Pokémon for Gen III games. Import from raw hex data, .pk3/ek3 files, or create your Pokémon from scratch. Export as BASE64 box codes, raw hex data, or a .pk3/ek3 file. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
 
@@ -570,6 +570,11 @@
       <div class="row">
         <label for="language">Language</label>
         <select id="language"></select>
+      </div>
+
+      <div class="row" data-advanced-only>
+        <label for="isEgg">Is Egg</label>
+        <input id="isEgg" type="checkbox" />
       </div>
 
       <!-- Extra Bytes (Advanced only) -->

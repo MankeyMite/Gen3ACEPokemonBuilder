@@ -210,6 +210,8 @@ export const SLOW = [
   243, 244, 245, // Raikou, Entei, Suicune
   246, 247, 248, // Larvitar, Pupitar, Tyranitar
   249, 250, // Lugia, Ho-Oh
+  330, 331, // Carvanha, Sharpedo
+  337, 338, // Electrike, Manectric
   364, 365, 366, // Slakoth, Vigoroth, Slaking
   369, // Tropius
   381, // Relicanth
@@ -221,8 +223,7 @@ export const SLOW = [
   404, 405, 406, // Kyogre, Groudon, Rayquaza
   407, 408, 409, // Latias, Latios, Jirachi
   410, // Deoxys
-  330, 331, // Carvanha, Sharpedo
-  337, 338, // Electrike, Manectric
+ 
 ];
 
 // Build an array indexed by species ID for fast lookup

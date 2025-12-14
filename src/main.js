@@ -20,6 +20,8 @@ const $ = sel => document.querySelector(sel);
 // Global variables for encounter mode and species filtering
 let speciesAutocomplete = null;
 let currentEncounterMode = 'hatched';
+// When true, skip applying simple-mode PID presets (used during imports)
+let suppressPresetApply = false;
 
 // Gender thresholds for different species (Gen 3)
 // Map species ID to gender threshold (0-255)
@@ -1678,6 +1680,7 @@ function boot(){
   }
 
   function applyPresetIfSimple(){
+    if (suppressPresetApply) return; 
     if(document.body.classList.contains('mode-simple')){
       const preset = getSelectedPreset();
       if(preset){
@@ -2471,6 +2474,7 @@ function collect(){
     otName: $('#otName').value || 'BRENDAN',
     nickname: $('#nickname').value || '',
     languageId: Number($('#language').value),
+    isEgg: $('#isEgg')?.checked || false,
     extraBytes: (function(){
       const type = parseInt($('#extraBytesType')?.value || '0', 16);
       const value = Math.max(0, Math.min(999, Number($('#extraBytesValue')?.value || 0)));
@@ -2599,6 +2603,8 @@ function onLoadFromHex(){
     $('#otName').value = data.otName;
     $('#nickname').value = data.nickname;
     $('#language').value = String(data.languageId);
+    // Egg flag (misc header bit 2 -> 0x04). parsePokemonBytes now returns `isEgg`.
+    if (typeof data.isEgg !== 'undefined') $('#isEgg').checked = Boolean(data.isEgg);
     
     // Extra bytes
     if (data.extraBytes !== undefined) {
@@ -2772,6 +2778,8 @@ function onImportPk3(event) {
       
       // Parse the bytes and load into form fields (without updating outputs yet)
       const data = parsePokemonBytes(Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(''));
+      // Diagnostic: log whether XOR-decryption was used and PID read from header
+      console.log('Imported .pk3/.ek3 — PID:', data.pid, 'usedXor:', data.usedXor);
       
       // Debug: log species ID and exp group
       const expGroup = EXP_GROUPS[data.speciesId] ?? GROUP.MEDIUM_FAST;
@@ -2822,6 +2830,7 @@ function onImportPk3(event) {
       $('#otName').value = data.otName;
       $('#nickname').value = data.nickname;
       $('#language').value = String(data.languageId);
+      if (typeof data.isEgg !== 'undefined') $('#isEgg').checked = Boolean(data.isEgg);
       
       // Extra bytes
       if (data.extraBytes !== undefined) {
@@ -2932,6 +2941,11 @@ function onImportPk3(event) {
       } catch (e) {}
 
       // Dispatch change/input events for key fields so listeners run
+      // While programmatically updating fields during import we must
+      // avoid triggering simple-mode preset application which would
+      // overwrite the imported PID. Set suppression flag here.
+      suppressPresetApply = true;
+
       const dispatchIfPresent = (sel, type='change') => {
         const el = document.querySelector(sel);
         if (!el) return;
@@ -2971,6 +2985,9 @@ function onImportPk3(event) {
 
       // Also run the general updater so any other UI reacts to the import
       try { updateLegalityStatus(); } catch (e) {}
+
+      // Finished programmatic updates; re-enable preset application
+      suppressPresetApply = false;
 
       alert('Pokémon imported from .ek3 file successfully! The form has been re-validated.');
     } catch (err) {
