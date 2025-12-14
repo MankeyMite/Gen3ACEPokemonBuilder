@@ -16,6 +16,7 @@
   - Ability selection (including Hoenn dex ability mapping)
   - Move selection with all Gen III moves
   - Ribbons, contest stats, and markings
+  - Create as Egg
 - **Special Event Pokémon**: Pre-configured presets for event Pokémon (Mew, Celebi, WISHMKR Jirachi, etc.)
 - **Legality Checker**: Real-time validation to help ensure transferability to Pokémon Home
 - **Multiple Export Formats**:
@@ -26,12 +27,11 @@
 
 ## 🚀 Quick Start
 
-1. **Open the tool**: Simply open `index.html` in any modern web browser (Chrome, Firefox, Edge, Safari)
-2. **Select an encounter mode**: Choose between Hatched or Legendaries
-3. **Build your Pokémon**: Select species, nature, moves, stats, etc.
-4. **Check legality**: The tool will indicate if your Pokémon should be legal, although it's recommended to export the pokemon to PkHex to confirm.
-5. **Generate codes**: Click the Generate button to create ACE codes
-6. **Export**: Copy the Base64 codes or export as .ek3 file
+1. **Select an encounter mode**: Choose between Hatched or Legendaries
+2. **Build your Pokémon**: Select species, nature, moves, stats, etc.
+3. **Check legality**: The tool will indicate if your Pokémon should be legal, although it's recommended to export the pokemon to PkHex to confirm.
+4. **Generate codes**: Click the Generate button to create ACE codes.
+5. **Export**: Copy the Base64/Hex codes or export as a .pk3 or .ek3 file.
 
 No installation, no build process, no dependencies required!
 
