@@ -1352,35 +1352,35 @@ function boot(){
       if (threshold === 255) {
         // Female only
         const opt = document.createElement('option');
-        opt.value = 'F';
+        opt.value = 'female';
         opt.textContent = 'Female';
         genderSelect.appendChild(opt);
-        genderSelect.value = 'F';
+        genderSelect.value = 'female';
         genderSelect.disabled = true;
       } else if (threshold === 0) {
         // Male only
         const opt = document.createElement('option');
-        opt.value = 'M';
+        opt.value = 'male';
         opt.textContent = 'Male';
         genderSelect.appendChild(opt);
-        genderSelect.value = 'M';
+        genderSelect.value = 'male';
         genderSelect.disabled = true;
       } else if (threshold === -1) {
         // Genderless
         const opt = document.createElement('option');
-        opt.value = 'N';
+        opt.value = 'genderless';
         opt.textContent = 'Genderless';
         genderSelect.appendChild(opt);
-        genderSelect.value = 'N';
+        genderSelect.value = 'genderless';
         genderSelect.disabled = true;
       } else {
         // Both male and female
         const optM = document.createElement('option');
-        optM.value = 'M';
+        optM.value = 'male';
         optM.textContent = 'Male';
         genderSelect.appendChild(optM);
         const optF = document.createElement('option');
-        optF.value = 'F';
+        optF.value = 'female';
         optF.textContent = 'Female';
         genderSelect.appendChild(optF);
         genderSelect.disabled = false;
