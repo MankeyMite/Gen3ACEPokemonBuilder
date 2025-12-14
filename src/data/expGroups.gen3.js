@@ -61,7 +61,7 @@ export const MEDIUM_FAST = [
   196, 197, // Espeon, Umbreon
   199, // Slowking
   201, // Unown
-  202, // Wobbuffet
+  360, 202, // Wynaut, Wobbuffet
   203, // Girafarig
   204, 205, // Pineco, Forretress
   206, // Dunsparce
@@ -79,44 +79,23 @@ export const MEDIUM_FAST = [
   286, 287, // Poochyena, Mightyena
   288, 289, // Zigzagoon, Linoone
   290, 291, 292, 293, 294, // Wurmple, Silcoon, Beautifly, Cascoon, Dustox
-  295, 296, 297, // Lotad, Lombre, Ludicolo
-  298, 299, 300, // Seedot, Nuzleaf, Shiftry
-  304, 305, // Taillow, Swellow
-  308, // Spinda
   309, 310, // Wingull, Pelipper
   311, 312, // Surskit, Masquerain
-  315, 316, // Skitty, Delcatty
-  317, // Kecleon
   318, 319, // Baltoy, Claydol
   320, // Nosepass
   321, // Torkoal
-  322, // Sableye
   323, 324, // Barboach, Whiscash
-  325, // Luvdisc
-  326, 327, // Corphish, Crawdaunt
-  330, 331, // Carvanha, Sharpedo
-  332, 333, 334, // Trapinch, Vibrava, Flygon
-  337, 338, // Electrike, Manectric
   339, 340, // Numel, Camerupt
-  341, 342, 343, // Spheal, Sealeo, Walrein
-  344, 345, // Cacnea, Cacturne
   346, 347, // Snorunt, Glalie
-  348, 349, // Lunatone, Solrock
-  350, // Azurill
-  351, 352, // Spoink, Grumpig
   353, 354, // Plusle, Minun
-  355, // Mawile
-  358, // Swablu
-  363, 367, 368, // Roselia, Gulpin, Swalot, 
-  370, 371, 372, // Whismur, Loudred, Exploud
+  356, 357, // Meditite, Medicham
   385, // Castform
 ];
 
 export const ERRATIC = [
   301, 302, 303, // Nincada, Ninjask, Shedinja
-  313, // Wailmer
   328, 329, // Feebas, Milotic
-  359, 360, 380, // Altaria, Wynaut, Zangoose
+  358, 359, // Swablu, Altaria,
   375, 376, 377, // Clamperl, Huntail, Gorebyss
   380, // Zangoose
   386, // Volbeat
@@ -125,10 +104,12 @@ export const ERRATIC = [
 
 export const FLUCTUATING = [
   306, 307, // Shroomish, Breloom
-  314, // Wailord
+  313, 314, // Wailmer, Wailord
   335, 336, // Makuhita, Hariyama
   379, // Seviper
   387, // Illumise
+  326, 327, // Corphish, Crawdaunt
+  367, 368, // Gulpin, Swalot
 ];
 
 export const MEDIUM_SLOW = [
@@ -163,6 +144,16 @@ export const MEDIUM_SLOW = [
   280, 281, 282, // Torchic, Combusken, Blaziken
   283, 284, 285, // Mudkip, Marshtomp, Swampert
   376, // Absol
+  295, 296, 297, // Lotad, Lombre, Ludicolo
+  298, 299, 300, // Seedot, Nuzleaf, Shiftry
+  304, 305, // Taillow, Swellow
+  317, // Kecleon
+  322, // Sableye
+  332, 333, 334, // Trapinch, Vibrava, Flygon
+  341, 342, 343, // Spheal, Sealeo, Walrein
+  344, 345, // Cacnea, Cacturne
+  363, // Roselia
+  370, 371, 372, // Whismur, Loudred, Exploud
 ];
 
 export const FAST = [
@@ -171,7 +162,7 @@ export const FAST = [
   113, // Chansey
   165, 166, // Ledyba, Ledian
   167, 168, // Spinarak, Ariados
-  173, 174, 175, 176, // Pichu, Cleffa, Igglybuff, Togepi
+  173, 174, 175, 176, // Cleffa, Igglybuff, Togepi, Togetic
   183, 184, // Marill, Azumarill
   190, // Aipom
   200, // Misdreavus
@@ -180,8 +171,13 @@ export const FAST = [
   225, // Delibird
   235, // Smeargle
   242, // Blissey
-  353, 354, // Plusle, Minun
-  355, 356, // Mawile, Meditite
+  308, // Spinda
+  315, 316, // Skitty, Delcatty
+  325, // Luvdisc
+  348, 349, // Lunatone, Solrock
+  350, // Azurill
+  351, 352, // Spoink, Grumpig
+  355, // Mawile,
   361, 362, // Duskull, Dusclops
   377, 378, // Shuppet, Banette
   411, // Chimecho
@@ -215,6 +211,7 @@ export const SLOW = [
   246, 247, 248, // Larvitar, Pupitar, Tyranitar
   249, 250, // Lugia, Ho-Oh
   364, 365, 366, // Slakoth, Vigoroth, Slaking
+  369, // Tropius
   381, // Relicanth
   382, 383, 384, // Aron, Lairon, Aggron
   392, 393, 394, // Ralts, Kirlia, Gardevoir
@@ -224,6 +221,8 @@ export const SLOW = [
   404, 405, 406, // Kyogre, Groudon, Rayquaza
   407, 408, 409, // Latias, Latios, Jirachi
   410, // Deoxys
+  330, 331, // Carvanha, Sharpedo
+  337, 338, // Electrike, Manectric
 ];
 
 // Build an array indexed by species ID for fast lookup
