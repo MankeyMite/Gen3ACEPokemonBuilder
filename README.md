@@ -10,7 +10,7 @@
 
 - **Three Encounter Modes**: Hatched, Legendaries, and Wild (coming soon)
 - **Comprehensive Pokémon Customization**:
-  - All 386 Gen III species with correct sprite previews
+  - All 386 Gen III species
   - Full IV/EV control
   - Nature selection with stat modifications
   - Ability selection (including Hoenn dex ability mapping)
