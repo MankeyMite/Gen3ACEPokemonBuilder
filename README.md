@@ -165,7 +165,7 @@ Please open an issue before starting work on major features.
 
 ## 📝 Version History
 
-### v0.1.6-alpha (Current)
+### v0.1.7-alpha (Current)
 - Initial alpha release
 - Hatched and Legendary encounter modes
 - Comprehensive legality checker
