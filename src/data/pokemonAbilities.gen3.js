@@ -108,15 +108,15 @@ export const POKEMON_ABILITIES = {
   101: [43, 9],  // Electrode - Soundproof / Static
   102: [34, 34], // Exeggcute - Chlorophyll
   103: [34, 34], // Exeggutor - Chlorophyll
-  104: [69, 32], // Cubone - Rock Head / Lightning Rod
-  105: [69, 32], // Marowak - Rock Head / Lightning Rod
+  104: [69, 31], // Cubone - Rock Head / Lightning Rod
+  105: [69, 31], // Marowak - Rock Head / Lightning Rod
   106: [7, 7],   // Hitmonlee - Limber
   107: [51, 51], // Hitmonchan - Keen Eye
   108: [20, 12], // Lickitung - Own Tempo / Oblivious
   109: [26, 26], // Koffing - Levitate
   110: [26, 26], // Weezing - Levitate
-  111: [32, 69], // Rhyhorn - Lightning Rod / Rock Head
-  112: [32, 69], // Rhydon - Lightning Rod / Rock Head
+  111: [31, 69], // Rhyhorn - Lightning Rod / Rock Head
+  112: [31, 69], // Rhydon - Lightning Rod / Rock Head
   113: [30, 32], // Chansey - Natural Cure / Serene Grace
   114: [34, 34], // Tangela - Chlorophyll
   115: [48, 48], // Kangaskhan - Early Bird
@@ -316,8 +316,8 @@ export const POKEMON_ABILITIES = {
   334: [26, 26], // Flygon - Levitate
   335: [47, 62], // Makuhita - Thick Fat / Guts
   336: [47, 62], // Hariyama - Thick Fat / Guts
-  337: [9, 32],  // Electrike - Static / Lightning Rod
-  338: [9, 32],  // Manectric - Static / Lightning Rod
+  337: [9, 31],  // Electrike - Static / Lightning Rod
+  338: [9, 31],  // Manectric - Static / Lightning Rod
   339: [12, 12], // Numel - Oblivious
   340: [40, 40], // Camerupt - Magma Armor
   341: [47, 47], // Spheal - Thick Fat
@@ -360,7 +360,7 @@ export const POKEMON_ABILITIES = {
   378: [15, 15], // Banette - Insomnia
   379: [61, 61], // Seviper - Shed Skin
   380: [17, 17], // Zangoose - Immunity
-  381: [69, 69], // Relicanth - Rock Head
+  381: [33, 69], // Relicanth - Swift Swim / Rock Head
   382: [5, 69],  // Aron - Sturdy / Rock Head
   383: [5, 69],  // Lairon - Sturdy / Rock Head
   384: [5, 69],  // Aggron - Sturdy / Rock Head
