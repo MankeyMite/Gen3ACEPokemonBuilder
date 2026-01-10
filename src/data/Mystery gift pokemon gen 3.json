@@ -1,0 +1,1774 @@
+
+{
+  "format": "gen3_event_list",
+  "notes": {
+    "hex_fields": "All hex values are preserved as strings with 0x prefix.",
+    "ivs_order": ["hp", "atk", "def", "speed", "sp.atk", "sp.def"]
+  },
+  "events": {
+    "10ANNI": {
+      "fixedTID": 6227,
+      "fixedSID": 0,
+      "ot_name": "10ANNIV",
+      "ot_names": {"2":"10ANNIV","3":"10ANNIV","5":"10JAHRE","4":"10ANNI","7":"10ANIV"},
+      "shinyLocked": true,
+      "defaultOriginGame": 2,
+      "defaultMetLocation": "(Fateful Encounter)",
+      "defaultBall": "Poke Ball",
+      "defaultMetLevel": 70,
+      "defaultFatefulEncounter": true,
+      "species": [6,25,144,243,244,245,249,250,407,408]
+    },
+    "AURA_MEW": {
+      "fixedTID": 20078,
+      "fixedSID": 0,
+      "nickname": "MEW",
+      "ot_name": "Aura",
+      "shinyLocked": true,
+      "defaultOriginGame": 2,
+      "defaultMetLocation": "(Fateful Encounter)",
+      "defaultBall": "Poke Ball",
+      "defaultMetLevel": 10,
+      "defaultFatefulEncounter": true,
+      "species": [151]
+    },
+    "DOEL_DEOXYS": {
+      "fixedTID": 28606,
+      "fixedSID": 0,
+      "ot_name": "DOEL",
+      "shinyLocked": true,
+      "defaultOriginGame": 2,
+      "defaultMetLocation": "(Fateful Encounter)",
+      "defaultBall": "Poke Ball",
+      "defaultMetLevel": 70,
+      "defaultFatefulEncounter": true,
+      "species": [410]
+    },
+    "JOURNEY_ACROSS_AMERICA": {
+      "fixedTID": 10,
+      "fixedSID": 0,
+      "ot_name": "10 ANIV",
+      "shinyLocked": true,
+      "defaultOriginGame": 2,
+      "defaultMetLocation": "(Fateful Encounter)",
+      "defaultBall": "Poke Ball",
+      "defaultMetLevel": 70,
+      "defaultFatefulEncounter": false,
+      "species": [1,6,9,25,65,144,145,146,149,157,196,197,243,244,245,248,251,282,376,407,408]
+    },
+    "POKEMON_ROCKS_METANG": {
+      "fixedTID": 2005,
+      "fixedSID": 0,
+      "ot_name": "ROCKS",
+      "shinyLocked": true,
+      "defaultOriginGame": 2,
+      "defaultMetLocation": "(Fateful Encounter)",
+      "defaultBall": "Poke Ball",
+      "defaultMetLevel": 30,
+      "defaultFatefulEncounter": false,
+      "species": [399]
+    },
+    "PARTY_OF_THE_DECADE": {
+      "fixedTID": 6808,
+      "fixedSID": 0,
+      "ot_name": "10 ANIV",
+      "shinyLocked": true,
+      "defaultOriginGame": 2,
+      "defaultMetLocation": "(Fateful Encounter)",
+      "defaultBall": "Poke Ball",
+      "defaultMetLevel": 70,
+      "defaultFatefulEncounter": false,
+      "species": [1,6,9,25,65,144,145,146,149,157,196,197,243,244,245,248,282,376,407,408]
+    },
+    "WISHMKR_BEST": {
+      "fixedTID": 20043,
+      "fixedSID": 0,
+      "ot_name": "WISHMKR",
+      "shinyLocked": false,
+      "defaultOriginGame": 2,
+      "defaultMetLocation": "(Fateful Encounter)",
+      "defaultBall": "Poke Ball",
+      "defaultMetLevel": 5,
+      "defaultFatefulEncounter": false,
+      "defaultPID": "0x4633087D",
+      "species": [409]
+    },
+    "WISHMKR_SHINY": {
+      "fixedTID": 20043,
+      "fixedSID": 0,
+      "ot_name": "WISHMKR",
+      "shinyLocked": false,
+      "defaultOriginGame": 2,
+      "defaultMetLocation": "(Fateful Encounter)",
+      "defaultBall": "Poke Ball",
+      "defaultMetLevel": 5,
+      "defaultFatefulEncounter": false,
+      "species": [409]
+    }
+  },
+  "pokemon": [
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x00008BCB",
+      "pid": "0xD4D58A45",
+      "ivs_hex": "0x3BEAFB9C",
+      "nature": "Relaxed",
+      "ivs": [28, 28, 30, 21, 30, 29],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x00005ADE",
+      "pid": "0xC18ADCC9",
+      "ivs_hex": "0x31FFF3D2",
+      "nature": "Brave",
+      "ivs": [18, 30, 28, 31, 31, 24],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000C99A",
+      "pid": "0x44DFAA8B",
+      "ivs_hex": "0x3DAED73E",
+      "nature": "Hardy",
+      "ivs": [30, 25, 21, 29, 26, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x00000A79",
+      "pid": "0xD5CB4261",
+      "ivs_hex": "0x39DCF73E",
+      "nature": "Lax",
+      "ivs": [30, 25, 29, 25, 29, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x00001AD4",
+      "pid": "0x9C309BD5",
+      "ivs_hex": "0x3BFCFFBB",
+      "nature": "Quiet",
+      "ivs": [27, 29, 31, 25, 31, 29],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x00004595",
+      "pid": "0xBB8F05C0",
+      "ivs_hex": "0x3DDC7F7C",
+      "nature": "Serious",
+      "ivs": [28, 27, 31, 24, 29, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000AF34",
+      "pid": "0xEBE49A13",
+      "ivs_hex": "0x3DEFDFFB",
+      "nature": "Hasty",
+      "ivs": [27, 31, 23, 31, 30, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000BD9D",
+      "pid": "0xBE845336",
+      "ivs_hex": "0x3BBE73DF",
+      "nature": "Rash",
+      "ivs": [31, 30, 28, 28, 27, 29],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000B68C",
+      "pid": "0xF434F431",
+      "ivs_hex": "0x3DCA7B5D",
+      "nature": "Naive",
+      "ivs": [29, 26, 30, 20, 28, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000A623",
+      "pid": "0x94F7F5D9",
+      "ivs_hex": "0x397CEBFF",
+      "nature": "Sassy",
+      "ivs": [31, 31, 26, 25, 23, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000C0C3",
+      "pid": "0xD4DF1F28",
+      "ivs_hex": "0x2FF87FBF",
+      "nature": "Gentle",
+      "ivs": [31, 29, 31, 16, 31, 23],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000BDAB",
+      "pid": "0x575DF81B",
+      "ivs_hex": "0x3DEBFABF",
+      "nature": "Bold",
+      "ivs": [31, 21, 30, 23, 30, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000A823",
+      "pid": "0x21943B0E",
+      "ivs_hex": "0x3FFBE778",
+      "nature": "Quirky",
+      "ivs": [24, 27, 25, 23, 31, 31],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x000049A0",
+      "pid": "0xA84EED26",
+      "ivs_hex": "0x27FE7BD6",
+      "nature": "Docile",
+      "ivs": [22, 30, 30, 28, 31, 19],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000C0BB",
+      "pid": "0xC6AD0A14",
+      "ivs_hex": "0x37DE7BD1",
+      "nature": "Lonely",
+      "ivs": [17, 30, 30, 28, 29, 27],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000F09B",
+      "pid": "0xBC9832B4",
+      "ivs_hex": "0x335FFF7C",
+      "nature": "Timid",
+      "ivs": [28, 27, 31, 31, 21, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000D201",
+      "pid": "0xEE1C0ECB",
+      "ivs_hex": "0x39F9F7BB",
+      "nature": "Adamant",
+      "ivs": [27, 29, 29, 19, 31, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000D0F4",
+      "pid": "0xD0BB89EE",
+      "ivs_hex": "0x2B8FF39C",
+      "nature": "Calm",
+      "ivs": [28, 28, 28, 31, 24, 21],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000035A",
+      "pid": "0x72A33E77",
+      "ivs_hex": "0x39BB77DB",
+      "nature": "Impish",
+      "ivs": [27, 30, 29, 22, 27, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000D517",
+      "pid": "0xE812B093",
+      "ivs_hex": "0x3DFFFBBF",
+      "nature": "Jolly",
+      "ivs": [31, 29, 30, 31, 31, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x00007F32",
+      "pid": "0x39A397DA",
+      "ivs_hex": "0x33FFCB9D",
+      "nature": "Naughty",
+      "ivs": [29, 28, 18, 31, 31, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000D726",
+      "pid": "0x4F4D5D4F",
+      "ivs_hex": "0x3DAFFE97",
+      "nature": "Careful",
+      "ivs": [23, 20, 31, 31, 26, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x0000EC2E",
+      "pid": "0xA1EEC90F",
+      "ivs_hex": "0x39FFD2FF",
+      "nature": "Modest",
+      "ivs": [31, 23, 20, 31, 31, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x00009DF6",
+      "pid": "0xD2A8AA71",
+      "ivs_hex": "0x33EE67FF",
+      "nature": "Mild",
+      "ivs": [31, 31, 25, 28, 30, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_BEST",
+      "seed": "0x000094F5",
+      "pid": "0x98203060",
+      "ivs_hex": "0x1FAF7BDF",
+      "nature": "Bashful",
+      "ivs": [31, 30, 30, 30, 26, 15],
+      "ot_gender": "Male"
+    },
+
+    {
+      "tag": "WISHMKR_SHINY",
+      "seed": "0x0000A030",
+      "pid": "0x4633087D",
+      "ivs_hex": "0x3129FFF5",
+      "nature": "Naughty",
+      "ivs": [21, 31, 31, 19, 18, 24],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_SHINY",
+      "seed": "0x00007360",
+      "pid": "0xBF98F1D5",
+      "ivs_hex": "0x2F9AFD5D",
+      "nature": "Serious",
+      "ivs": [29, 10, 31, 21, 25, 23],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_SHINY",
+      "seed": "0x00007236",
+      "pid": "0x2EC1608D",
+      "ivs_hex": "0x25D2EAFF",
+      "nature": "Lonely",
+      "ivs": [31, 23, 26, 5, 29, 18],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_SHINY",
+      "seed": "0x0000353D",
+      "pid": "0xBA7DF435",
+      "ivs_hex": "0x20C5F878",
+      "nature": "Bashful",
+      "ivs": [24, 3, 30, 11, 12, 16],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_SHINY",
+      "seed": "0x00003D60",
+      "pid": "0xEB0DA543",
+      "ivs_hex": "0x0033F78F",
+      "nature": "Timid",
+      "ivs": [15, 28, 29, 7, 3, 0],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_SHINY",
+      "seed": "0x0000ECDD",
+      "pid": "0x987ED636",
+      "ivs_hex": "0x153828F3",
+      "nature": "Docile",
+      "ivs": [19, 7, 10, 16, 19, 10],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_SHINY",
+      "seed": "0x0000F500",
+      "pid": "0xC90E8744",
+      "ivs_hex": "0x34A6280A",
+      "nature": "Careful",
+      "ivs": [10, 0, 10, 12, 10, 26],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_SHINY",
+      "seed": "0x0000CF37",
+      "pid": "0x7B053548",
+      "ivs_hex": "0x0AEA190B",
+      "nature": "Jolly",
+      "ivs": [11, 8, 6, 20, 14, 5],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "WISHMKR_SHINY",
+      "seed": "0x00009359",
+      "pid": "0xBCFAF2B0",
+      "ivs_hex": "0x1674B183",
+      "nature": "Hasty",
+      "ivs": [3, 12, 12, 9, 7, 11],
+      "ot_gender": "Male"
+    },
+
+    {
+      "tag": "10ANNI",
+      "seed": "0x00009DF6",
+      "pid": "0xD2A8AA71",
+      "ivs_hex": "0x33EE67FF",
+      "nature": "Mild",
+      "ivs": [31, 31, 25, 28, 30, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000AF34",
+      "pid": "0xEBE49A13",
+      "ivs_hex": "0x3DEFDFFB",
+      "nature": "Hasty",
+      "ivs": [27, 31, 23, 31, 30, 30],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000D726",
+      "pid": "0x4F4D5D4F",
+      "ivs_hex": "0x3DAFFE97",
+      "nature": "Careful",
+      "ivs": [23, 20, 31, 31, 26, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x000094F5",
+      "pid": "0x98203060",
+      "ivs_hex": "0x1FAF7BDF",
+      "nature": "Bashful",
+      "ivs": [31, 30, 30, 30, 26, 15],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000C0BB",
+      "pid": "0xC6AD0A14",
+      "ivs_hex": "0x37DE7BD1",
+      "nature": "Lonely",
+      "ivs": [17, 30, 30, 28, 29, 27],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000F09B",
+      "pid": "0xBC9832B4",
+      "ivs_hex": "0x335FFF7C",
+      "nature": "Timid",
+      "ivs": [28, 27, 31, 31, 21, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000D0F4",
+      "pid": "0xD0BB89EE",
+      "ivs_hex": "0x2B8FF39C",
+      "nature": "Calm",
+      "ivs": [28, 28, 28, 31, 24, 21],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000D201",
+      "pid": "0xEE1C0ECB",
+      "ivs_hex": "0x39F9F7BB",
+      "nature": "Adamant",
+      "ivs": [27, 29, 29, 19, 31, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x00004595",
+      "pid": "0xBB8F05C0",
+      "ivs_hex": "0x3DDC7F7C",
+      "nature": "Serious",
+      "ivs": [28, 27, 31, 24, 29, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000BDAB",
+      "pid": "0x575DF81B",
+      "ivs_hex": "0x3DEBFABF",
+      "nature": "Bold",
+      "ivs": [31, 21, 30, 23, 30, 30],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000B68C",
+      "pid": "0xF434F431",
+      "ivs_hex": "0x3DCA7B5D",
+      "nature": "Naive",
+      "ivs": [29, 26, 30, 20, 28, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000A623",
+      "pid": "0x94F7F5D9",
+      "ivs_hex": "0x397CEBFF",
+      "nature": "Sassy",
+      "ivs": [31, 31, 26, 25, 23, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x00001AD4",
+      "pid": "0x9C309BD5",
+      "ivs_hex": "0x3BFCFFBB",
+      "nature": "Quiet",
+      "ivs": [27, 29, 31, 25, 31, 29],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000EC2E",
+      "pid": "0xA1EEC90F",
+      "ivs_hex": "0x39FFD2FF",
+      "nature": "Modest",
+      "ivs": [31, 23, 20, 31, 31, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000A823",
+      "pid": "0x21943B0E",
+      "ivs_hex": "0x3FFBE778",
+      "nature": "Quirky",
+      "ivs": [24, 27, 25, 23, 31, 31],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000BD9D",
+      "pid": "0xBE845336",
+      "ivs_hex": "0x3BBE73DF",
+      "nature": "Rash",
+      "ivs": [31, 30, 28, 28, 27, 29],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x000049A0",
+      "pid": "0xA84EED26",
+      "ivs_hex": "0x27FE7BD6",
+      "nature": "Docile",
+      "ivs": [22, 30, 30, 28, 31, 19],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x00007F32",
+      "pid": "0x39A397DA",
+      "ivs_hex": "0x33FFCB9D",
+      "nature": "Naughty",
+      "ivs": [29, 28, 18, 31, 31, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x00005ADE",
+      "pid": "0xC18ADCC9",
+      "ivs_hex": "0x31FFF3D2",
+      "nature": "Brave",
+      "ivs": [18, 30, 28, 31, 31, 24],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000035A",
+      "pid": "0x72A33E77",
+      "ivs_hex": "0x39BB77DB",
+      "nature": "Impish",
+      "ivs": [27, 30, 29, 22, 27, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000C99A",
+      "pid": "0x44DFAA8B",
+      "ivs_hex": "0x3DAED73E",
+      "nature": "Hardy",
+      "ivs": [30, 25, 21, 29, 26, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x00008BCB",
+      "pid": "0xD4D58A45",
+      "ivs_hex": "0x3BEAFB9C",
+      "nature": "Relaxed",
+      "ivs": [28, 28, 30, 21, 30, 29],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x00000A79",
+      "pid": "0xD5CB4261",
+      "ivs_hex": "0x39DCF73E",
+      "nature": "Lax",
+      "ivs": [30, 25, 29, 25, 29, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000D517",
+      "pid": "0xE812B093",
+      "ivs_hex": "0x3DFFFBBF",
+      "nature": "Jolly",
+      "ivs": [31, 29, 30, 31, 31, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "10ANNI",
+      "seed": "0x0000C0C3",
+      "pid": "0xD4DF1F28",
+      "ivs_hex": "0x2FF87FBF",
+      "nature": "Gentle",
+      "ivs": [31, 29, 31, 16, 31, 23],
+      "ot_gender": "Female"
+    },
+
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x00009DF6",
+      "pid": "0xD2A8AA71",
+      "ivs_hex": "0x33EE67FF",
+      "nature": "Mild",
+      "ivs": [31, 31, 25, 28, 30, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000AF34",
+      "pid": "0xEBE49A13",
+      "ivs_hex": "0x3DEFDFFB",
+      "nature": "Hasty",
+      "ivs": [27, 31, 23, 31, 30, 30],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000D726",
+      "pid": "0x4F4D5D4F",
+      "ivs_hex": "0x3DAFFE97",
+      "nature": "Careful",
+      "ivs": [23, 20, 31, 31, 26, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x000094F5",
+      "pid": "0x98203060",
+      "ivs_hex": "0x1FAF7BDF",
+      "nature": "Bashful",
+      "ivs": [31, 30, 30, 30, 26, 15],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000C0BB",
+      "pid": "0xC6AD0A14",
+      "ivs_hex": "0x37DE7BD1",
+      "nature": "Lonely",
+      "ivs": [17, 30, 30, 28, 29, 27],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000F09B",
+      "pid": "0xBC9832B4",
+      "ivs_hex": "0x335FFF7C",
+      "nature": "Timid",
+      "ivs": [28, 27, 31, 31, 21, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000D0F4",
+      "pid": "0xD0BB89EE",
+      "ivs_hex": "0x2B8FF39C",
+      "nature": "Calm",
+      "ivs": [28, 28, 28, 31, 24, 21],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000D201",
+      "pid": "0xEE1C0ECB",
+      "ivs_hex": "0x39F9F7BB",
+      "nature": "Adamant",
+      "ivs": [27, 29, 29, 19, 31, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x00004595",
+      "pid": "0xBB8F05C0",
+      "ivs_hex": "0x3DDC7F7C",
+      "nature": "Serious",
+      "ivs": [28, 27, 31, 24, 29, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000BDAB",
+      "pid": "0x575DF81B",
+      "ivs_hex": "0x3DEBFABF",
+      "nature": "Bold",
+      "ivs": [31, 21, 30, 23, 30, 30],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000B68C",
+      "pid": "0xF434F431",
+      "ivs_hex": "0x3DCA7B5D",
+      "nature": "Naive",
+      "ivs": [29, 26, 30, 20, 28, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000A623",
+      "pid": "0x94F7F5D9",
+      "ivs_hex": "0x397CEBFF",
+      "nature": "Sassy",
+      "ivs": [31, 31, 26, 25, 23, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x00001AD4",
+      "pid": "0x9C309BD5",
+      "ivs_hex": "0x3BFCFFBB",
+      "nature": "Quiet",
+      "ivs": [27, 29, 31, 25, 31, 29],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000EC2E",
+      "pid": "0xA1EEC90F",
+      "ivs_hex": "0x39FFD2FF",
+      "nature": "Modest",
+      "ivs": [31, 23, 20, 31, 31, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000A823",
+      "pid": "0x21943B0E",
+      "ivs_hex": "0x3FFBE778",
+      "nature": "Quirky",
+      "ivs": [24, 27, 25, 23, 31, 31],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000BD9D",
+      "pid": "0xBE845336",
+      "ivs_hex": "0x3BBE73DF",
+      "nature": "Rash",
+      "ivs": [31, 30, 28, 28, 27, 29],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x000049A0",
+      "pid": "0xA84EED26",
+      "ivs_hex": "0x27FE7BD6",
+      "nature": "Docile",
+      "ivs": [22, 30, 30, 28, 31, 19],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x00007F32",
+      "pid": "0x39A397DA",
+      "ivs_hex": "0x33FFCB9D",
+      "nature": "Naughty",
+      "ivs": [29, 28, 18, 31, 31, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x00005ADE",
+      "pid": "0xC18ADCC9",
+      "ivs_hex": "0x31FFF3D2",
+      "nature": "Brave",
+      "ivs": [18, 30, 28, 31, 31, 24],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000035A",
+      "pid": "0x72A33E77",
+      "ivs_hex": "0x39BB77DB",
+      "nature": "Impish",
+      "ivs": [27, 30, 29, 22, 27, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000C99A",
+      "pid": "0x44DFAA8B",
+      "ivs_hex": "0x3DAED73E",
+      "nature": "Hardy",
+      "ivs": [30, 25, 21, 29, 26, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x00008BCB",
+      "pid": "0xD4D58A45",
+      "ivs_hex": "0x3BEAFB9C",
+      "nature": "Relaxed",
+      "ivs": [28, 28, 30, 21, 30, 29],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x00000A79",
+      "pid": "0xD5CB4261",
+      "ivs_hex": "0x39DCF73E",
+      "nature": "Lax",
+      "ivs": [30, 25, 29, 25, 29, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000D517",
+      "pid": "0xE812B093",
+      "ivs_hex": "0x3DFFFBBF",
+      "nature": "Jolly",
+      "ivs": [31, 29, 30, 31, 31, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "AURA_MEW",
+      "seed": "0x0000C0C3",
+      "pid": "0xD4DF1F28",
+      "ivs_hex": "0x2FF87FBF",
+      "nature": "Gentle",
+      "ivs": [31, 29, 31, 16, 31, 23],
+      "ot_gender": "Female"
+    },
+
+    {
+      "tag": "METANG",
+      "seed": "0x00009DF6",
+      "pid": "0xD2A8AA71",
+      "ivs_hex": "0x33EE67FF",
+      "nature": "Mild",
+      "ivs": [31, 31, 25, 28, 30, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000AF34",
+      "pid": "0xEBE49A13",
+      "ivs_hex": "0x3DEFDFFB",
+      "nature": "Hasty",
+      "ivs": [27, 31, 23, 31, 30, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000D726",
+      "pid": "0x4F4D5D4F",
+      "ivs_hex": "0x3DAFFE97",
+      "nature": "Careful",
+      "ivs": [23, 20, 31, 31, 26, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x000094F5",
+      "pid": "0x98203060",
+      "ivs_hex": "0x1FAF7BDF",
+      "nature": "Bashful",
+      "ivs": [31, 30, 30, 30, 26, 15],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000C0BB",
+      "pid": "0xC6AD0A14",
+      "ivs_hex": "0x37DE7BD1",
+      "nature": "Lonely",
+      "ivs": [17, 30, 30, 28, 29, 27],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000F09B",
+      "pid": "0xBC9832B4",
+      "ivs_hex": "0x335FFF7C",
+      "nature": "Timid",
+      "ivs": [28, 27, 31, 31, 21, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000D0F4",
+      "pid": "0xD0BB89EE",
+      "ivs_hex": "0x2B8FF39C",
+      "nature": "Calm",
+      "ivs": [28, 28, 28, 31, 24, 21],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000D201",
+      "pid": "0xEE1C0ECB",
+      "ivs_hex": "0x39F9F7BB",
+      "nature": "Adamant",
+      "ivs": [27, 29, 29, 19, 31, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x00004595",
+      "pid": "0xBB8F05C0",
+      "ivs_hex": "0x3DDC7F7C",
+      "nature": "Serious",
+      "ivs": [28, 27, 31, 24, 29, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000BDAB",
+      "pid": "0x575DF81B",
+      "ivs_hex": "0x3DEBFABF",
+      "nature": "Bold",
+      "ivs": [31, 21, 30, 23, 30, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000B68C",
+      "pid": "0xF434F431",
+      "ivs_hex": "0x3DCA7B5D",
+      "nature": "Naive",
+      "ivs": [29, 26, 30, 20, 28, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000A623",
+      "pid": "0x94F7F5D9",
+      "ivs_hex": "0x397CEBFF",
+      "nature": "Sassy",
+      "ivs": [31, 31, 26, 25, 23, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x00001AD4",
+      "pid": "0x9C309BD5",
+      "ivs_hex": "0x3BFCFFBB",
+      "nature": "Quiet",
+      "ivs": [27, 29, 31, 25, 31, 29],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000EC2E",
+      "pid": "0xA1EEC90F",
+      "ivs_hex": "0x39FFD2FF",
+      "nature": "Modest",
+      "ivs": [31, 23, 20, 31, 31, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000A823",
+      "pid": "0x21943B0E",
+      "ivs_hex": "0x3FFBE778",
+      "nature": "Quirky",
+      "ivs": [24, 27, 25, 23, 31, 31],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000BD9D",
+      "pid": "0xBE845336",
+      "ivs_hex": "0x3BBE73DF",
+      "nature": "Rash",
+      "ivs": [31, 30, 28, 28, 27, 29],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x000049A0",
+      "pid": "0xA84EED26",
+      "ivs_hex": "0x27FE7BD6",
+      "nature": "Docile",
+      "ivs": [22, 30, 30, 28, 31, 19],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x00007F32",
+      "pid": "0x39A397DA",
+      "ivs_hex": "0x33FFCB9D",
+      "nature": "Naughty",
+      "ivs": [29, 28, 18, 31, 31, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x00005ADE",
+      "pid": "0xC18ADCC9",
+      "ivs_hex": "0x31FFF3D2",
+      "nature": "Brave",
+      "ivs": [18, 30, 28, 31, 31, 24],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000035A",
+      "pid": "0x72A33E77",
+      "ivs_hex": "0x39BB77DB",
+      "nature": "Impish",
+      "ivs": [27, 30, 29, 22, 27, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000C99A",
+      "pid": "0x44DFAA8B",
+      "ivs_hex": "0x3DAED73E",
+      "nature": "Hardy",
+      "ivs": [30, 25, 21, 29, 26, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x00008BCB",
+      "pid": "0xD4D58A45",
+      "ivs_hex": "0x3BEAFB9C",
+      "nature": "Relaxed",
+      "ivs": [28, 28, 30, 21, 30, 29],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x00000A79",
+      "pid": "0xD5CB4261",
+      "ivs_hex": "0x39DCF73E",
+      "nature": "Lax",
+      "ivs": [30, 25, 29, 25, 29, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000D517",
+      "pid": "0xE812B093",
+      "ivs_hex": "0x3DFFFBBF",
+      "nature": "Jolly",
+      "ivs": [31, 29, 30, 31, 31, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "METANG",
+      "seed": "0x0000C0C3",
+      "pid": "0xD4DF1F28",
+      "ivs_hex": "0x2FF87FBF",
+      "nature": "Gentle",
+      "ivs": [31, 29, 31, 16, 31, 23],
+      "ot_gender": "Male"
+    },
+
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x00009DF6",
+      "pid": "0xD2A8AA71",
+      "ivs_hex": "0x33EE67FF",
+      "nature": "Mild",
+      "ivs": [31, 31, 25, 28, 30, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000AF34",
+      "pid": "0xEBE49A13",
+      "ivs_hex": "0x3DEFDFFB",
+      "nature": "Hasty",
+      "ivs": [27, 31, 23, 31, 30, 30],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000D726",
+      "pid": "0x4F4D5D4F",
+      "ivs_hex": "0x3DAFFE97",
+      "nature": "Careful",
+      "ivs": [23, 20, 31, 31, 26, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x000094F5",
+      "pid": "0x98203060",
+      "ivs_hex": "0x1FAF7BDF",
+      "nature": "Bashful",
+      "ivs": [31, 30, 30, 30, 26, 15],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000C0BB",
+      "pid": "0xC6AD0A14",
+      "ivs_hex": "0x37DE7BD1",
+      "nature": "Lonely",
+      "ivs": [17, 30, 30, 28, 29, 27],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000F09B",
+      "pid": "0xBC9832B4",
+      "ivs_hex": "0x335FFF7C",
+      "nature": "Timid",
+      "ivs": [28, 27, 31, 31, 21, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000D0F4",
+      "pid": "0xD0BB89EE",
+      "ivs_hex": "0x2B8FF39C",
+      "nature": "Calm",
+      "ivs": [28, 28, 28, 31, 24, 21],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000D201",
+      "pid": "0xEE1C0ECB",
+      "ivs_hex": "0x39F9F7BB",
+      "nature": "Adamant",
+      "ivs": [27, 29, 29, 19, 31, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x00004595",
+      "pid": "0xBB8F05C0",
+      "ivs_hex": "0x3DDC7F7C",
+      "nature": "Serious",
+      "ivs": [28, 27, 31, 24, 29, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000BDAB",
+      "pid": "0x575DF81B",
+      "ivs_hex": "0x3DEBFABF",
+      "nature": "Bold",
+      "ivs": [31, 21, 30, 23, 30, 30],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000B68C",
+      "pid": "0xF434F431",
+      "ivs_hex": "0x3DCA7B5D",
+      "nature": "Naive",
+      "ivs": [29, 26, 30, 20, 28, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000A623",
+      "pid": "0x94F7F5D9",
+      "ivs_hex": "0x397CEBFF",
+      "nature": "Sassy",
+      "ivs": [31, 31, 26, 25, 23, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x00001AD4",
+      "pid": "0x9C309BD5",
+      "ivs_hex": "0x3BFCFFBB",
+      "nature": "Quiet",
+      "ivs": [27, 29, 31, 25, 31, 29],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000EC2E",
+      "pid": "0xA1EEC90F",
+      "ivs_hex": "0x39FFD2FF",
+      "nature": "Modest",
+      "ivs": [31, 23, 20, 31, 31, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000A823",
+      "pid": "0x21943B0E",
+      "ivs_hex": "0x3FFBE778",
+      "nature": "Quirky",
+      "ivs": [24, 27, 25, 23, 31, 31],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000BD9D",
+      "pid": "0xBE845336",
+      "ivs_hex": "0x3BBE73DF",
+      "nature": "Rash",
+      "ivs": [31, 30, 28, 28, 27, 29],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x000049A0",
+      "pid": "0xA84EED26",
+      "ivs_hex": "0x27FE7BD6",
+      "nature": "Docile",
+      "ivs": [22, 30, 30, 28, 31, 19],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x00007F32",
+      "pid": "0x39A397DA",
+      "ivs_hex": "0x33FFCB9D",
+      "nature": "Naughty",
+      "ivs": [29, 28, 18, 31, 31, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x00005ADE",
+      "pid": "0xC18ADCC9",
+      "ivs_hex": "0x31FFF3D2",
+      "nature": "Brave",
+      "ivs": [18, 30, 28, 31, 31, 24],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000035A",
+      "pid": "0x72A33E77",
+      "ivs_hex": "0x39BB77DB",
+      "nature": "Impish",
+      "ivs": [27, 30, 29, 22, 27, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000C99A",
+      "pid": "0x44DFAA8B",
+      "ivs_hex": "0x3DAED73E",
+      "nature": "Hardy",
+      "ivs": [30, 25, 21, 29, 26, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x00008BCB",
+      "pid": "0xD4D58A45",
+      "ivs_hex": "0x3BEAFB9C",
+      "nature": "Relaxed",
+      "ivs": [28, 28, 30, 21, 30, 29],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x00000A79",
+      "pid": "0xD5CB4261",
+      "ivs_hex": "0x39DCF73E",
+      "nature": "Lax",
+      "ivs": [30, 25, 29, 25, 29, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000D517",
+      "pid": "0xE812B093",
+      "ivs_hex": "0x3DFFFBBF",
+      "nature": "Jolly",
+      "ivs": [31, 29, 30, 31, 31, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "DEOXYS_DOEL",
+      "seed": "0x0000C0C3",
+      "pid": "0xD4DF1F28",
+      "ivs_hex": "0x2FF87FBF",
+      "nature": "Gentle",
+      "ivs": [31, 29, 31, 16, 31, 23],
+      "ot_gender": "Female"
+    },
+
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x00009DF6",
+      "pid": "0xD2A8AA71",
+      "ivs_hex": "0x33EE67FF",
+      "nature": "Mild",
+      "ivs": [31, 31, 25, 28, 30, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000AF34",
+      "pid": "0xEBE49A13",
+      "ivs_hex": "0x3DEFDFFB",
+      "nature": "Hasty",
+      "ivs": [27, 31, 23, 31, 30, 30],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000D726",
+      "pid": "0x4F4D5D4F",
+      "ivs_hex": "0x3DAFFE97",
+      "nature": "Careful",
+      "ivs": [23, 20, 31, 31, 26, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x000094F5",
+      "pid": "0x98203060",
+      "ivs_hex": "0x1FAF7BDF",
+      "nature": "Bashful",
+      "ivs": [31, 30, 30, 30, 26, 15],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000A823",
+      "pid": "0x21943B10",
+      "ivs_hex": "0x3FFBE778",
+      "nature": "Lonely",
+      "ivs": [24, 27, 25, 23, 31, 31],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000F09B",
+      "pid": "0xBC9832B4",
+      "ivs_hex": "0x335FFF7C",
+      "nature": "Timid",
+      "ivs": [28, 27, 31, 31, 21, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000D0F4",
+      "pid": "0xD0BB89EE",
+      "ivs_hex": "0x2B8FF39C",
+      "nature": "Calm",
+      "ivs": [28, 28, 28, 31, 24, 21],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000D201",
+      "pid": "0xEE1C0ECB",
+      "ivs_hex": "0x39F9F7BB",
+      "nature": "Adamant",
+      "ivs": [27, 29, 29, 19, 31, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x00004595",
+      "pid": "0xBB8F05C0",
+      "ivs_hex": "0x3DDC7F7C",
+      "nature": "Serious",
+      "ivs": [28, 27, 31, 24, 29, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000BDAB",
+      "pid": "0x575DF81B",
+      "ivs_hex": "0x3DEBFABF",
+      "nature": "Bold",
+      "ivs": [31, 21, 30, 23, 30, 30],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000B68C",
+      "pid": "0xF434F431",
+      "ivs_hex": "0x3DCA7B5D",
+      "nature": "Naive",
+      "ivs": [29, 26, 30, 20, 28, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000A623",
+      "pid": "0x94F7F5D9",
+      "ivs_hex": "0x397CEBFF",
+      "nature": "Sassy",
+      "ivs": [31, 31, 26, 25, 23, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x00001AD4",
+      "pid": "0x9C309BD5",
+      "ivs_hex": "0x3BFCFFBB",
+      "nature": "Quiet",
+      "ivs": [27, 29, 31, 25, 31, 29],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000EC2E",
+      "pid": "0xA1EEC90F",
+      "ivs_hex": "0x39FFD2FF",
+      "nature": "Modest",
+      "ivs": [31, 23, 20, 31, 31, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x00000160",
+      "pid": "0x70AC8912",
+      "ivs_hex": "0x3D4FFF54",
+      "nature": "Quirky",
+      "ivs": [20, 26, 31, 31, 20, 30],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000BD9D",
+      "pid": "0xBE845336",
+      "ivs_hex": "0x3BBE73DF",
+      "nature": "Rash",
+      "ivs": [31, 30, 28, 28, 27, 29],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x000049A0",
+      "pid": "0xA84EED26",
+      "ivs_hex": "0x27FE7BD6",
+      "nature": "Docile",
+      "ivs": [22, 30, 30, 28, 31, 19],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x00007F32",
+      "pid": "0x39A397DA",
+      "ivs_hex": "0x33FFCB9D",
+      "nature": "Naughty",
+      "ivs": [29, 28, 18, 31, 31, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x00005ADE",
+      "pid": "0xC18ADCC9",
+      "ivs_hex": "0x31FFF3D2",
+      "nature": "Brave",
+      "ivs": [18, 30, 28, 31, 31, 24],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000035A",
+      "pid": "0x72A33E77",
+      "ivs_hex": "0x39BB77DB",
+      "nature": "Impish",
+      "ivs": [27, 30, 29, 22, 27, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000C99A",
+      "pid": "0x44DFAA8B",
+      "ivs_hex": "0x3DAED73E",
+      "nature": "Hardy",
+      "ivs": [30, 25, 21, 29, 26, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x00008BCB",
+      "pid": "0xD4D58A45",
+      "ivs_hex": "0x3BEAFB9C",
+      "nature": "Relaxed",
+      "ivs": [28, 28, 30, 21, 30, 29],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x00000A79",
+      "pid": "0xD5CB4261",
+      "ivs_hex": "0x39DCF73E",
+      "nature": "Lax",
+      "ivs": [30, 25, 29, 25, 29, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000D517",
+      "pid": "0xE812B093",
+      "ivs_hex": "0x3DFFFBBF",
+      "nature": "Jolly",
+      "ivs": [31, 29, 30, 31, 31, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "PARTY_OF_THE_DECADE",
+      "seed": "0x0000C0C3",
+      "pid": "0xD4DF1F28",
+      "ivs_hex": "0x2FF87FBF",
+      "nature": "Gentle",
+      "ivs": [31, 29, 31, 16, 31, 23],
+      "ot_gender": "Female"
+    },
+
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x00009DF6",
+      "pid": "0xD2A8AA71",
+      "ivs_hex": "0x33EE67FF",
+      "nature": "Mild",
+      "ivs": [31, 31, 25, 28, 30, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000AF34",
+      "pid": "0xEBE49A13",
+      "ivs_hex": "0x3DEFDFFB",
+      "nature": "Hasty",
+      "ivs": [27, 31, 23, 31, 30, 30],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000D726",
+      "pid": "0x4F4D5D4F",
+      "ivs_hex": "0x3DAFFE97",
+      "nature": "Careful",
+      "ivs": [23, 20, 31, 31, 26, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x000094F5",
+      "pid": "0x98203060",
+      "ivs_hex": "0x1FAF7BDF",
+      "nature": "Bashful",
+      "ivs": [31, 30, 30, 30, 26, 15],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000C0BB",
+      "pid": "0xC6AD0A14",
+      "ivs_hex": "0x37DE7BD1",
+      "nature": "Lonely",
+      "ivs": [17, 30, 30, 28, 29, 27],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000F09B",
+      "pid": "0xBC9832B4",
+      "ivs_hex": "0x335FFF7C",
+      "nature": "Timid",
+      "ivs": [28, 27, 31, 31, 21, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000D0F4",
+      "pid": "0xD0BB89EE",
+      "ivs_hex": "0x2B8FF39C",
+      "nature": "Calm",
+      "ivs": [28, 28, 28, 31, 24, 21],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000D201",
+      "pid": "0xEE1C0ECB",
+      "ivs_hex": "0x39F9F7BB",
+      "nature": "Adamant",
+      "ivs": [27, 29, 29, 19, 31, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x00004595",
+      "pid": "0xBB8F05C0",
+      "ivs_hex": "0x3DDC7F7C",
+      "nature": "Serious",
+      "ivs": [28, 27, 31, 24, 29, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000BDAB",
+      "pid": "0x575DF81B",
+      "ivs_hex": "0x3DEBFABF",
+      "nature": "Bold",
+      "ivs": [31, 21, 30, 23, 30, 30],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000B68C",
+      "pid": "0xF434F431",
+      "ivs_hex": "0x3DCA7B5D",
+      "nature": "Naive",
+      "ivs": [29, 26, 30, 20, 28, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000A623",
+      "pid": "0x94F7F5D9",
+      "ivs_hex": "0x397CEBFF",
+      "nature": "Sassy",
+      "ivs": [31, 31, 26, 25, 23, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x00001AD4",
+      "pid": "0x9C309BD5",
+      "ivs_hex": "0x3BFCFFBB",
+      "nature": "Quiet",
+      "ivs": [27, 29, 31, 25, 31, 29],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000EC2E",
+      "pid": "0xA1EEC90F",
+      "ivs_hex": "0x39FFD2FF",
+      "nature": "Modest",
+      "ivs": [31, 23, 20, 31, 31, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000A823",
+      "pid": "0x21943B0E",
+      "ivs_hex": "0x3FFBE778",
+      "nature": "Quirky",
+      "ivs": [24, 27, 25, 23, 31, 31],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000BD9D",
+      "pid": "0xBE845336",
+      "ivs_hex": "0x3BBE73DF",
+      "nature": "Rash",
+      "ivs": [31, 30, 28, 28, 27, 29],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x000049A0",
+      "pid": "0xA84EED26",
+      "ivs_hex": "0x27FE7BD6",
+      "nature": "Docile",
+      "ivs": [22, 30, 30, 28, 31, 19],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x00007F32",
+      "pid": "0x39A397DA",
+      "ivs_hex": "0x33FFCB9D",
+      "nature": "Naughty",
+      "ivs": [29, 28, 18, 31, 31, 25],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x00005ADE",
+      "pid": "0xC18ADCC9",
+      "ivs_hex": "0x31FFF3D2",
+      "nature": "Brave",
+      "ivs": [18, 30, 28, 31, 31, 24],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000035A",
+      "pid": "0x72A33E77",
+      "ivs_hex": "0x39BB77DB",
+      "nature": "Impish",
+      "ivs": [27, 30, 29, 22, 27, 28],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000C99A",
+      "pid": "0x44DFAA8B",
+      "ivs_hex": "0x3DAED73E",
+      "nature": "Hardy",
+      "ivs": [30, 25, 21, 29, 26, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x00008BCB",
+      "pid": "0xD4D58A45",
+      "ivs_hex": "0x3BEAFB9C",
+      "nature": "Relaxed",
+      "ivs": [28, 28, 30, 21, 30, 29],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x00000A79",
+      "pid": "0xD5CB4261",
+      "ivs_hex": "0x39DCF73E",
+      "nature": "Lax",
+      "ivs": [30, 25, 29, 25, 29, 28],
+      "ot_gender": "Female"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000D517",
+      "pid": "0xE812B093",
+      "ivs_hex": "0x3DFFFBBF",
+      "nature": "Jolly",
+      "ivs": [31, 29, 30, 31, 31, 30],
+      "ot_gender": "Male"
+    },
+    {
+      "tag": "JOURNEY_ACROSS_AMERICA",
+      "seed": "0x0000C0C3",
+      "pid": "0xD4DF1F28",
+      "ivs_hex": "0x2FF87FBF",
+      "nature": "Gentle",
+      "ivs": [31, 29, 31, 16, 31, 23],
+      "ot_gender": "Female"
+    }
+  ]
+}

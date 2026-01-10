@@ -19,9 +19,421 @@ const $ = sel => document.querySelector(sel);
 
 // Global variables for encounter mode and species filtering
 let speciesAutocomplete = null;
+// Mystery gift containers (declared early so functions can reference them)
+let MYSTERY_EVENTS = {};
+let MYSTERY_GIFTS = {};
+// Movesets loaded from external file, mapped by internal tag when possible
+let MYSTERY_MOVESETS = {};
+
+// Ensure a safe no-op exists early so callers from earlier code don't throw
+function updateMysterySpeciesOptions(/*tag*/) { return; }
+
+    // Apply event-level defaults (TID/SID, OT name per language, shiny lock, origin, met location/level, ball, fateful flag, default PID)
+    function applyEventDefaults(tag) {
+      if (!tag) return;
+      const evt = MYSTERY_EVENTS[tag];
+      console.log('applyEventDefaults for', tag, evt);
+      if (!evt) return;
+
+        // If there is no event-level metadata but there are per-pokemon entries
+        // for this tag, apply sensible defaults from the first entry so the
+        // UI updates immediately. Also attempt to reload mystery data in the
+        // background to populate `MYSTERY_EVENTS` for future selections.
+        if (!evt && MYSTERY_GIFTS[tag] && MYSTERY_GIFTS[tag].length) {
+          const first = MYSTERY_GIFTS[tag][0];
+          if (first.fixedTID !== undefined) $('#tid').value = String(first.fixedTID);
+          if (first.fixedSID !== undefined) $('#sid').value = String(first.fixedSID);
+          if (first.ot_name) $('#otName').value = first.ot_name;
+          if (first.ot_gender) $('#otGender').value = String(first.ot_gender).toLowerCase();
+          if (first.pid) {
+            const pidEl = $('#pid'); if (pidEl) pidEl.value = String(first.pid);
+          }
+          if (first.ivs && first.ivs.length >= 6) {
+            $('#ivHp').value = String(first.ivs[0]||0);
+            $('#ivAtk').value = String(first.ivs[1]||0);
+            $('#ivDef').value = String(first.ivs[2]||0);
+            $('#ivSpe').value = String(first.ivs[3]||0);
+            $('#ivSpAtk').value = String(first.ivs[4]||0);
+            $('#ivSpDef').value = String(first.ivs[5]||0);
+          }
+          // Try to refresh full events metadata in background
+          try { loadMysteryGifts(); } catch (e) {}
+          return;
+        }
+
+      // TID / SID
+      if (evt.fixedTID !== undefined) $('#tid').value = String(evt.fixedTID);
+      if (evt.fixedSID !== undefined) $('#sid').value = String(evt.fixedSID);
+
+      // OT name: prefer English language mapping (id "2") if available,
+      // set the UI language to English so the OT mapping behaves predictably.
+      const preferredLangId = '2';
+      try {
+        const langEl = $('#language');
+        if (langEl) {
+          // Set language to English for event defaults (user can change it afterwards)
+          langEl.value = preferredLangId;
+          langEl.dispatchEvent(new Event('change'));
+        }
+      } catch (e) {}
+
+      if (evt.ot_names && evt.ot_names[preferredLangId]) {
+        $('#otName').value = evt.ot_names[preferredLangId];
+      } else if (evt.ot_names && evt.ot_names[String($('#language')?.value || preferredLangId)]) {
+        $('#otName').value = evt.ot_names[String($('#language')?.value || preferredLangId)];
+      } else if (evt.ot_name) {
+        $('#otName').value = evt.ot_name;
+      }
+
+      // OT gender if provided
+      if (evt.ot_gender !== undefined) {
+        const og = $('#otGender'); if (og) og.value = String(evt.ot_gender).toLowerCase();
+      }
+
+      // Shiny lock
+      const shinyCheckbox = $('#shiny');
+      if (shinyCheckbox) {
+        if (evt.shinyLocked) {
+          shinyCheckbox.checked = false;
+          shinyCheckbox.disabled = true;
+        } else {
+          shinyCheckbox.disabled = false;
+        }
+      }
+
+      // Origin game
+      if (evt.defaultOriginGame !== undefined) {
+        const originGameSelect = $('#originGame');
+        if (originGameSelect) {
+          originGameSelect.value = String(evt.defaultOriginGame);
+          // Update metLocation options for that game
+          if (metLocationWrapper && metLocationWrapper.updateList) {
+            try {
+              metLocationWrapper.updateList(getLocationsForGame(evt.defaultOriginGame));
+            } catch (e) {}
+          }
+        }
+      }
+
+      // Met location
+      if (evt.defaultMetLocationId !== undefined) {
+        const sel = $('#metLocation'); if (sel) sel.value = String(evt.defaultMetLocationId);
+      } else if (evt.defaultMetLocation) {
+        const sel = $('#metLocation');
+        if (sel) {
+          try {
+            const candidates = getLocationsForGame(Number($('#originGame')?.value) || evt.defaultOriginGame || 2);
+            const found = candidates.find(loc => loc[1] && loc[1].toLowerCase().includes(evt.defaultMetLocation.toLowerCase()));
+            if (found) sel.value = String(found[0]);
+            else {
+              const allFound = LOCATIONS.find(loc => loc[1] && loc[1].toLowerCase().includes(evt.defaultMetLocation.toLowerCase()));
+              if (allFound) sel.value = String(allFound[0]);
+            }
+          } catch (e) {}
+        }
+      }
+
+      // Met level
+      if (evt.defaultMetLevel !== undefined) {
+        const ml = $('#metLevel'); if (ml) ml.value = String(evt.defaultMetLevel);
+        const levelEl = $('#level'); if (levelEl) levelEl.value = String(evt.defaultMetLevel);
+        // Compute total EXP for the set level (inline to avoid scope issues)
+        try {
+          const sid_local = Number($('#species')?.value || 0);
+          const group_local = EXP_GROUPS[sid_local] ?? GROUP.MEDIUM_FAST;
+          const lvl_local = Math.max(1, Math.min(100, Number($('#level')?.value || 1)));
+          const exp_local = expForLevel(group_local, lvl_local);
+          const expEl_local = document.querySelector('#expTotal');
+          if (expEl_local) expEl_local.value = String(exp_local);
+        } catch (e) {}
+      }
+
+      // Ball - try to match by option text
+      if (evt.defaultBall) {
+        const ballSel = $('#ball');
+        if (ballSel) {
+          const opts = ballSel.options && typeof ballSel.options[Symbol.iterator] === 'function' ? Array.from(ballSel.options) : Array.from(ballSel.querySelectorAll ? ballSel.querySelectorAll('option') : []);
+          const opt = opts.find(o => (o.text || o.textContent || '').toLowerCase() === String(evt.defaultBall).toLowerCase());
+          if (opt) ballSel.value = opt.value;
+        }
+      }
+
+      // Fateful encounter flag
+      if (evt.defaultFatefulEncounter !== undefined) {
+        const f = $('#fatefulEncounter');
+        if (f) {
+          // Special-case: 10ANNI event should keep met location but NOT check the fateful box
+          if (String(tag).toUpperCase() === '10ANNI') {
+            f.checked = false;
+          } else {
+            f.checked = Boolean(evt.defaultFatefulEncounter);
+          }
+        }
+      }
+
+      // If event requires fateful encounter, ensure met location is set to a "Fateful" entry
+      if (evt.defaultFatefulEncounter) {
+        try {
+          const sel = $('#metLocation');
+          if (sel) {
+            // Determine candidate locations for current origin game
+            const originGameId = Number($('#originGame')?.value) || evt.defaultOriginGame || 2;
+            const candidates = getLocationsForGame(originGameId);
+            // Look for any location whose name contains 'fateful' (case-insensitive)
+            const found = candidates.find(loc => String(loc[1] || '').toLowerCase().includes('fateful'))
+                          || LOCATIONS.find(loc => String(loc[1] || '').toLowerCase().includes('fateful'));
+            if (found) sel.value = String(found[0]);
+          }
+        } catch (e) {}
+      }
+
+      // Special-case: JOURNEY_ACROSS_AMERICA should set metLocation to a
+      // Fateful entry but NOT check the fatefulEncounter checkbox.
+      try {
+        if (String(tag).toUpperCase() === 'JOURNEY_ACROSS_AMERICA') {
+          const sel = $('#metLocation');
+          if (sel) {
+            const originGameId = Number($('#originGame')?.value) || evt.defaultOriginGame || 2;
+            const candidates = getLocationsForGame(originGameId);
+            const found = candidates.find(loc => String(loc[1] || '').toLowerCase().includes('fateful'))
+                          || LOCATIONS.find(loc => String(loc[1] || '').toLowerCase().includes('fateful'));
+            if (found) sel.value = String(found[0]);
+          }
+          const f = $('#fatefulEncounter'); if (f) f.checked = false;
+        }
+      } catch (e) {}
+
+      // PARTY_OF_THE_DECADE: set met location to a Fateful entry but do not
+      // check the fatefulEncounter checkbox (event metadata requests Fateful
+      // location but the encounter is not flagged fateful in UI).
+      try {
+        if (String(tag).toUpperCase() === 'PARTY_OF_THE_DECADE') {
+          const sel = $('#metLocation');
+          if (sel) {
+            const originGameId = Number($('#originGame')?.value) || evt.defaultOriginGame || 2;
+            const candidates = getLocationsForGame(originGameId);
+            const found = candidates.find(loc => String(loc[1] || '').toLowerCase().includes('fateful'))
+                          || LOCATIONS.find(loc => String(loc[1] || '').toLowerCase().includes('fateful'));
+            if (found) sel.value = String(found[0]);
+          }
+          const f = $('#fatefulEncounter'); if (f) f.checked = false;
+        }
+      } catch (e) {}
+
+      // PARTY_OF_THE_DECADE: restrict language selection to English only
+      try {
+        if (String(tag).toUpperCase() === 'PARTY_OF_THE_DECADE') {
+          const langSel = $('#language');
+          if (langSel && langSel.options) {
+            for (const o of Array.from(langSel.options)) {
+              o.disabled = String(o.value) !== '2';
+            }
+            langSel.value = '2';
+            try { langSel.dispatchEvent(new Event('change')); } catch (e) {}
+          }
+        }
+      } catch (e) {}
+
+      // Default PID
+      if (evt.defaultPID) {
+        const pidEl = $('#pid'); if (pidEl) pidEl.value = String(evt.defaultPID);
+      }
+
+      // WISHMKR_BEST: this version of the event does not allow shinies.
+      try {
+        if (String(tag).toUpperCase() === 'WISHMKR_BEST') {
+          const shinyCheckbox = $('#shiny');
+          if (shinyCheckbox) {
+            shinyCheckbox.checked = false;
+            shinyCheckbox.disabled = true;
+          }
+        }
+      } catch (e) {}
+
+      // WISHMKR_BEST: set metLocation to a Fateful entry but do NOT check the fatefulEncounter box
+      try {
+        if (String(tag).toUpperCase() === 'WISHMKR_BEST') {
+          const sel = $('#metLocation');
+          if (sel) {
+            const originGameId = Number($('#originGame')?.value) || evt.defaultOriginGame || 2;
+            const candidates = getLocationsForGame(originGameId);
+            const found = candidates.find(loc => String(loc[1] || '').toLowerCase().includes('fateful'))
+                          || LOCATIONS.find(loc => String(loc[1] || '').toLowerCase().includes('fateful'));
+            if (found) sel.value = String(found[0]);
+          }
+          const f = $('#fatefulEncounter'); if (f) f.checked = false;
+        }
+      } catch (e) {}
+
+      // Special-case language restrictions for certain events (e.g., 10ANNI disables Japanese)
+      try {
+        if (String(tag).toUpperCase() === '10ANNI') {
+          const langSel = $('#language');
+          if (langSel && langSel.options) {
+            for (const o of Array.from(langSel.options)) {
+              if (String(o.value) === '1') o.disabled = true; // disable Japanese
+            }
+            if (String(langSel.value) === '1') {
+              langSel.value = '2';
+              try { langSel.dispatchEvent(new Event('change')); } catch (e) {}
+            }
+          }
+        }
+      } catch (e) {}
+
+      // Aura Mew: force nickname to MEW, OT to 'Aura' for allowed languages,
+      // and restrict selectable languages to EN/FR/IT/DE/ES.
+      try {
+        if (String(tag).toUpperCase() === 'AURA_MEW') {
+          const nickEl = $('#nickname'); if (nickEl) nickEl.value = 'MEW';
+
+          const allowed = new Set(['2','3','4','5','7']); // EN, FR, IT, DE, ES
+          const langSel = $('#language');
+          if (langSel && langSel.options) {
+            for (const o of Array.from(langSel.options)) {
+              o.disabled = !allowed.has(String(o.value));
+            }
+            if (!allowed.has(String(langSel.value))) {
+              langSel.value = '2';
+              try { langSel.dispatchEvent(new Event('change')); } catch (e) {}
+            } else {
+              // ensure OT name is explicitly set
+              const ot = $('#otName'); if (ot) ot.value = 'Aura';
+              try { updateLegalityStatus(); } catch (e) {}
+            }
+          }
+
+          // Ensure TID is set for Aura Mew
+          try { const tidEl = $('#tid'); if (tidEl) tidEl.value = '20078'; } catch (e) {}
+
+          // Ensure event metadata lists Aura as the OT for allowed languages
+          evt.ot_names = evt.ot_names || {};
+          for (const v of Array.from(allowed)) evt.ot_names[String(v)] = 'Aura';
+        }
+      } catch (e) {}
+
+          // JOURNEY_ACROSS_AMERICA: restrict language to English only
+          try {
+            if (String(tag).toUpperCase() === 'JOURNEY_ACROSS_AMERICA') {
+              const langSel = $('#language');
+              if (langSel && langSel.options) {
+                for (const o of Array.from(langSel.options)) {
+                  o.disabled = String(o.value) !== '2';
+                }
+                langSel.value = '2';
+                try { langSel.dispatchEvent(new Event('change')); } catch (e) {}
+              }
+            }
+          } catch (e) {}
+
+      // Populate mystery species options if event-level species list exists
+      updateMysterySpeciesOptions(tag);
+
+      // Trigger UI recalculations / derived updates
+      try {
+        updateGenderFromPID();
+      } catch (e) {}
+
+      // POKEMON_ROCKS_METANG: ensure National ribbon is checked
+      try {
+        if (String(tag).toUpperCase() === 'POKEMON_ROCKS_METANG') {
+          const national = $('#ribbonNational');
+          if (national) {
+            national.checked = true;
+          }
+        }
+      } catch (e) {}
+
+      // Force English-only languages for specific events where only English
+      // game versions are supported in this dataset.
+      try {
+        const englishOnly = ['POKEMON_ROCKS_METANG','WISHMKR_BEST','WISHMKR_SHINY','DOEL_DEOXYS'];
+        if (englishOnly.includes(String(tag).toUpperCase())) {
+          const langSel = $('#language');
+          if (langSel && langSel.options) {
+            for (const o of Array.from(langSel.options)) {
+              o.disabled = String(o.value) !== '2';
+            }
+            langSel.value = '2';
+            try { langSel.dispatchEvent(new Event('change')); } catch (e) {}
+          }
+        }
+      } catch (e) {}
+
+      // WISHMKR_SHINY: set metLocation to a Fateful entry (but do NOT check
+      // the fatefulEncounter box) and restrict available natures to the
+      // specific set provided in the JSON for this event so only those 9
+      // preset PIDs are selectable.
+      try {
+        if (String(tag).toUpperCase() === 'WISHMKR_SHINY') {
+          // set met location to a Fateful entry
+          const sel = $('#metLocation');
+          if (sel) {
+            const originGameId = Number($('#originGame')?.value) || evt.defaultOriginGame || 2;
+            const candidates = getLocationsForGame(originGameId);
+            const found = candidates.find(loc => String(loc[1] || '').toLowerCase().includes('fateful'))
+                          || LOCATIONS.find(loc => String(loc[1] || '').toLowerCase().includes('fateful'));
+            if (found) sel.value = String(found[0]);
+          }
+          const f = $('#fatefulEncounter'); if (f) f.checked = false;
+
+          // Restrict nature choices to those present in the mystery JSON for this tag
+          try {
+            const allowed = new Set();
+            const entries = MYSTERY_GIFTS[tag] || [];
+            for (const e of entries) {
+              if (!e) continue;
+              const n = e.nature;
+              if (n === undefined || n === null) continue;
+              // numeric index
+              if (!isNaN(Number(n))) {
+                allowed.add(Number(n));
+                continue;
+              }
+              // string name -> find index in NATURES (case-insensitive, canonical)
+              const target = String(n).toLowerCase().replace(/[^a-z]/g,'');
+              for (let i = 0; i < NATURES.length; i++) {
+                const canon = String(NATURES[i] || '').toLowerCase().replace(/[^a-z]/g,'');
+                if (canon && canon === target) { allowed.add(i); break; }
+              }
+            }
+            const natSel = $('#nature');
+            if (natSel && natSel.options) {
+              // If no allowed natures found, leave options alone
+              if (allowed.size) {
+                for (const o of Array.from(natSel.options)) {
+                  // option values are indices as strings
+                  const val = Number(o.value);
+                  // Keep placeholder (empty) enabled
+                  if (o.value === '') { o.disabled = false; continue; }
+                  o.disabled = !allowed.has(val);
+                }
+                // If current selection not allowed, pick first allowed
+                const cur = Number(natSel.value || -1);
+                if (!allowed.has(cur)) {
+                  const first = Array.from(allowed)[0];
+                  if (first !== undefined) {
+                    natSel.value = String(first);
+                    try { natSel.dispatchEvent(new Event('change')); } catch (e) {}
+                  }
+                }
+              }
+            }
+          } catch (e) {}
+        }
+      } catch (e) {}
+      try { checkShiny(); } catch (e) {}
+      try { updateLegalityStatus(); } catch (e) {}
+    }
 let currentEncounterMode = 'hatched';
 // When true, skip applying simple-mode PID presets (used during imports)
 let suppressPresetApply = false;
+// When true, suppress marking user-change events while programmatically applying presets
+let suppressUserChangeMark = false;
+// Species ID for which a mystery preset was last applied (or 0/null when none)
+let mysteryPresetAppliedFor = 0;
+// Whether the user has modified fields (other than nickname) since the preset was applied
+let mysteryUserModifiedSincePreset = false;
 
 // Gender thresholds for different species (Gen 3)
 // Map species ID to gender threshold (0-255)
@@ -255,6 +667,11 @@ function createAutocomplete(selectEl, list, opts = {}) {
   // Also expose addEventListener for compatibility
   wrapper.addEventListener = function(type, handler) {
     input.addEventListener(type, handler);
+  };
+  // Forward dispatchEvent to the internal input so callers that dispatch
+  // events on the wrapper (compat shim) trigger the attached handlers.
+  wrapper.dispatchEvent = function(evt) {
+    try { return input.dispatchEvent(evt); } catch (e) { return false; }
   };
   
   function filterItems(query) {
@@ -960,18 +1377,30 @@ function boot(){
    */
   function updateLegalityStatus() {
     const result = checkLegality();
+    // If a mystery preset is active and the user modified fields since the
+    // preset was applied (except nickname), present 'unknown' (grey) status
+    // to indicate the preset may no longer match exactly.
+    try {
+      if (currentEncounterMode === 'mystery' && mysteryPresetAppliedFor && mysteryUserModifiedSincePreset) {
+        result.unknown = true;
+        // Prefer an explanatory message if none present
+        if (!result.errors || !result.errors.length) result.errors = ['User-modified since mystery preset'];
+      }
+    } catch (e) {}
+    // Global explanatory message for unknown/grey legality state
+    const unknownLegalityMessage = "Unable to check legality with the current changes. Please export the pokemon to a pk3 or ek3 file below and open it in PkHex to confirm legality.";
     const statusEl = $('#legalityStatus');
     const iconEl = $('#legalityIcon');
     const textEl = $('#legalityText');
     
     if (result.unknown) {
-      // Unknown/unsupported - show grey
+      // Unknown/unsupported - show grey and display global explanatory message
       statusEl.className = 'unknown';
       iconEl.textContent = '?';
       iconEl.style.color = '#9ca3af';
       textEl.textContent = 'Legal?';
       textEl.style.color = '#9ca3af';
-      statusEl.title = result.errors.join('\n');
+      statusEl.title = unknownLegalityMessage;
     } else if (result.legal) {
       statusEl.className = 'legal';
       iconEl.textContent = '✓';
@@ -992,6 +1421,13 @@ function boot(){
   // Click handler to show legality errors
   $('#legalityStatus').addEventListener('click', () => {
     const result = checkLegality();
+    const statusEl = $('#legalityStatus');
+    const unknownMsg = "Unable to check legality with the current changes. Please export the pokemon to a pk3 or ek3 file below and open it in PkHex to confirm legality.";
+    // If the UI currently shows 'unknown' (grey), present the global explanatory message
+    if (statusEl && statusEl.className === 'unknown') {
+      alert('Legality Unknown:\n\n' + unknownMsg);
+      return;
+    }
     if (result.unknown) {
       alert('Legality Unknown:\n\n• ' + result.errors.join('\n• '));
     } else if (!result.legal) {
@@ -1010,18 +1446,40 @@ function boot(){
       if (species) {
         // Special handling for Mew (species ID 151)
         if (speciesId === 151) {
-          $('#nickname').value = 'ミュウ'; // Mew in Japanese
-          $('#otName').value = 'ミュウ';   // OT also Mew in Japanese
-          $('#language').value = '1';      // Japanese language
-          const fatefulCheckbox = $('#fatefulEncounter');
-          if (fatefulCheckbox) {
-            fatefulCheckbox.checked = true; // Enable fateful encounter
+          // If Aura Mew event is active in mystery mode, enforce Aura Mew rules
+          const currentTag = document.getElementById('mysteryEvent')?.value || '';
+          if (currentEncounterMode === 'mystery' && String(currentTag).toUpperCase() === 'AURA_MEW') {
+            $('#nickname').value = 'MEW';
+            $('#otName').value = 'Aura';
+            // Ensure language is within allowed set (EN/FR/IT/DE/ES)
+            const allowed = new Set(['2','3','4','5','7']);
+            const langSel = $('#language');
+            if (langSel && !allowed.has(String(langSel.value))) {
+              langSel.value = '2';
+              try { langSel.dispatchEvent(new Event('change')); } catch (e) {}
+            }
+            const fatefulCheckbox = $('#fatefulEncounter');
+            if (fatefulCheckbox) fatefulCheckbox.checked = true;
+          } else {
+            $('#nickname').value = 'ミュウ'; // Mew in Japanese
+            $('#otName').value = 'ミュウ';   // OT also Mew in Japanese
+            $('#language').value = '1';      // Japanese language
+            const fatefulCheckbox = $('#fatefulEncounter');
+            if (fatefulCheckbox) {
+              fatefulCheckbox.checked = true; // Enable fateful encounter
+            }
           }
         }
         // Special handling for Celebi (species ID 251)
         else if (speciesId === 251) {
-          $('#nickname').value = 'セレビィ'; // Celebi in Japanese
-          $('#language').value = '1';        // Japanese language
+          const currentTag = document.getElementById('mysteryEvent')?.value || '';
+          if (currentEncounterMode === 'mystery' && String(currentTag).toUpperCase() === 'JOURNEY_ACROSS_AMERICA') {
+            $('#nickname').value = 'CELEBI';
+            $('#language').value = '2'; // English
+          } else {
+            $('#nickname').value = 'セレビィ'; // Celebi in Japanese
+            $('#language').value = '1';        // Japanese language
+          }
         }
         else {
           $('#nickname').value = species[1].toUpperCase();
@@ -1037,6 +1495,14 @@ function boot(){
       }
       // Always update gender dropdown for selected species
       handleEncounterModeChange(speciesId);
+
+      // If we're in Mystery Gifts mode and an event is selected, apply any
+      // per-species mystery preset (TID/SID/OT/PID/IVs) so the basics/stats
+      // reflect the event immediately and are not overridden by other logic.
+      if (currentEncounterMode === 'mystery') {
+        const tag = document.getElementById('mysteryEvent')?.value || '';
+        if (tag) applyMysteryPresetForSpecies(speciesId);
+      }
       // Validate form
       validateForm();
     }
@@ -1088,18 +1554,45 @@ function boot(){
     if ($('#otName').value.length > $('#otName').maxLength) {
       $('#otName').value = $('#otName').value.slice(0, $('#otName').maxLength);
     }
+
+    // If we're in mystery mode and an event is selected, attempt to apply
+    // the event-provided OT name for the chosen language.
+    try {
+      if (currentEncounterMode === 'mystery') {
+        const tag = document.getElementById('mysteryEvent')?.value || '';
+        if (tag && MYSTERY_EVENTS && MYSTERY_EVENTS[tag]) {
+          const evt = MYSTERY_EVENTS[tag];
+          const langKey = String($('#language')?.value || '');
+          if (evt.ot_names && evt.ot_names[langKey]) {
+            $('#otName').value = evt.ot_names[langKey];
+            // update legality/status if needed
+            try { updateLegalityStatus(); } catch (e) {}
+            return;
+          }
+          // Fallback to generic ot_name if provided
+          if (evt.ot_name) {
+            $('#otName').value = evt.ot_name;
+            try { updateLegalityStatus(); } catch (e) {}
+            return;
+          }
+        }
+      }
+    } catch (e) {}
   });
   
   // Attach validation to relevant fields
   $('#species').addEventListener('change', () => {
     validateForm();
     updateLegalityStatus();
+    // Recompute total EXP when species changes (exp group may differ)
+    try { computeAndSetExpFromLevel(); } catch (e) {}
     // Clear error highlighting immediately on interaction
     $('#species').parentElement.classList.remove('field-error');
   });
   $('#species').addEventListener('input', () => {
     validateForm();
     updateLegalityStatus();
+    try { computeAndSetExpFromLevel(); } catch (e) {}
     $('#species').parentElement.classList.remove('field-error');
   });
   $('#species').addEventListener('focus', () => {
@@ -1109,6 +1602,15 @@ function boot(){
     validateForm();
     updateLegalityStatus();
     $('#nature').classList.remove('field-error');
+    // If we're in mystery event mode, apply the per-event preset for the
+    // currently selected species so PID/IV from the JSON are used instead
+    // of the simple-mode/randomized presets.
+    try {
+      if (currentEncounterMode === 'mystery') {
+        const sp = Number($('#species').value) || 0;
+        if (sp) applyMysteryPresetForSpecies(sp);
+      }
+    } catch (e) {}
   });
   $('#nature').addEventListener('focus', () => {
     $('#nature').classList.remove('field-error');
@@ -1227,6 +1729,38 @@ function boot(){
     updateLegalityStatus();
   });
 
+  // Global listener to mark user modifications after a mystery preset is applied.
+  // Any user-driven `input` or `change` (except `#nickname`) will flip the
+  // `mysteryUserModifiedSincePreset` flag so the legality UI shows 'Legal?'.
+  document.addEventListener('input', (e) => {
+    if (suppressUserChangeMark) return;
+    if (currentEncounterMode !== 'mystery') return;
+    if (!mysteryPresetAppliedFor) return;
+    const tgt = e.target || {};
+    const id = tgt.id || '';
+    if (!id) return;
+    if (id === 'nickname') return; // nickname changes are allowed
+    // If selected species differs from the preset species, ignore
+    const curSpecies = Number($('#species')?.value) || 0;
+    if (curSpecies !== Number(mysteryPresetAppliedFor)) return;
+    mysteryUserModifiedSincePreset = true;
+    try { updateLegalityStatus(); } catch (e) {}
+  }, true);
+
+  document.addEventListener('change', (e) => {
+    if (suppressUserChangeMark) return;
+    if (currentEncounterMode !== 'mystery') return;
+    if (!mysteryPresetAppliedFor) return;
+    const tgt = e.target || {};
+    const id = tgt.id || '';
+    if (!id) return;
+    if (id === 'nickname') return;
+    const curSpecies = Number($('#species')?.value) || 0;
+    if (curSpecies !== Number(mysteryPresetAppliedFor)) return;
+    mysteryUserModifiedSincePreset = true;
+    try { updateLegalityStatus(); } catch (e) {}
+  }, true);
+
   // Add legality check listeners for fields that affect legality
   const levelInput = $('#level');
   if (levelInput) {
@@ -1303,7 +1837,12 @@ function boot(){
   // Setup encounter mode toggle
   document.querySelectorAll('input[name="encounterMode"]').forEach(radio => {
     radio.addEventListener('change', (e) => {
+      // Reset mode-specific state to avoid carryover between modes
+      try { resetAllModeState(); } catch (ee) {}
       currentEncounterMode = e.target.value;
+      // Add body classes for special encounter modes so CSS/JS can adjust visibility
+      document.body.classList.toggle('encounter-wild', currentEncounterMode === 'wild');
+      document.body.classList.toggle('encounter-mystery', currentEncounterMode === 'mystery');
       
       // Filter species list based on encounter mode
       updateSpeciesListForMode();
@@ -1313,6 +1852,386 @@ function boot(){
       handleEncounterModeChange(speciesId);
     });
   });
+
+    // Load mystery gift data (JSON) to populate event list
+    async function loadMysteryGifts() {
+      try {
+        // Try fetching the JSON; try both encoded and plain filename variants
+        let data = null;
+        const pathsToTry = [
+          'src/data/' + encodeURIComponent('Mystery gift pokemon gen 3.json'),
+          'src/data/Mystery gift pokemon gen 3.json'
+        ];
+        for (const p of pathsToTry) {
+          try {
+            const res = await fetch(p);
+            if (!res || !res.ok) continue;
+            data = await res.json();
+            break;
+          } catch (e) {
+            // try next
+          }
+        }
+        if (!data) throw new Error('Failed to fetch mystery gifts JSON');
+
+        // group individual pokemon entries by tag
+        MYSTERY_GIFTS = {};
+        for (const entry of data.pokemon || []) {
+          const tag = entry.tag || 'UNKNOWN';
+          if (!MYSTERY_GIFTS[tag]) MYSTERY_GIFTS[tag] = [];
+          MYSTERY_GIFTS[tag].push(entry);
+        }
+
+        // load event-level metadata if present
+        MYSTERY_EVENTS = data.events || {};
+
+        // Try loading external moveset file to supply per-event moves
+        try {
+          const msRes = await fetch('src/data/gen3_event_movesets.json');
+          if (msRes && msRes.ok) {
+            const movesData = await msRes.json();
+            const internalKeys = Object.keys(MYSTERY_EVENTS).length ? Object.keys(MYSTERY_EVENTS) : Object.keys(MYSTERY_GIFTS);
+            const normalize = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+            for (const displayName of Object.keys(movesData || {})) {
+              const movesForEvent = movesData[displayName];
+              // Try to match by species lists: map species names in moveset to IDs
+              const speciesNames = Object.keys(movesForEvent || {});
+              const ids = new Set();
+              for (const nm of speciesNames) {
+                const sp = SPECIES.find(s => String(s[1]).toLowerCase() === String(nm).toLowerCase());
+                if (sp) ids.add(Number(sp[0]));
+              }
+              let found = null;
+              if (ids.size) {
+                // find internal key whose species list includes these ids
+                for (const k of internalKeys) {
+                  const evt = MYSTERY_EVENTS[k];
+                  let allowed = new Set();
+                  if (evt && Array.isArray(evt.species)) {
+                    for (const s of evt.species) allowed.add(Number(s));
+                  } else if (MYSTERY_GIFTS[k]) {
+                    for (const e of MYSTERY_GIFTS[k]) if (e.species) allowed.add(Number(e.species));
+                  }
+                  if (!allowed.size) continue;
+                  let all = true;
+                  for (const id of ids) if (!allowed.has(id)) { all = false; break; }
+                  if (all) { found = k; break; }
+                }
+              }
+              // Fallback to name-based matching
+              if (!found) {
+                const nd = normalize(displayName);
+                found = internalKeys.find(k => normalize(k) === nd || normalize(k).includes(nd) || nd.includes(normalize(k)));
+                if (!found) {
+                  const toks = String(displayName).split(/[_\- ]+/).filter(Boolean).reverse().join('');
+                  found = internalKeys.find(k => normalize(k) === toks || normalize(k).includes(toks));
+                }
+                // Explicit aliases for display names that don't normalize cleanly
+                if (!found) {
+                  const aliasMap = {
+                    'doeldeoxys': 'DOEL_DEOXYS',
+                    'pokemonrocksamerica2005': 'POKEMON_ROCKS_METANG',
+                    'partyofthedecade': 'PARTY_OF_THE_DECADE',
+                    'party of the decade': 'PARTY_OF_THE_DECADE',
+                    'party of the decade': 'PARTY_OF_THE_DECADE'
+                  };
+                  const rawLower = String(displayName || '').toLowerCase();
+                  const compact = rawLower.replace(/[^a-z0-9]/g,'');
+                  if (aliasMap[nd]) found = aliasMap[nd];
+                  else if (aliasMap[rawLower]) found = aliasMap[rawLower];
+                  else if (aliasMap[compact]) found = aliasMap[compact];
+                }
+              }
+              if (found) MYSTERY_MOVESETS[found] = { displayName, moves: movesForEvent };
+            }
+          }
+        } catch (e) {
+          // non-fatal
+        }
+
+        // If any events include an event-level exp group, don't apply it globally.
+        // Prefer explicit per-pokemon `expGroup` fields so each species keeps its own group.
+        try {
+          for (const [tag, evt] of Object.entries(MYSTERY_EVENTS || {})) {
+            if (evt && (evt.defaultExpGroup || evt.default_exp_group)) {
+              console.warn('Ignoring event-level defaultExpGroup for mystery event', tag);
+            }
+          }
+        } catch (e) {}
+
+        // Apply per-pokemon exp group mappings if present in the JSON entries.
+        // JSON entries may provide `expGroup` (string like "MEDIUM_SLOW") or `exp_group`.
+        try {
+          for (const entry of data.pokemon || []) {
+            if (!entry) continue;
+            const sid = entry.species !== undefined ? Number(entry.species) : NaN;
+            const eg = entry.expGroup ?? entry.exp_group ?? null;
+            if (!Number.isFinite(sid) || !eg) continue;
+            let groupVal = null;
+            if (typeof eg === 'string') {
+              const key = String(eg).toUpperCase();
+              if (typeof GROUP !== 'undefined' && GROUP[key] !== undefined) groupVal = GROUP[key];
+            } else if (typeof eg === 'number') {
+              groupVal = Number(eg);
+            }
+            if (groupVal !== null) {
+              EXP_GROUPS[sid] = groupVal;
+              console.log('Mapped exp group for species', sid, '->', groupVal);
+            }
+          }
+        } catch (e) {}
+
+        // Populate event select from events object keys (fallback to tags found in pokemon)
+        const eventSel = document.getElementById('mysteryEvent');
+        if (eventSel) {
+          eventSel.innerHTML = '';
+          const placeholderOpt = document.createElement('option');
+          placeholderOpt.value = '';
+          placeholderOpt.textContent = '— Select event —';
+          eventSel.appendChild(placeholderOpt);
+
+          const keys = Object.keys(MYSTERY_EVENTS).length ? Object.keys(MYSTERY_EVENTS) : Object.keys(MYSTERY_GIFTS);
+          const tags = keys.sort();
+          for (const t of tags) {
+            const o = document.createElement('option');
+            o.value = t;
+            // Friendly display: replace underscores with spaces, with special-case
+            // rename for legacy 10ANNI tag.
+            if (String(t).toUpperCase() === '10ANNI') {
+              o.textContent = 'TOP 10 DISTRIBUTION POKÉMON';
+            } else if (String(t).toUpperCase() === 'WISHMKR_BEST') {
+              o.textContent = "WISHMKR JIRACHI - BEST IV'S";
+            } else if (String(t).toUpperCase() === 'WISHMKR_SHINY') {
+              o.textContent = "WISHMKR JIRACHI - ALL SHINY PID'S";
+            } else {
+              o.textContent = t.replace(/_/g,' ');
+            }
+            eventSel.appendChild(o);
+          }
+
+          eventSel.addEventListener('change', () => {
+            const tag = eventSel.value;
+            console.log('Mystery event selected:', tag);
+            // Clear any previous event-specific UI state (ribbons, language disables)
+            try { clearMysteryEventState(); } catch (e) {}
+            // Apply event-level defaults
+            applyEventDefaults(tag);
+
+            // Update available species/options for this event
+            updateSpeciesListForMode();
+            // Also try to apply preset for selected species
+            const sp = Number($('#species').value) || 0;
+            if (sp) applyMysteryPresetForSpecies(sp);
+            // Update mystery species options (noop if selector removed)
+            updateMysterySpeciesOptions(tag);
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to load mystery gifts JSON', e);
+      }
+    }
+    loadMysteryGifts();
+
+    // Clear UI state that may have been set by a previously-selected mystery event
+    function clearMysteryEventState() {
+      try {
+        // Re-enable all language options
+        const langSel = $('#language');
+        if (langSel && langSel.options) {
+          for (const o of Array.from(langSel.options)) o.disabled = false;
+        }
+
+        // Uncheck event-specific ribbons that events might set
+        const ribbonIds = ['ribbonWorld','ribbonBattleChampion','ribbonCountry','ribbonNational','ribbonNationalChampion','ribbonRegionalChampion','ribbonVictory','ribbonWinning'];
+        for (const id of ribbonIds) {
+          const el = $(`#${id}`);
+          if (el) el.checked = false;
+        }
+
+        // Clear fateful flag (new event will set if needed)
+        const f = $('#fatefulEncounter'); if (f) f.checked = false;
+        // Re-enable all nature options (undo any event-specific restrictions)
+        const natSel = $('#nature');
+        if (natSel && natSel.options) {
+          for (const o of Array.from(natSel.options)) {
+            o.disabled = false;
+          }
+        }
+        // Clear any mystery-preset tracking
+        mysteryPresetAppliedFor = 0;
+        mysteryUserModifiedSincePreset = false;
+      } catch (e) {}
+    }
+
+    // Apply a mystery event preset for a species (if entries exist for selected event)
+    function applyMysteryPresetForSpecies(speciesId) {
+      // Prevent our own programmatic changes from being treated as user edits
+      suppressUserChangeMark = true;
+      const rawTag = document.getElementById('mysteryEvent')?.value || '';
+      if (!rawTag) { suppressUserChangeMark = false; return; }
+
+      // Resolve common mismatches between event keys and per-pokemon tags.
+      let tag = rawTag;
+      if (!MYSTERY_GIFTS[tag]) {
+        try {
+          // Try reversed token order: DOEL_DEOXYS <-> DEOXYS_DOEL
+          const toks = String(rawTag).split(/[_\- ]+/).filter(Boolean);
+          if (toks.length > 1) {
+            const rev = toks.slice().reverse().join('_');
+            if (MYSTERY_GIFTS[rev]) tag = rev;
+          }
+        } catch (e) {}
+      }
+      // Fallback: case-insensitive contains/substring match
+      if (!MYSTERY_GIFTS[tag]) {
+        const low = String(rawTag).toLowerCase();
+        const foundKey = Object.keys(MYSTERY_GIFTS).find(k => {
+          const kl = String(k).toLowerCase();
+          return kl === low || kl === low.replace(/[_\- ]+/g,'_') || kl.includes(low) || low.includes(kl);
+        });
+        if (foundKey) tag = foundKey;
+      }
+      if (!tag || !MYSTERY_GIFTS[tag]) { suppressUserChangeMark = false; return; }
+      const natureIndex = Number($('#nature').value || 0);
+      const natureName = NATURES[natureIndex] || '';
+
+      // Diagnostics: log available entries and currently selected nature
+      try {
+        const candidateNatures = (MYSTERY_GIFTS[tag] || []).map(e => String(e.nature || ''));
+        console.log('applyMysteryPresetForSpecies', { tag, speciesId, natureIndex, natureName, candidateNatures });
+      } catch (e) {}
+
+      // Build candidate list. Prefer exact-per-tag list, but if missing,
+      // scan all per-pokemon entries for matching entry.tag values (handles
+      // mismatches like DEOXYS_DOEL vs DOEL_DEOXYS).
+      let candidates = [];
+      if (MYSTERY_GIFTS[tag] && MYSTERY_GIFTS[tag].length) {
+        candidates = MYSTERY_GIFTS[tag];
+      } else {
+        try {
+          const rawLower = String(rawTag).toLowerCase();
+          const rev = String(rawTag).split(/[_\- ]+/).filter(Boolean).reverse().join('_').toLowerCase();
+          for (const k of Object.keys(MYSTERY_GIFTS)) {
+            for (const e of (MYSTERY_GIFTS[k] || [])) {
+              const etag = String(e.tag || '').toLowerCase();
+              if (!etag) continue;
+              if (etag === rawLower || etag === rev || etag.includes(rawLower) || rawLower.includes(etag)) {
+                candidates.push(e);
+              }
+            }
+          }
+        } catch (e) {}
+      }
+      console.log('Mystery preset candidates count for', rawTag, candidates.length);
+      const targetCanon = String(natureName || '').toLowerCase().replace(/[^a-z]/g, '');
+      const entry = candidates.find(e => {
+        const en = String(e.nature || '').toLowerCase().trim();
+        if (!en) return false;
+        if (en === String(natureName || '').toLowerCase()) return true;
+        // If JSON used a numeric nature index
+        if (!isNaN(Number(en)) && Number(en) === natureIndex) return true;
+        // Canonical compare (ignore non-letters)
+        const ec = en.replace(/[^a-z]/g, '');
+        if (ec && ec === targetCanon) return true;
+        return false;
+      }) || candidates[0];
+      if (!entry) { suppressUserChangeMark = false; return; }
+      // Reset user-modified flag when applying preset
+      mysteryUserModifiedSincePreset = false;
+      // If entry contains pid/ivs, apply them
+      const pidInput = $('#pid');
+      if (pidInput && entry.pid) pidInput.value = String(entry.pid);
+      if (entry.ivs && entry.ivs.length >= 6) {
+        // JSON ivs order: [hp, atk, def, speed, sp.atk, sp.def] per notes
+        $('#ivHp').value = String(entry.ivs[0]);
+        $('#ivAtk').value = String(entry.ivs[1]);
+        $('#ivDef').value = String(entry.ivs[2]);
+        $('#ivSpe').value = String(entry.ivs[3]);
+        $('#ivSpAtk').value = String(entry.ivs[4]);
+        $('#ivSpDef').value = String(entry.ivs[5]);
+      }
+      if (entry.fixedTID !== undefined) $('#tid').value = String(entry.fixedTID);
+      if (entry.fixedSID !== undefined) $('#sid').value = String(entry.fixedSID);
+      if (entry.ot_name) $('#otName').value = entry.ot_name;
+      if (entry.ot_gender) $('#otGender').value = entry.ot_gender.toLowerCase();
+      // Apply moveset from external moveset mapping if available.
+      // Use a resilient lookup: try the resolved tag, the raw selected tag,
+      // the reversed-token variant, and normalized matching against keys.
+      try {
+        const normalizeKey = k => String(k||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+        const raw = String(rawTag || '');
+        const revRaw = String(rawTag).split(/[_\- ]+/).filter(Boolean).reverse().join('_');
+        let ms = null;
+        // Direct lookups
+        if (tag && MYSTERY_MOVESETS[tag]) ms = MYSTERY_MOVESETS[tag];
+        if (!ms && raw && MYSTERY_MOVESETS[raw]) ms = MYSTERY_MOVESETS[raw];
+        if (!ms && revRaw && MYSTERY_MOVESETS[revRaw]) ms = MYSTERY_MOVESETS[revRaw];
+        // Fallback: normalized name matching against available moveset keys
+        if (!ms) {
+          const nd = normalizeKey(raw);
+          for (const k of Object.keys(MYSTERY_MOVESETS)) {
+            const nk = normalizeKey(k);
+            if (!nk) continue;
+            if (nk === nd || nk.includes(nd) || nd.includes(nk)) { ms = MYSTERY_MOVESETS[k]; break; }
+          }
+        }
+        // Final fallback: compare the moveset's displayName to the raw tag/display name
+        if (!ms) {
+          const rawNorm = normalizeKey(raw);
+          for (const [k, v] of Object.entries(MYSTERY_MOVESETS)) {
+            const disp = normalizeKey(v.displayName || '');
+            if (!disp) continue;
+            if (disp === rawNorm || disp.includes(rawNorm) || rawNorm.includes(disp)) { ms = v; break; }
+          }
+        }
+        if (ms && ms.moves) {
+          const speciesObj = SPECIES.find(s => Number(s[0]) === Number(speciesId));
+          const speciesName = speciesObj ? String(speciesObj[1]) : null;
+          // Try direct lookup by species name, then fallback to normalized name matching
+          const normalizeName = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+          let moves = [];
+          if (speciesName && ms.moves[speciesName]) {
+            moves = ms.moves[speciesName] || [];
+          } else if (speciesName) {
+            const target = normalizeName(speciesName);
+            const candidateKey = Object.keys(ms.moves || {}).find(k => {
+              const nk = normalizeName(k);
+              return nk === target || nk.includes(target) || target.includes(nk);
+            });
+            if (candidateKey) moves = ms.moves[candidateKey] || [];
+          }
+          for (let i = 0; i < 4; i++) {
+            const el = $(`#move${i+1}`);
+            if (!el) continue;
+            const mv = moves[i];
+            if (!mv) {
+              el.value = '';
+            } else if (mv.index !== undefined) {
+              el.value = String(mv.index);
+            } else if (typeof mv === 'number') {
+              el.value = String(mv);
+            } else {
+              el.value = '';
+            }
+            try { el.dispatchEvent(new Event('change')); } catch (e) {}
+          }
+        }
+      } catch (e) {}
+      updateGenderFromPID();
+      checkShiny();
+      // Mark which species the preset was applied for and update legality
+      mysteryPresetAppliedFor = Number(speciesId) || 0;
+      try { updateLegalityStatus(); } catch (e) {}
+      // Re-enable marking of user changes after programmatic updates
+      suppressUserChangeMark = false;
+    }
+
+    // The dedicated mystery-species select element was removed from the UI.
+    // Keep a minimal no-op function so existing callers are safe and the
+    // top-level `#mysteryEvent` dropdown continues to work without errors.
+    function updateMysterySpeciesOptions(/*tag*/) {
+      return; // noop — species selector was removed from the page
+    }
   
   /**
    * Filter species list based on current encounter mode
@@ -1323,8 +2242,8 @@ function boot(){
     let filteredSpecies;
     switch(currentEncounterMode) {
       case 'hatched':
-        // Exclude legendaries (only breedable pokemon)
-        filteredSpecies = SPECIES.filter(s => !isLegendary(s[0]));
+        // Exclude legendaries (only breedable pokemon) and Ditto (cannot be bred)
+        filteredSpecies = SPECIES.filter(s => !isLegendary(s[0]) && s[0] !== 132);
         break;
       case 'legendaries':
         // Only legendaries
@@ -1333,6 +2252,22 @@ function boot(){
       case 'wild':
         // All pokemon except legendaries and gift pokemon
         filteredSpecies = SPECIES.filter(s => !isLegendary(s[0]) && !isGiftPokemon(s[0]));
+        break;
+      case 'mystery':
+        // Only show species available in the selected mystery event (if specified)
+        const selectedTag = document.getElementById('mysteryEvent')?.value || '';
+        if (selectedTag && MYSTERY_EVENTS[selectedTag] && Array.isArray(MYSTERY_EVENTS[selectedTag].species)) {
+          const allowed = new Set(MYSTERY_EVENTS[selectedTag].species.map(n => Number(n)));
+          filteredSpecies = SPECIES.filter(s => allowed.has(s[0]));
+        } else if (selectedTag && MYSTERY_GIFTS[selectedTag]) {
+          const allowed = new Set();
+          for (const e of MYSTERY_GIFTS[selectedTag]) if (e.species) allowed.add(Number(e.species));
+          if (allowed.size) filteredSpecies = SPECIES.filter(s => allowed.has(s[0]));
+          else filteredSpecies = SPECIES.filter(s => isGiftPokemon(s[0]));
+        } else {
+          // Fallback: show all gift event species
+          filteredSpecies = SPECIES.filter(s => isGiftPokemon(s[0]));
+        }
         break;
       default:
         filteredSpecies = SPECIES;
@@ -1346,6 +2281,10 @@ function boot(){
    */
   function handleEncounterModeChange(speciesId) {
     const mode = currentEncounterMode;
+    if (mode !== 'mystery') {
+      mysteryPresetAppliedFor = 0;
+      mysteryUserModifiedSincePreset = false;
+    }
     const genderSelect = $('#gender');
     // Set gender options based on species gender threshold
     if (genderSelect) {
@@ -1452,8 +2391,29 @@ function boot(){
       
       // Update experience to match level 100
       computeAndSetExpFromLevel();
+    } else if (mode === 'wild') {
+      // For wild mode, re-enable gender selection and clear origin/met presets
+      if (genderSelect) {
+        genderSelect.style.pointerEvents = '';
+        genderSelect.style.opacity = '';
+        genderSelect.style.cursor = '';
+      }
+
+      // Clear origin game, met location and met level so user can fill them
+      const originGameSelect = $('#originGame');
+      const metLocationSelect = $('#metLocation');
+      const metLevelInput = $('#metLevel');
+      if (originGameSelect) originGameSelect.value = '';
+      if (metLocationSelect) metLocationSelect.value = '';
+      if (metLevelInput) metLevelInput.value = '';
+
+        // Re-apply nature preset so PID/IV reflect the selected nature for wild mode
+        const natureElLocal = document.querySelector('#nature');
+        if (natureElLocal) {
+          natureElLocal.dispatchEvent(new Event('change'));
+        }
     } else {
-      // For wild mode, re-enable gender selection
+      // Fallback: re-enable gender selection
       if (genderSelect) {
         genderSelect.style.pointerEvents = '';
         genderSelect.style.opacity = '';
@@ -1472,6 +2432,10 @@ function boot(){
   function applyStaticEncounterPreset(speciesId) {
     const encounter = STATIC_ENCOUNTERS[speciesId];
     if (!encounter) return;
+
+    // Do not apply static encounter presets while Mystery Gifts mode is active;
+    // event defaults should take precedence for mystery events.
+    if (currentEncounterMode === 'mystery') return;
 
     // Check if this is a fixed event (like WISHMKR Jirachi)
     if (encounter.fixedEvent) {
@@ -1654,6 +2618,41 @@ function boot(){
     if (expEl) expEl.value = String(exp);
   }
 
+  // Reset all mode-specific state to defaults to avoid carryover between modes
+  function resetAllModeState() {
+    try {
+      const me = document.getElementById('mysteryEvent');
+      if (me) {
+        me.value = '';
+        try { me.dispatchEvent(new Event('change')); } catch (e) {}
+      }
+
+      // Re-enable all language options and reset to English
+      const langSel = $('#language');
+      if (langSel && langSel.options) {
+        for (const o of Array.from(langSel.options)) o.disabled = false;
+        langSel.value = '2';
+        try { langSel.dispatchEvent(new Event('change')); } catch (e) {}
+      }
+
+      // Reset origin/met/fateful/level/exp to sensible defaults
+      const originGameSelect = $('#originGame'); if (originGameSelect) originGameSelect.value = '3';
+      const metLocationSelect = $('#metLocation'); if (metLocationSelect) metLocationSelect.value = '9';
+      const metLevelInput = $('#metLevel'); if (metLevelInput) metLevelInput.value = '0';
+      const levelInput = $('#level'); if (levelInput) levelInput.value = '100';
+      const expEl = $('#expTotal'); if (expEl) expEl.value = String(expForLevel(GROUP.MEDIUM_FAST, 100));
+      const fateful = $('#fatefulEncounter'); if (fateful) fateful.checked = false;
+
+      // Reset basic trainer info and PID/IVs to neutral values
+      const tid = $('#tid'); if (tid) tid.value = '';
+      const sid = $('#sid'); if (sid) sid.value = '';
+      const otName = $('#otName'); if (otName) otName.value = '';
+      const otGender = $('#otGender'); if (otGender) otGender.value = 'male';
+      const pid = $('#pid'); if (pid) pid.value = '';
+      ['#ivHp','#ivAtk','#ivDef','#ivSpAtk','#ivSpDef','#ivSpe'].forEach(id => { const el = $(id); if (el) el.value = '31'; });
+    } catch (e) {}
+  }
+
   // PID preset helpers: when in simple mode, select PID based on nature+gender.
   function getSelectedPreset(){
     const natureIndex = Number($('#nature').value || 0);
@@ -1681,6 +2680,7 @@ function boot(){
 
   function applyPresetIfSimple(){
     if (suppressPresetApply) return; 
+    if (currentEncounterMode === 'mystery') return; // mystery uses its own presets
     if(document.body.classList.contains('mode-simple')){
       const preset = getSelectedPreset();
       if(preset){
@@ -1840,27 +2840,46 @@ function boot(){
         shinyCheckbox.checked = false;
       }
       
-      // Check if we're in legendaries mode
-      if (currentEncounterMode === 'legendaries') {
-        // Apply legendary preset for the new nature
+      // If we're in mystery mode, apply per-event presets first
+      if (currentEncounterMode === 'mystery') {
         const speciesId = Number($('#species').value) || 0;
-        if (isLegendary(speciesId)) {
-          const targetNature = Number(natureEl.value || 0);
-          
-          // Get origin game to determine which PID set to use
+        const tag = document.getElementById('mysteryEvent')?.value || '';
+        if (tag && MYSTERY_GIFTS[tag]) {
+          applyMysteryPresetForSpecies(speciesId);
+          return; // do not fall-through to other preset logic
+        }
+      }
+
+      // If we're in legendaries or wild mode, apply the per-nature legendary preset
+      if (currentEncounterMode === 'legendaries' || currentEncounterMode === 'wild') {
+        const speciesId = Number($('#species').value) || 0;
+        const targetNature = Number(natureEl.value || 0);
+
+        // Determine originGame: legendaries use the static encounter's defaultOriginGame,
+        // wild uses the user's selected originGame (or default 2)
+        let originGame = 2;
+        if (currentEncounterMode === 'legendaries') {
           const encounter = STATIC_ENCOUNTERS[speciesId];
-          const originGame = encounter?.defaultOriginGame || 2;
-          
+          originGame = encounter?.defaultOriginGame || 2;
+          // Only apply for actual legendary species in legendaries mode
+          if (!isLegendary(speciesId)) {
+            // skip applying preset
+            originGame = null;
+          }
+        } else {
+          // Wild mode: use the selected origin game if present
+          const og = Number($('#originGame')?.value);
+          originGame = Number.isFinite(og) && og > 0 ? og : 2;
+        }
+
+        if (originGame !== null) {
           const preset = getLegendaryPreset(targetNature, originGame);
-          
           if (preset) {
-            // Set PID from preset
             const pidEl = document.querySelector('#pid');
             if (pidEl) {
               pidEl.value = '0x' + preset.pid.toString(16).toUpperCase().padStart(8, '0');
             }
-            
-            // Set IVs from preset
+
             if (preset.ivs) {
               $('#ivHp').value = preset.ivs.hp;
               $('#ivAtk').value = preset.ivs.atk;
@@ -1869,12 +2888,17 @@ function boot(){
               $('#ivSpDef').value = preset.ivs.spd;
               $('#ivSpe').value = preset.ivs.spe;
             }
-            
-            // Update gender and ability - always set ability to 0 for legendaries
+
+            // Update gender from PID
             updateGenderFromPID();
-            $('#ability').value = '0';
-            
-            // Update legality status after applying new IVs
+
+            // For legendaries, force ability to 0; for wild, derive ability bit from PID
+            if (currentEncounterMode === 'legendaries') {
+              $('#ability').value = '0';
+            } else {
+              $('#ability').value = String(preset.pid & 1);
+            }
+
             updateLegalityStatus();
           }
         }

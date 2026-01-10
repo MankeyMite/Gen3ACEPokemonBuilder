@@ -3,7 +3,7 @@
 > A browser-based tool for creating Gen III Pokémon using the Arbitrary Code Execution (ACE) glitch
 > Link: https://mankeymite.github.io/Gen3ACEPokemonBuilder/
 
-[![Version](https://img.shields.io/badge/version-0.1.9--alpha-blue.svg)](https://github.com/yourusername/pkmn-ace-tool)
+[![Version](https://img.shields.io/badge/version-0.2.0--alpha-blue.svg)](https://github.com/yourusername/pkmn-ace-tool)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## 🎮 Features
@@ -171,8 +171,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Bulbapedia for Gen III data structure documentation
 - PKHeX for legality checking insights
-- The Gen III ACE community for reverse engineering work
-- pokesprite for Pokémon sprite assets
+- Adrichu00 for helping with the distribution event pokemon calculations for legality, as well as providing a list of high avg. IVs for all natures for BACD_R_A PID type Pokemon.
+- 
 
 ## 📧 Contact
 
