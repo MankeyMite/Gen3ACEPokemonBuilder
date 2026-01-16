@@ -2733,16 +2733,28 @@ function boot(){
   // Handle shiny checkbox
   const shinyCheckbox = $('#shiny');
   if (shinyCheckbox) {
-    // Update checkbox disabled state when TID/SID changes
+    // Update checkbox disabled state when conditions change.
+    // Do NOT disable while the user is typing a partial TID/SID; only
+    // disable for mystery events that explicitly lock shininess.
     function updateShinyCheckboxState() {
-      const tid = $('#tid').value.trim();
-      const sid = $('#sid').value.trim();
-      const hasValidIds = tid !== '' && sid !== '' && !isNaN(tid) && !isNaN(sid);
-      shinyCheckbox.disabled = !hasValidIds;
-      
-      if (!hasValidIds) {
-        shinyCheckbox.checked = false;
-      }
+      try {
+        const shinyCheckboxLocal = $('#shiny');
+        if (!shinyCheckboxLocal) return;
+        // If we're in mystery mode and the selected event requests a shiny lock,
+        // enforce it here. Otherwise keep the control enabled so the user can
+        // toggle shiny while entering TID/SID.
+        if (currentEncounterMode === 'mystery') {
+          const tag = ($('#mysteryEvent') && $('#mysteryEvent').value) ? String($('#mysteryEvent').value).toUpperCase() : '';
+          const evt = MYSTERY_EVENTS[tag];
+          if (evt && evt.shinyLocked) {
+            shinyCheckboxLocal.checked = false;
+            shinyCheckboxLocal.disabled = true;
+            return;
+          }
+        }
+        // Default: ensure enabled
+        shinyCheckboxLocal.disabled = false;
+      } catch (e) {}
     }
     
     $('#tid').addEventListener('input', updateShinyCheckboxState);

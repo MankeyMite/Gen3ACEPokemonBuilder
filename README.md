@@ -180,4 +180,4 @@ For bug reports and feature requests, please use the [GitHub Issues](https://git
 
 ---
 
-**Disclaimer**: This tool is for educational purposes. Use only with legally obtained games and save files. The authors are not responsible for any damage to save files or game cartridges.
+**Disclaimer**: This tool is for educational purposes. Use only with legally obtained games and save files. The author is not responsible for any damage to save files or game cartridges.
