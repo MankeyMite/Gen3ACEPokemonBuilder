@@ -176,7 +176,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact
 
-For bug reports and feature requests, please use the [GitHub Issues](https://github.com/yourusername/pkmn-ace-tool/issues) page.
+For bug reports and feature requests, please contact me on Discord: MankeyMite#9981
 
 ---
 
