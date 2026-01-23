@@ -658,5 +658,25 @@
                 "index": 349
             }
         ]
+    },
+    "Journey Across America": {
+        "Celebi": [
+            {
+                "name": "Ancient Power",
+                "index": 246
+            },
+            {
+                "name": "Future Sight",
+                "index": 248
+            },
+            {
+                "name": "Baton Pass",
+                "index": 226
+            },
+            {
+                "name": "Perish Song",
+                "index": 195
+            }
+        ]
     }
 }
