@@ -1,3 +1,8 @@
+Patch Notes — (V.0.2.1)
+
+Summary
+- Reworked instruction page for BASE64 setup
+
 Patch Notes — (V.0.2.0)
 
 Summary
