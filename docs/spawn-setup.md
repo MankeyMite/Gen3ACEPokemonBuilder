@@ -24,9 +24,9 @@ Box  1:    B C U n _ F J u    [BCUn FJu]
 Box  2:    I k o B 3 h F      [IkoB3hF]
 Box  3:    A A T . h r        [AAT.hr]
 Box  4:    A h _ f n          [Ah fn]
-Box  5:    _ F Z O T . h r    [ FZOT.hr]
+Box  5:    _ F Z O T . h r    [ FZOT.hr] ← upper case o (O)
 Box  6:    J J J _ 1 / …      [JJJ 1/…] ← one (1)
-Box  7:    P q / _ … n        [Pq/ …n]
+Box  7:    P q / _ … n        [Pq/ …n] ← lowercase Q (q)
 Box  8:    v 6 5 Q K          [v65QK]
 Box  9:    T . g L _ F Z O    [T.gL FZO]
 Box 10:    R j o D Y J m ?    [RjoDYJm?]

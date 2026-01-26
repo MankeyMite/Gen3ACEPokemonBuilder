@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Spawn setup — Interactive</title>
+  <style>
+    :root{--bg:#0b1220;--card:#0f2438;--fg:#e8f4f8;--muted:#9fb7c9;--accent:#4a9eff;--done:#3a4552}
+    html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#071021 0%,#0b1220 100%);color:var(--fg)}
+    .container{max-width:1100px;margin:32px auto;padding:24px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.04));border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.03)}
+    .tabs{display:flex;gap:8px;margin-bottom:12px}
+    .mode-select{display:flex;gap:10px;margin:12px 0 18px}
+    .mode-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--fg);padding:8px 12px;border-radius:8px;cursor:pointer}
+    .mode-btn.requires-instructions{opacity:0.6}
+    .mode-btn.active{background:linear-gradient(90deg,var(--accent),#48d597);color:#02121a;font-weight:700}
+    .tab{background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);padding:8px 12px;border-radius:8px;cursor:pointer}
+    .tab.active{background:linear-gradient(90deg,var(--accent),#48d597);color:#02121a;font-weight:700;box-shadow:0 6px 18px rgba(74,158,255,0.12)}
+    .tab[disabled]{opacity:0.5;pointer-events:none}
+    pre{background:rgba(0,0,0,0.25);padding:12px;border-radius:8px;overflow:auto;color:var(--fg);font-family:ui-monospace,Menlo,Consolas,monospace;position:relative}
+    /* Layout: code | notes | controls (notes appear to the right of the vertical divider) */
+    .line{display:grid;grid-template-columns:1fr 320px 120px;align-items:center;gap:12px;padding:6px 4px;border-radius:6px}
+    .line:hover{background:rgba(255,255,255,0.02)}
+    .text{white-space:pre-wrap}
+    .note{color:var(--muted);font-size:0.95rem}
+    .note.locked{opacity:0.85;color:rgba(159,183,201,0.85);font-style:italic;cursor:not-allowed}
+    .controls{justify-self:end;display:flex;gap:6px}
+    .controls button{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--fg);padding:4px 8px;border-radius:6px;cursor:pointer}
+    .controls button.active{background:linear-gradient(90deg,var(--accent),#48d597);color:#02121a;border-color:rgba(74,158,255,0.12);font-weight:700;box-shadow:0 6px 12px rgba(74,158,255,0.06)}
+    /* Vertical divider placed left of the notes column; shifted left to avoid overlapping notes */
+    .code-panel pre::before{content:'';position:absolute;top:8px;bottom:8px;left:calc(100% - 650px - 12px);width:2px;background:linear-gradient(180deg,rgba(198,40,40,0.85),rgba(198,40,40,0.5));opacity:0.95;pointer-events:none;z-index:1}
+    .char-red{color:#ff6b6b;font-weight:700}
+    .char-lower{color:rgba(232,244,248,0.68)}
+    .char-upper{color:var(--fg)}
+      .panel-inner{display:flex;gap:12px}
+      .codes-box{flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);padding:14px;border-radius:8px;display:flex;flex-direction:column;gap:8px}
+      .codes-box .code-line{height:44px;box-sizing:border-box;padding:8px 6px;font-family:ui-monospace,Menlo,Consolas,monospace;display:flex;align-items:center;white-space:nowrap;overflow:hidden}
+      .codes-box .code-line .code-text{display:inline-block}
+      .notes-col{width:320px;display:flex;flex-direction:column;gap:8px;padding:14px;box-sizing:border-box}
+      .notes-col .note{height:44px;box-sizing:border-box;padding:10px 8px;overflow:auto}
+      .controls-col{width:120px;display:flex;flex-direction:column;gap:8px;padding:14px;box-sizing:border-box;align-items:stretch}
+      .controls-col .controls{display:flex;gap:8px;justify-content:flex-end;align-items:center;height:44px;box-sizing:border-box}
+    
+    .highlight{background:rgba(198,40,40,0.12);color:#ffdcdc}
+    .done{opacity:0.5;text-decoration:line-through;color:var(--muted)}
+    .kbd{background:rgba(255,255,255,0.04);padding:0 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.02);font-family:ui-monospace,Menlo,Consolas}
+    .footer{margin-top:12px;color:var(--muted);font-size:0.95rem}
+    .panel-tip{margin-top:10px;color:var(--muted);font-size:0.9rem}
+    .instructions{margin-top:18px;padding:0;border-radius:8px}
+    details.instructions{background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(0,0,0,0.02));border:1px solid rgba(255,255,255,0.03);overflow:hidden}
+    details.instructions[open] summary{border-bottom:1px solid rgba(255,255,255,0.03)}
+    details.instructions summary{cursor:pointer;padding:10px 16px;color:var(--fg);font-weight:700}
+    details.instructions .instructions-inner{padding:12px 16px 16px 16px;color:var(--muted)}
+    details.instructions .instructions-inner h2{margin:0 0 8px 0;color:var(--fg);font-size:1.05rem}
+    details.instructions .instructions-inner p{margin:6px 0;line-height:1.45}
+    .remember-list{margin-top:12px;color:var(--muted);font-size:0.95rem}
+    .remember-list ul{margin:6px 0 0 18px;padding:0}
+    .remember-list li{margin:6px 0}
+    .remember-image{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px}
+    .remember-image img{width:48%;max-width:48%;height:auto;border-radius:8px;border:1px solid rgba(255,255,255,0.03);}
+    .controls button{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--fg);padding:4px 8px;border-radius:6px;cursor:pointer}
+    /* spacing helper for the instructions section */
+    details.instructions .instructions-inner p.section-gap{margin-top:1.25rem;margin-bottom:0.5rem}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>BASE64 writer 3.0 setup (by Mettrich)</h1>
+      <details id="instructions" class="instructions">
+        <summary>Instructions — click me first!</summary>
+        <div class="instructions-inner">
+          <h2>How to Spawn Pokémon with the custom ACE Pokemon builder tool (using a Base64 writer)</h2>
+          <p>The custom ACE Pokemon builder tool will allow you to create any Pokemon with any data and spawn it inside your Pokemon Emerald game using the Base64 codes provided after clicking the Generate button. This feature is most useful for console users, as there are easier ways to copy Pokemon data on a computer with an emulator, such as copying the Hex data and pasting it into Pokeglitzer.</p>
+          <p>When generating a Pokemon with the tool, you will see 14 box codes. Typing these 14 box codes into your PC and executing it with any stable ace species and the BASE64 writer will spawn that exact Pokemon into your PC, box 14 slot 30. Here is how you create the BASE64 writer:</p>
+          <h2>Creating the BASE64 writer</h2>
+          <p class="section-gap">Make sure of the following before getting started:</p>
+
+
+<ul>
+  <li>
+    You have created a stable or metastable ace species using the Dots egg.
+    (Stable ARM species 0x410e recommended on english language versions)
+  </li>
+  <li>Boxes 11–14 are empty.</li>
+  <li>Box 10 slot 22 is empty.</li>
+</ul>
+
+<p>You may now select Console/mGBA or Old Emulator below and start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+
+        </div>
+      </details>
+
+      <div class="mode-select">
+        <button class="mode-btn requires-instructions" data-mode="modern">Console / mGBA</button>
+        <button class="mode-btn requires-instructions" data-mode="old">Old Emulator</button>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab" data-tab="code1">Code 1</button>
+        <button class="tab" data-tab="code2">Code 2</button>
+        <button class="tab" data-tab="code3">Code 3</button>
+        <button class="tab" data-tab="code4">Code 4</button>
+        <button class="tab" data-tab="code5">Code 5</button>
+      </div>
+
+      <div id="codes">
+        <section id="code1" class="code-panel" style="display:none">
+            <div class="panel-inner">
+              <div class="codes-box">
+                <div class="code-line"><span class="code-text">Box  1:    B C U n _ F J u</span></div>
+                <div class="code-line"><span class="code-text">Box  2:    I k o B 3 h F</span></div>
+                <div class="code-line"><span class="code-text">Box  3:    A A T . h r</span></div>
+                <div class="code-line"><span class="code-text">Box  4:    A h _ f n</span></div>
+                <div class="code-line"><span class="code-text">Box  5:    _ F Z <span class="char-red">O</span> T . h r</span></div>
+                <div class="code-line"><span class="code-text">Box  6:    J J J _ 1 / …</span></div>
+                <div class="code-line"><span class="code-text">Box  7:    P q / _ … n</span></div>
+                <div class="code-line"><span class="code-text">Box  8:    v 6 5 Q K</span></div>
+                <div class="code-line"><span class="code-text">Box  9:    T . g L _ F Z <span class="char-red">O</span></span></div>
+                <div class="code-line"><span class="code-text">Box 10:    R j o D Y J m ?</span></div>
+                <div class="code-line"><span class="code-text">Box 11:    B n F K T F F F</span></div>
+                <div class="code-line"><span class="code-text">Box 12:    U U F R R G <span class="char-red">O</span> U</span></div>
+                <div class="code-line"><span class="code-text">Box 13:    T H S G Q U R L</span></div>
+                <div class="code-line"><span class="code-text">Box 14:    Q T R R U U F F</span></div>
+              </div>
+              <div class="notes-col">
+                <div class="note" contenteditable="true"></div>
+                <div class="note" contenteditable="true"></div>
+                <div class="note" contenteditable="true"></div>
+                <div class="note" contenteditable="true"></div>
+                <div class="note" contenteditable="false" tabindex="-1">upper case O (O)</div>
+                <div class="note" contenteditable="false" tabindex="-1">One (1)</div>
+                <div class="note" contenteditable="false" tabindex="-1">lowercase Q (q)</div>
+                <div class="note" contenteditable="true"></div>
+                <div class="note" contenteditable="false" tabindex="-1">upper case O (O)</div>
+                <div class="note" contenteditable="true"></div>
+                <div class="note" contenteditable="true"></div>
+                <div class="note" contenteditable="false" tabindex="-1">upper case O (O)</div>
+                <div class="note" contenteditable="true"></div>
+                <div class="note" contenteditable="true"></div>
+              </div>
+              <div class="controls-col">
+                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              </div>
+            </div>
+        <div class="remember-list">
+          <ul>
+            <li>Save the game</li>
+            <li>Execute the code with your stable ace species. If you are using a stable or metastable THUMB species, you NEED a THUMB -> ARM bootstrap bad egg anywhere from box 12 slot 4.</li>
+            <li>Check the bad egg in box 10, slot 22. It should be in a Great Ball.</li>
+          </ul>
+        </div>
+        <div class="remember-image">
+        <img src="../src/Images/bad egg base64 code 1_2.png" alt="Bad egg example 2" />
+        <img src="../src/Images/bad egg base64 code 1_1.png" alt="Bad egg example 1" />
+          
+        </div>
+        </section>
+
+        <section id="code2" class="code-panel" style="display:none">
+          <div class="panel-inner">
+            <div class="codes-box">
+              <div class="code-line"><span class="code-text">Box 8:    v I 5 Q K</span></div>
+              <div class="code-line"><span class="code-text">Box <span class="char-red">11</span>:    B n R G J I F F</span></div>
+              <div class="code-line"><span class="code-text">Box 12:    H G G T M N F G</span></div>
+              <div class="code-line"><span class="code-text">Box 13:    I I T T H T F T</span></div>
+              <div class="code-line"><span class="code-text">Box 14:    S R Q Q I T F G</span></div>
+            </div>
+            <div class="notes-col">
+              <div class="note" contenteditable="true"></div>
+              <div class="note" contenteditable="false" tabindex="-1">Skipping boxes 9 and 10!</div>
+              <div class="note" contenteditable="true"></div>
+              <div class="note" contenteditable="true"></div>
+              <div class="note" contenteditable="true"></div>
+            </div>
+            <div class="controls-col">
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+            </div>
+          </div>
+          <div class="panel-tip">Codes in boxes 1-7 + 9-10 will be same as before
+            <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
+              <li>Save the game</li>
+              <li>Execute the code with your stable ace species</li>
+              <li>After executing this code, no visible change will happen to the egg. Keep going with code 3!</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="code3" class="code-panel" style="display:none">
+          <div class="panel-inner">
+            <div class="codes-box">
+              <div class="code-line"><span class="code-text">Box  8:    v X 5 Q K</span></div>
+              <div class="code-line"><span class="code-text">Box <span class="char-red">11</span>:    B n S K N L H F</span></div>
+              <div class="code-line"><span class="code-text">Box 12:    J T I L G H S J</span></div>
+              <div class="code-line"><span class="code-text">Box 13:    Q U F G Q U G <span class="char-red">O</span></span></div>
+              <div class="code-line"><span class="code-text">Box 14:    F L I G F N H <span class="char-red">O</span></span></div>
+            </div>
+            <div class="notes-col">
+              <div class="note" contenteditable="true"></div>
+              <div class="note" contenteditable="false" tabindex="-1">Skipping boxes 9 and 10!</div>
+              <div class="note" contenteditable="true"></div>
+              <div class="note" contenteditable="false" tabindex="-1">upper case O (O)</div>
+              <div class="note" contenteditable="false" tabindex="-1">upper case O (O)</div>
+            </div>
+            <div class="controls-col">
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+            </div>
+          </div>
+          <div class="panel-tip">Codes in boxes 1-7 + 9-10 will be same as before
+            <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
+              <li>Save the game</li>
+              <li>Execute the code with your stable ace species</li>
+              <li>After executing this code, no visible change will happen to the egg. Keep going with code 4!</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="code4" class="code-panel" style="display:none">
+          <div class="panel-inner">
+            <div class="codes-box">
+              <div class="code-line"><span class="code-text">Box  8:    v m 5 Q K</span></div>
+              <div class="code-line"><span class="code-text">Box <span class="char-red">11</span>:    B n F J S Q F N</span></div>
+              <div class="code-line"><span class="code-text">Box 12:    I <span class="char-red">O</span> I T F F R T</span></div>
+              <div class="code-line"><span class="code-text">Box 13:    J F G L M F F G</span></div>
+              <div class="code-line"><span class="code-text">Box 14:    I H T Q T M</span></div>
+            </div>
+            <div class="notes-col">
+              <div class="note" contenteditable="true"></div>
+              <div class="note" contenteditable="false" tabindex="-1">Skipping boxes 9 and 10!</div>
+              <div class="note" contenteditable="false" tabindex="-1">upper case O (O)</div>
+              <div class="note" contenteditable="true"></div>
+              <div class="note" contenteditable="true"></div>
+            </div>
+            <div class="controls-col">
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+            </div>
+          </div>
+          <div class="panel-tip">Codes in boxes 1-7 + 9-10 will be same as before
+            <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
+              <li>Save the game</li>
+              <li>Execute the code with your stable ace species</li>
+              <li>After executing this code, the Bad Egg in box 10 should now be in a Nest Ball.</li>
+            </ul>
+          </div>
+          <div class="panel-image" style="margin-top:10px;">
+            <img src="../src/Images/bad egg base64 code 1_3.png" alt="Bad egg example 3" style="max-width:48%;border-radius:8px;border:1px solid rgba(255,255,255,0.03);" />
+          </div>
+        </section>
+
+        <section id="code5" class="code-panel" style="display:none">
+          <div class="panel-inner">
+            <div class="codes-box">
+              <div class="code-line"><span class="code-text">Box  8:    v ♀ 5 Q K</span></div>
+              <div class="code-line"><span class="code-text">Box <span class="char-red">11</span>:    B n F F S F Q K</span></div>
+              <div class="code-line"><span class="code-text">Box 12:    H I P H I L P I</span></div>
+              <div class="code-line"><span class="code-text">Box 13:    F H T F G R U U</span></div>
+              <div class="code-line"><span class="code-text">Box 14:    H U T G</span></div>
+            </div>
+            <div class="notes-col">
+              <div class="note" contenteditable="true"></div>
+              <div class="note" contenteditable="false" tabindex="-1">Skipping boxes 9 and 10!</div>
+              <div class="note" contenteditable="true"></div>
+              <div class="note" contenteditable="true"></div>
+              <div class="note" contenteditable="true"></div>
+            </div>
+            <div class="controls-col">
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+            </div>
+          </div>
+          <div class="panel-tip">Codes in boxes 1-7 + 9-10 will be same as before
+            <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
+              <li>Save the game</li>
+              <li>Execute the code with your stable ace species</li>
+              <li>After executing this code, the Bad Egg in box 10 should now have become WELDR, the BASE64 writer! (Don't open its summary, you will crash)</li>
+              <li>Move WELDR to box 14 slot 28</li>
+              <li>Catch any Pokemon and name it "J-FKVC"</li>
+              <li>Place this in box 14 slot 29.</li>
+              <li>DONE!</li>
+              <li>You are now ready to use BASE64 codes! Go back to the ACE builder tool and have fun!</li>
+            </ul>
+            <div class="panel-tip">IMPORTANT: If you want to execute regular codes in the future, make sure to move WELDR and the sacrificial Pokemon out of box 14 first!</div>
+            <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
+          </div>
+            <div class="remember-image" style="margin-top:10px;">
+              <img src="../src/Images/WELDR base64 code.png" alt="WELDR base64 code" />
+              <img src="../src/Images/Sacrificial Pokemon Base64.png" alt="Sacrificial Pokemon base64" />
+            </div>
+        </section>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const box8Map = {
+        modern: ['v 6 5 Q K','v I 5 Q K','v X 5 Q K','v m 5 Q K','v ♀ 5 Q K'],
+        old:    ['v 8 5 Q K','v K 5 Q K','v Z 5 Q K','v o 5 Q K','v , 5 Q K']
+      };
+      let selectedMode = null;
+
+      const modeButtons = document.querySelectorAll('.mode-btn');
+      // Track whether the instructions have been acknowledged (opened) at least once.
+      let instructionsAcknowledged = false;
+      const instrEl = document.getElementById('instructions');
+      if(instrEl){
+        instrEl.addEventListener('toggle', function onInstrToggle(){
+          if(instrEl.open){
+            instructionsAcknowledged = true;
+            modeButtons.forEach(b=>b.classList.remove('requires-instructions'));
+            instrEl.removeEventListener('toggle', onInstrToggle);
+          }
+        });
+      }
+
+      modeButtons.forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const m = btn.dataset.mode;
+          const instr = document.getElementById('instructions');
+          // If the instructions haven't been acknowledged yet, ignore clicks.
+          if(!instructionsAcknowledged){
+            return;
+          }
+          // Instructions acknowledged: select the mode and close the details if open.
+          setMode(m);
+          if(instr) instr.open = false;
+        });
+      });
+
+      function setMode(m){
+        selectedMode = m;
+        // hide the initial instructions when a mode is chosen
+        const instr = document.getElementById('instructions'); if(instr) instr.open = false;
+        modeButtons.forEach(b=>b.classList.toggle('active', b.dataset.mode===m));
+        // enable tabs and show first panel
+        tabs.forEach(x=>x.removeAttribute('disabled'));
+        updateBox8ForMode(m);
+        // re-run character-wrapping after replacing Box 8 text so lowercase letters get styled
+        if(typeof wrapCaseChars==='function') try{ wrapCaseChars(); }catch(e){}
+        // show first tab panel
+        tabs.forEach(x=>x.classList.remove('active'));
+        panels.forEach(p=>p.style.display='none');
+        const first = document.getElementById('code1');
+        if(first) first.style.display='block';
+        const t0 = document.querySelector('.tab[data-tab="code1"]');
+        if(t0) t0.classList.add('active');
+      }
+
+      function updateBox8ForMode(mode){
+        for(let i=1;i<=5;i++){
+          const panel = document.getElementById('code'+i);
+          if(!panel) continue;
+          const texts = panel.querySelectorAll('.code-text');
+          texts.forEach(el=>{
+            if(/^Box\s+8:/.test(el.textContent)){
+              el.innerHTML = 'Box  8:    ' + box8Map[mode][i-1];
+            }
+          });
+        }
+      }
+
+      const tabs = document.querySelectorAll('.tab');
+      if(!selectedMode){ tabs.forEach(x=>x.setAttribute('disabled','true')); }
+      const panels = document.querySelectorAll('.code-panel');
+      tabs.forEach(t=>t.addEventListener('click', ()=>{
+        if(!selectedMode) return; // don't switch tabs until a mode is chosen
+        tabs.forEach(x=>x.classList.remove('active'));
+        panels.forEach(p=>p.style.display='none');
+        t.classList.add('active');
+        document.getElementById(t.dataset.tab).style.display='block';
+      }));
+
+      // If a mode was previously selected, apply it now
+      if(selectedMode){
+        setMode(selectedMode);
+      }
+
+      // line controls: toggle highlight / done and editable notes
+      function wirePanel(panel){
+        const codes = panel.querySelectorAll('.codes-box .code-line');
+        const notes = panel.querySelectorAll('.notes-col .note');
+        const controls = panel.querySelectorAll('.controls-col .controls');
+        controls.forEach((ctrl, i)=>{
+          const btns = ctrl.querySelectorAll('button');
+          btns.forEach(btn=>btn.addEventListener('click', ()=>{
+            const action = btn.dataset.action;
+            const codeEl = codes[i];
+            if(!codeEl) return;
+            if(action==='toggle'){
+              codeEl.classList.toggle('highlight');
+              btn.classList.toggle('active');
+            } else if(action==='done'){
+              codeEl.classList.toggle('done');
+              btn.classList.toggle('active');
+            }
+            saveState();
+          }));
+        });
+        // save notes on input
+        notes.forEach((n,i)=>{
+          n.addEventListener('input', saveState);
+          n.addEventListener('blur', saveState);
+        });
+      }
+      document.querySelectorAll('.code-panel').forEach(panel=>wirePanel(panel));
+
+      function saveState(){ /* persistence disabled: no-op */ }
+      function loadState(){ /* persistence disabled: no-op */ }
+
+      // Lock any empty helper notes so they cannot be edited or focused
+      function lockEmptyNotes(){
+        document.querySelectorAll('.notes-col .note').forEach(n=>{
+          if(!n.textContent || !n.textContent.trim()){
+            n.setAttribute('contenteditable','false');
+            n.setAttribute('tabindex','-1');
+            n.classList.add('locked');
+          } else {
+            n.classList.remove('locked');
+          }
+        });
+      }
+
+      // run once on init
+      lockEmptyNotes();
+      // wrap letters so lowercase can be styled slightly desaturated
+      function wrapCaseChars(){
+        document.querySelectorAll('.code-text').forEach(el=>{
+          const children = Array.from(el.childNodes);
+          children.forEach(node=>{
+            if(node.nodeType !== 3) return; // leave existing elements (e.g. .char-red) alone
+            const text = node.nodeValue;
+            if(!text) return;
+            const frag = document.createDocumentFragment();
+            for(const ch of text){
+              if(/[a-z]/.test(ch)){
+                const s = document.createElement('span');
+                s.className = 'char-lower';
+                s.textContent = ch;
+                frag.appendChild(s);
+              } else if(/[A-Z]/.test(ch)){
+                const s = document.createElement('span');
+                s.className = 'char-upper';
+                s.textContent = ch;
+                frag.appendChild(s);
+              } else {
+                frag.appendChild(document.createTextNode(ch));
+              }
+            }
+            el.replaceChild(frag, node);
+          });
+        });
+      }
+      wrapCaseChars();
+    })();
+  </script>
+</body>
+</html>
