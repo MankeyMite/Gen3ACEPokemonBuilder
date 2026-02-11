@@ -104,6 +104,16 @@
       "defaultMetLevel": 5,
       "defaultFatefulEncounter": false,
       "species": [409]
+    },
+    "BOX_EVENT": {
+      "shinyLocked": false,
+      "defaultOriginGame": 2,
+      "defaultMetLocation": "(Fateful Encounter)",
+      "defaultBall": "Poke Ball",
+      "defaultMetLevel": 0,
+      "current_level": 5,
+      "defaultFatefulEncounter": false,
+      "species": [358, 288, 315, 172]
     }
   },
   "pokemon": [
@@ -1769,6 +1779,206 @@
       "nature": "Gentle",
       "ivs": [31, 29, 31, 16, 31, 23],
       "ot_gender": "Female"
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0x159FFCB8",
+      "pid": "0x226F6293",
+      "ivs_hex": "0x3DFFFFFE",
+      "nature": "Hardy",
+      "ivs": [30, 31, 31, 31, 31, 30]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0xFB0448D1",
+      "pid": "0x91A9E850",
+      "ivs_hex": "0x3FFFFFFF",
+      "nature": "Lonely",
+      "ivs": [31, 31, 31, 31, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0x1396EA7E",
+      "pid": "0xAE289B30",
+      "ivs_hex": "0x3FFF7FDF",
+      "nature": "Brave",
+      "ivs": [31, 30, 31, 30, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0xB1134751",
+      "pid": "0xFE96A68F",
+      "ivs_hex": "0xFFFFF8FC",
+      "nature": "Adamant",
+      "ivs": [31, 31, 31, 31, 17, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0xA7C50E06",
+      "pid": "0xD7D1AF8C",
+      "ivs_hex": "0x3FEFFFFE",
+      "nature": "Naughty",
+      "ivs": [30, 31, 31, 31, 30, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0x1F73C886",
+      "pid": "0xC909E768",
+      "ivs_hex": "0x3FFFFFFE",
+      "nature": "Bold",
+      "ivs": [30, 31, 31, 31, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0xF0F5B3EF",
+      "pid": "0x4F4A87C1",
+      "ivs_hex": "0x3FEFFBFF",
+      "nature": "Docile",
+      "ivs": [31, 31, 30, 31, 30, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0x83A1D99A",
+      "pid": "0xC352AB3B",
+      "ivs_hex": "0x3FFFFFDF",
+      "nature": "Relaxed",
+      "ivs": [31, 30, 31, 31, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0xE3CD6A03",
+      "pid": "0x5615466A",
+      "ivs_hex": "0x3FFF7FFE",
+      "nature": "Impish",
+      "ivs": [30, 31, 31, 30, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0x3F5DEA4E",
+      "pid": "0x9EB4C752",
+      "ivs_hex": "0x3FFF7FFF",
+      "nature": "Lax",
+      "ivs": [31, 31, 31, 30, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0xD011CCC2",
+      "pid": "0xA4038CBC",
+      "ivs_hex": "0xF83FFFFC",
+      "nature": "Timid",
+      "ivs": [31, 0, 31, 31, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0x4CC0FD4E",
+      "pid": "0x33ADE463",
+      "ivs_hex": "0x3DFFFFFF",
+      "nature": "Hasty",
+      "ivs": [31, 31, 31, 31, 31, 30]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0xDF3259E5",
+      "pid": "0x0BF22C23",
+      "ivs_hex": "0x3FFFFFDF",
+      "nature": "Serious",
+      "ivs": [31, 30, 31, 31, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0xC00B646A",
+      "pid": "0xD16E67A6",
+      "ivs_hex": "0xFFFFFEFC",
+      "nature": "Jolly",
+      "ivs": [31, 31, 31, 31, 29, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0x9F73C886",
+      "pid": "0x49096768",
+      "ivs_hex": "0x3FFFFFFE",
+      "nature": "Naive",
+      "ivs": [30, 31, 31, 31, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0x0A721A97",
+      "pid": "0x1E7917D8",
+      "ivs_hex": "0xF8BFFFFC",
+      "nature": "Modest",
+      "ivs": [31, 2, 31, 31, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0xCCC0FD4E",
+      "pid": "0xB3AD6463",
+      "ivs_hex": "0x3DFFFFFF",
+      "nature": "Mild",
+      "ivs": [31, 31, 31, 31, 31, 30]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0x68A46E6F",
+      "pid": "0x4083BF9C",
+      "ivs_hex": "0x3FFFFBFF",
+      "nature": "Quiet",
+      "ivs": [31, 31, 30, 31, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0xBF5DEA4E",
+      "pid": "0x1EB44752",
+      "ivs_hex": "0x3FFF7FFF",
+      "nature": "Bashful",
+      "ivs": [31, 31, 31, 30, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0xDDAFD397",
+      "pid": "0xF41FEF73",
+      "ivs_hex": "0x3DEFFFDF",
+      "nature": "Rash",
+      "ivs": [31, 30, 31, 31, 30, 30]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0xC69FB838",
+      "pid": "0xEF727942",
+      "ivs_hex": "0x3FFFFFFF",
+      "nature": "Calm",
+      "ivs": [31, 31, 31, 31, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0x8D13EE24",
+      "pid": "0x77E3BEB4",
+      "ivs_hex": "0x3FFFFBFF",
+      "nature": "Gentle",
+      "ivs": [31, 31, 30, 31, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0xE8A46E6F",
+      "pid": "0xC0833F9C",
+      "ivs_hex": "0x3FFFFBFF",
+      "nature": "Sassy",
+      "ivs": [31, 31, 30, 31, 31, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0x03558E51",
+      "pid": "0x20703074",
+      "ivs_hex": "0x3FEFFFFF",
+      "nature": "Careful",
+      "ivs": [31, 31, 31, 31, 30, 31]
+    },
+    {
+      "tag": "BOX_EVENT",
+      "seed": "0x63CD6A03",
+      "pid": "0xD615C66A",
+      "ivs_hex": "0x3FFF7FFE",
+      "nature": "Quirky",
+      "ivs": [30, 31, 31, 30, 31, 31]
     }
   ]
 }

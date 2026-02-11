@@ -678,5 +678,71 @@
                 "index": 195
             }
         ]
+    },
+    "Box Event": {
+        "Zigzagoon": [
+            {
+                "name": "Tackle",
+                "index": 33
+            },
+            {
+                "name": "Growl",
+                "index": 45
+            },
+            {
+                "name": "Tail Whip",
+                "index": 39
+            },
+            {
+                "name": "Extreme Speed",
+                "index": 245
+            }
+        ],
+        "Swablu": [
+            {
+                "name": "Peck",
+                "index": 64
+            },
+            {
+                "name": "Growl",
+                "index": 45
+            },
+            {
+                "name": "False Swipe",
+                "index": 206
+            }
+        ],
+        "Skitty": [
+            {
+                "name": "Growl",
+                "index": 45
+            },
+            {
+                "name": "Tackle",
+                "index": 33
+            },
+            {
+                "name": "Tail Whip",
+                "index": 39
+            },
+            {
+                "name": "Pay Day",
+                "index": 6
+            }
+        ],
+        "Pichu": [
+            {
+                "name": "Thunder Shock",
+                "index": 84
+            },
+            {
+                "name": "Charm",
+                "index": 204
+            },
+            {
+                "name": "Surf",
+                "index": 57
+            }
+        ]
     }
 }

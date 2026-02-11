@@ -136,7 +136,10 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
       // Met level
       if (evt.defaultMetLevel !== undefined) {
         const ml = $('#metLevel'); if (ml) ml.value = String(evt.defaultMetLevel);
-        const levelEl = $('#level'); if (levelEl) levelEl.value = String(evt.defaultMetLevel);
+        const levelEl = $('#level'); if (levelEl) {
+          const newLevel = (evt.current_level !== undefined) ? evt.current_level : evt.defaultMetLevel;
+          levelEl.value = String(newLevel);
+        }
         // Compute total EXP for the set level (inline to avoid scope issues)
         try {
           const sid_local = Number($('#species')?.value || 0);
@@ -2769,8 +2772,10 @@ function boot(){
       const speciesId = Number($('#species').value) || 0;
       const ability = Number($('#ability').value);
       
-      // For legendaries and wild encounters, adjust SID instead of PID
-      if (currentEncounterMode === 'legendaries' || currentEncounterMode === 'wild') {
+      // For legendaries, wild encounters, and Box Event mystery gifts, adjust SID instead of PID
+      const isBoxEvent = currentEncounterMode === 'mystery' && 
+        String($('#mysteryEvent')?.value || '').toUpperCase() === 'BOX_EVENT';
+      if (currentEncounterMode === 'legendaries' || currentEncounterMode === 'wild' || isBoxEvent) {
         const pid = parsePidInput($('#pid').value);
         
         if (e.target.checked) {
