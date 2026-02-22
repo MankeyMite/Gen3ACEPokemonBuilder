@@ -94,6 +94,12 @@
       <div class="mode-select">
         <button class="mode-btn requires-instructions" data-mode="modern">Console / mGBA</button>
         <button class="mode-btn requires-instructions" data-mode="old">Old Emulator</button>
+        <label style="margin-left:12px;display:flex;align-items:center;gap:8px;color:var(--muted)">Game:
+          <select id="gameSelect" style="background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--fg);padding:6px;border-radius:6px">
+            <option value="EM">Emerald</option>
+            <option value="FRLG">FR / LG</option>
+          </select>
+        </label>
       </div>
 
       <div class="tabs" role="tablist">
@@ -302,7 +308,7 @@
               <li>Execute the code with your stable ace species</li>
               <li>After executing this code, the Bad Egg in box 10 should now have become WELDR, the BASE64 writer! (Don't open its summary, you will crash)</li>
               <li>Move WELDR to box 14 slot 28</li>
-              <li>Catch any Pokemon and name it "J-FKVC"</li>
+              <li>Catch any Pokemon and name it "J7VC"</li>
               <li>Place this in box 14 slot 29.</li>
               <li>DONE!</li>
               <li>You are now ready to use BASE64 codes! Go back to the ACE builder tool and have fun!</li>
@@ -311,8 +317,8 @@
             <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
           </div>
             <div class="remember-image" style="margin-top:10px;">
-              <img src="../src/Images/WELDR base64 code.png" alt="WELDR base64 code" />
-              <img src="../src/Images/Sacrificial Pokemon Base64.png" alt="Sacrificial Pokemon base64" />
+              <img src="../src/Images/WELDR base64 code.png" alt="WELDR base64 code" data-orig-src="../src/Images/WELDR base64 code.png" data-frlg-src="../src/Images/WELDR base64 code FRLG.png" />
+              <img src="../src/Images/Sacrificial Pokemon Base64.png" alt="Sacrificial Pokemon base64" data-orig-src="../src/Images/Sacrificial Pokemon Base64.png" data-frlg-src="../src/Images/Sacrificial Pokemon Base64-FRLG.png" />
             </div>
         </section>
       </div>
@@ -326,6 +332,65 @@
         modern: ['v 6 5 Q K','v I 5 Q K','v X 5 Q K','v m 5 Q K','v ♀ 5 Q K'],
         old:    ['v 8 5 Q K','v K 5 Q K','v Z 5 Q K','v o 5 Q K','v , 5 Q K']
       };
+
+      // FR/LG full mappings per code panel (only boxes present in panels are targeted)
+      const frlgMap = {
+        code1: {
+          1: 'Box  1:    B C U n _ F L u',
+          2: 'Box  2:    I k o B 3 h F',
+          3: 'Box  3:    A A T . h r',
+          4: 'Box  4:    A h _ f n',
+          5: 'Box  5:    _ F b O T . h r',
+          6: 'Box  6:    J J J _ 1 / …',
+          7: 'Box  7:    P q / _ … n',
+          8: 'Box  8:    v 6 5 Q K',
+          9: 'Box  9:    T . g L _ F b O',
+          10: 'Box 10:    _ V o H I E o r',
+          11: 'Box 11:    B n F K T F F F',
+          12: 'Box 12:    U U F R R G O U',
+          13: 'Box 13:    T H S G Q U R L',
+          14: 'Box 14:    Q T R R U U F F'
+        },
+        code2: {
+          8:  'Box  8:    v I 5 Q K',
+          11: 'Box 11:    B n R G J I F F',
+          12: 'Box 12:    H G G T M N F G',
+          13: 'Box 13:    I I T T H T F T',
+          14: 'Box 14:    S R Q Q I T F G'
+        },
+        code3: {
+          8:  'Box  8:    v X 5 Q K',
+          11: 'Box 11:    B n S K N L H F',
+          12: 'Box 12:    J T I L G H S J',
+          13: 'Box 13:    Q U F G Q U G O',
+          14: 'Box 14:    F L I G F N H O'
+        },
+        code4: {
+          8:  'Box  8:    v m 5 Q K',
+          11: 'Box 11:    B n F J S Q F N',
+          12: 'Box 12:    I O I T F F R T',
+          13: 'Box 13:    J F G L M F F G',
+          14: 'Box 14:    I H T Q T M'
+        },
+        code5: {
+          8:  'Box  8:    v ♀ 5 Q K',
+          11: 'Box 11:    B n F F S F Q K',
+          12: 'Box 12:    H I P H I L P I',
+          13: 'Box 13:    F H T F G R U U',
+          14: 'Box 14:    H U T G'
+        }
+      };
+
+      // FR/LG overrides for old emulators (only a few boxes differ)
+      const frlgOldOverrides = {
+        code1: {8: 'Box  8:    v 8 5 Q K'},
+        code2: {8: 'Box  8:    v K 5 Q K'},
+        code3: {8: 'Box  8:    v Z 5 Q K'},
+        code4: {8: 'Box  8:    v o 5 Q K'},
+        code5: {8: 'Box  8:    v , 5 Q K'}
+      };
+
+      let selectedGame = 'EM'; // default: Emerald
       let selectedMode = null;
 
       const modeButtons = document.querySelectorAll('.mode-btn');
@@ -356,6 +421,55 @@
         });
       });
 
+      // Game selector wiring
+      const gameSelect = document.getElementById('gameSelect');
+      if(gameSelect){
+        gameSelect.addEventListener('change', ()=>{
+          selectedGame = gameSelect.value || 'EM';
+          // update visible panels to reflect game selection
+          updateAllPanelsForGame();
+          // re-run wrapping so styling updates
+          if(typeof wrapCaseChars==='function') try{ wrapCaseChars(); }catch(e){}
+        });
+      }
+
+      function updateAllPanelsForGame(){
+        for(let i=1;i<=5;i++){
+          const panel = document.getElementById('code'+i);
+          if(!panel) continue;
+          const texts = panel.querySelectorAll('.code-text');
+          texts.forEach(el=>{
+            const m = el.textContent.match(/^Box\s+(\d+):/);
+            if(!m) return;
+            const boxNum = Number(m[1]);
+            // If FRLG and mapping exists, apply it (respect old/modern mode overrides)
+            if(selectedGame === 'FRLG'){
+              const codeKey = 'code'+i;
+              const mapForPanel = frlgMap[codeKey] || {};
+              const oldOverrides = frlgOldOverrides[codeKey] || {};
+              if(selectedMode === 'old' && oldOverrides[boxNum]){
+                el.textContent = oldOverrides[boxNum];
+                return;
+              }
+              if(mapForPanel[boxNum]){
+                el.textContent = mapForPanel[boxNum];
+                return;
+              }
+            }
+            // Default: for Emerald (or when no FRLG mapping), restore original text from DOM dataset if present
+            if(el.dataset.origText) el.textContent = el.dataset.origText;
+          });
+        }
+        // Additionally swap code5 images when FR/LG selected
+        const panel5 = document.getElementById('code5');
+        if(panel5){
+          panel5.querySelectorAll('img').forEach(img=>{
+            if(selectedGame === 'FRLG' && img.dataset.frlgSrc){ img.src = img.dataset.frlgSrc; }
+            else if(img.dataset.origSrc){ img.src = img.dataset.origSrc; }
+          });
+        }
+      }
+
       function setMode(m){
         selectedMode = m;
         // hide the initial instructions when a mode is chosen
@@ -364,6 +478,8 @@
         // enable tabs and show first panel
         tabs.forEach(x=>x.removeAttribute('disabled'));
         updateBox8ForMode(m);
+        // update panels (including images) for current game selection
+        updateAllPanelsForGame();
         // re-run character-wrapping after replacing Box 8 text so lowercase letters get styled
         if(typeof wrapCaseChars==='function') try{ wrapCaseChars(); }catch(e){}
         // show first tab panel
@@ -382,13 +498,21 @@
           const texts = panel.querySelectorAll('.code-text');
           texts.forEach(el=>{
             if(/^Box\s+8:/.test(el.textContent)){
-              el.innerHTML = 'Box  8:    ' + box8Map[mode][i-1];
+              // store original text if not stored
+              if(!el.dataset.origText) el.dataset.origText = el.textContent;
+              // If FRLG selected, prefer FRLG mappings (updateAllPanelsForGame will handle)
+              if(selectedGame === 'FRLG') return;
+              el.textContent = 'Box  8:    ' + box8Map[mode][i-1];
+            } else {
+              if(!el.dataset.origText) el.dataset.origText = el.textContent;
             }
           });
         }
       }
 
       const tabs = document.querySelectorAll('.tab');
+      // Preserve original code text for restoration when switching between games
+      document.querySelectorAll('.code-text').forEach(el=>{ if(!el.dataset.origText) el.dataset.origText = el.textContent; });
       if(!selectedMode){ tabs.forEach(x=>x.setAttribute('disabled','true')); }
       const panels = document.querySelectorAll('.code-panel');
       tabs.forEach(t=>t.addEventListener('click', ()=>{
