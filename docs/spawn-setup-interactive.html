@@ -67,39 +67,59 @@
   <div class="container">
     <div class="card">
       <h1>BASE64 writer 3.0 setup (by Mettrich)</h1>
+      <div style="margin:12px 0;display:flex;align-items:center;gap:12px">
+        <label style="color:var(--fg);font-weight:700">Game:</label>
+        <select id="gameSelect" style="background:#ffffff;border:1px solid rgba(0,0,0,0.12);color:#000;padding:6px;border-radius:6px;min-width:140px">
+          <option value="EM">Emerald</option>
+          <option value="FRLG">FR / LG</option>
+        </select>
+      </div>
       <details id="instructions" class="instructions">
         <summary>Instructions — click me first!</summary>
         <div class="instructions-inner">
-          <h2>How to Spawn Pokémon with the custom ACE Pokemon builder tool (using a Base64 writer)</h2>
-          <p>The custom ACE Pokemon builder tool will allow you to create any Pokemon with any data and spawn it inside your Pokemon Emerald game using the Base64 codes provided after clicking the Generate button. This feature is most useful for console users, as there are easier ways to copy Pokemon data on a computer with an emulator, such as copying the Hex data and pasting it into Pokeglitzer.</p>
-          <p>When generating a Pokemon with the tool, you will see 14 box codes. Typing these 14 box codes into your PC and executing it with any stable ace species and the BASE64 writer will spawn that exact Pokemon into your PC, box 14 slot 30. Here is how you create the BASE64 writer:</p>
-          <h2>Creating the BASE64 writer</h2>
-          <p class="section-gap">Make sure of the following before getting started:</p>
+          <div class="instr-EM">
+            <h2>How to Spawn Pokémon with the custom ACE Pokémon builder tool (using a Base64 writer)</h2>
+            <p>The custom ACE Pokémon builder tool will allow you to create any Pokémon with any data and spawn it inside your Pokémon game using the Base64 codes provided after clicking the Generate button. This feature is most useful for console users, as there are easier ways to copy Pokémon data on a computer with an emulator, such as copying the Hex data and pasting it into Pokeglitzer.</p>
+            <p>When generating a Pokémon with the tool, you will see 14 box codes. Typing these 14 box codes into your PC and executing it with any stable ace species and the BASE64 writer will spawn that exact Pokémon into your PC, box 14 slot 30. Here is how you create the BASE64 writer:</p>
+            <h2>Creating the BASE64 writer</h2>
+            <p class="section-gap">Make sure of the following before getting started:</p>
 
+            <ul>
+              <li>
+                You have created a stable or metastable ace species using the Dots egg.
+                (Stable ARM species 0x410e recommended on western language versions. Japanese versions not yet supported for this guide!).
+              </li>
+              <li>Boxes 11–14 are empty.</li>
+              <li>Box 10 slot 22 is empty.</li>
+            </ul>
 
-<ul>
-  <li>
-    You have created a stable or metastable ace species using the Dots egg.
-    (Stable ARM species 0x410e recommended on english language versions)
-  </li>
-  <li>Boxes 11–14 are empty.</li>
-  <li>Box 10 slot 22 is empty.</li>
-</ul>
+            <p>You may now select Console/mGBA or Old Emulator below and start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+          </div>
 
-<p>You may now select Console/mGBA or Old Emulator below and start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+          <div class="instr-FRLG" style="display:none">
+            <h2>How to Spawn Pokémon with the custom ACE Pokémon builder tool (using a Base64 writer)</h2>
+            <p>The custom ACE Pokémon builder tool will allow you to create any Pokémon with any data and spawn it inside your Pokémon game using the Base64 codes provided after clicking the Generate button. This feature is most useful for console users, as there are easier ways to copy Pokémon data on a computer with an emulator, such as copying the Hex data and pasting it into Pokeglitzer.</p>
+            <p>When generating a Pokémon with the tool, you will see 14 box codes. Typing these 14 box codes into your PC and executing it with your ace species and the BASE64 writer will spawn that exact Pokémon into your PC, box 14 slot 30. Here is how you create the BASE64 writer:</p>
+            <h2>Creating the BASE64 writer</h2>
+            <p class="section-gap">Make sure of the following before getting started:</p>
 
+            <ul>
+              <li>
+                You have created an ace species and placed it inside box 13, ready for the grab ACE execution method
+                (ARM species 0x0351 recommended on western language versions, japanese not yet supported for this guide!).
+              </li>
+              <li>Boxes 13–14 are empty, except your ace species in box 13 and a random pokemon to swap with to execute the codes</li>
+              <li>Box 10 slot 22 is empty.</li>
+            </ul>
+
+            <p>You may now select Console/mGBA or Old Emulator below and start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator". The switch version of FR/LG likely uses Old Emulator (testing needed).</p>
+          </div>
         </div>
       </details>
 
       <div class="mode-select">
         <button class="mode-btn requires-instructions" data-mode="modern">Console / mGBA</button>
         <button class="mode-btn requires-instructions" data-mode="old">Old Emulator</button>
-        <label style="margin-left:12px;display:flex;align-items:center;gap:8px;color:var(--muted)">Game:
-          <select id="gameSelect" style="background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--fg);padding:6px;border-radius:6px">
-            <option value="EM">Emerald</option>
-            <option value="FRLG">FR / LG</option>
-          </select>
-        </label>
       </div>
 
       <div class="tabs" role="tablist">
@@ -428,6 +448,8 @@
           selectedGame = gameSelect.value || 'EM';
           // update visible panels to reflect game selection
           updateAllPanelsForGame();
+          // update instructions content for selected game
+          updateInstructionsForGame();
           // re-run wrapping so styling updates
           if(typeof wrapCaseChars==='function') try{ wrapCaseChars(); }catch(e){}
         });
@@ -470,6 +492,19 @@
         }
       }
 
+      function updateInstructionsForGame(){
+        const instrEM = document.querySelector('.instr-EM');
+        const instrFR = document.querySelector('.instr-FRLG');
+        if(!instrEM || !instrFR) return;
+        if(selectedGame === 'FRLG'){
+          instrEM.style.display = 'none';
+          instrFR.style.display = '';
+        } else {
+          instrEM.style.display = '';
+          instrFR.style.display = 'none';
+        }
+      }
+
       function setMode(m){
         selectedMode = m;
         // hide the initial instructions when a mode is chosen
@@ -480,6 +515,7 @@
         updateBox8ForMode(m);
         // update panels (including images) for current game selection
         updateAllPanelsForGame();
+        updateInstructionsForGame();
         // re-run character-wrapping after replacing Box 8 text so lowercase letters get styled
         if(typeof wrapCaseChars==='function') try{ wrapCaseChars(); }catch(e){}
         // show first tab panel
@@ -604,6 +640,8 @@
         });
       }
       wrapCaseChars();
+      // ensure instructions reflect default game on load
+      if(typeof updateInstructionsForGame==='function') try{ updateInstructionsForGame(); }catch(e){}
     })();
   </script>
 </body>
