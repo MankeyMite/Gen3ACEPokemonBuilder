@@ -1,3 +1,14 @@
+Patch Notes — (V.0.2.3)
+
+Summary
+-UI changes to improve understanding of how the tool works.
+-Added event min levels: POKEMON_ROCKS_METANG ≥30; WISHMKR_BEST/WISHMKR_SHINY (Jirachi) ≥5.
+-Enforced those mins in applyEventDefaults() and #level blur in main.js.
+-Locked/greyed #tid, #sid, and #otName for mystery events (except BOX_EVENT).
+-Added and wired updateTidSidLocking() into event selection/clear/preset/encounter flows.
+-Hid the #isEgg row except when mode = hatched via updateIsEggVisibility().
+-Updated the todo list to reflect these changes.
+
 Patch Notes — (V.0.2.1)
 
 Summary

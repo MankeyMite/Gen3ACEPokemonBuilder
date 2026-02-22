@@ -3,7 +3,7 @@
 > A browser-based tool for creating Gen III Pokémon using the Arbitrary Code Execution (ACE) glitch
 > Link: https://mankeymite.github.io/Gen3ACEPokemonBuilder/
 
-[![Version](https://img.shields.io/badge/version-0.2.2--alpha-blue.svg)](https://github.com/yourusername/pkmn-ace-tool)
+[![Version](https://img.shields.io/badge/version-0.2.3--alpha-blue.svg)](https://github.com/yourusername/pkmn-ace-tool)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## 🎮 Features
