@@ -632,6 +632,23 @@ function fillSelect(el, list, opts = {}) {
   }
 }
 
+// Ensure Mew in Legendary mode is at least level 30. Called after species/mode changes.
+function enforceMewLegendMinLevel() {
+  try {
+    if (currentEncounterMode !== 'legendaries') return;
+    const sp = Number($('#species')?.value || 0);
+    if (sp !== 151) return;
+    const levelEl = $('#level');
+    if (!levelEl) return;
+    let val = Number(levelEl.value) || 0;
+    if (val < 30) {
+      levelEl.value = '30';
+      try { computeAndSetExpFromLevel(); } catch (e) {}
+      try { updateLegalityStatus(); } catch (e) {}
+    }
+  } catch (e) {}
+}
+
 // Create autocomplete input that replaces a select element
 function createAutocomplete(selectEl, list, opts = {}) {
   const placeholder = opts.placeholder ?? '— Select —';
@@ -1569,6 +1586,17 @@ function boot(){
   
   // Set default language to English (ID 2)
   $('#language').value = '2';
+  // Disable Japanese option by default (we don't support the character set yet).
+  try {
+    const langSelInit = $('#language');
+    if (langSelInit && langSelInit.options) {
+      for (const o of Array.from(langSelInit.options)) {
+        if (String(o.value) === '1') o.disabled = true;
+      }
+    }
+  } catch (e) {}
+  try { enforceJapaneseOption(); } catch (e) {}
+  try { lockLanguageForMewLegend(); } catch (e) {}
   
   // Adjust nickname/OT maxlength based on language selection
   $('#language').addEventListener('change', () => {
@@ -1620,6 +1648,8 @@ function boot(){
     try { computeAndSetExpFromLevel(); } catch (e) {}
     // Clear error highlighting immediately on interaction
     $('#species').parentElement.classList.remove('field-error');
+    try { lockLanguageForMewLegend(); } catch (e) {}
+    try { enforceMewLegendMinLevel(); } catch (e) {}
   });
   $('#species').addEventListener('input', () => {
     validateForm();
@@ -1860,11 +1890,13 @@ function boot(){
     radio.addEventListener('change', (e) => {
       document.body.classList.remove('mode-simple', 'mode-advanced');
       document.body.classList.add(`mode-${e.target.value}`);
+      try { updatePidLocking(); } catch (e) {}
     });
   });
   
   // Set initial mode
   document.body.classList.add('mode-simple');
+  try { updatePidLocking(); } catch (e) {}
 
   // Setup encounter mode toggle
   document.querySelectorAll('input[name="encounterMode"]').forEach(radio => {
@@ -1890,6 +1922,10 @@ function boot(){
       // Update human-readable description under the selector
       try { setEncounterModeDescription(currentEncounterMode); } catch (e) {}
       try { updateIsEggVisibility(); } catch (e) {}
+      try { updateMetLevelLocking(); } catch (e) {}
+      try { enforceJapaneseOption(); } catch (e) {}
+      try { lockLanguageForMewLegend(); } catch (e) {}
+      try { enforceMewLegendMinLevel(); } catch (e) {}
     });
   });
 
@@ -1919,6 +1955,7 @@ function boot(){
 
   // Initialize description for the default/current encounter mode
   try { setEncounterModeDescription(currentEncounterMode); } catch (e) {}
+  try { updateMetLevelLocking(); } catch (e) {}
 
   // Lock or unlock TID/SID inputs depending on selected mystery event.
   // If in `mystery` mode and a non-BOX_EVENT tag is selected, these should
@@ -1951,6 +1988,44 @@ function boot(){
     } catch (e) {}
   }
 
+  // Lock PID input in advanced mode to prevent manual edits; it will still
+  // be updated programmatically based on nature/gender/ability.
+  function updatePidLocking() {
+    try {
+      const pidEl = $('#pid');
+      if (!pidEl) return;
+      const shouldLock = document.body.classList.contains('mode-advanced');
+      pidEl.disabled = Boolean(shouldLock);
+      pidEl.style.pointerEvents = shouldLock ? 'none' : '';
+      pidEl.style.opacity = shouldLock ? '0.6' : '';
+      pidEl.style.cursor = shouldLock ? 'not-allowed' : '';
+    } catch (e) {}
+  }
+
+  // By default, Japanese (language id '1') is not selectable in the UI because
+  // we don't support the required character set yet. Events that explicitly
+  // require Japanese (provide a Japanese OT name or default language) may
+  // programmatically set the language to Japanese — disabling the option only
+  // prevents manual user selection.
+  function enforceJapaneseOption(tag) {
+    try {
+      const langSel = $('#language');
+      if (!langSel || !langSel.options) return;
+      let allowJapanese = false;
+      const t = String(tag || '').toUpperCase();
+      if (t && MYSTERY_EVENTS && MYSTERY_EVENTS[t]) {
+        const evt = MYSTERY_EVENTS[t] || {};
+        if (evt.defaultLanguage === 1) allowJapanese = true;
+        if (evt.ot_names && evt.ot_names['1']) allowJapanese = true;
+      }
+      for (const o of Array.from(langSel.options)) {
+        if (String(o.value) === '1') {
+          o.disabled = !allowJapanese; // user can't pick if not allowed
+        }
+      }
+    } catch (e) {}
+  }
+
   // Show or hide the "Is Egg" row depending on current encounter mode.
   function updateIsEggVisibility() {
     try {
@@ -1962,6 +2037,96 @@ function boot(){
         row.style.display = '';
       } else {
         row.style.display = 'none';
+      }
+    } catch (e) {}
+  }
+
+  // Lock met level to 0 for hatched encounter mode and disable edits.
+  function updateMetLevelLocking() {
+    try {
+      const metEl = $('#metLevel');
+      if (!metEl) return;
+      if (currentEncounterMode === 'hatched') {
+        metEl.value = '0';
+        metEl.disabled = true;
+        metEl.style.pointerEvents = 'none';
+        metEl.style.opacity = '0.6';
+        metEl.style.cursor = 'not-allowed';
+      } else {
+        metEl.disabled = false;
+        metEl.style.pointerEvents = '';
+        metEl.style.opacity = '';
+        metEl.style.cursor = '';
+      }
+    } catch (e) {}
+  }
+
+  // Lock language to Japanese for Mew when in Legendary encounter mode.
+  function lockLanguageForMewLegend() {
+    try {
+      const langSel = $('#language');
+      if (!langSel || !langSel.options) return;
+      const speciesId = Number($('#species')?.value || 0);
+      const isMew = speciesId === 151;
+      if (currentEncounterMode === 'legendaries' && isMew) {
+        // Ensure Japanese option is enabled and select it, then disable the control
+        for (const o of Array.from(langSel.options)) {
+          if (String(o.value) === '1') o.disabled = false;
+        }
+        langSel.value = '1';
+        langSel.disabled = true;
+        langSel.style.pointerEvents = 'none';
+        langSel.style.opacity = '0.6';
+        langSel.style.cursor = 'not-allowed';
+        // Lock OT name to the Japanese Mew name
+        try {
+          const otEl = $('#otName');
+          if (otEl) {
+            otEl.value = 'ミュウ';
+            otEl.disabled = true;
+            otEl.style.pointerEvents = 'none';
+            otEl.style.opacity = '0.6';
+            otEl.style.cursor = 'not-allowed';
+          }
+        } catch (e) {}
+        // Lock nickname as well for legendary Mew
+        try {
+          const nickEl = $('#nickname');
+          if (nickEl) {
+            nickEl.value = 'ミュウ';
+            nickEl.disabled = true;
+            nickEl.style.pointerEvents = 'none';
+            nickEl.style.opacity = '0.6';
+            nickEl.style.cursor = 'not-allowed';
+          }
+        } catch (e) {}
+      } else {
+        // Restore language control to normal and re-apply Japanese availability rules
+        langSel.disabled = false;
+        langSel.style.pointerEvents = '';
+        langSel.style.opacity = '';
+        langSel.style.cursor = '';
+        try { enforceJapaneseOption(); } catch (e) {}
+        // Restore OT name control
+        try {
+          const otEl = $('#otName');
+          if (otEl) {
+            otEl.disabled = false;
+            otEl.style.pointerEvents = '';
+            otEl.style.opacity = '';
+            otEl.style.cursor = '';
+          }
+        } catch (e) {}
+        // Restore nickname control
+        try {
+          const nickEl = $('#nickname');
+          if (nickEl) {
+            nickEl.disabled = false;
+            nickEl.style.pointerEvents = '';
+            nickEl.style.opacity = '';
+            nickEl.style.cursor = '';
+          }
+        } catch (e) {}
       }
     } catch (e) {}
   }
@@ -2150,6 +2315,7 @@ function boot(){
             try { clearMysteryEventState(); } catch (e) {}
             // Apply event-level defaults
             applyEventDefaults(tag);
+            try { updateMetLevelLocking(); } catch (e) {}
 
             // Update available species/options for this event
             updateSpeciesListForMode();
@@ -2159,6 +2325,9 @@ function boot(){
             // Update mystery species options (noop if selector removed)
             updateMysterySpeciesOptions(tag);
             try { updateTidSidLocking(); } catch (e) {}
+              try { enforceJapaneseOption(tag); } catch (e) {}
+              try { lockLanguageForMewLegend(); } catch (e) {}
+            try { lockLanguageForMewLegend(); } catch (e) {}
           });
         }
       } catch (e) {
@@ -2197,8 +2366,11 @@ function boot(){
         mysteryUserModifiedSincePreset = false;
       } catch (e) {}
       try { updateTidSidLocking(); } catch (e) {}
-      }
+      try { enforceJapaneseOption(); } catch (e) {}
       try { updateIsEggVisibility(); } catch (e) {}
+      try { updateMetLevelLocking(); } catch (e) {}
+
+    }
 
     // Apply a mystery event preset for a species (if entries exist for selected event)
     function applyMysteryPresetForSpecies(speciesId) {
@@ -2790,7 +2962,14 @@ function boot(){
           else if (tag === 'PARTY_OF_THE_DECADE' && val < 70) val = 70;
           else if (tag === 'POKEMON_ROCKS_METANG' && val < 30) val = 30;
           else if ((tag === 'WISHMKR_BEST' || tag === 'WISHMKR_SHINY') && val < 5) val = 5;
-        }
+          }
+          // Legendary Mew: if in legendaries mode and species is Mew (151), enforce min level 30
+          else if (currentEncounterMode === 'legendaries') {
+            try {
+              const sp = Number($('#species')?.value || 0);
+              if (sp === 151 && val < 30) val = 30;
+            } catch (eee) {}
+          }
       } catch (ee) {}
       if (String(e.target.value) !== String(val)) {
         e.target.value = String(val);
@@ -3328,13 +3507,6 @@ function boot(){
     });
   }
 
-  // Extra Bytes Value: cap at 0-999
-  const extraBytesValueEl = document.querySelector('#extraBytesValue');
-  if (extraBytesValueEl) {
-    extraBytesValueEl.addEventListener('input', (e) => {
-      e.target.value = clampInt(e.target.value, 0, 999);
-    });
-  }
 
   // Output tab switching
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -3705,11 +3877,6 @@ function collect(){
     nickname: $('#nickname').value || '',
     languageId: Number($('#language').value),
     isEgg: $('#isEgg')?.checked || false,
-    extraBytes: (function(){
-      const type = parseInt($('#extraBytesType')?.value || '0', 16);
-      const value = Math.max(0, Math.min(999, Number($('#extraBytesValue')?.value || 0)));
-      return ((type & 0xFF) << 8) | (value & 0xFF);
-    })(),
     markings: {
       circle: $('#markCircle')?.checked || false,
       triangle: $('#markTriangle')?.checked || false,
@@ -3836,22 +4003,7 @@ function onLoadFromHex(){
     // Egg flag (misc header bit 2 -> 0x04). parsePokemonBytes now returns `isEgg`.
     if (typeof data.isEgg !== 'undefined') $('#isEgg').checked = Boolean(data.isEgg);
     
-    // Extra bytes
-    if (data.extraBytes !== undefined) {
-      const upperByte = (data.extraBytes >> 8) & 0xFF;
-      const lowerByte = data.extraBytes & 0xFF;
-      
-      if (upperByte === 0x2A) {
-        $('#extraBytesType').value = '0x2A';
-        $('#extraBytesValue').value = String(lowerByte);
-      } else if (upperByte === 0x2B) {
-        $('#extraBytesType').value = '0x2B';
-        $('#extraBytesValue').value = String(lowerByte);
-      } else {
-        $('#extraBytesType').value = '0';
-        $('#extraBytesValue').value = '0';
-      }
-    }
+    // Extra bytes removed from UI/controls
     
     // Markings
     if (data.markings) {
@@ -4062,22 +4214,7 @@ function onImportPk3(event) {
       $('#language').value = String(data.languageId);
       if (typeof data.isEgg !== 'undefined') $('#isEgg').checked = Boolean(data.isEgg);
       
-      // Extra bytes
-      if (data.extraBytes !== undefined) {
-        const upperByte = (data.extraBytes >> 8) & 0xFF;
-        const lowerByte = data.extraBytes & 0xFF;
-        
-        if (upperByte === 0x2A) {
-          $('#extraBytesType').value = '0x2A';
-          $('#extraBytesValue').value = String(lowerByte);
-        } else if (upperByte === 0x2B) {
-          $('#extraBytesType').value = '0x2B';
-          $('#extraBytesValue').value = String(lowerByte);
-        } else {
-          $('#extraBytesType').value = '0';
-          $('#extraBytesValue').value = '0';
-        }
-      }
+      // Extra bytes removed from UI/controls
       
       // Markings
       if (data.markings) {
