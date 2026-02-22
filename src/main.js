@@ -146,7 +146,27 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
       if (evt.defaultMetLevel !== undefined) {
         const ml = $('#metLevel'); if (ml) ml.value = String(evt.defaultMetLevel);
         const levelEl = $('#level'); if (levelEl) {
-          const newLevel = (evt.current_level !== undefined) ? evt.current_level : evt.defaultMetLevel;
+          let newLevel = (evt.current_level !== undefined) ? evt.current_level : evt.defaultMetLevel;
+          try {
+            const tU = String(tag).toUpperCase();
+            if (tU === '10ANNI') {
+              newLevel = Math.max(70, Number(newLevel));
+            } else if (tU === 'AURA_MEW') {
+              newLevel = Math.max(10, Number(newLevel));
+            } else if (tU === 'BOX_EVENT') {
+              newLevel = Math.max(5, Number(newLevel));
+            } else if (tU === 'DOEL_DEOXYS') {
+              newLevel = Math.max(70, Number(newLevel));
+            } else if (tU === 'JOURNEY_ACROSS_AMERICA') {
+              newLevel = Math.max(70, Number(newLevel));
+            } else if (tU === 'PARTY_OF_THE_DECADE') {
+              newLevel = Math.max(70, Number(newLevel));
+            } else if (tU === 'POKEMON_ROCKS_METANG') {
+              newLevel = Math.max(30, Number(newLevel));
+            } else if (tU === 'WISHMKR_BEST' || tU === 'WISHMKR_SHINY') {
+              newLevel = Math.max(5, Number(newLevel));
+            }
+          } catch (e) {}
           levelEl.value = String(newLevel);
         }
         // Compute total EXP for the set level (inline to avoid scope issues)
@@ -1869,6 +1889,7 @@ function boot(){
       handleEncounterModeChange(speciesId);
       // Update human-readable description under the selector
       try { setEncounterModeDescription(currentEncounterMode); } catch (e) {}
+      try { updateIsEggVisibility(); } catch (e) {}
     });
   });
 
@@ -1898,6 +1919,52 @@ function boot(){
 
   // Initialize description for the default/current encounter mode
   try { setEncounterModeDescription(currentEncounterMode); } catch (e) {}
+
+  // Lock or unlock TID/SID inputs depending on selected mystery event.
+  // If in `mystery` mode and a non-BOX_EVENT tag is selected, these should
+  // be locked so users cannot change event-provided TID/SID values.
+  function updateTidSidLocking() {
+    try {
+      const tidEl = $('#tid');
+      const sidEl = $('#sid');
+      const otEl = $('#otName');
+      const tag = String($('#mysteryEvent')?.value || '').toUpperCase();
+      const shouldLock = (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT');
+      if (tidEl) {
+        tidEl.disabled = Boolean(shouldLock);
+        tidEl.style.pointerEvents = shouldLock ? 'none' : '';
+        tidEl.style.opacity = shouldLock ? '0.6' : '';
+        tidEl.style.cursor = shouldLock ? 'not-allowed' : '';
+      }
+      if (sidEl) {
+        sidEl.disabled = Boolean(shouldLock);
+        sidEl.style.pointerEvents = shouldLock ? 'none' : '';
+        sidEl.style.opacity = shouldLock ? '0.6' : '';
+        sidEl.style.cursor = shouldLock ? 'not-allowed' : '';
+      }
+      if (otEl) {
+        otEl.disabled = Boolean(shouldLock);
+        otEl.style.pointerEvents = shouldLock ? 'none' : '';
+        otEl.style.opacity = shouldLock ? '0.6' : '';
+        otEl.style.cursor = shouldLock ? 'not-allowed' : '';
+      }
+    } catch (e) {}
+  }
+
+  // Show or hide the "Is Egg" row depending on current encounter mode.
+  function updateIsEggVisibility() {
+    try {
+      const isEggInput = $('#isEgg');
+      if (!isEggInput) return;
+      const row = isEggInput.parentElement;
+      if (!row) return;
+      if (currentEncounterMode === 'hatched') {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    } catch (e) {}
+  }
 
     // Load mystery gift data (JSON) to populate event list
     async function loadMysteryGifts() {
@@ -2091,6 +2158,7 @@ function boot(){
             if (sp) applyMysteryPresetForSpecies(sp);
             // Update mystery species options (noop if selector removed)
             updateMysterySpeciesOptions(tag);
+            try { updateTidSidLocking(); } catch (e) {}
           });
         }
       } catch (e) {
@@ -2128,7 +2196,9 @@ function boot(){
         mysteryPresetAppliedFor = 0;
         mysteryUserModifiedSincePreset = false;
       } catch (e) {}
-    }
+      try { updateTidSidLocking(); } catch (e) {}
+      }
+      try { updateIsEggVisibility(); } catch (e) {}
 
     // Apply a mystery event preset for a species (if entries exist for selected event)
     function applyMysteryPresetForSpecies(speciesId) {
@@ -2300,6 +2370,7 @@ function boot(){
           g.disabled = true;
         }
       } catch (e) {}
+          try { updateTidSidLocking(); } catch (e) {}
       // Mark which species the preset was applied for and update legality
       mysteryPresetAppliedFor = Number(speciesId) || 0;
       try { updateLegalityStatus(); } catch (e) {}
@@ -2416,6 +2487,7 @@ function boot(){
         genderSelect.style.cursor = 'not-allowed';
         genderSelect.disabled = true;
       }
+    try { updateTidSidLocking(); } catch (e) {}
     }
     if (mode === 'legendaries' && STATIC_ENCOUNTERS[speciesId]) {
       // For legendary encounters, apply preset data
@@ -2691,11 +2763,41 @@ function boot(){
 
   // Level input validation
   $('#level').addEventListener('input', (e) => {
-    if (Number(e.target.value) > 100) {
-      e.target.value = 100;
-    } else if (Number(e.target.value) < 1 && e.target.value !== '') {
-      e.target.value = 1;
-    }
+    // Allow typing freely (don't enforce minimums while user types).
+    try {
+      const valRaw = e.target.value;
+      if (valRaw === '') return; // allow empty while typing
+      const val = Number(valRaw) || 0;
+      if (val > 100) e.target.value = '100';
+      // Do not force values <1 here to avoid snapping while typing (e.g., typing 74)
+    } catch (e) {}
+  });
+
+  // Enforce bounds and event-specific minimums when the user leaves the field
+  $('#level').addEventListener('blur', (e) => {
+    try {
+      let val = Number(e.target.value) || 0;
+      if (val < 1) val = 1;
+      if (val > 100) val = 100;
+        try {
+        if (currentEncounterMode === 'mystery') {
+          const tag = String(document.getElementById('mysteryEvent')?.value || '').toUpperCase();
+          if (tag === '10ANNI' && val < 70) val = 70;
+          else if (tag === 'AURA_MEW' && val < 10) val = 10;
+          else if (tag === 'BOX_EVENT' && val < 5) val = 5;
+          else if (tag === 'DOEL_DEOXYS' && val < 70) val = 70;
+          else if (tag === 'JOURNEY_ACROSS_AMERICA' && val < 70) val = 70;
+          else if (tag === 'PARTY_OF_THE_DECADE' && val < 70) val = 70;
+          else if (tag === 'POKEMON_ROCKS_METANG' && val < 30) val = 30;
+          else if ((tag === 'WISHMKR_BEST' || tag === 'WISHMKR_SHINY') && val < 5) val = 5;
+        }
+      } catch (ee) {}
+      if (String(e.target.value) !== String(val)) {
+        e.target.value = String(val);
+      }
+      try { computeAndSetExpFromLevel(); } catch (e) {}
+      try { updateLegalityStatus(); } catch (e) {}
+    } catch (e) {}
   });
 
   // EXP sync: when species or level changes, compute total EXP; when EXP edited (advanced), adjust level
