@@ -1878,9 +1878,9 @@ function boot(){
     if (!el) return;
     const map = {
       hatched: {label: 'Hatched', color: '#10b981', text: 'Pokémon hatched from eggs. This mode is recommended for any Pokemon that can be obtained through breeding, as it allows full customization for IVs, shinyness, TID and SID.'},
-      legendaries: {label: 'Legendaries', color: '#f59e0b', text: 'Legendary encounters with fixed data and special rules. IVs are hand picked for the best possible for each nature.'},
-      wild: {label: 'Wild', color: '#60a5fa', text: 'Wild encounters (in the overworld). PID and IVs may be randomized; set Met Location, Origin Game and Level.'},
-      mystery: {label: 'Mystery', color: '#ef476f', text: 'Mystery Gift events — Get Distribution Event Pokémon! These have strict rules, so you may only change a few fields.'}
+      legendaries: {label: 'Legendaries', color: '#f59e0b', text: 'All legendary Pokémon with in-game encounters. IVs are hand picked for best possible per nature for Method 1. You may therefore not choose the SID if you want it shiny.'},
+      wild: {label: 'Wild', color: '#60a5fa', text: 'Wild encounters (in the overworld). Recommended only if you prefer it looking like it was RNG manipulated. Uses Method 1 encounter slots to aim for best IVs per nature for each species, and you may therefore not choose the SID if you want it shiny.'},
+      mystery: {label: 'Mystery Gifts', color: '#ef476f', text: 'Mystery Gift events — Get Distribution Event Pokémon! These have strict rules, so you may only change a few fields. IVs are hand picked for the best possible for each nature.'}
     };
     const m = map[mode] || {label: '', color: '#94a3b8', text: ''};
     // Render pill + text so the description is clearly associated with the selected mode
@@ -2286,6 +2286,20 @@ function boot(){
       } catch (e) {}
       updateGenderFromPID();
       checkShiny();
+      // Ensure gender is locked for mystery presets so it cannot be changed
+      try {
+        const g = $('#gender');
+        if (currentEncounterMode === 'mystery' && g) {
+          // If preset provided a gender explicitly in the entry, prefer it
+          if (entry.gender) {
+            g.value = String(entry.gender).toLowerCase();
+          }
+          g.style.pointerEvents = 'none';
+          g.style.opacity = '0.6';
+          g.style.cursor = 'not-allowed';
+          g.disabled = true;
+        }
+      } catch (e) {}
       // Mark which species the preset was applied for and update legality
       mysteryPresetAppliedFor = Number(speciesId) || 0;
       try { updateLegalityStatus(); } catch (e) {}
@@ -2310,15 +2324,17 @@ function boot(){
     switch(currentEncounterMode) {
       case 'hatched':
         // Exclude legendaries (only breedable pokemon) and Ditto (cannot be bred)
-        filteredSpecies = SPECIES.filter(s => !isLegendary(s[0]) && s[0] !== 132);
+        // Also exclude placeholder/unknown species entries (names with '?')
+        filteredSpecies = SPECIES.filter(s => !isLegendary(s[0]) && s[0] !== 132 && !String(s[1]||'').includes('?'));
         break;
       case 'legendaries':
         // Only legendaries
         filteredSpecies = SPECIES.filter(s => isLegendary(s[0]));
         break;
       case 'wild':
-        // All pokemon except legendaries and gift pokemon
-        filteredSpecies = SPECIES.filter(s => !isLegendary(s[0]) && !isGiftPokemon(s[0]));
+        // All non-legendary pokemon (include starters/gift species),
+        // but exclude placeholder/unknown species entries (names with '?')
+        filteredSpecies = SPECIES.filter(s => !isLegendary(s[0]) && !String(s[1]||'').includes('?'));
         break;
       case 'mystery':
         // Only show species available in the selected mystery event (if specified)
@@ -2392,6 +2408,13 @@ function boot(){
         optF.textContent = 'Female';
         genderSelect.appendChild(optF);
         genderSelect.disabled = false;
+      }
+      // If we're in mystery mode, lock the gender control so users cannot change it
+      if (currentEncounterMode === 'mystery' && genderSelect) {
+        genderSelect.style.pointerEvents = 'none';
+        genderSelect.style.opacity = '0.6';
+        genderSelect.style.cursor = 'not-allowed';
+        genderSelect.disabled = true;
       }
     }
     if (mode === 'legendaries' && STATIC_ENCOUNTERS[speciesId]) {

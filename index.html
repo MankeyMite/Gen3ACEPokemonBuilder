@@ -70,26 +70,35 @@
 
     /* Encounter mode description under the selector */
     .mode-desc {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
       color: var(--muted);
       font-size: 0.95rem;
       margin-top: 0.85rem;
       margin-bottom: 0.5rem;
       max-width: 900px;
+      min-width: 0;
     }
     .mode-desc .mode-pill {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 64px;
       padding: 0.25rem 0.5rem;
       border-radius: 999px;
       font-weight: 600;
       color: white;
       font-size: 0.85rem;
-      margin-right: 0.75rem;
-      flex-shrink: 0;
+      margin-top: 0.1rem;
+      flex: 0 0 auto;
     }
-    .mode-desc .mode-desc-text { display: inline-block; vertical-align: middle; max-width: calc(100% - 86px); }
+    .mode-desc .mode-desc-text {
+      display: block;
+      vertical-align: middle;
+      flex: 1 1 auto;
+      min-width: 0;
+      word-break: break-word;
+    }
 
     /* Disabled generate button */
     #generateBtn[data-disabled="true"] {
