@@ -1895,57 +1895,78 @@ function boot(){
             const movesData = await msRes.json();
             const internalKeys = Object.keys(MYSTERY_EVENTS).length ? Object.keys(MYSTERY_EVENTS) : Object.keys(MYSTERY_GIFTS);
             const normalize = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+            // Explicit aliases checked FIRST so curated mappings always win
+            // over heuristic species/name matching (critical when multiple
+            // events share the same single species, e.g. Jirachi).
+            const aliasMap = {
+              'doeldeoxys': 'DOEL_DEOXYS',
+              'pokemonrocksamerica2005': 'POKEMON_ROCKS_METANG',
+              'partyofthedecade': 'PARTY_OF_THE_DECADE',
+              'clubnintendojirachigiveaway': 'WISHMKR_BEST',
+              'wishmkrjirachibestivs': 'WISHMKR_BEST',
+              'wishmkrjirachiallshinypids': 'WISHMKR_SHINY'
+            };
             for (const displayName of Object.keys(movesData || {})) {
               const movesForEvent = movesData[displayName];
-              // Try to match by species lists: map species names in moveset to IDs
-              const speciesNames = Object.keys(movesForEvent || {});
-              const ids = new Set();
-              for (const nm of speciesNames) {
-                const sp = SPECIES.find(s => String(s[1]).toLowerCase() === String(nm).toLowerCase());
-                if (sp) ids.add(Number(sp[0]));
-              }
               let found = null;
-              if (ids.size) {
-                // find internal key whose species list includes these ids
-                for (const k of internalKeys) {
-                  const evt = MYSTERY_EVENTS[k];
-                  let allowed = new Set();
-                  if (evt && Array.isArray(evt.species)) {
-                    for (const s of evt.species) allowed.add(Number(s));
-                  } else if (MYSTERY_GIFTS[k]) {
-                    for (const e of MYSTERY_GIFTS[k]) if (e.species) allowed.add(Number(e.species));
+
+              // 1. Check explicit alias map first (highest priority)
+              const nd = normalize(displayName);
+              const rawLower = String(displayName || '').toLowerCase();
+              const compact = rawLower.replace(/[^a-z0-9]/g,'');
+              if (aliasMap[nd]) found = aliasMap[nd];
+              else if (aliasMap[rawLower]) found = aliasMap[rawLower];
+              else if (aliasMap[compact]) found = aliasMap[compact];
+
+              // 2. Species-based matching
+              if (!found) {
+                const speciesNames = Object.keys(movesForEvent || {});
+                const ids = new Set();
+                for (const nm of speciesNames) {
+                  const sp = SPECIES.find(s => String(s[1]).toLowerCase() === String(nm).toLowerCase());
+                  if (sp) ids.add(Number(sp[0]));
+                }
+                if (ids.size) {
+                  let bestSize = Infinity;
+                  for (const k of internalKeys) {
+                    const evt = MYSTERY_EVENTS[k];
+                    let allowed = new Set();
+                    if (evt && Array.isArray(evt.species)) {
+                      for (const s of evt.species) allowed.add(Number(s));
+                    } else if (MYSTERY_GIFTS[k]) {
+                      for (const e of MYSTERY_GIFTS[k]) if (e.species) allowed.add(Number(e.species));
+                    }
+                    if (!allowed.size) continue;
+                    let all = true;
+                    for (const id of ids) if (!allowed.has(id)) { all = false; break; }
+                    if (all && allowed.size < bestSize) { found = k; bestSize = allowed.size; }
                   }
-                  if (!allowed.size) continue;
-                  let all = true;
-                  for (const id of ids) if (!allowed.has(id)) { all = false; break; }
-                  if (all) { found = k; break; }
                 }
               }
-              // Fallback to name-based matching
+
+              // 3. Fallback to name-based matching
               if (!found) {
-                const nd = normalize(displayName);
                 found = internalKeys.find(k => normalize(k) === nd || normalize(k).includes(nd) || nd.includes(normalize(k)));
                 if (!found) {
                   const toks = String(displayName).split(/[_\- ]+/).filter(Boolean).reverse().join('');
                   found = internalKeys.find(k => normalize(k) === toks || normalize(k).includes(toks));
                 }
-                // Explicit aliases for display names that don't normalize cleanly
-                if (!found) {
-                  const aliasMap = {
-                    'doeldeoxys': 'DOEL_DEOXYS',
-                    'pokemonrocksamerica2005': 'POKEMON_ROCKS_METANG',
-                    'partyofthedecade': 'PARTY_OF_THE_DECADE',
-                    'party of the decade': 'PARTY_OF_THE_DECADE',
-                    'party of the decade': 'PARTY_OF_THE_DECADE'
-                  };
-                  const rawLower = String(displayName || '').toLowerCase();
-                  const compact = rawLower.replace(/[^a-z0-9]/g,'');
-                  if (aliasMap[nd]) found = aliasMap[nd];
-                  else if (aliasMap[rawLower]) found = aliasMap[rawLower];
-                  else if (aliasMap[compact]) found = aliasMap[compact];
+              }
+              if (found) {
+                if (!MYSTERY_MOVESETS[found]) {
+                  MYSTERY_MOVESETS[found] = { displayName, moves: {} };
+                }
+                // Merge moves from this file entry into any existing moves for
+                // the resolved internal event key. This avoids later entries
+                // overwriting earlier ones when multiple display names map to
+                // the same internal event (and preserves all species moves).
+                MYSTERY_MOVESETS[found].moves = Object.assign({}, MYSTERY_MOVESETS[found].moves || {}, movesForEvent || {});
+                // Track alternate display names for diagnostics
+                if (MYSTERY_MOVESETS[found].displayName !== displayName) {
+                  if (!MYSTERY_MOVESETS[found].aliases) MYSTERY_MOVESETS[found].aliases = [MYSTERY_MOVESETS[found].displayName];
+                  if (!MYSTERY_MOVESETS[found].aliases.includes(displayName)) MYSTERY_MOVESETS[found].aliases.push(displayName);
                 }
               }
-              if (found) MYSTERY_MOVESETS[found] = { displayName, moves: movesForEvent };
             }
           }
         } catch (e) {
