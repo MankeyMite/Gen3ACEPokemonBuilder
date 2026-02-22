@@ -90,6 +90,15 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
         const og = $('#otGender'); if (og) og.value = String(evt.ot_gender).toLowerCase();
       }
 
+      // Disable Pokémon gender selection for mystery gifts to prevent
+      // user changes (mystery events define fixed genders via presets).
+      try {
+        const genderEl = $('#gender');
+        if (genderEl) {
+          genderEl.disabled = (currentEncounterMode === 'mystery');
+        }
+      } catch (e) {}
+
       // Shiny lock
       const shinyCheckbox = $('#shiny');
       if (shinyCheckbox) {
@@ -1849,12 +1858,46 @@ function boot(){
       
       // Filter species list based on encounter mode
       updateSpeciesListForMode();
+      // Toggle availability of Pokémon gender control based on mode
+      try {
+        const genderEl = document.querySelector('#gender');
+        if (genderEl) genderEl.disabled = (currentEncounterMode === 'mystery');
+      } catch (e) {}
       
       // When changing encounter mode, update the Pokémon if needed
       const speciesId = Number($('#species').value) || 0;
       handleEncounterModeChange(speciesId);
+      // Update human-readable description under the selector
+      try { setEncounterModeDescription(currentEncounterMode); } catch (e) {}
     });
   });
+
+  // Set the encounter mode description element text
+  function setEncounterModeDescription(mode) {
+    const el = document.getElementById('encounterModeDescription');
+    if (!el) return;
+    const map = {
+      hatched: {label: 'Hatched', color: '#10b981', text: 'Pokémon hatched from eggs. This mode is recommended for any Pokemon that can be obtained through breeding, as it allows full customization for IVs, shinyness, TID and SID.'},
+      legendaries: {label: 'Legendaries', color: '#f59e0b', text: 'Legendary encounters with fixed data and special rules. IVs are hand picked for the best possible for each nature.'},
+      wild: {label: 'Wild', color: '#60a5fa', text: 'Wild encounters (in the overworld). PID and IVs may be randomized; set Met Location, Origin Game and Level.'},
+      mystery: {label: 'Mystery', color: '#ef476f', text: 'Mystery Gift events — Get Distribution Event Pokémon! These have strict rules, so you may only change a few fields.'}
+    };
+    const m = map[mode] || {label: '', color: '#94a3b8', text: ''};
+    // Render pill + text so the description is clearly associated with the selected mode
+    el.innerHTML = '';
+    const pill = document.createElement('span');
+    pill.className = 'mode-pill';
+    pill.style.background = m.color;
+    pill.textContent = m.label;
+    const txt = document.createElement('span');
+    txt.className = 'mode-desc-text';
+    txt.textContent = m.text;
+    el.appendChild(pill);
+    el.appendChild(txt);
+  }
+
+  // Initialize description for the default/current encounter mode
+  try { setEncounterModeDescription(currentEncounterMode); } catch (e) {}
 
     // Load mystery gift data (JSON) to populate event list
     async function loadMysteryGifts() {

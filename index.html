@@ -68,6 +68,29 @@
       visibility: visible;
     }
 
+    /* Encounter mode description under the selector */
+    .mode-desc {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-top: 0.85rem;
+      margin-bottom: 0.5rem;
+      max-width: 900px;
+    }
+    .mode-desc .mode-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 64px;
+      padding: 0.25rem 0.5rem;
+      border-radius: 999px;
+      font-weight: 600;
+      color: white;
+      font-size: 0.85rem;
+      margin-right: 0.75rem;
+      flex-shrink: 0;
+    }
+    .mode-desc .mode-desc-text { display: inline-block; vertical-align: middle; max-width: calc(100% - 86px); }
+
     /* Disabled generate button */
     #generateBtn[data-disabled="true"] {
       opacity: 0.5;
@@ -466,6 +489,9 @@
         Mystery Gifts
       </label>
     </div>
+
+      <!-- Encounter mode description shown below the selector -->
+      <div id="encounterModeDescription" class="mode-desc" aria-live="polite"></div>
 
     <!-- BASICS CARD -->
     <section class="card" id="basicsCard">
