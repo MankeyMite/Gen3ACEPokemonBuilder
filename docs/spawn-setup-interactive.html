@@ -480,6 +480,13 @@
             }
             // Default: for Emerald (or when no FRLG mapping), restore original text from DOM dataset if present
             if(el.dataset.origText) el.textContent = el.dataset.origText;
+            // If Emerald + a mode is selected, ensure Box 8 reflects the chosen mode (modern / old)
+            if(selectedGame !== 'FRLG' && selectedMode && boxNum === 8){
+              // use the box8Map for the appropriate mode and panel index (i-1)
+              if(box8Map[selectedMode] && box8Map[selectedMode][i-1]){
+                el.textContent = 'Box  8:    ' + box8Map[selectedMode][i-1];
+              }
+            }
           });
         }
         // Additionally swap code5 images when FR/LG selected
