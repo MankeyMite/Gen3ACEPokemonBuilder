@@ -328,7 +328,7 @@
               <li>Execute the code with your stable ace species</li>
               <li>After executing this code, the Bad Egg in box 10 should now have become WELDR, the BASE64 writer! (Don't open its summary, you will crash)</li>
               <li>Move WELDR to box 14 slot 28</li>
-              <li>Catch any Pokemon and name it "J-FKVC"</li>
+              <li id="sacrificialName">Catch any Pokemon and name it "J-FKVC"</li>
               <li>Place this in box 14 slot 29.</li>
               <li>DONE!</li>
               <li>You are now ready to use BASE64 codes! Go back to the ACE builder tool and have fun!</li>
@@ -496,6 +496,12 @@
             if(selectedGame === 'FRLG' && img.dataset.frlgSrc){ img.src = img.dataset.frlgSrc; }
             else if(img.dataset.origSrc){ img.src = img.dataset.origSrc; }
           });
+          // Update sacrificial Pokemon naming instruction depending on game
+          const sac = panel5.querySelector('#sacrificialName');
+          if(sac){
+            if(selectedGame === 'FRLG') sac.textContent = 'Catch any Pokemon and name it "J7VC"';
+            else sac.textContent = 'Catch any Pokemon and name it "J-FKVC"';
+          }
         }
       }
 
