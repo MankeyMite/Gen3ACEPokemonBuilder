@@ -1923,6 +1923,8 @@ function boot(){
       try { setEncounterModeDescription(currentEncounterMode); } catch (e) {}
       try { updateIsEggVisibility(); } catch (e) {}
       try { updateMetLevelLocking(); } catch (e) {}
+      try { updateBallLocking(); } catch (e) {}
+      try { updateLevelLocking(); } catch (e) {}
       try { enforceJapaneseOption(); } catch (e) {}
       try { lockLanguageForMewLegend(); } catch (e) {}
       try { enforceMewLegendMinLevel(); } catch (e) {}
@@ -1956,6 +1958,8 @@ function boot(){
   // Initialize description for the default/current encounter mode
   try { setEncounterModeDescription(currentEncounterMode); } catch (e) {}
   try { updateMetLevelLocking(); } catch (e) {}
+  try { updateBallLocking(); } catch (e) {}
+  try { updateLevelLocking(); } catch (e) {}
 
   // Lock or unlock TID/SID inputs depending on selected mystery event.
   // If in `mystery` mode and a non-BOX_EVENT tag is selected, these should
@@ -2060,8 +2064,27 @@ function boot(){
       }
     } catch (e) {}
   }
+      // Lock ball selection to Poké Ball for hatched encounter mode and disable edits.
+      function updateBallLocking() {
+        try {
+          const ballEl = $('#ball');
+          if (!ballEl) return;
+          if (currentEncounterMode === 'hatched') {
+            try { ballEl.value = '4'; } catch (e) {}
+            ballEl.disabled = true;
+            ballEl.style.pointerEvents = 'none';
+            ballEl.style.opacity = '0.6';
+            ballEl.style.cursor = 'not-allowed';
+          } else {
+            ballEl.disabled = false;
+            ballEl.style.pointerEvents = '';
+            ballEl.style.opacity = '';
+            ballEl.style.cursor = '';
+          }
+        } catch (e) {}
+      }
 
-  // Lock language to Japanese for Mew when in Legendary encounter mode.
+      // Lock language to Japanese for Mew when in Legendary encounter mode.
   function lockLanguageForMewLegend() {
     try {
       const langSel = $('#language');
@@ -2127,6 +2150,27 @@ function boot(){
             nickEl.style.cursor = '';
           }
         } catch (e) {}
+      }
+    } catch (e) {}
+  }
+
+  // Enforce minimum level and UI constraints for hatched mode.
+  function updateLevelLocking() {
+    try {
+      const levelEl = $('#level');
+      if (!levelEl) return;
+      if (currentEncounterMode === 'hatched') {
+        // set min attribute for better UX
+        try { levelEl.min = '5'; } catch (e) {}
+        // if current value is below 5, snap it up
+        const cur = Number(levelEl.value) || 0;
+        if (cur < 5) {
+          levelEl.value = '5';
+          try { computeAndSetExpFromLevel(); } catch (e) {}
+          try { updateLegalityStatus(); } catch (e) {}
+        }
+      } else {
+        try { levelEl.min = '1'; } catch (e) {}
       }
     } catch (e) {}
   }
@@ -2950,6 +2994,12 @@ function boot(){
     try {
       let val = Number(e.target.value) || 0;
       if (val < 1) val = 1;
+      // Enforce hatched minimum: snap up to 5 if in hatched mode
+      try {
+        if (currentEncounterMode === 'hatched' && val < 5) {
+          val = 5;
+        }
+      } catch (eee) {}
       if (val > 100) val = 100;
         try {
         if (currentEncounterMode === 'mystery') {
