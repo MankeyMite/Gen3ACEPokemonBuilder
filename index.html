@@ -457,10 +457,49 @@
   </style>
 </head>
 <body>
+  <!-- Pokéball shadow background -->
+  <div class="bg-scene" aria-hidden="true">
+    <svg class="bg-pokeballs" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Reusable pokéball shadow symbol -->
+        <symbol id="pb" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" stroke-width="4"/>
+          <line x1="2" y1="50" x2="38" y2="50" stroke="currentColor" stroke-width="4"/>
+          <line x1="62" y1="50" x2="98" y2="50" stroke="currentColor" stroke-width="4"/>
+          <circle cx="50" cy="50" r="12" fill="none" stroke="currentColor" stroke-width="4"/>
+          <circle cx="50" cy="50" r="6" fill="currentColor"/>
+        </symbol>
+      </defs>
+      <!-- Scattered pokéball shadows at various sizes / angles / opacities -->
+      <use href="#pb" x="3%"  y="2%"   width="110" height="110" style="color:rgba(74,158,255,0.07);  transform:rotate(-15deg);  transform-origin:58px 57px;"/>
+      <use href="#pb" x="82%" y="1%"   width="80"  height="80"  style="color:rgba(72,213,151,0.055);transform:rotate(25deg);  transform-origin:82% 41px;"/>
+      <use href="#pb" x="45%" y="5%"   width="60"  height="60"  style="color:rgba(231,76,60,0.045); transform:rotate(-8deg);  transform-origin:45% 35px;"/>
+      <use href="#pb" x="22%" y="18%"  width="140" height="140" style="color:rgba(74,158,255,0.05); transform:rotate(12deg);  transform-origin:22% 88px;"/>
+      <use href="#pb" x="68%" y="15%"  width="90"  height="90"  style="color:rgba(72,213,151,0.06);transform:rotate(-22deg); transform-origin:68% 60px;"/>
+      <use href="#pb" x="92%" y="22%"  width="70"  height="70"  style="color:rgba(231,76,60,0.04); transform:rotate(35deg);  transform-origin:92% 57px;"/>
+      <use href="#pb" x="8%"  y="35%"  width="75"  height="75"  style="color:rgba(72,213,151,0.05);transform:rotate(18deg);  transform-origin:8% 72px;"/>
+      <use href="#pb" x="38%" y="30%"  width="120" height="120" style="color:rgba(74,158,255,0.04); transform:rotate(-30deg); transform-origin:38% 90px;"/>
+      <use href="#pb" x="60%" y="38%"  width="55"  height="55"  style="color:rgba(231,76,60,0.05); transform:rotate(5deg);   transform-origin:60% 65px;"/>
+      <use href="#pb" x="85%" y="42%"  width="100" height="100" style="color:rgba(74,158,255,0.055);transform:rotate(-18deg); transform-origin:85% 92px;"/>
+      <use href="#pb" x="2%"  y="55%"  width="95"  height="95"  style="color:rgba(231,76,60,0.045);transform:rotate(28deg);  transform-origin:2% 102px;"/>
+      <use href="#pb" x="30%" y="52%"  width="65"  height="65"  style="color:rgba(72,213,151,0.05);transform:rotate(-12deg); transform-origin:30% 84px;"/>
+      <use href="#pb" x="52%" y="58%"  width="130" height="130" style="color:rgba(74,158,255,0.04); transform:rotate(20deg);  transform-origin:52% 123px;"/>
+      <use href="#pb" x="78%" y="60%"  width="70"  height="70"  style="color:rgba(72,213,151,0.055);transform:rotate(-25deg); transform-origin:78% 95px;"/>
+      <use href="#pb" x="15%" y="72%"  width="110" height="110" style="color:rgba(74,158,255,0.05); transform:rotate(8deg);   transform-origin:15% 127px;"/>
+      <use href="#pb" x="42%" y="75%"  width="80"  height="80"  style="color:rgba(231,76,60,0.04); transform:rotate(-20deg); transform-origin:42% 115px;"/>
+      <use href="#pb" x="70%" y="78%"  width="105" height="105" style="color:rgba(72,213,151,0.05);transform:rotate(15deg);  transform-origin:70% 130px;"/>
+      <use href="#pb" x="95%" y="75%"  width="60"  height="60"  style="color:rgba(74,158,255,0.045);transform:rotate(-35deg); transform-origin:95% 105px;"/>
+      <use href="#pb" x="5%"  y="88%"  width="70"  height="70"  style="color:rgba(72,213,151,0.04);transform:rotate(22deg);  transform-origin:5% 123px;"/>
+      <use href="#pb" x="55%" y="90%"  width="90"  height="90"  style="color:rgba(74,158,255,0.05); transform:rotate(-10deg); transform-origin:55% 135px;"/>
+      <use href="#pb" x="25%" y="92%"  width="50"  height="50"  style="color:rgba(231,76,60,0.04); transform:rotate(30deg);  transform-origin:25% 117px;"/>
+      <use href="#pb" x="88%" y="90%"  width="85"  height="85"  style="color:rgba(72,213,151,0.045);transform:rotate(-5deg);  transform-origin:88% 132px;"/>
+    </svg>
+  </div>
+
   <header class="container">
     <h1>Gen 3 ACE Pokémon Builder</h1>
     <p class="muted" style="margin-top: -0.75rem; margin-bottom: 1rem;">
-      <span style="font-size: 0.85em; opacity: 0.8;">v0.2.3</span>
+      <span style="font-size: 0.85em; opacity: 0.8;">v0.2.4</span>
     </p>
     <p class="muted">Build custom Pokémon for Gen III games. Import from raw hex data, .pk3/ek3 files, or create your Pokémon from scratch. Export as BASE64 box codes, raw hex data, or a .pk3/ek3 file. New here? <a href="./docs/spawn-setup-interactive.html" target="_blank">How to spawn Pokemon in your game from this tool</a> — step-by-step setup. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
 

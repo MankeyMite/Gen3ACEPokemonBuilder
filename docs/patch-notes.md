@@ -1,3 +1,18 @@
+Patch Notes — (V.0.2.4)
+
+Summary
+
+- Only legal moves may now be selected for each species: Implemented levelup moves, egg moves, tutor moves, pre-evolution moves and evolution lines for correct handling of legal moves at specific levels.
+
+Huge "Wild" mode updates:
+
+- You may now only select legal Origin data, met locations and met levels for each species. Implemented the encounter tables for Emerald, Ruby/Sapphire and Fire Red and Leaf Green. Pokemon Collosseum/XD may has been deselected as correct encounter tables are missing. 
+
+Other:
+- Background changes for a better "Pokémon feel" to the website.
+
+
+
 Patch Notes — (V.0.2.3)
 
 Summary

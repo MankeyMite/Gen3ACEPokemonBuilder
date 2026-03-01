@@ -13,54 +13,40 @@
 html,body{
   margin:0;
   padding:0;
-  background: linear-gradient(135deg, #0f1d35 0%, #1a2d4a 25%, #0a3d2e 50%, #1a2d4a 75%, #0f1d35 100%);
-  background-attachment: fixed;
+  background: #0b1628;
   color:var(--fg);
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial;
   position: relative;
 }
 
-/* Retro pixel pattern overlay */
-body::before {
-  content: '';
+/* ── Pokéball shadow background ───────────────────────── */
+.bg-scene {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: 
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(74, 158, 255, 0.03) 2px,
-      rgba(74, 158, 255, 0.03) 4px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 2px,
-      rgba(72, 213, 151, 0.03) 2px,
-      rgba(72, 213, 151, 0.03) 4px
-    );
-  pointer-events: none;
-  z-index: 1;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(74,158,255,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 75%, rgba(72,213,151,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 55% 40%, rgba(231,76,60,0.04) 0%, transparent 50%),
+    linear-gradient(160deg, #0b1628 0%, #0f2440 35%, #0d2a30 60%, #12203a 85%, #0b1628 100%);
 }
 
-/* Gen 3 game-inspired accent gradients */
+.bg-pokeballs {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Vignette overlay */
 body::after {
   content: '';
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: 
-    radial-gradient(circle at 20% 20%, rgba(231, 76, 60, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(74, 158, 255, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(72, 213, 151, 0.06) 0%, transparent 60%);
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.45) 100%);
   pointer-events: none;
-  z-index: 0;
+  z-index: 1;
 }
 
 .container{

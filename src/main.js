@@ -14,6 +14,8 @@ import { GROUP, expForLevel, levelForExp } from './lib/exp.js';
 import EXP_GROUPS from './data/expGroups.gen3.js';
 import { ABILITIES, getAbilityName } from './data/abilities.gen3.js';
 import { hasDualAbilities, getSpeciesAbilities } from './data/pokemonAbilities.gen3.js';
+import { LEARNSETS } from './data/learnsets.gen3.js';
+import { WILD_ENCOUNTERS } from './data/wildEncounters.gen3.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -24,6 +26,9 @@ let MYSTERY_EVENTS = {};
 let MYSTERY_GIFTS = {};
 // Movesets loaded from external file, mapped by internal tag when possible
 let MYSTERY_MOVESETS = {};
+
+// Move autocomplete wrappers (set after init)
+let moveAutocompletes = [null, null, null, null];
 
 // Ensure a safe no-op exists early so callers from earlier code don't throw
 function updateMysterySpeciesOptions(/*tag*/) { return; }
@@ -654,12 +659,19 @@ function createAutocomplete(selectEl, list, opts = {}) {
   const placeholder = opts.placeholder ?? '— Select —';
   const allowEmpty = opts.placeholder !== null;
   const onSelect = opts.onSelect || null;
+  // Optional full list used to resolve display names for values not in the
+  // current filtered list (e.g. mystery-gift preset moves outside the learnset).
+  const masterList = opts.masterList || null;
   
   // Store the data - make it mutable so we can update it
   let items = list.map(row => {
     const [name, id] = toNameId(row);
     return { name, id: String(id) };
   });
+  let masterItems = masterList ? masterList.map(row => {
+    const [name, id] = toNameId(row);
+    return { name, id: String(id) };
+  }) : null;
   
   // Create wrapper
   const wrapper = document.createElement('div');
@@ -691,25 +703,37 @@ function createAutocomplete(selectEl, list, opts = {}) {
       const item = items.find(i => i.id === selectedId);
       if (item) {
         input.value = item.name;
-      } else if (allowEmpty && val === '') {
-        input.value = '';
-        selectedId = '';
+      } else if (masterItems) {
+        // Fallback: resolve display name from the full master list
+        // (e.g. mystery-gift moves not in the current learnset)
+        const fallback = masterItems.find(i => i.id === selectedId);
+        if (fallback) input.value = fallback.name;
+      }
+      if (!item && !masterItems?.find(i => i.id === selectedId)) {
+        if (allowEmpty && val === '') {
+          input.value = '';
+          selectedId = '';
+        }
       }
     },
     configurable: true
   });
   
   // Expose method to update the list
-  wrapper.updateList = function(newList) {
+  // opts.preserveValue — keep current selection even if it's not in the new list
+  wrapper.updateList = function(newList, opts = {}) {
     items = newList.map(row => {
       const [name, id] = toNameId(row);
       return { name, id: String(id) };
     });
     // Clear current selection if it's not in the new list
-    const stillExists = items.some(i => i.id === selectedId);
-    if (!stillExists) {
-      selectedId = '';
-      input.value = '';
+    // (unless preserveValue is set — keeps e.g. mystery-gift moves visible)
+    if (!opts.preserveValue) {
+      const stillExists = items.some(i => i.id === selectedId);
+      if (!stillExists) {
+        selectedId = '';
+        input.value = '';
+      }
     }
   };
   
@@ -882,6 +906,227 @@ function getLocationsForGame(originGame) {
 
 // Store reference to metLocation autocomplete wrapper for updating
 let metLocationWrapper = null;
+
+/**
+ * Given an array of merged level ranges [[min,max], ...] and a target level,
+ * return the closest valid level that falls inside one of the ranges.
+ * If the value is between two disjoint ranges, snaps to the nearest boundary.
+ */
+function snapToValidLevel(ranges, target) {
+  if (!ranges || !ranges.length) return target;
+  // Flatten to absolute min/max first for quick bounds check
+  const absMin = ranges[0][0];
+  const absMax = ranges[ranges.length - 1].length > 1 ? ranges[ranges.length - 1][1] : ranges[ranges.length - 1][0];
+  if (target <= absMin) return absMin;
+  if (target >= absMax) return absMax;
+  // Check if target falls inside any range
+  for (const r of ranges) {
+    const lo = r[0], hi = r.length > 1 ? r[1] : r[0];
+    if (target >= lo && target <= hi) return target; // already valid
+  }
+  // Target is in a gap — find the closest boundary
+  let best = absMin, bestDist = Math.abs(target - absMin);
+  for (const r of ranges) {
+    const lo = r[0], hi = r.length > 1 ? r[1] : r[0];
+    for (const bound of [lo, hi]) {
+      const d = Math.abs(target - bound);
+      if (d < bestDist) { best = bound; bestDist = d; }
+    }
+  }
+  return best;
+}
+
+/**
+ * Build a human-readable label for a set of level ranges, e.g. "2–5, 8, 10–12".
+ */
+function rangesToLabel(ranges) {
+  return ranges.map(r => r.length > 1 && r[0] !== r[1] ? `${r[0]}\u2013${r[1]}` : `${r[0]}`).join(', ');
+}
+
+/**
+ * Update Origin Game, Met Location, and Met Level in wild mode based on
+ * the selected species' wild encounter data.
+ *
+ * The encounter data uses merged level ranges:
+ *   locationId → [[min,max], ...]  (e.g. [[5,10],[20,30]])
+ *
+ * Flow:
+ *   1. Disable Origin Game options where the species has no wild encounters.
+ *   2. If the currently selected game has no encounters, auto-select the
+ *      first available game.
+ *   3. Filter Met Location to only the locations for this species + game.
+ *   4. Snap Met Level to the closest valid level within the ranges.
+ *
+ * Called when: species changes, mode changes to wild, origin game changes,
+ * or met location changes.
+ */
+function updateWildEncounterFilters(speciesId) {
+  if (currentEncounterMode !== 'wild') return;
+
+  const encounterData = WILD_ENCOUNTERS[speciesId];
+  const originGameSelect = $('#originGame');
+  const metLevelInput =    $('#metLevel');
+  if (!originGameSelect) return;
+
+  // ── 1. Filter Origin Game options ───────────────────────────────────────
+  const availableGames = encounterData ? Object.keys(encounterData).map(Number) : [];
+  const options = Array.from(originGameSelect.options);
+  for (const opt of options) {
+    const gId = Number(opt.value);
+    // Colosseum/XD (15) — always disabled/greyed in wild mode (no data yet)
+    if (gId === 15) { opt.disabled = true; continue; }
+    opt.disabled = !availableGames.includes(gId);
+    opt.hidden   = !availableGames.includes(gId);
+  }
+
+  // ── 2. Auto-select first available game if current is disabled ──────────
+  let currentGame = Number(originGameSelect.value);
+  if (!availableGames.includes(currentGame)) {
+    if (availableGames.length) {
+      originGameSelect.value = String(availableGames[0]);
+      currentGame = availableGames[0];
+    }
+  }
+
+  // ── 3. Filter Met Location to valid locations for species + game ────────
+  if (encounterData && encounterData[currentGame]) {
+    const gameLocs = encounterData[currentGame]; // { locId: [[min,max],...] }
+    const locIds = Object.keys(gameLocs).map(Number);
+    // Build the filtered location list from LOCATIONS
+    const baseLocations = getLocationsForGame(currentGame);
+    const filteredLocations = baseLocations.filter(([id]) => locIds.includes(id));
+    if (metLocationWrapper && metLocationWrapper.updateList) {
+      metLocationWrapper.updateList(filteredLocations);
+    }
+
+    // If the current met location isn't in the filtered set, auto-pick the first
+    const metLocVal = Number($('#metLocation').value);
+    if (!locIds.includes(metLocVal) && filteredLocations.length) {
+      $('#metLocation').value = String(filteredLocations[0][0]);
+    }
+
+    // ── 4. Snap Met Level to the closest valid level ──────────────────────
+    const chosenLoc = Number($('#metLocation').value);
+    const ranges = gameLocs[chosenLoc];
+    if (ranges && ranges.length && metLevelInput) {
+      const absMin = ranges[0][0];
+      const absMax = ranges[ranges.length - 1].length > 1 ? ranges[ranges.length - 1][1] : ranges[ranges.length - 1][0];
+      const curLevel = Number(metLevelInput.value) || 0;
+      metLevelInput.value = String(snapToValidLevel(ranges, curLevel));
+      metLevelInput.min = String(absMin);
+      metLevelInput.max = String(absMax);
+      metLevelInput.title = `Valid levels: ${rangesToLabel(ranges)}`;
+
+      // Also sync the main level so it's at least the met level
+      const metLevel  = Number(metLevelInput.value);
+      const mainLevel = Number($('#level').value) || 0;
+      if (mainLevel < metLevel) {
+        $('#level').value = String(metLevel);
+        try { computeAndSetExpFromLevel(); } catch (e) {}
+      }
+      // Refresh move filtering with the updated level
+      try { refreshMoveExclusions(); } catch (e) {}
+    }
+  } else {
+    // No encounter data: show all locations for this game, reset level constraints
+    const baseLocations = getLocationsForGame(currentGame);
+    if (metLocationWrapper && metLocationWrapper.updateList) {
+      metLocationWrapper.updateList(baseLocations);
+    }
+    if (metLevelInput) {
+      metLevelInput.min = '0';
+      metLevelInput.max = '100';
+      metLevelInput.title = '';
+    }
+  }
+}
+
+/**
+ * Reset Origin Game dropdown to its normal state (all options enabled).
+ * Called when switching away from wild mode.
+ */
+function resetOriginGameOptions() {
+  const select = $('#originGame');
+  if (!select) return;
+  for (const opt of Array.from(select.options)) {
+    opt.disabled = false;
+    opt.hidden   = false;
+  }
+}
+
+/**
+ * Update the move dropdowns to only show moves the selected species can
+ * legally learn, taking the current encounter mode and level into account.
+ *
+ * Mode rules:
+ *   hatched     — all categories: level-up (any level) + egg + TM/HM + tutor
+ *   wild /
+ *   legendaries — level-up (≤ pokémon level) + TM/HM + tutor  (NO egg moves)
+ *   mystery     — level-up (≤ pokémon level) + TM/HM + tutor  (NO egg moves)
+ *
+ * `preserveValue` keeps the current selection even when it is not in the
+ * new filtered list (used for mystery-gift preset moves & imports).
+ */
+function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
+  const data = LEARNSETS[speciesId];
+  let baseMoves;
+
+  if (data) {
+    const mode = currentEncounterMode;
+    const level = Number($('#level')?.value) || 100;
+
+    // Collect move IDs that are legal for the current mode + level
+    const idSet = new Set();
+
+    // Level-up moves — in hatched mode allow all, otherwise cap by level
+    if (data.l) {
+      for (const [mid, learnLvl] of data.l) {
+        if (mode === 'hatched' || learnLvl <= level) {
+          idSet.add(mid);
+        }
+      }
+    }
+    // TM/HM & tutor moves — always allowed (no level restriction)
+    if (data.t) for (const mid of data.t) idSet.add(mid);
+    if (data.u) for (const mid of data.u) idSet.add(mid);
+    // Egg moves — only in hatched mode
+    if (mode === 'hatched' && data.e) {
+      for (const mid of data.e) idSet.add(mid);
+    }
+
+    // Keep the empty/0 entry ("— None —") plus all legal moves
+    baseMoves = MOVES.filter(([id]) => id === 0 || idSet.has(id));
+  } else {
+    // No learnset data → show everything
+    baseMoves = MOVES;
+  }
+
+  // For each slot, exclude moves already chosen in other slots to
+  // prevent the same move from being selected twice.
+  const selected = moveAutocompletes.map(ac => ac ? ac.value : '');
+  for (let i = 0; i < moveAutocompletes.length; i++) {
+    const ac = moveAutocompletes[i];
+    if (!ac || !ac.updateList) continue;
+    const othersSelected = new Set(
+      selected.filter((id, j) => j !== i && id && id !== '0' && id !== '')
+    );
+    const filtered = othersSelected.size > 0
+      ? baseMoves.filter(([id]) => id === 0 || !othersSelected.has(String(id)))
+      : baseMoves;
+    ac.updateList(filtered, { preserveValue });
+  }
+}
+
+/**
+ * Re-apply move-slot exclusion / level filtering using the currently
+ * selected species and level — call after any individual move selection
+ * or level change so that duplicates and out-of-level moves are kept
+ * out of the other slots' dropdowns.
+ */
+function refreshMoveExclusions() {
+  const speciesId = Number($('#species')?.value || 0);
+  updateMovesForSpecies(speciesId, { preserveValue: true });
+}
 
 // Update Hidden Power display based on current IV values
 function updateHiddenPower() {
@@ -1545,6 +1790,12 @@ function boot(){
       // Always update gender dropdown for selected species
       handleEncounterModeChange(speciesId);
 
+      // Update move dropdowns to only show moves this species can learn.
+      // In mystery mode, preserve already-set moves (may be special event moves).
+      updateMovesForSpecies(speciesId, {
+        preserveValue: currentEncounterMode === 'mystery'
+      });
+
       // If we're in Mystery Gifts mode and an event is selected, apply any
       // per-species mystery preset (TID/SID/OT/PID/IVs) so the basics/stats
       // reflect the event immediately and are not overridden by other logic.
@@ -1564,10 +1815,10 @@ function boot(){
     return !((id >= 259 && id <= 288) || (id >= 339 && id <= 376));
   });
   createAutocomplete($('#item'), filteredItems, { placeholder: '— None —' });
-  createAutocomplete($('#move1'), MOVES, { placeholder: '— Empty —', onSelect: validateForm });
-  createAutocomplete($('#move2'), MOVES, { placeholder: '— Empty —', onSelect: validateForm });
-  createAutocomplete($('#move3'), MOVES, { placeholder: '— Empty —', onSelect: validateForm });
-  createAutocomplete($('#move4'), MOVES, { placeholder: '— Empty —', onSelect: validateForm });
+  moveAutocompletes[0] = createAutocomplete($('#move1'), MOVES, { placeholder: '— Empty —', onSelect: validateForm, masterList: MOVES });
+  moveAutocompletes[1] = createAutocomplete($('#move2'), MOVES, { placeholder: '— Empty —', onSelect: validateForm, masterList: MOVES });
+  moveAutocompletes[2] = createAutocomplete($('#move3'), MOVES, { placeholder: '— Empty —', onSelect: validateForm, masterList: MOVES });
+  moveAutocompletes[3] = createAutocomplete($('#move4'), MOVES, { placeholder: '— Empty —', onSelect: validateForm, masterList: MOVES });
   createAutocomplete($('#ball'), BALLS);
   
   // Set default ball to Poké Ball (ID 4)
@@ -1680,6 +1931,7 @@ function boot(){
   $('#move1').addEventListener('change', () => {
     validateForm();
     updateLegalityStatus();
+    refreshMoveExclusions();
     // Clear all move errors immediately
     $('#move1').parentElement.classList.remove('field-error');
     $('#move2').parentElement.classList.remove('field-error');
@@ -1695,6 +1947,7 @@ function boot(){
   $('#move2').addEventListener('change', () => {
     validateForm();
     updateLegalityStatus();
+    refreshMoveExclusions();
     $('#move1').parentElement.classList.remove('field-error');
     $('#move2').parentElement.classList.remove('field-error');
     $('#move3').parentElement.classList.remove('field-error');
@@ -1709,6 +1962,7 @@ function boot(){
   $('#move3').addEventListener('change', () => {
     validateForm();
     updateLegalityStatus();
+    refreshMoveExclusions();
     $('#move1').parentElement.classList.remove('field-error');
     $('#move2').parentElement.classList.remove('field-error');
     $('#move3').parentElement.classList.remove('field-error');
@@ -1723,6 +1977,7 @@ function boot(){
   $('#move4').addEventListener('change', () => {
     validateForm();
     updateLegalityStatus();
+    refreshMoveExclusions();
     $('#move1').parentElement.classList.remove('field-error');
     $('#move2').parentElement.classList.remove('field-error');
     $('#move3').parentElement.classList.remove('field-error');
@@ -1781,6 +2036,16 @@ function boot(){
   // Update locations when origin game changes
   $('#originGame').addEventListener('change', (e) => {
     const newGame = e.target.value;
+
+    // In wild mode, delegate to the encounter filter (handles locations + level)
+    if (currentEncounterMode === 'wild') {
+      const speciesId = Number($('#species').value) || 0;
+      updateWildEncounterFilters(speciesId);
+      updateLegalityStatus();
+      return;
+    }
+
+    // Default: show all locations for the selected game
     const filteredLocations = getLocationsForGame(newGame);
     
     if (metLocationWrapper && metLocationWrapper.updateList) {
@@ -1834,11 +2099,46 @@ function boot(){
   if (metLevelInput) {
     metLevelInput.addEventListener('input', updateLegalityStatus);
     metLevelInput.addEventListener('change', updateLegalityStatus);
+    // In wild mode, snap met level to closest valid encounter level on blur
+    metLevelInput.addEventListener('blur', () => {
+      if (currentEncounterMode !== 'wild') return;
+      const spId   = Number($('#species').value) || 0;
+      const gameId = Number($('#originGame').value) || 0;
+      const locId  = Number($('#metLocation').value) || 0;
+      const enc = WILD_ENCOUNTERS[spId];
+      if (enc && enc[gameId] && enc[gameId][locId]) {
+        const ranges = enc[gameId][locId];
+        let v = Number(metLevelInput.value) || 0;
+        metLevelInput.value = String(snapToValidLevel(ranges, v));
+      }
+    });
   }
   
   const metLocationInput = $('#metLocation');
   if (metLocationInput) {
-    metLocationInput.addEventListener('change', updateLegalityStatus);
+    metLocationInput.addEventListener('change', () => {
+      updateLegalityStatus();
+      // In wild mode, snap met level for the newly chosen location
+      if (currentEncounterMode === 'wild') {
+        const spId = Number($('#species').value) || 0;
+        const gameId = Number($('#originGame').value) || 0;
+        const locId  = Number($('#metLocation').value) || 0;
+        const enc = WILD_ENCOUNTERS[spId];
+        if (enc && enc[gameId] && enc[gameId][locId]) {
+          const ranges = enc[gameId][locId];
+          const ml = $('#metLevel');
+          if (ml && ranges && ranges.length) {
+            const absMin = ranges[0][0];
+            const absMax = ranges[ranges.length - 1].length > 1 ? ranges[ranges.length - 1][1] : ranges[ranges.length - 1][0];
+            ml.min = String(absMin);
+            ml.max = String(absMax);
+            ml.title = `Valid levels: ${rangesToLabel(ranges)}`;
+            const cur = Number(ml.value) || 0;
+            ml.value = String(snapToValidLevel(ranges, cur));
+          }
+        }
+      }
+    });
     metLocationInput.addEventListener('input', updateLegalityStatus);
   }
   
@@ -1903,6 +2203,20 @@ function boot(){
     radio.addEventListener('change', (e) => {
       // Reset mode-specific state to avoid carryover between modes
       try { resetAllModeState(); } catch (ee) {}
+      // Restore Origin Game dropdown options when leaving wild mode
+      try { resetOriginGameOptions(); } catch (ee) {}
+      // Restore full location list for the current origin game
+      try {
+        const curGame = $('#originGame').value || '3';
+        if (metLocationWrapper && metLocationWrapper.updateList) {
+          metLocationWrapper.updateList(getLocationsForGame(curGame));
+        }
+      } catch (ee) {}
+      // Reset met level constraints
+      try {
+        const ml = $('#metLevel');
+        if (ml) { ml.min = '0'; ml.max = '100'; ml.title = ''; }
+      } catch (ee) {}
       currentEncounterMode = e.target.value;
       // Add body classes for special encounter modes so CSS/JS can adjust visibility
       document.body.classList.toggle('encounter-wild', currentEncounterMode === 'wild');
@@ -1919,6 +2233,12 @@ function boot(){
       // When changing encounter mode, update the Pokémon if needed
       const speciesId = Number($('#species').value) || 0;
       handleEncounterModeChange(speciesId);
+      // Re-apply move filtering for the current species
+      if (speciesId) {
+        updateMovesForSpecies(speciesId, {
+          preserveValue: currentEncounterMode === 'mystery'
+        });
+      }
       // Update human-readable description under the selector
       try { setEncounterModeDescription(currentEncounterMode); } catch (e) {}
       try { updateIsEggVisibility(); } catch (e) {}
@@ -2365,7 +2685,11 @@ function boot(){
             updateSpeciesListForMode();
             // Also try to apply preset for selected species
             const sp = Number($('#species').value) || 0;
-            if (sp) applyMysteryPresetForSpecies(sp);
+            if (sp) {
+              // Update move dropdowns for the species learnset (preserve preset moves)
+              updateMovesForSpecies(sp, { preserveValue: true });
+              applyMysteryPresetForSpecies(sp);
+            }
             // Update mystery species options (noop if selector removed)
             updateMysterySpeciesOptions(tag);
             try { updateTidSidLocking(); } catch (e) {}
@@ -2619,9 +2943,9 @@ function boot(){
         filteredSpecies = SPECIES.filter(s => isLegendary(s[0]));
         break;
       case 'wild':
-        // All non-legendary pokemon (include starters/gift species),
-        // but exclude placeholder/unknown species entries (names with '?')
-        filteredSpecies = SPECIES.filter(s => !isLegendary(s[0]) && !String(s[1]||'').includes('?'));
+        // Only species with actual wild encounter data,
+        // excluding placeholder/unknown species entries (names with '?')
+        filteredSpecies = SPECIES.filter(s => WILD_ENCOUNTERS[s[0]] && !String(s[1]||'').includes('?'));
         break;
       case 'mystery':
         // Only show species available in the selected mystery event (if specified)
@@ -2750,6 +3074,15 @@ function boot(){
       if (originGameSelect) {
         originGameSelect.value = '3';
       }
+
+      // Restore full location list for Emerald
+      if (metLocationWrapper && metLocationWrapper.updateList) {
+        metLocationWrapper.updateList(getLocationsForGame('3'));
+      }
+      // Re-set met location after the list is restored
+      if (metLocationSelect) {
+        metLocationSelect.value = '9';
+      }
       
       // Reset IVs to 31
       $('#ivHp').value = '31';
@@ -2770,20 +3103,15 @@ function boot(){
       // Update experience to match level 100
       computeAndSetExpFromLevel();
     } else if (mode === 'wild') {
-      // For wild mode, re-enable gender selection and clear origin/met presets
+      // For wild mode, re-enable gender selection and apply encounter filters
       if (genderSelect) {
         genderSelect.style.pointerEvents = '';
         genderSelect.style.opacity = '';
         genderSelect.style.cursor = '';
       }
 
-      // Clear origin game, met location and met level so user can fill them
-      const originGameSelect = $('#originGame');
-      const metLocationSelect = $('#metLocation');
-      const metLevelInput = $('#metLevel');
-      if (originGameSelect) originGameSelect.value = '';
-      if (metLocationSelect) metLocationSelect.value = '';
-      if (metLevelInput) metLevelInput.value = '';
+      // Apply wild encounter filtering for origin game, met location, met level
+      updateWildEncounterFilters(speciesId);
 
         // Re-apply nature preset so PID/IV reflect the selected nature for wild mode
         const natureElLocal = document.querySelector('#nature');
@@ -2858,6 +3186,7 @@ function boot(){
             moveInput.value = String(move.id);
           }
         });
+        refreshMoveExclusions();
       }
     }
 
@@ -2919,6 +3248,10 @@ function boot(){
       const originGameSelect = $('#originGame');
       if (originGameSelect) {
         originGameSelect.value = String(encounter.defaultOriginGame);
+        // Refresh location list for the new game
+        if (metLocationWrapper && metLocationWrapper.updateList) {
+          metLocationWrapper.updateList(getLocationsForGame(encounter.defaultOriginGame));
+        }
       }
     }
 
@@ -3026,6 +3359,9 @@ function boot(){
       }
       try { computeAndSetExpFromLevel(); } catch (e) {}
       try { updateLegalityStatus(); } catch (e) {}
+      // Re-filter moves: in non-hatched modes the available level-up moves
+      // depend on the Pokémon's level, so update the dropdowns.
+      try { refreshMoveExclusions(); } catch (e) {}
     } catch (e) {}
   });
 
@@ -3463,17 +3799,21 @@ function boot(){
       e.target.value = String(val);
       const lvl = levelForExp(group, val);
       $('#level').value = String(lvl);
+      try { refreshMoveExclusions(); } catch (ex) {}
     });
   }
 
   // Recompute when species or level changes
   speciesAutocomplete.addEventListener('change', computeAndSetExpFromLevel);
-  $('#level').addEventListener('change', computeAndSetExpFromLevel);
+  $('#level').addEventListener('change', () => {
+    computeAndSetExpFromLevel();
+    refreshMoveExclusions();
+  });
   // initialize
   computeAndSetExpFromLevel();
 
-  // Move selection - autocomplete doesn't support disabling options like select does
-  // Users can select duplicate moves if needed (not a critical validation)
+  // Move selection is handled by updateMovesForSpecies / refreshMoveExclusions
+  // which filter by species learnset, encounter mode, level, and cross-slot dupes.
 
   // PP selects exist as dropdowns (0-3) so no typing clamp needed; keep them defaulted
 
@@ -4096,10 +4436,13 @@ function onLoadFromHex(){
     }
     
     // Moves and PP Ups
+    // Update learnset filter for the imported species (preserve imported moves)
+    updateMovesForSpecies(Number(data.speciesId) || 0, { preserveValue: true });
     $('#move1').value = String(data.moves[0]);
     $('#move2').value = String(data.moves[1]);
     $('#move3').value = String(data.moves[2]);
     $('#move4').value = String(data.moves[3]);
+    refreshMoveExclusions();
     $('#pp1').value = String(data.pps[0]);
     $('#pp2').value = String(data.pps[1]);
     $('#pp3').value = String(data.pps[2]);
@@ -4307,10 +4650,13 @@ function onImportPk3(event) {
       }
       
       // Moves and PP Ups
+      // Update learnset filter for the imported species (preserve imported moves)
+      updateMovesForSpecies(Number(data.speciesId) || 0, { preserveValue: true });
       $('#move1').value = String(data.moves[0]);
       $('#move2').value = String(data.moves[1]);
       $('#move3').value = String(data.moves[2]);
       $('#move4').value = String(data.moves[3]);
+      refreshMoveExclusions();
       $('#pp1').value = String(data.pps[0]);
       $('#pp2').value = String(data.pps[1]);
       $('#pp3').value = String(data.pps[2]);
