@@ -649,6 +649,12 @@
         <span id="shinyIndicatorSimple" class="shiny-indicator" title="This Pokémon is shiny!" style="margin-left: 0.5rem;">✨</span>
       </div>
 
+      <div class="row wild-only" id="pidFinderRow">
+        <label>PID &amp; IVs</label>
+        <button id="pidFinderBtn" type="button" class="pid-finder-btn">&#x1F50D; Find Legal PID</button>
+        <span id="pidFinderStatus" class="pid-finder-status"></span>
+      </div>
+
       <div class="row">
         <label for="otName">OT Name</label>
         <input id="otName" type="text" maxlength="7" autocomplete="off" />
@@ -1077,6 +1083,66 @@
         </span>
       </div>
     </section>
+
+    <!-- ── PID Finder Modal ─────────────────────────────── -->
+    <div id="pidFinderOverlay" class="pid-finder-overlay">
+      <div class="pid-finder-modal">
+        <div class="pid-finder-header">
+          <h3>&#x1F50D; PID Finder</h3>
+          <button id="pidFinderClose" class="pid-finder-close" type="button">&times;</button>
+        </div>
+        <div class="pid-finder-body">
+          <div class="pid-finder-summary" id="pidFinderSummary"></div>
+
+          <div class="pid-finder-iv-section">
+            <label class="pid-finder-label">Minimum IVs</label>
+            <div class="pid-finder-iv-grid">
+              <div><label for="pfMinHp">HP</label><input id="pfMinHp"  type="number" min="0" max="31" value="25"></div>
+              <div><label for="pfMinAtk">Atk</label><input id="pfMinAtk" type="number" min="0" max="31" value="25"></div>
+              <div><label for="pfMinDef">Def</label><input id="pfMinDef" type="number" min="0" max="31" value="25"></div>
+              <div><label for="pfMinSpA">SpA</label><input id="pfMinSpA" type="number" min="0" max="31" value="25"></div>
+              <div><label for="pfMinSpD">SpD</label><input id="pfMinSpD" type="number" min="0" max="31" value="25"></div>
+              <div><label for="pfMinSpe">Spe</label><input id="pfMinSpe" type="number" min="0" max="31" value="25"></div>
+            </div>
+          </div>
+
+          <div class="pid-finder-methods">
+            <label><input type="checkbox" id="pfMethod1" checked> Method H-1</label>
+            <label><input type="checkbox" id="pfMethod2" checked> Method H-2</label>
+            <label><input type="checkbox" id="pfMethod4" checked> Method H-4</label>
+          </div>
+
+          <div class="pid-finder-controls">
+            <button id="pfSearch" type="button">Search</button>
+            <button id="pfStop" type="button" disabled>Stop</button>
+            <div class="pid-finder-progress">
+              <div class="pid-finder-progress-bar"><div class="pid-finder-progress-fill" id="pfProgressFill"></div></div>
+              <span id="pfProgressText">Ready</span>
+            </div>
+          </div>
+
+          <div class="pid-finder-results-section">
+            <div id="pfResultCount" class="pid-finder-result-count"></div>
+            <div class="pid-finder-results-scroll">
+              <table class="pid-finder-table">
+                <thead>
+                  <tr>
+                    <th>PID</th>
+                    <th>HP</th><th>Atk</th><th>Def</th><th>SpA</th><th>SpD</th><th>Spe</th>
+                    <th>Total</th>
+                    <th>HP Type</th>
+                    <th>Mth</th>
+                    <th>Lv</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="pfResults"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 
 

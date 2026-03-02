@@ -155,3 +155,232 @@ details{margin-top:.5rem}
 pre{white-space:pre-wrap;word-break:break-word}
 .copy-check{color:#4ade80;font-size:0.875rem;margin-top:0.25rem;opacity:0;transition:opacity 0.3s ease}
 .copy-check.show{opacity:1}
+
+/* ── PID Finder ──────────────────────────────────────── */
+
+/* Show the button row only when wild encounter is active */
+.wild-only { display: none; }
+body.encounter-wild .wild-only { display: flex; }
+
+.pid-finder-btn {
+  font-size: 0.9rem;
+  padding: 0.5rem 1.1rem;
+  white-space: nowrap;
+}
+
+.pid-finder-status {
+  font-size: 0.85rem;
+  color: var(--emerald);
+  margin-left: 0.5rem;
+}
+
+/* Overlay */
+.pid-finder-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(5px);
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+}
+.pid-finder-overlay.open { display: flex; }
+
+/* Modal card */
+.pid-finder-modal {
+  background: var(--card);
+  border: 1px solid rgba(74, 158, 255, 0.4);
+  border-radius: 16px;
+  max-width: 920px;
+  width: 100%;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6),
+              0 0 0 1px rgba(72,213,151,0.1) inset;
+  color: var(--fg);
+  animation: pfSlideIn .2s ease;
+}
+@keyframes pfSlideIn { from { opacity:0; transform:translateY(-18px); } to { opacity:1; transform:translateY(0); } }
+
+.pid-finder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(74, 158, 255, 0.2);
+}
+.pid-finder-header h3 {
+  margin: 0;
+  color: var(--accent-glow);
+  font-size: 1.15rem;
+}
+.pid-finder-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+.pid-finder-close:hover { color: var(--ruby); }
+
+.pid-finder-body { padding: 1.25rem; }
+
+/* Summary chips */
+.pid-finder-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.4rem;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(10,20,40,0.4);
+  border-radius: 10px;
+  border: 1px solid rgba(74,158,255,0.15);
+}
+.pf-tag { color: var(--muted); }
+.pf-tag b { color: var(--fg); font-weight: 600; }
+
+/* IV minimums grid */
+.pid-finder-iv-section { margin-bottom: 1rem; }
+.pid-finder-label {
+  display: block;
+  color: var(--accent-glow);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  min-width: auto;
+}
+.pid-finder-iv-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+}
+.pid-finder-iv-grid div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.pid-finder-iv-grid label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  min-width: auto;
+  text-align: center;
+}
+.pid-finder-iv-grid input {
+  text-align: center;
+  padding: 0.4rem;
+  width: 100%;
+}
+
+/* Method checkboxes */
+.pid-finder-methods {
+  display: flex;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+.pid-finder-methods label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: auto;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+/* Controls + progress */
+.pid-finder-controls {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.pid-finder-controls button { padding: 0.5rem 1.25rem; white-space: nowrap; }
+.pid-finder-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 180px;
+}
+.pid-finder-progress-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(10,20,40,0.6);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(74,158,255,0.2);
+}
+.pid-finder-progress-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--emerald));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+#pfProgressText {
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+  min-width: 80px;
+  text-align: right;
+}
+
+/* Results */
+.pid-finder-result-count {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+.pid-finder-results-scroll {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid rgba(74,158,255,0.15);
+  border-radius: 10px;
+}
+.pid-finder-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.pid-finder-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.pid-finder-table th {
+  background: rgba(10,20,40,0.95);
+  padding: 0.5rem 0.4rem;
+  text-align: center;
+  color: var(--accent-glow);
+  font-weight: 600;
+  font-size: 0.8rem;
+  border-bottom: 1px solid rgba(74,158,255,0.3);
+  white-space: nowrap;
+}
+.pid-finder-table td {
+  padding: 0.4rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(74,158,255,0.08);
+  white-space: nowrap;
+}
+.pid-finder-table tr:hover td { background: rgba(74,158,255,0.08); }
+.pid-finder-table .pid-cell {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+.pid-finder-table .iv-perfect { color: var(--emerald); font-weight: 600; }
+.pid-finder-table .iv-zero    { color: var(--ruby);    font-weight: 600; }
+.pid-finder-table .select-btn {
+  padding: 0.25rem 0.65rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .pid-finder-iv-grid { grid-template-columns: repeat(3, 1fr); }
+  .pid-finder-modal   { margin: 0.5rem; }
+}

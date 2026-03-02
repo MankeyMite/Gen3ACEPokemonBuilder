@@ -16,6 +16,7 @@ import { ABILITIES, getAbilityName } from './data/abilities.gen3.js';
 import { hasDualAbilities, getSpeciesAbilities } from './data/pokemonAbilities.gen3.js';
 import { LEARNSETS } from './data/learnsets.gen3.js';
 import { WILD_ENCOUNTERS } from './data/wildEncounters.gen3.js';
+import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -463,6 +464,8 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
       try { updateLegalityStatus(); } catch (e) {}
     }
 let currentEncounterMode = 'hatched';
+// When true, the PID Finder has set the met level and it should stay locked
+let pidFinderLockedMetLevel = false;
 // When true, skip applying simple-mode PID presets (used during imports)
 let suppressPresetApply = false;
 // When true, suppress marking user-change events while programmatically applying presets
@@ -2118,6 +2121,8 @@ function boot(){
   if (metLocationInput) {
     metLocationInput.addEventListener('change', () => {
       updateLegalityStatus();
+      // Update ball locking for Safari Zone logic
+      try { updateBallLocking(); } catch (e) {}
       // In wild mode, snap met level for the newly chosen location
       if (currentEncounterMode === 'wild') {
         const spId = Number($('#species').value) || 0;
@@ -2212,11 +2217,12 @@ function boot(){
           metLocationWrapper.updateList(getLocationsForGame(curGame));
         }
       } catch (ee) {}
-      // Reset met level constraints
+      // Reset met level constraints and PID Finder lock
       try {
         const ml = $('#metLevel');
         if (ml) { ml.min = '0'; ml.max = '100'; ml.title = ''; }
       } catch (ee) {}
+      pidFinderLockedMetLevel = false;
       currentEncounterMode = e.target.value;
       // Add body classes for special encounter modes so CSS/JS can adjust visibility
       document.body.classList.toggle('encounter-wild', currentEncounterMode === 'wild');
@@ -2365,13 +2371,20 @@ function boot(){
     } catch (e) {}
   }
 
-  // Lock met level to 0 for hatched encounter mode and disable edits.
+  // Lock met level to 0 for hatched encounter mode, or keep it locked
+  // if the PID Finder has set a specific level.
   function updateMetLevelLocking() {
     try {
       const metEl = $('#metLevel');
       if (!metEl) return;
       if (currentEncounterMode === 'hatched') {
         metEl.value = '0';
+        metEl.disabled = true;
+        metEl.style.pointerEvents = 'none';
+        metEl.style.opacity = '0.6';
+        metEl.style.cursor = 'not-allowed';
+      } else if (pidFinderLockedMetLevel) {
+        // PID Finder set a specific met level — keep it locked
         metEl.disabled = true;
         metEl.style.pointerEvents = 'none';
         metEl.style.opacity = '0.6';
@@ -2384,18 +2397,47 @@ function boot(){
       }
     } catch (e) {}
   }
-      // Lock ball selection to Poké Ball for hatched encounter mode and disable edits.
+      // Lock ball selection based on encounter mode and location.
+      // Safari Zone locations (Hoenn 57, Kanto 136) require Safari Ball;
+      // other wild/legendary locations cannot use Safari Ball.
+      const SAFARI_ZONE_IDS = [57, 136];
       function updateBallLocking() {
         try {
           const ballEl = $('#ball');
           if (!ballEl) return;
+          const locId = Number($('#metLocation')?.value) || 0;
+          const isSafariZone = SAFARI_ZONE_IDS.includes(locId);
+
           if (currentEncounterMode === 'hatched') {
+            // Hatched: force Poké Ball and lock
+            if (ballEl.updateList) ballEl.updateList(BALLS);
             try { ballEl.value = '4'; } catch (e) {}
             ballEl.disabled = true;
             ballEl.style.pointerEvents = 'none';
             ballEl.style.opacity = '0.6';
             ballEl.style.cursor = 'not-allowed';
+          } else if ((currentEncounterMode === 'wild' || currentEncounterMode === 'legendaries') && isSafariZone) {
+            // Wild/Legendary at Safari Zone: force Safari Ball and lock
+            if (ballEl.updateList) ballEl.updateList(BALLS);
+            try { ballEl.value = '5'; } catch (e) {}
+            ballEl.disabled = true;
+            ballEl.style.pointerEvents = 'none';
+            ballEl.style.opacity = '0.6';
+            ballEl.style.cursor = 'not-allowed';
+          } else if (currentEncounterMode === 'wild' || currentEncounterMode === 'legendaries') {
+            // Wild/Legendary NOT at Safari Zone: remove Safari Ball from options
+            const filteredBalls = BALLS.filter(b => b[0] !== 5);
+            if (ballEl.updateList) ballEl.updateList(filteredBalls);
+            if (Number(ballEl.value) === 5) {
+              try { ballEl.value = '4'; } catch (e) {}
+            }
+            ballEl.disabled = false;
+            ballEl.style.pointerEvents = '';
+            ballEl.style.opacity = '';
+            ballEl.style.cursor = '';
           } else {
+            // Other modes: full ball list, unlocked
+            if (ballEl.updateList) ballEl.updateList(BALLS);
             ballEl.disabled = false;
             ballEl.style.pointerEvents = '';
             ballEl.style.opacity = '';
@@ -3945,6 +3987,9 @@ function boot(){
   });
   $('#importPokemonBtn')?.addEventListener('click', ()=> { $('#pk3FileInput').click(); });
   $('#pk3FileInput').addEventListener('change', onImportPk3);
+
+  // ── PID Finder wiring ──
+  initPidFinder();
 }
 
 function copy(text){
@@ -4208,6 +4253,298 @@ function updateGenderFromPID() {
     } else {
       genderSelect.value = genderByte < threshold ? 'female' : 'male';
     }
+  }
+}
+
+/* ── PID Finder (RNG-legal PID search via Web Workers) ─ */
+
+let pfWorkers = [];
+let pfAllResults = [];
+
+function initPidFinder() {
+  const overlay  = document.getElementById('pidFinderOverlay');
+  const btn      = document.getElementById('pidFinderBtn');
+  const closeBtn = document.getElementById('pidFinderClose');
+  const searchBtn   = document.getElementById('pfSearch');
+  const stopBtn     = document.getElementById('pfStop');
+  const progressFill = document.getElementById('pfProgressFill');
+  const progressText = document.getElementById('pfProgressText');
+  const resultsBody  = document.getElementById('pfResults');
+  const resultCount  = document.getElementById('pfResultCount');
+  const summaryEl    = document.getElementById('pidFinderSummary');
+  const statusSpan   = document.getElementById('pidFinderStatus');
+
+  if (!btn || !overlay) return;
+
+  /* ── Open / Close ──────────────────────────────────── */
+
+  function openModal() {
+    // Populate summary from current form values
+    const speciesId   = Number($('#species').value) || 0;
+    const speciesEntry = SPECIES.find(s => s[0] === speciesId);
+    const speciesName  = speciesEntry ? speciesEntry[1] : '\u2014';
+    const natureIndex  = Number($('#nature').value || 0);
+    const natureName   = NATURES[natureIndex] || '\u2014';
+    const ability      = Number($('#ability').value);
+
+    let abilityLabel = `Slot ${ability}`;
+    try {
+      const abilities = getSpeciesAbilities(speciesId);
+      if (abilities) {
+        const aId = abilities[ability] ?? abilities[0];
+        const aName = getAbilityName(aId);
+        if (aName) abilityLabel = `${aName} (${ability})`;
+      }
+    } catch (_) {}
+
+    const gender          = $('#gender').value || 'male';
+    const genderThreshold = getGenderThreshold(speciesId);
+    let genderLabel       = gender.charAt(0).toUpperCase() + gender.slice(1);
+    if (genderThreshold === -1)      genderLabel = 'Genderless';
+    else if (genderThreshold === 0)  genderLabel = 'Male (fixed)';
+    else if (genderThreshold >= 254) genderLabel = 'Female (fixed)';
+
+    const originGameText = $('#originGame')?.selectedOptions?.[0]?.text || '\u2014';
+    const shiny          = !!$('#shiny')?.checked;
+
+    summaryEl.innerHTML = [
+      `<span class="pf-tag">Species: <b>${speciesName}</b></span>`,
+      `<span class="pf-tag">Nature: <b>${natureName}</b></span>`,
+      `<span class="pf-tag">Ability: <b>${abilityLabel}</b></span>`,
+      `<span class="pf-tag">Gender: <b>${genderLabel}</b></span>`,
+      `<span class="pf-tag">Game: <b>${originGameText}</b></span>`,
+      shiny ? '<span class="pf-tag" style="color:var(--ruby)">\u2728 <b>Shiny</b></span>' : ''
+    ].filter(Boolean).join('');
+
+    // Reset state
+    resultsBody.innerHTML = '';
+    resultCount.textContent = '';
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Ready';
+    searchBtn.disabled = false;
+    stopBtn.disabled   = true;
+    pfAllResults = [];
+
+    overlay.classList.add('open');
+  }
+
+  function closeModal() {
+    overlay.classList.remove('open');
+    stopSearch();
+  }
+
+  btn.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+  });
+
+  /* ── Stop running workers ──────────────────────────── */
+
+  function stopSearch() {
+    pfWorkers.forEach(w => w.terminate());
+    pfWorkers = [];
+    searchBtn.disabled = false;
+    stopBtn.disabled   = true;
+  }
+  stopBtn.addEventListener('click', stopSearch);
+
+  /* ── Start search ──────────────────────────────────── */
+
+  searchBtn.addEventListener('click', () => {
+    const speciesId      = Number($('#species').value) || 0;
+    const nature         = Number($('#nature').value || 0);
+    const ability        = Number($('#ability').value);
+    const gender         = $('#gender').value || 'male';
+    const genderThreshold = getGenderThreshold(speciesId);
+    const tid = Number($('#tid').value) & 0xFFFF;
+    const sid = Number($('#sid').value) & 0xFFFF;
+    const wantShiny = !!$('#shiny')?.checked;
+
+    // Map gender to numeric code for worker: 0=female 1=male 2=genderless
+    let targetGender = 2;
+    if (genderThreshold === -1)        targetGender = 2;       // genderless
+    else if (genderThreshold === 0)    targetGender = 1;       // always male
+    else if (genderThreshold >= 254)   targetGender = 0;       // always female
+    else                               targetGender = (gender === 'female') ? 0 : 1;
+
+    const clamp = (id) => Math.max(0, Math.min(31, Number(document.getElementById(id).value) || 0));
+    const minIVs = [clamp('pfMinHp'), clamp('pfMinAtk'), clamp('pfMinDef'),
+                    clamp('pfMinSpA'), clamp('pfMinSpD'), clamp('pfMinSpe')];
+
+    const methods = [
+      document.getElementById('pfMethod1').checked,
+      document.getElementById('pfMethod2').checked,
+      document.getElementById('pfMethod4').checked
+    ];
+    if (!methods[0] && !methods[1] && !methods[2]) { alert('Select at least one method.'); return; }
+
+    // Reset UI
+    resultsBody.innerHTML = '';
+    resultCount.textContent = '';
+    pfAllResults = [];
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Searching\u2026';
+    searchBtn.disabled = true;
+    stopBtn.disabled   = false;
+
+    // Spawn workers across available cores
+    const workerCount = Math.min(navigator.hardwareConcurrency || 4, 8);
+    const totalSeeds  = 0x100000000; // 2^32
+    const chunkSize   = Math.ceil(totalSeeds / workerCount);
+    let finishedWorkers = 0;
+    const progressArr   = new Array(workerCount).fill(0);
+    pfWorkers = [];
+
+    for (let i = 0; i < workerCount; i++) {
+      const start = i * chunkSize;
+      const end   = Math.min(start + chunkSize, totalSeeds);
+      const worker = new Worker('./src/lib/gen3/rng-worker.js');
+      pfWorkers.push(worker);
+
+      worker.onmessage = function (msg) {
+        const d = msg.data;
+        if (d.type === 'progress') {
+          progressArr[i] = d.done / d.total;
+          const pct = (progressArr.reduce((a, b) => a + b, 0) / workerCount * 100);
+          progressFill.style.width = pct.toFixed(1) + '%';
+          progressText.textContent = pct.toFixed(0) + '%';
+        } else if (d.type === 'done') {
+          pfAllResults.push(...d.results);
+          finishedWorkers++;
+          progressArr[i] = 1;
+          const pct = (progressArr.reduce((a, b) => a + b, 0) / workerCount * 100);
+          progressFill.style.width = pct.toFixed(1) + '%';
+          progressText.textContent = pct.toFixed(0) + '%';
+
+          if (finishedWorkers === workerCount) {
+            displayResults();
+            searchBtn.disabled = false;
+            stopBtn.disabled   = true;
+            progressText.textContent = 'Done';
+            pfWorkers = [];
+          }
+        }
+      };
+
+      worker.onerror = function (err) {
+        console.error('PID finder worker error:', err);
+        finishedWorkers++;
+        if (finishedWorkers === workerCount) {
+          displayResults();
+          searchBtn.disabled = false;
+          stopBtn.disabled   = true;
+          progressText.textContent = 'Done (with errors)';
+          pfWorkers = [];
+        }
+      };
+
+      // Look up encounter slot tables for this game + location
+      const gameId     = Number($('#originGame').value) || 3;
+      const locationId = Number($('#metLocation').value) || 0;
+      const slotTables = (ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]) || null;
+
+      worker.postMessage({
+        startSeed: start, endSeed: end,
+        nature, ability,
+        genderThreshold: genderThreshold === -1 ? -1 : genderThreshold,
+        targetGender, tid, sid, wantShiny,
+        minIVs, methods,
+        maxResults: Math.ceil(200 / workerCount),
+        targetSpecies: speciesId,
+        slotTables,
+        gameId
+      });
+    }
+  });
+
+  /* ── Display results table ─────────────────────────── */
+
+  function displayResults() {
+    pfAllResults.sort((a, b) => {
+      const tA = a.ivs.hp + a.ivs.atk + a.ivs.def + a.ivs.spa + a.ivs.spd + a.ivs.spe;
+      const tB = b.ivs.hp + b.ivs.atk + b.ivs.def + b.ivs.spa + b.ivs.spd + b.ivs.spe;
+      if (tB !== tA) return tB - tA;
+      return (a.method < b.method) ? -1 : (a.method > b.method) ? 1 : 0;
+    });
+
+    // Determine if encounter-chain validation was active
+    const gameId     = Number($('#originGame').value) || 3;
+    const locationId = Number($('#metLocation').value) || 0;
+    const hadValidation = !!(ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]);
+
+    const capped = pfAllResults.slice(0, 25);
+
+    resultCount.textContent = pfAllResults.length === 0
+      ? 'No results found. Try lowering minimum IVs.' + (hadValidation ? ' (encounter-chain validated)' : '')
+      : `${pfAllResults.length} result${pfAllResults.length !== 1 ? 's' : ''} found`
+        + (hadValidation ? ' \u2714 encounter-valid' : '')
+        + (pfAllResults.length > 25 ? ' (showing top 25 by IV total)' : '');
+
+    resultsBody.innerHTML = '';
+    for (const r of capped) {
+      const total = r.ivs.hp + r.ivs.atk + r.ivs.def + r.ivs.spa + r.ivs.spd + r.ivs.spe;
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td class="pid-cell">0x${(r.pid >>> 0).toString(16).toUpperCase().padStart(8, '0')}</td>` +
+        ivTd(r.ivs.hp) + ivTd(r.ivs.atk) + ivTd(r.ivs.def) +
+        ivTd(r.ivs.spa) + ivTd(r.ivs.spd) + ivTd(r.ivs.spe) +
+        `<td>${total}</td>` +
+        `<td>${r.hpt}</td>` +
+        `<td>${r.method}</td>` +
+        `<td>${r.metLevels ? r.metLevels.join('/') : '—'}</td>` +
+        `<td><button type="button" class="select-btn">Select</button></td>`;
+      tr.querySelector('.select-btn').addEventListener('click', () => selectResult(r));
+      resultsBody.appendChild(tr);
+    }
+  }
+
+  function ivTd(v) {
+    const cls = v === 31 ? ' class="iv-perfect"' : v === 0 ? ' class="iv-zero"' : '';
+    return `<td${cls}>${v}</td>`;
+  }
+
+  /* ── Apply selected result ─────────────────────────── */
+
+  function selectResult(r) {
+    const pidHex = '0x' + (r.pid >>> 0).toString(16).toUpperCase().padStart(8, '0');
+    const pidEl  = $('#pid');
+    if (pidEl) {
+      pidEl.value = pidHex;
+      pidEl.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    // Set IVs (after PID event so we overwrite any stale preset lookup)
+    $('#ivHp').value    = r.ivs.hp;
+    $('#ivAtk').value   = r.ivs.atk;
+    $('#ivDef').value   = r.ivs.def;
+    $('#ivSpAtk').value = r.ivs.spa;
+    $('#ivSpDef').value = r.ivs.spd;
+    $('#ivSpe').value   = r.ivs.spe;
+
+    // Set met level from encounter chain (use first valid level) and lock it
+    if (r.metLevels && r.metLevels.length > 0) {
+      const metLvEl = $('#metLevel');
+      if (metLvEl) {
+        metLvEl.value = r.metLevels[0];
+        metLvEl.dispatchEvent(new Event('input', { bubbles: true }));
+        // Lock the met level so the user cannot change it (PID-bound)
+        pidFinderLockedMetLevel = true;
+        metLvEl.disabled = true;
+        metLvEl.style.pointerEvents = 'none';
+        metLvEl.style.opacity = '0.6';
+        metLvEl.style.cursor = 'not-allowed';
+      }
+    }
+
+    updateHiddenPower();
+    updateGenderFromPID();
+    $('#ability').value = String(r.pid & 1);
+    checkShiny();
+
+    if (statusSpan) statusSpan.textContent = `PID set (Method ${r.method}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
+    closeModal();
   }
 }
 
