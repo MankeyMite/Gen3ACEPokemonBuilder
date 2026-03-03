@@ -174,7 +174,7 @@ self.onmessage = function (e) {
     nature, ability,
     genderThreshold, targetGender,
     tid, sid, wantShiny,
-    minIVs, methods, maxResults,
+    minIVs, maxIVs, methods, maxResults,
     targetSpecies, slotTables, gameId
   } = e.data;
 
@@ -191,6 +191,8 @@ self.onmessage = function (e) {
 
   const mHp = minIVs[0], mAtk = minIVs[1], mDef = minIVs[2],
         mSpA = minIVs[3], mSpD = minIVs[4], mSpe = minIVs[5];
+  const xHp = maxIVs ? maxIVs[0] : 31, xAtk = maxIVs ? maxIVs[1] : 31, xDef = maxIVs ? maxIVs[2] : 31,
+        xSpA = maxIVs ? maxIVs[3] : 31, xSpD = maxIVs ? maxIVs[4] : 31, xSpe = maxIVs ? maxIVs[5] : 31;
   const m1 = methods[0], m2 = methods[1], m4 = methods[2];
   const trainerXor = (tid ^ sid) >>> 0;
 
@@ -212,7 +214,7 @@ self.onmessage = function (e) {
 
     /* ── Fast filter cascade ─────────────────────────── */
     if (pid % 25 !== nature)  continue;
-    if ((pid & 1) !== ability) continue;
+    if (ability >= 0 && (pid & 1) !== ability) continue;
 
     if (targetGender < 2) {
       const gb = pid & 0xFF;
@@ -234,36 +236,36 @@ self.onmessage = function (e) {
 
     /* Method H1  iv1=r3  iv2=r4 */
     if (m1) {
-      const hp=r3&0x1F; if(hp>=mHp){
-      const atk=(r3>>5)&0x1F; if(atk>=mAtk){
-      const def=(r3>>10)&0x1F; if(def>=mDef){
-      const spe=r4&0x1F; if(spe>=mSpe){
-      const spa=(r4>>5)&0x1F; if(spa>=mSpA){
-      const spd=(r4>>10)&0x1F; if(spd>=mSpD){
+      const hp=r3&0x1F; if(hp>=mHp&&hp<=xHp){
+      const atk=(r3>>5)&0x1F; if(atk>=mAtk&&atk<=xAtk){
+      const def=(r3>>10)&0x1F; if(def>=mDef&&def<=xDef){
+      const spe=r4&0x1F; if(spe>=mSpe&&spe<=xSpe){
+      const spa=(r4>>5)&0x1F; if(spa>=mSpA&&spa<=xSpA){
+      const spd=(r4>>10)&0x1F; if(spd>=mSpD&&spd<=xSpD){
         h1={hp,atk,def,spa,spd,spe};
       }}}}}}
     }
 
     /* Method H2  iv1=r4  iv2=r5 */
     if (m2) {
-      const hp=r4&0x1F; if(hp>=mHp){
-      const atk=(r4>>5)&0x1F; if(atk>=mAtk){
-      const def=(r4>>10)&0x1F; if(def>=mDef){
-      const spe=r5&0x1F; if(spe>=mSpe){
-      const spa=(r5>>5)&0x1F; if(spa>=mSpA){
-      const spd=(r5>>10)&0x1F; if(spd>=mSpD){
+      const hp=r4&0x1F; if(hp>=mHp&&hp<=xHp){
+      const atk=(r4>>5)&0x1F; if(atk>=mAtk&&atk<=xAtk){
+      const def=(r4>>10)&0x1F; if(def>=mDef&&def<=xDef){
+      const spe=r5&0x1F; if(spe>=mSpe&&spe<=xSpe){
+      const spa=(r5>>5)&0x1F; if(spa>=mSpA&&spa<=xSpA){
+      const spd=(r5>>10)&0x1F; if(spd>=mSpD&&spd<=xSpD){
         h2={hp,atk,def,spa,spd,spe};
       }}}}}}
     }
 
     /* Method H4  iv1=r3  iv2=r5 */
     if (m4) {
-      const hp=r3&0x1F; if(hp>=mHp){
-      const atk=(r3>>5)&0x1F; if(atk>=mAtk){
-      const def=(r3>>10)&0x1F; if(def>=mDef){
-      const spe=r5&0x1F; if(spe>=mSpe){
-      const spa=(r5>>5)&0x1F; if(spa>=mSpA){
-      const spd=(r5>>10)&0x1F; if(spd>=mSpD){
+      const hp=r3&0x1F; if(hp>=mHp&&hp<=xHp){
+      const atk=(r3>>5)&0x1F; if(atk>=mAtk&&atk<=xAtk){
+      const def=(r3>>10)&0x1F; if(def>=mDef&&def<=xDef){
+      const spe=r5&0x1F; if(spe>=mSpe&&spe<=xSpe){
+      const spa=(r5>>5)&0x1F; if(spa>=mSpA&&spa<=xSpA){
+      const spd=(r5>>10)&0x1F; if(spd>=mSpD&&spd<=xSpD){
         h4={hp,atk,def,spa,spd,spe};
       }}}}}}
     }

@@ -200,7 +200,7 @@ export const LOCATIONS = [
   [197, "Aqua Hideout"],
   [198, "Magma Hideout"],
   [199, "Mirage Tower"],
-  [200, "Birth Island (duplicate)"],
+  [200, "Birth Island (Emerald)"],
   [201, "Faraway Island"],
   [202, "Artisan Cave"],
   [203, "Marine Cave"],
@@ -210,8 +210,8 @@ export const LOCATIONS = [
   [207, "Underwater (Route 125)"],
   [208, "Underwater (Route 129)"],
   [209, "Desert Underpass"],
-  [210, "Altering Cave (duplicate)"],
-  [211, "Navel Rock (duplicate)"],
+  [210, "Altering Cave (Emerald)"],
+  [211, "Navel Rock (Emerald)"],
   [212, "Trainer Hill"],
 
   // Pokémon Colosseum / XD locations (stored as 2-byte values)

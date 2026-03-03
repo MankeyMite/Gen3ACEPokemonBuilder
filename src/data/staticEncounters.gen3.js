@@ -153,7 +153,8 @@ const STATIC_ENCOUNTERS = {
   
   // Lugia (249)
   249: {
-    defaultMetLocation: "Navel Rock",
+    defaultMetLocationId: 211,
+    defaultMetLocation: "Navel Rock (Emerald)",
     defaultMetLevel: 70,
     defaultFatefulEncounter: true,
     defaultOriginGame: 3, // Emerald
@@ -162,7 +163,8 @@ const STATIC_ENCOUNTERS = {
   
   // Ho-Oh (250)
   250: {
-    defaultMetLocation: "Navel Rock",
+    defaultMetLocationId: 211,
+    defaultMetLocation: "Navel Rock (Emerald)",
     defaultMetLevel: 70,
     defaultFatefulEncounter: true,
     defaultOriginGame: 3, // Emerald
@@ -299,7 +301,8 @@ const STATIC_ENCOUNTERS = {
   
   // Deoxys (410) - Event only
   410: {
-    defaultMetLocation: "Birth Island",
+    defaultMetLocationId: 200,
+    defaultMetLocation: "Birth Island (Emerald)",
     defaultMetLevel: 30,
     defaultFatefulEncounter: true,
     defaultOriginGame: 3, // Emerald

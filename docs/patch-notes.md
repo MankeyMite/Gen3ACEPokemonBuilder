@@ -1,3 +1,11 @@
+Patch Notes - (V.0.2.5)
+
+- Added PID Search function to Wild and Legendary mode. This allows users to find and use their own PIDs. 
+- Moved the Shiny tickbox into the PID search function for Wild and Legendary mode. 
+- Added Manual Override mode, to customize freely.
+- Fixed some bugs.
+
+
 Patch Notes — (V.0.2.4)
 
 Summary

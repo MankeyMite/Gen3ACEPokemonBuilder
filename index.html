@@ -22,6 +22,7 @@
       padding: 0.5rem 0.75rem;
       border-radius: 999px;
       background: rgba(15,23,42,0.7);
+      width: fit-content;
     }
 
     .mode-toggle label {
@@ -499,7 +500,7 @@
   <header class="container">
     <h1>Gen 3 ACE Pokémon Builder</h1>
     <p class="muted" style="margin-top: -0.75rem; margin-bottom: 1rem;">
-      <span style="font-size: 0.85em; opacity: 0.8;">v0.2.4</span>
+      <span style="font-size: 0.85em; opacity: 0.8;">v0.2.5</span>
     </p>
     <p class="muted">Build custom Pokémon for Gen III games. Import from raw hex data, .pk3/ek3 files, or create your Pokémon from scratch. Export as BASE64 box codes, raw hex data, or a .pk3/ek3 file. New here? <a href="./docs/spawn-setup-interactive.html" target="_blank">How to spawn Pokemon in your game from this tool</a> — step-by-step setup. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
 
@@ -519,22 +520,16 @@
   <main class="container layout-vertical">
     <!-- Encounter Mode Selector -->
     <div class="mode-toggle" id="encounterModeToggle" style="margin-top: 0;">
-      <label style="margin-right: 0.5rem; font-weight: 500; color: rgba(255,255,255,0.7);">Encounter Type:</label>
-      <label>
-        <input type="radio" name="encounterMode" id="encounterHatched" value="hatched" checked />
-        Hatched
-      </label>
-      <label>
-        <input type="radio" name="encounterMode" id="encounterLegendaries" value="legendaries" />
-        Legendaries
-      </label>
-      <label>
-        <input type="radio" name="encounterMode" id="encounterWild" value="wild" />
-        Wild
-      </label>
-      <label>
-        <input type="radio" name="encounterMode" id="encounterMystery" value="mystery" />
-        Mystery Gifts
+      <label for="encounterMode" style="margin-right: 0.5rem; font-weight: 500; color: rgba(255,255,255,0.7);">Encounter Type:</label>
+      <select id="encounterMode" style="padding: 0.35rem 0.5rem; border-radius: 6px; background: rgba(30,41,59,0.9); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.25); font-size: 0.9rem; cursor: pointer;">
+        <option value="hatched" selected>Hatched</option>
+        <option value="legendaries">Legendaries</option>
+        <option value="wild">Wild</option>
+        <option value="mystery">Mystery Gifts</option>
+      </select>
+      <label class="override-toggle" style="margin-left: 1rem; display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: rgba(255,255,255,0.6); cursor: pointer;" title="Unlock all fields for manual editing. Useful for importing Pokémon or advanced customization.">
+        <input type="checkbox" id="manualOverride" style="accent-color: #f59e0b;" />
+        <span>Manual Override</span>
       </label>
     </div>
 
@@ -643,13 +638,13 @@
         </div>
       </div>
 
-      <div class="row">
+      <div class="row shiny-external">
         <label for="shiny">Shiny</label>
         <input id="shiny" type="checkbox" />
         <span id="shinyIndicatorSimple" class="shiny-indicator" title="This Pokémon is shiny!" style="margin-left: 0.5rem;">✨</span>
       </div>
 
-      <div class="row wild-only" id="pidFinderRow">
+      <div class="row wild-or-legend" id="pidFinderRow">
         <label>PID &amp; IVs</label>
         <button id="pidFinderBtn" type="button" class="pid-finder-btn">&#x1F50D; Find Legal PID</button>
         <span id="pidFinderStatus" class="pid-finder-status"></span>
@@ -704,7 +699,7 @@
       <!-- Fateful Encounter (Advanced only) -->
       <div class="row" data-advanced-only>
         <label for="fatefulEncounter">Fateful Encounter</label>
-        <input id="fatefulEncounter" type="checkbox" />
+        <input id="fatefulEncounter" type="checkbox" disabled />
       </div>
     </section>
 
@@ -1094,6 +1089,37 @@
         <div class="pid-finder-body">
           <div class="pid-finder-summary" id="pidFinderSummary"></div>
 
+          <div class="pid-finder-filters" style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:0.5rem;">
+            <div>
+              <label for="pfGender" style="font-size:0.85rem;color:#94a3b8;">Gender</label>
+              <select id="pfGender" style="width:auto; min-width:100px;">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="any">Any</option>
+              </select>
+            </div>
+            <div>
+              <label for="pfAbility" style="font-size:0.85rem;color:#94a3b8;">Ability</label>
+              <select id="pfAbility" style="width:auto; min-width:140px;">
+                <option value="0">Slot 0</option>
+                <option value="1">Slot 1</option>
+                <option value="-1">Any</option>
+              </select>
+            </div>
+            <div>
+              <label for="pfTid" style="font-size:0.85rem;color:#94a3b8;">TID</label>
+              <input id="pfTid" type="number" min="0" max="65535" value="0" style="width:80px;">
+            </div>
+            <div>
+              <label for="pfSid" style="font-size:0.85rem;color:#94a3b8;">SID</label>
+              <input id="pfSid" type="number" min="0" max="65535" value="0" style="width:80px;">
+            </div>
+            <div style="display:flex; align-items:flex-end; gap:0.35rem;">
+              <label for="pfShiny" style="font-size:0.85rem;color:#94a3b8;">Shiny</label>
+              <input id="pfShiny" type="checkbox" style="margin:0 0 2px 0;">
+            </div>
+          </div>
+
           <div class="pid-finder-iv-section">
             <label class="pid-finder-label">Minimum IVs</label>
             <div class="pid-finder-iv-grid">
@@ -1103,6 +1129,18 @@
               <div><label for="pfMinSpA">SpA</label><input id="pfMinSpA" type="number" min="0" max="31" value="25"></div>
               <div><label for="pfMinSpD">SpD</label><input id="pfMinSpD" type="number" min="0" max="31" value="25"></div>
               <div><label for="pfMinSpe">Spe</label><input id="pfMinSpe" type="number" min="0" max="31" value="25"></div>
+            </div>
+          </div>
+
+          <div class="pid-finder-iv-section">
+            <label class="pid-finder-label">Maximum IVs</label>
+            <div class="pid-finder-iv-grid">
+              <div><label for="pfMaxHp">HP</label><input id="pfMaxHp"  type="number" min="0" max="31" value="31"></div>
+              <div><label for="pfMaxAtk">Atk</label><input id="pfMaxAtk" type="number" min="0" max="31" value="31"></div>
+              <div><label for="pfMaxDef">Def</label><input id="pfMaxDef" type="number" min="0" max="31" value="31"></div>
+              <div><label for="pfMaxSpA">SpA</label><input id="pfMaxSpA" type="number" min="0" max="31" value="31"></div>
+              <div><label for="pfMaxSpD">SpD</label><input id="pfMaxSpD" type="number" min="0" max="31" value="31"></div>
+              <div><label for="pfMaxSpe">Spe</label><input id="pfMaxSpe" type="number" min="0" max="31" value="31"></div>
             </div>
           </div>
 
@@ -1133,6 +1171,8 @@
                     <th>HP Type</th>
                     <th>Mth</th>
                     <th>Lv</th>
+                    <th>Gender</th>
+                    <th>Ability</th>
                     <th></th>
                   </tr>
                 </thead>

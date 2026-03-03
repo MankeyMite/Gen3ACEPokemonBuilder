@@ -101,7 +101,7 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
       try {
         const genderEl = $('#gender');
         if (genderEl) {
-          genderEl.disabled = (currentEncounterMode === 'mystery');
+          genderEl.disabled = (!manualOverrideActive && currentEncounterMode === 'mystery');
         }
       } catch (e) {}
 
@@ -466,6 +466,8 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
 let currentEncounterMode = 'hatched';
 // When true, the PID Finder has set the met level and it should stay locked
 let pidFinderLockedMetLevel = false;
+// When true, the Manual Override checkbox is active — all field locks are bypassed
+let manualOverrideActive = false;
 // When true, skip applying simple-mode PID presets (used during imports)
 let suppressPresetApply = false;
 // When true, suppress marking user-change events while programmatically applying presets
@@ -643,6 +645,7 @@ function fillSelect(el, list, opts = {}) {
 // Ensure Mew in Legendary mode is at least level 30. Called after species/mode changes.
 function enforceMewLegendMinLevel() {
   try {
+    if (manualOverrideActive) return; // override skips forced level constraints
     if (currentEncounterMode !== 'legendaries') return;
     const sp = Number($('#species')?.value || 0);
     if (sp !== 151) return;
@@ -820,7 +823,20 @@ function createAutocomplete(selectEl, list, opts = {}) {
   });
   
   input.addEventListener('focus', () => {
-    showDropdown();
+    // If a value is already selected, show ALL options so the user can
+    // browse and pick a different one (instead of filtering by current text).
+    if (selectedId) {
+      renderDropdown(items);
+      dropdown.classList.add('show');
+      // Scroll the currently selected item into view
+      const active = dropdown.querySelector(`.autocomplete-item[data-id="${selectedId}"]`);
+      if (active) {
+        active.classList.add('selected');
+        active.scrollIntoView({ block: 'nearest' });
+      }
+    } else {
+      showDropdown();
+    }
   });
   
   input.addEventListener('blur', () => {
@@ -829,6 +845,9 @@ function createAutocomplete(selectEl, list, opts = {}) {
       
       // Auto-select if user typed an exact match
       if (input.value && !selectedId) {
+        // Skip auto-resolve when Manual Override is active (import or PID
+        // Finder result applied) to prevent any async preset application.
+        if (manualOverrideActive) return;
         const exactMatch = items.find(item => 
           item.name.toLowerCase() === input.value.toLowerCase()
         );
@@ -1922,7 +1941,7 @@ function boot(){
     // currently selected species so PID/IV from the JSON are used instead
     // of the simple-mode/randomized presets.
     try {
-      if (currentEncounterMode === 'mystery') {
+      if (!suppressPresetApply && currentEncounterMode === 'mystery') {
         const sp = Number($('#species').value) || 0;
         if (sp) applyMysteryPresetForSpecies(sp);
       }
@@ -2203,9 +2222,10 @@ function boot(){
   document.body.classList.add('mode-simple');
   try { updatePidLocking(); } catch (e) {}
 
-  // Setup encounter mode toggle
-  document.querySelectorAll('input[name="encounterMode"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
+  // Setup encounter mode dropdown (was radio buttons)
+  const encounterModeSelect = document.querySelector('#encounterMode');
+  if (encounterModeSelect) {
+    encounterModeSelect.addEventListener('change', (e) => {
       // Reset mode-specific state to avoid carryover between modes
       try { resetAllModeState(); } catch (ee) {}
       // Restore Origin Game dropdown options when leaving wild mode
@@ -2226,6 +2246,7 @@ function boot(){
       currentEncounterMode = e.target.value;
       // Add body classes for special encounter modes so CSS/JS can adjust visibility
       document.body.classList.toggle('encounter-wild', currentEncounterMode === 'wild');
+      document.body.classList.toggle('encounter-legendaries', currentEncounterMode === 'legendaries');
       document.body.classList.toggle('encounter-mystery', currentEncounterMode === 'mystery');
       
       // Filter species list based on encounter mode
@@ -2233,7 +2254,7 @@ function boot(){
       // Toggle availability of Pokémon gender control based on mode
       try {
         const genderEl = document.querySelector('#gender');
-        if (genderEl) genderEl.disabled = (currentEncounterMode === 'mystery');
+        if (genderEl && !manualOverrideActive) genderEl.disabled = (currentEncounterMode === 'mystery');
       } catch (e) {}
       
       // When changing encounter mode, update the Pokémon if needed
@@ -2254,8 +2275,42 @@ function boot(){
       try { enforceJapaneseOption(); } catch (e) {}
       try { lockLanguageForMewLegend(); } catch (e) {}
       try { enforceMewLegendMinLevel(); } catch (e) {}
+      try { updateFatefulLocking(); } catch (e) {}
     });
-  });
+  }
+
+  // Setup Manual Override checkbox
+  const overrideCheckbox = document.querySelector('#manualOverride');
+  if (overrideCheckbox) {
+    overrideCheckbox.addEventListener('change', (e) => {
+      manualOverrideActive = e.target.checked;
+      // Re-run all locking functions — they will skip locks when override is active
+      try { updateMetLevelLocking(); } catch (e) {}
+      try { updateBallLocking(); } catch (e) {}
+      try { updateLevelLocking(); } catch (e) {}
+      try { updatePidLocking(); } catch (e) {}
+      try { updateTidSidLocking(); } catch (e) {}
+      try { lockLanguageForMewLegend(); } catch (e) {}
+      try { enforceJapaneseOption(); } catch (e) {}
+      try { updateFatefulLocking(); } catch (e) {}
+      // Unlock gender control if override is on
+      try {
+        const genderEl = document.querySelector('#gender');
+        if (genderEl) {
+          if (manualOverrideActive) {
+            genderEl.disabled = false;
+            genderEl.style.pointerEvents = '';
+            genderEl.style.opacity = '';
+            genderEl.style.cursor = '';
+          } else {
+            // Re-apply mode-specific gender locking
+            const speciesId = Number($('#species').value) || 0;
+            handleEncounterModeChange(speciesId);
+          }
+        }
+      } catch (e) {}
+    });
+  }
 
   // Set the encounter mode description element text
   function setEncounterModeDescription(mode) {
@@ -2286,6 +2341,7 @@ function boot(){
   try { updateMetLevelLocking(); } catch (e) {}
   try { updateBallLocking(); } catch (e) {}
   try { updateLevelLocking(); } catch (e) {}
+  try { updateFatefulLocking(); } catch (e) {}
 
   // Lock or unlock TID/SID inputs depending on selected mystery event.
   // If in `mystery` mode and a non-BOX_EVENT tag is selected, these should
@@ -2296,7 +2352,7 @@ function boot(){
       const sidEl = $('#sid');
       const otEl = $('#otName');
       const tag = String($('#mysteryEvent')?.value || '').toUpperCase();
-      const shouldLock = (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT');
+      const shouldLock = !manualOverrideActive && (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT');
       if (tidEl) {
         tidEl.disabled = Boolean(shouldLock);
         tidEl.style.pointerEvents = shouldLock ? 'none' : '';
@@ -2324,7 +2380,7 @@ function boot(){
     try {
       const pidEl = $('#pid');
       if (!pidEl) return;
-      const shouldLock = document.body.classList.contains('mode-advanced');
+      const shouldLock = !manualOverrideActive && document.body.classList.contains('mode-advanced');
       pidEl.disabled = Boolean(shouldLock);
       pidEl.style.pointerEvents = shouldLock ? 'none' : '';
       pidEl.style.opacity = shouldLock ? '0.6' : '';
@@ -2341,16 +2397,18 @@ function boot(){
     try {
       const langSel = $('#language');
       if (!langSel || !langSel.options) return;
-      let allowJapanese = false;
-      const t = String(tag || '').toUpperCase();
-      if (t && MYSTERY_EVENTS && MYSTERY_EVENTS[t]) {
-        const evt = MYSTERY_EVENTS[t] || {};
-        if (evt.defaultLanguage === 1) allowJapanese = true;
-        if (evt.ot_names && evt.ot_names['1']) allowJapanese = true;
+      let allowJapanese = manualOverrideActive; // override unlocks all languages
+      if (!allowJapanese) {
+        const t = String(tag || '').toUpperCase();
+        if (t && MYSTERY_EVENTS && MYSTERY_EVENTS[t]) {
+          const evt = MYSTERY_EVENTS[t] || {};
+          if (evt.defaultLanguage === 1) allowJapanese = true;
+          if (evt.ot_names && evt.ot_names['1']) allowJapanese = true;
+        }
       }
       for (const o of Array.from(langSel.options)) {
         if (String(o.value) === '1') {
-          o.disabled = !allowJapanese; // user can't pick if not allowed
+          o.disabled = !allowJapanese;
         }
       }
     } catch (e) {}
@@ -2371,12 +2429,32 @@ function boot(){
     } catch (e) {}
   }
 
+  // Lock/unlock the Fateful Encounter checkbox.
+  // Disabled by default in all modes; only Manual Override unlocks it.
+  function updateFatefulLocking() {
+    const el = $('#fatefulEncounter');
+    if (!el) return;
+    if (manualOverrideActive) {
+      el.disabled = false;
+    } else {
+      el.disabled = true;
+    }
+  }
+
   // Lock met level to 0 for hatched encounter mode, or keep it locked
   // if the PID Finder has set a specific level.
   function updateMetLevelLocking() {
     try {
       const metEl = $('#metLevel');
       if (!metEl) return;
+      if (manualOverrideActive) {
+        // Override: unlock met level for manual editing
+        metEl.disabled = false;
+        metEl.style.pointerEvents = '';
+        metEl.style.opacity = '';
+        metEl.style.cursor = '';
+        return;
+      }
       if (currentEncounterMode === 'hatched') {
         metEl.value = '0';
         metEl.disabled = true;
@@ -2405,6 +2483,17 @@ function boot(){
         try {
           const ballEl = $('#ball');
           if (!ballEl) return;
+
+          if (manualOverrideActive) {
+            // Override: full ball list, unlocked
+            if (ballEl.updateList) ballEl.updateList(BALLS);
+            ballEl.disabled = false;
+            ballEl.style.pointerEvents = '';
+            ballEl.style.opacity = '';
+            ballEl.style.cursor = '';
+            return;
+          }
+
           const locId = Number($('#metLocation')?.value) || 0;
           const isSafariZone = SAFARI_ZONE_IDS.includes(locId);
 
@@ -2453,7 +2542,7 @@ function boot(){
       if (!langSel || !langSel.options) return;
       const speciesId = Number($('#species')?.value || 0);
       const isMew = speciesId === 151;
-      if (currentEncounterMode === 'legendaries' && isMew) {
+      if (!manualOverrideActive && currentEncounterMode === 'legendaries' && isMew) {
         // Ensure Japanese option is enabled and select it, then disable the control
         for (const o of Array.from(langSel.options)) {
           if (String(o.value) === '1') o.disabled = false;
@@ -2521,6 +2610,11 @@ function boot(){
     try {
       const levelEl = $('#level');
       if (!levelEl) return;
+      if (manualOverrideActive) {
+        // Override: remove min constraints
+        try { levelEl.min = '1'; } catch (e) {}
+        return;
+      }
       if (currentEncounterMode === 'hatched') {
         // set min attribute for better UX
         try { levelEl.min = '5'; } catch (e) {}
@@ -3063,7 +3157,7 @@ function boot(){
         genderSelect.disabled = false;
       }
       // If we're in mystery mode, lock the gender control so users cannot change it
-      if (currentEncounterMode === 'mystery' && genderSelect) {
+      if (!manualOverrideActive && currentEncounterMode === 'mystery' && genderSelect) {
         genderSelect.style.pointerEvents = 'none';
         genderSelect.style.opacity = '0.6';
         genderSelect.style.cursor = 'not-allowed';
@@ -3072,10 +3166,10 @@ function boot(){
     try { updateTidSidLocking(); } catch (e) {}
     }
     if (mode === 'legendaries' && STATIC_ENCOUNTERS[speciesId]) {
-      // For legendary encounters, apply preset data
-      applyStaticEncounterPreset(speciesId);
+      // For legendary encounters, apply preset data (skip when manual override is active)
+      if (!manualOverrideActive) applyStaticEncounterPreset(speciesId);
       // Make gender read-only for legendaries (can still update from PID, but user can't manually change)
-      if (genderSelect) {
+      if (genderSelect && !manualOverrideActive) {
         genderSelect.style.pointerEvents = 'none';
         genderSelect.style.opacity = '0.6';
         genderSelect.style.cursor = 'not-allowed';
@@ -3155,10 +3249,18 @@ function boot(){
       // Apply wild encounter filtering for origin game, met location, met level
       updateWildEncounterFilters(speciesId);
 
+      // Auto-select ability slot 0 for wild encounters
+      const abilitySelect = $('#ability');
+      if (abilitySelect) abilitySelect.value = '0';
+
         // Re-apply nature preset so PID/IV reflect the selected nature for wild mode
-        const natureElLocal = document.querySelector('#nature');
-        if (natureElLocal) {
-          natureElLocal.dispatchEvent(new Event('change'));
+        // Skip during imports (suppressPresetApply) and when Manual Override is
+        // active (user imported or used PID Finder) to preserve their PID/IVs.
+        if (!suppressPresetApply && !manualOverrideActive) {
+          const natureElLocal = document.querySelector('#nature');
+          if (natureElLocal) {
+            natureElLocal.dispatchEvent(new Event('change'));
+          }
         }
     } else {
       // Fallback: re-enable gender selection
@@ -3184,6 +3286,10 @@ function boot(){
     // Do not apply static encounter presets while Mystery Gifts mode is active;
     // event defaults should take precedence for mystery events.
     if (currentEncounterMode === 'mystery') return;
+
+    // Skip preset application during imports so imported PID/IVs are preserved,
+    // and also when Manual Override is active (autocomplete blur may fire late).
+    if (suppressPresetApply || manualOverrideActive) return;
 
     // Check if this is a fixed event (like WISHMKR Jirachi)
     if (encounter.fixedEvent) {
@@ -3229,6 +3335,19 @@ function boot(){
           }
         });
         refreshMoveExclusions();
+      }
+    }
+
+    // Set origin game if specified (do this BEFORE met location so the
+    // location list contains the correct entries for this game)
+    if (encounter.defaultOriginGame !== undefined) {
+      const originGameSelect = $('#originGame');
+      if (originGameSelect) {
+        originGameSelect.value = String(encounter.defaultOriginGame);
+        // Refresh location list for the new game
+        if (metLocationWrapper && metLocationWrapper.updateList) {
+          metLocationWrapper.updateList(getLocationsForGame(encounter.defaultOriginGame));
+        }
       }
     }
 
@@ -3282,18 +3401,6 @@ function boot(){
       const fatefulCheckbox = $('#fatefulEncounter');
       if (fatefulCheckbox) {
         fatefulCheckbox.checked = true;
-      }
-    }
-
-    // Set origin game if specified
-    if (encounter.defaultOriginGame !== undefined) {
-      const originGameSelect = $('#originGame');
-      if (originGameSelect) {
-        originGameSelect.value = String(encounter.defaultOriginGame);
-        // Refresh location list for the new game
-        if (metLocationWrapper && metLocationWrapper.updateList) {
-          metLocationWrapper.updateList(getLocationsForGame(encounter.defaultOriginGame));
-        }
       }
     }
 
@@ -3508,16 +3615,19 @@ function boot(){
       checkShiny();
       
       // Check if PID matches a preset and update IVs
-      const found = findPresetByPid(val);
-      if(found && found.preset && found.preset.ivs){
-        // populate IV inputs
-        const ivs = found.preset.ivs;
-        if(document.querySelector('#ivHp')) document.querySelector('#ivHp').value = String(ivs.hp);
-        if(document.querySelector('#ivAtk')) document.querySelector('#ivAtk').value = String(ivs.atk);
-        if(document.querySelector('#ivDef')) document.querySelector('#ivDef').value = String(ivs.def);
-        if(document.querySelector('#ivSpAtk')) document.querySelector('#ivSpAtk').value = String(ivs.spa || ivs.spa === 0 ? ivs.spa : ivs.spa);
-        if(document.querySelector('#ivSpDef')) document.querySelector('#ivSpDef').value = String(ivs.spd);
-        if(document.querySelector('#ivSpe')) document.querySelector('#ivSpe').value = String(ivs.spe);
+      // Skip when manualOverrideActive so imports / PID Finder results aren't overwritten
+      if (!manualOverrideActive) {
+        const found = findPresetByPid(val);
+        if(found && found.preset && found.preset.ivs){
+          // populate IV inputs
+          const ivs = found.preset.ivs;
+          if(document.querySelector('#ivHp')) document.querySelector('#ivHp').value = String(ivs.hp);
+          if(document.querySelector('#ivAtk')) document.querySelector('#ivAtk').value = String(ivs.atk);
+          if(document.querySelector('#ivDef')) document.querySelector('#ivDef').value = String(ivs.def);
+          if(document.querySelector('#ivSpAtk')) document.querySelector('#ivSpAtk').value = String(ivs.spa || ivs.spa === 0 ? ivs.spa : ivs.spa);
+          if(document.querySelector('#ivSpDef')) document.querySelector('#ivSpDef').value = String(ivs.spd);
+          if(document.querySelector('#ivSpe')) document.querySelector('#ivSpe').value = String(ivs.spe);
+        }
       }
     });
   }
@@ -3654,7 +3764,7 @@ function boot(){
       }
       
       // If we're in mystery mode, apply per-event presets first
-      if (currentEncounterMode === 'mystery') {
+      if (!suppressPresetApply && currentEncounterMode === 'mystery') {
         const speciesId = Number($('#species').value) || 0;
         const tag = document.getElementById('mysteryEvent')?.value || '';
         if (tag && MYSTERY_GIFTS[tag]) {
@@ -3664,7 +3774,8 @@ function boot(){
       }
 
       // If we're in legendaries or wild mode, apply the per-nature legendary preset
-      if (currentEncounterMode === 'legendaries' || currentEncounterMode === 'wild') {
+      // Also skip when manualOverrideActive (import / PID Finder selected a result)
+      if (!suppressPresetApply && !manualOverrideActive && (currentEncounterMode === 'legendaries' || currentEncounterMode === 'wild')) {
         const speciesId = Number($('#species').value) || 0;
         const targetNature = Number(natureEl.value || 0);
 
@@ -3715,7 +3826,7 @@ function boot(){
             updateLegalityStatus();
           }
         }
-      } else {
+      } else if (!suppressPresetApply && !manualOverrideActive) {
         // Normal mode: calculate PID to match the selected nature
         const pidEl = document.querySelector('#pid');
         if(pidEl){
@@ -4287,34 +4398,108 @@ function initPidFinder() {
     const natureName   = NATURES[natureIndex] || '\u2014';
     const ability      = Number($('#ability').value);
 
-    let abilityLabel = `Slot ${ability}`;
-    try {
-      const abilities = getSpeciesAbilities(speciesId);
-      if (abilities) {
-        const aId = abilities[ability] ?? abilities[0];
-        const aName = getAbilityName(aId);
-        if (aName) abilityLabel = `${aName} (${ability})`;
-      }
-    } catch (_) {}
-
-    const gender          = $('#gender').value || 'male';
-    const genderThreshold = getGenderThreshold(speciesId);
-    let genderLabel       = gender.charAt(0).toUpperCase() + gender.slice(1);
-    if (genderThreshold === -1)      genderLabel = 'Genderless';
-    else if (genderThreshold === 0)  genderLabel = 'Male (fixed)';
-    else if (genderThreshold >= 254) genderLabel = 'Female (fixed)';
-
     const originGameText = $('#originGame')?.selectedOptions?.[0]?.text || '\u2014';
-    const shiny          = !!$('#shiny')?.checked;
 
     summaryEl.innerHTML = [
       `<span class="pf-tag">Species: <b>${speciesName}</b></span>`,
       `<span class="pf-tag">Nature: <b>${natureName}</b></span>`,
-      `<span class="pf-tag">Ability: <b>${abilityLabel}</b></span>`,
-      `<span class="pf-tag">Gender: <b>${genderLabel}</b></span>`,
-      `<span class="pf-tag">Game: <b>${originGameText}</b></span>`,
-      shiny ? '<span class="pf-tag" style="color:var(--ruby)">\u2728 <b>Shiny</b></span>' : ''
+      `<span class="pf-tag">Game: <b>${originGameText}</b></span>`
     ].filter(Boolean).join('');
+
+    /* ── Populate PID Finder Gender selector ─────────── */
+    const pfGenderSel     = document.getElementById('pfGender');
+    const gender          = $('#gender').value || 'male';
+    const genderThreshold = getGenderThreshold(speciesId);
+
+    if (genderThreshold === -1) {
+      // Genderless species – lock to Genderless
+      pfGenderSel.innerHTML = '<option value="genderless">Genderless</option>';
+      pfGenderSel.disabled = true;
+    } else if (genderThreshold === 0) {
+      // Always male
+      pfGenderSel.innerHTML = '<option value="male">Male (fixed)</option>';
+      pfGenderSel.disabled = true;
+    } else if (genderThreshold >= 254) {
+      // Always female
+      pfGenderSel.innerHTML = '<option value="female">Female (fixed)</option>';
+      pfGenderSel.disabled = true;
+    } else {
+      // Variable gender – offer choices with "Any" option
+      pfGenderSel.innerHTML =
+        '<option value="male">Male</option>' +
+        '<option value="female">Female</option>' +
+        '<option value="any">Any</option>';
+      pfGenderSel.disabled = false;
+      pfGenderSel.value = gender;  // pre-select from main form
+    }
+
+    /* ── Populate PID Finder Ability selector ─────────── */
+    const pfAbilitySel = document.getElementById('pfAbility');
+    try {
+      const abilities = getSpeciesAbilities(speciesId);
+      if (abilities) {
+        const [a0Id, a1Id] = abilities;
+        const a0Name = getAbilityName(a0Id) || 'Slot 0';
+        const a1Name = getAbilityName(a1Id) || 'Slot 1';
+        if (a0Id === a1Id) {
+          // Single ability – lock to slot 0 but show "Any" since both slots are same
+          pfAbilitySel.innerHTML = `<option value="-1">${a0Name} (Any)</option>`;
+          pfAbilitySel.disabled = true;
+        } else {
+          pfAbilitySel.innerHTML =
+            `<option value="0">${a0Name} (Slot 0)</option>` +
+            `<option value="1">${a1Name} (Slot 1)</option>` +
+            '<option value="-1">Any</option>';
+          pfAbilitySel.disabled = false;
+          pfAbilitySel.value = String(ability);
+        }
+      } else {
+        pfAbilitySel.innerHTML =
+          '<option value="0">Slot 0</option>' +
+          '<option value="1">Slot 1</option>' +
+          '<option value="-1">Any</option>';
+        pfAbilitySel.disabled = false;
+        pfAbilitySel.value = String(ability);
+      }
+    } catch (_) {
+      pfAbilitySel.innerHTML =
+        '<option value="0">Slot 0</option><option value="1">Slot 1</option><option value="-1">Any</option>';
+      pfAbilitySel.disabled = false;
+    }
+
+    /* ── Populate TID / SID / Shiny from main form ──── */
+    const pfTidEl   = document.getElementById('pfTid');
+    const pfSidEl   = document.getElementById('pfSid');
+    const pfShinyEl = document.getElementById('pfShiny');
+    if (pfTidEl) pfTidEl.value = String(Number($('#tid').value) || 0);
+    if (pfSidEl) pfSidEl.value = String(Number($('#sid').value) || 0);
+    if (pfShinyEl) pfShinyEl.checked = !!$('#shiny')?.checked;
+
+    /* ── Adjust method checkboxes based on encounter mode ── */
+    const pfM1  = document.getElementById('pfMethod1');
+    const pfM2  = document.getElementById('pfMethod2');
+    const pfM4  = document.getElementById('pfMethod4');
+
+    // Helper: relabel a checkbox's parent <label> without detaching the checkbox
+    function relabelCheckbox(cb, text) {
+      const lbl = cb.parentElement;
+      if (!lbl) return;
+      // Remove all text nodes, keep the checkbox
+      Array.from(lbl.childNodes).forEach(n => { if (n.nodeType === 3) lbl.removeChild(n); });
+      lbl.appendChild(document.createTextNode(' ' + text));
+    }
+
+    if (currentEncounterMode === 'legendaries') {
+      // Static encounters only use Method 1 and 4
+      if (pfM1) { pfM1.checked = true;  pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, 'Method 1'); }
+      if (pfM2) { pfM2.checked = false; pfM2.parentElement.style.display = 'none'; }
+      if (pfM4) { pfM4.checked = true;  pfM4.parentElement.style.display = ''; relabelCheckbox(pfM4, 'Method 4'); }
+    } else {
+      // Wild encounters use all three methods
+      if (pfM1) { pfM1.checked = true; pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, 'Method H-1'); }
+      if (pfM2) { pfM2.checked = true; pfM2.parentElement.style.display = ''; relabelCheckbox(pfM2, 'Method H-2'); }
+      if (pfM4) { pfM4.checked = true; pfM4.parentElement.style.display = ''; relabelCheckbox(pfM4, 'Method H-4'); }
+    }
 
     // Reset state
     resultsBody.innerHTML = '';
@@ -4355,23 +4540,27 @@ function initPidFinder() {
   searchBtn.addEventListener('click', () => {
     const speciesId      = Number($('#species').value) || 0;
     const nature         = Number($('#nature').value || 0);
-    const ability        = Number($('#ability').value);
-    const gender         = $('#gender').value || 'male';
+    let   ability        = Number(document.getElementById('pfAbility').value);
+    const pfGenderVal    = document.getElementById('pfGender').value;
     const genderThreshold = getGenderThreshold(speciesId);
-    const tid = Number($('#tid').value) & 0xFFFF;
-    const sid = Number($('#sid').value) & 0xFFFF;
-    const wantShiny = !!$('#shiny')?.checked;
+    const tid = Number(document.getElementById('pfTid').value) & 0xFFFF;
+    const sid = Number(document.getElementById('pfSid').value) & 0xFFFF;
+    const wantShiny = !!document.getElementById('pfShiny')?.checked;
 
-    // Map gender to numeric code for worker: 0=female 1=male 2=genderless
-    let targetGender = 2;
+    // Map gender to numeric code for worker: 0=female 1=male 2=genderless 3=any
+    let targetGender;
     if (genderThreshold === -1)        targetGender = 2;       // genderless
     else if (genderThreshold === 0)    targetGender = 1;       // always male
     else if (genderThreshold >= 254)   targetGender = 0;       // always female
-    else                               targetGender = (gender === 'female') ? 0 : 1;
+    else if (pfGenderVal === 'any')    targetGender = 3;       // any (skip filter)
+    else                               targetGender = (pfGenderVal === 'female') ? 0 : 1;
 
     const clamp = (id) => Math.max(0, Math.min(31, Number(document.getElementById(id).value) || 0));
     const minIVs = [clamp('pfMinHp'), clamp('pfMinAtk'), clamp('pfMinDef'),
                     clamp('pfMinSpA'), clamp('pfMinSpD'), clamp('pfMinSpe')];
+    const clampMax = (id) => { const v = Number(document.getElementById(id).value); return Number.isFinite(v) ? Math.max(0, Math.min(31, v)) : 31; };
+    const maxIVs = [clampMax('pfMaxHp'), clampMax('pfMaxAtk'), clampMax('pfMaxDef'),
+                    clampMax('pfMaxSpA'), clampMax('pfMaxSpD'), clampMax('pfMaxSpe')];
 
     const methods = [
       document.getElementById('pfMethod1').checked,
@@ -4440,17 +4629,21 @@ function initPidFinder() {
         }
       };
 
-      // Look up encounter slot tables for this game + location
+      // Look up encounter slot tables for this game + location.
+      // Static (legendary) encounters do NOT use wild encounter slots,
+      // so pass null to skip encounter-chain validation.
       const gameId     = Number($('#originGame').value) || 3;
       const locationId = Number($('#metLocation').value) || 0;
-      const slotTables = (ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]) || null;
+      const slotTables = currentEncounterMode === 'legendaries'
+        ? null
+        : (ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]) || null;
 
       worker.postMessage({
         startSeed: start, endSeed: end,
         nature, ability,
         genderThreshold: genderThreshold === -1 ? -1 : genderThreshold,
         targetGender, tid, sid, wantShiny,
-        minIVs, methods,
+        minIVs, maxIVs, methods,
         maxResults: Math.ceil(200 / workerCount),
         targetSpecies: speciesId,
         slotTables,
@@ -4483,8 +4676,36 @@ function initPidFinder() {
         + (pfAllResults.length > 25 ? ' (showing top 25 by IV total)' : '');
 
     resultsBody.innerHTML = '';
+    const speciesId = Number($('#species').value) || 0;
+    const rGenderThreshold = getGenderThreshold(speciesId);
+    let rAbility0Name = 'Slot 0', rAbility1Name = 'Slot 1';
+    try {
+      const ab = getSpeciesAbilities(speciesId);
+      if (ab) {
+        rAbility0Name = getAbilityName(ab[0]) || 'Slot 0';
+        rAbility1Name = getAbilityName(ab[1]) || 'Slot 1';
+      }
+    } catch (_) {}
+
     for (const r of capped) {
       const total = r.ivs.hp + r.ivs.atk + r.ivs.def + r.ivs.spa + r.ivs.spd + r.ivs.spe;
+
+      // Derive gender from PID
+      let genderStr;
+      if (rGenderThreshold === -1)          genderStr = '\u2014';
+      else if (rGenderThreshold === 0)      genderStr = '\u2642';
+      else if (rGenderThreshold >= 254)     genderStr = '\u2640';
+      else                                  genderStr = (r.pid & 0xFF) < rGenderThreshold ? '\u2640' : '\u2642';
+
+      // Derive ability slot from PID
+      const abilitySlot = r.pid & 1;
+      const abilityName = abilitySlot === 0 ? rAbility0Name : rAbility1Name;
+
+      // For static (legendary) encounters, show method without 'H' prefix
+      const methodLabel = currentEncounterMode === 'legendaries'
+        ? r.method.replace('H', '')
+        : r.method;
+
       const tr = document.createElement('tr');
       tr.innerHTML =
         `<td class="pid-cell">0x${(r.pid >>> 0).toString(16).toUpperCase().padStart(8, '0')}</td>` +
@@ -4492,8 +4713,10 @@ function initPidFinder() {
         ivTd(r.ivs.spa) + ivTd(r.ivs.spd) + ivTd(r.ivs.spe) +
         `<td>${total}</td>` +
         `<td>${r.hpt}</td>` +
-        `<td>${r.method}</td>` +
-        `<td>${r.metLevels ? r.metLevels.join('/') : '—'}</td>` +
+        `<td>${methodLabel}</td>` +
+        `<td>${r.metLevels ? r.metLevels.join('/') : '\u2014'}</td>` +
+        `<td>${genderStr}</td>` +
+        `<td>${abilityName}</td>` +
         `<td><button type="button" class="select-btn">Select</button></td>`;
       tr.querySelector('.select-btn').addEventListener('click', () => selectResult(r));
       resultsBody.appendChild(tr);
@@ -4508,6 +4731,23 @@ function initPidFinder() {
   /* ── Apply selected result ─────────────────────────── */
 
   function selectResult(r) {
+    // Enable manual override so subsequent nature/species changes don't overwrite
+    // the PID Finder result via preset application
+    manualOverrideActive = true;
+    const overrideCb = document.querySelector('#manualOverride');
+    if (overrideCb) overrideCb.checked = true;
+
+    // Sync TID/SID from PID Finder modal back to main form
+    const pfTid = Number(document.getElementById('pfTid').value) & 0xFFFF;
+    const pfSid = Number(document.getElementById('pfSid').value) & 0xFFFF;
+    $('#tid').value = String(pfTid);
+    $('#sid').value = String(pfSid);
+
+    // Sync shiny checkbox from PID Finder modal to main form
+    const pfShinyChecked = !!document.getElementById('pfShiny')?.checked;
+    const mainShiny = $('#shiny');
+    if (mainShiny) mainShiny.checked = pfShinyChecked;
+
     const pidHex = '0x' + (r.pid >>> 0).toString(16).toUpperCase().padStart(8, '0');
     const pidEl  = $('#pid');
     if (pidEl) {
@@ -4540,10 +4780,27 @@ function initPidFinder() {
 
     updateHiddenPower();
     updateGenderFromPID();
-    $('#ability').value = String(r.pid & 1);
+
+    // Set ability based on PID low bit; fall back to 0 for single-ability species
+    const abilityBit = r.pid & 1;
+    const abilitySel = $('#ability');
+    if (abilitySel) {
+      abilitySel.value = String(abilityBit);
+      // If the species only has one ability, option '1' doesn't exist — fall back
+      if (abilitySel.value !== String(abilityBit)) abilitySel.value = '0';
+      // Lock the ability so the user can't accidentally change it (would invalidate PID)
+      abilitySel.disabled = true;
+      abilitySel.style.pointerEvents = 'none';
+      abilitySel.style.opacity = '0.6';
+      abilitySel.style.cursor = 'not-allowed';
+    }
+
     checkShiny();
 
-    if (statusSpan) statusSpan.textContent = `PID set (Method ${r.method}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
+    const statusMethod = currentEncounterMode === 'legendaries'
+      ? r.method.replace('H', '')
+      : r.method;
+    if (statusSpan) statusSpan.textContent = `PID set (Method ${statusMethod}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
     closeModal();
   }
 }
@@ -4709,6 +4966,24 @@ function onLoadFromHex(){
     const expGroup = EXP_GROUPS[data.speciesId] ?? GROUP.MEDIUM_FAST;
     console.log(`Species ID: ${data.speciesId}, Exp Group: ${expGroup}, Total Exp: ${data.totalExp}`);
     
+    // Enable manual override so imported values aren't overwritten by mode locks
+    manualOverrideActive = true;
+    suppressPresetApply = true;
+    const overrideCb = document.querySelector('#manualOverride');
+    if (overrideCb) overrideCb.checked = true;
+
+    // Temporarily unlock all disabled fields so .value assignments take effect
+    const fieldsToUnlock = ['#pid','#metLevel','#ball','#tid','#sid','#otName','#language','#nickname','#gender'];
+    fieldsToUnlock.forEach(sel => {
+      const el = $(sel);
+      if (el) {
+        el.disabled = false;
+        el.style.pointerEvents = '';
+        el.style.opacity = '';
+        el.style.cursor = '';
+      }
+    });
+    
     // Populate all fields
     $('#species').value = String(data.speciesId);
     $('#item').value = String(data.itemId);
@@ -4720,9 +4995,13 @@ function onLoadFromHex(){
     $('#tid').value = String(data.tid);
     $('#sid').value = String(data.sid);
     $('#ball').value = String(data.ballId);
+    // Set origin game BEFORE met location so the location list is correct
+    $('#originGame').value = String(data.originGame);
+    if (metLocationWrapper && metLocationWrapper.updateList) {
+      metLocationWrapper.updateList(getLocationsForGame(data.originGame));
+    }
     $('#metLocation').value = String(data.metLocationId);
     $('#metLevel').value = String(data.metLevel);
-    $('#originGame').value = String(data.originGame);
     $('#otGender').value = data.otGender === 1 ? 'female' : 'male';
     $('#otName').value = data.otName;
     $('#nickname').value = data.nickname;
@@ -4815,7 +5094,32 @@ function onLoadFromHex(){
     // Update Hidden Power display based on loaded IVs
     updateHiddenPower();
     
-    alert('Pokémon data loaded successfully!');
+    // Re-apply all locking functions (they'll see override is active and unlock)
+    try { updateMetLevelLocking(); } catch (e) {}
+    try { updateBallLocking(); } catch (e) {}
+    try { updateLevelLocking(); } catch (e) {}
+    try { updatePidLocking(); } catch (e) {}
+    try { updateTidSidLocking(); } catch (e) {}
+    try { lockLanguageForMewLegend(); } catch (e) {}
+    try { updateFatefulLocking(); } catch (e) {}
+
+    // Final safety net: ensure the imported PID and IVs are exactly what was
+    // in the hex data, regardless of any handler that may have overwritten them.
+    $('#pid').value = '0x' + data.pid.toString(16).toUpperCase().padStart(8, '0');
+    $('#ivHp').value   = String(data.ivs.hp);
+    $('#ivAtk').value  = String(data.ivs.atk);
+    $('#ivDef').value  = String(data.ivs.def);
+    $('#ivSpAtk').value = String(data.ivs.spa);
+    $('#ivSpDef').value = String(data.ivs.spd);
+    $('#ivSpe').value  = String(data.ivs.spe);
+    try { updateGenderFromPID(); } catch(e) {}
+    try { checkShiny(); } catch(e) {}
+
+    // Re-enable preset application AFTER the final safety net so no listener
+    // can overwrite imported IVs while suppressPresetApply is still false.
+    suppressPresetApply = false;
+    
+    alert('Pokémon data loaded successfully! Manual Override has been enabled so you can edit all fields freely.');
   } catch (e) {
     alert('Error loading hex data: ' + e.message);
   }
@@ -4897,6 +5201,25 @@ function onImportPk3(event) {
       const expGroup = EXP_GROUPS[data.speciesId] ?? GROUP.MEDIUM_FAST;
       console.log(`Species ID: ${data.speciesId}, Exp Group: ${expGroup}, Total Exp: ${data.totalExp}`);
       
+      // Enable manual override so imported values aren't overwritten by mode locks.
+      // Also suppress preset application so PID/IVs come from the imported file.
+      manualOverrideActive = true;
+      suppressPresetApply = true;
+      const overrideCb = document.querySelector('#manualOverride');
+      if (overrideCb) overrideCb.checked = true;
+
+      // Temporarily unlock all disabled fields so .value assignments take effect
+      const fieldsToUnlock = ['#pid','#metLevel','#ball','#tid','#sid','#otName','#language','#nickname','#gender'];
+      fieldsToUnlock.forEach(sel => {
+        const el = $(sel);
+        if (el) {
+          el.disabled = false;
+          el.style.pointerEvents = '';
+          el.style.opacity = '';
+          el.style.cursor = '';
+        }
+      });
+      
       // Populate all fields (same as onLoadFromHex)
       $('#species').value = String(data.speciesId);
       // Update ability select options based on species (do this here because
@@ -4935,9 +5258,13 @@ function onImportPk3(event) {
       $('#tid').value = String(data.tid);
       $('#sid').value = String(data.sid);
       $('#ball').value = String(data.ballId);
+      // Set origin game BEFORE met location so the location list is correct
+      $('#originGame').value = String(data.originGame);
+      if (metLocationWrapper && metLocationWrapper.updateList) {
+        metLocationWrapper.updateList(getLocationsForGame(data.originGame));
+      }
       $('#metLocation').value = String(data.metLocationId);
       $('#metLevel').value = String(data.metLevel);
-      $('#originGame').value = String(data.originGame);
       $('#otGender').value = data.otGender === 1 ? 'female' : 'male';
       $('#otName').value = data.otName;
       $('#nickname').value = data.nickname;
@@ -5040,6 +5367,16 @@ function onImportPk3(event) {
         handleEncounterModeChange(speciesId);
       } catch (e) {}
 
+      // Safety net: re-apply imported PID and IVs in case any handler above
+      // (e.g. applyStaticEncounterPreset, applyPresetIfSimple) overwrote them.
+      $('#pid').value = '0x' + data.pid.toString(16).toUpperCase().padStart(8, '0');
+      $('#ivHp').value = String(data.ivs.hp);
+      $('#ivAtk').value = String(data.ivs.atk);
+      $('#ivDef').value = String(data.ivs.def);
+      $('#ivSpAtk').value = String(data.ivs.spa);
+      $('#ivSpDef').value = String(data.ivs.spd);
+      $('#ivSpe').value = String(data.ivs.spe);
+
       // Dispatch change/input events for key fields so listeners run
       // While programmatically updating fields during import we must
       // avoid triggering simple-mode preset application which would
@@ -5086,10 +5423,35 @@ function onImportPk3(event) {
       // Also run the general updater so any other UI reacts to the import
       try { updateLegalityStatus(); } catch (e) {}
 
-      // Finished programmatic updates; re-enable preset application
+      // Re-apply all locking functions (they'll see override is active and unlock)
+      try { updateMetLevelLocking(); } catch (e) {}
+      try { updateBallLocking(); } catch (e) {}
+      try { updateLevelLocking(); } catch (e) {}
+      try { updatePidLocking(); } catch (e) {}
+      try { updateTidSidLocking(); } catch (e) {}
+      try { lockLanguageForMewLegend(); } catch (e) {}
+      try { updateFatefulLocking(); } catch (e) {}
+
+      // Final safety net: ensure the imported PID and IVs are exactly what was
+      // in the file, regardless of any handler/event-listener that may have
+      // overwritten them during the import pipeline.
+      $('#pid').value = '0x' + data.pid.toString(16).toUpperCase().padStart(8, '0');
+      $('#ivHp').value   = String(data.ivs.hp);
+      $('#ivAtk').value  = String(data.ivs.atk);
+      $('#ivDef').value  = String(data.ivs.def);
+      $('#ivSpAtk').value = String(data.ivs.spa);
+      $('#ivSpDef').value = String(data.ivs.spd);
+      $('#ivSpe').value  = String(data.ivs.spe);
+      try { updateGenderFromPID(); } catch(e) {}
+      try { checkShiny(); } catch(e) {}
+
+      // Finished programmatic updates; re-enable preset application.
+      // Keep manualOverrideActive = true so user can freely edit imported values.
+      // Placed AFTER the final safety net so no listener can sneak in and
+      // overwrite the imported IVs while suppressPresetApply is still false.
       suppressPresetApply = false;
 
-      alert('Pokémon imported from .ek3 file successfully! The form has been re-validated.');
+      alert('Pokémon imported successfully! Manual Override has been enabled so you can edit all fields freely.');
     } catch (err) {
       alert('Error importing .ek3 file: ' + err.message);
     }

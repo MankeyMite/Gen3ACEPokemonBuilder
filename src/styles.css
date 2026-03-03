@@ -161,6 +161,13 @@ pre{white-space:pre-wrap;word-break:break-word}
 /* Show the button row only when wild encounter is active */
 .wild-only { display: none; }
 body.encounter-wild .wild-only { display: flex; }
+.wild-or-legend { display: none; }
+body.encounter-wild .wild-or-legend,
+body.encounter-legendaries .wild-or-legend { display: flex; }
+
+/* Hide the external Shiny checkbox row when PID Finder is available */
+body.encounter-wild .shiny-external,
+body.encounter-legendaries .shiny-external { display: none; }
 
 .pid-finder-btn {
   font-size: 0.9rem;
