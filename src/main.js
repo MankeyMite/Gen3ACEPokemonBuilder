@@ -17,6 +17,7 @@ import { hasDualAbilities, getSpeciesAbilities } from './data/pokemonAbilities.g
 import { LEARNSETS } from './data/learnsets.gen3.js';
 import { WILD_ENCOUNTERS } from './data/wildEncounters.gen3.js';
 import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
+import { PROFANITY_LIST } from './data/profanity.gen3.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -4489,11 +4490,17 @@ function initPidFinder() {
       lbl.appendChild(document.createTextNode(' ' + text));
     }
 
-    if (currentEncounterMode === 'legendaries') {
-      // Static encounters only use Method 1 and 4
+    const currentGameId = Number($('#originGame').value) || 3;
+    if (currentEncounterMode === 'legendaries' && currentGameId === 15) {
+      // Colosseum/XD shadow encounters use CXD PRNG only
+      if (pfM1) { pfM1.checked = true;  pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, 'CXD'); }
+      if (pfM2) { pfM2.checked = false; pfM2.parentElement.style.display = 'none'; }
+      if (pfM4) { pfM4.checked = false; pfM4.parentElement.style.display = 'none'; }
+    } else if (currentEncounterMode === 'legendaries') {
+      // Static (non-CXD) encounters use Method 1 only
       if (pfM1) { pfM1.checked = true;  pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, 'Method 1'); }
       if (pfM2) { pfM2.checked = false; pfM2.parentElement.style.display = 'none'; }
-      if (pfM4) { pfM4.checked = true;  pfM4.parentElement.style.display = ''; relabelCheckbox(pfM4, 'Method 4'); }
+      if (pfM4) { pfM4.checked = false; pfM4.parentElement.style.display = 'none'; }
     } else {
       // Wild encounters use all three methods
       if (pfM1) { pfM1.checked = true; pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, 'Method H-1'); }
@@ -4578,6 +4585,11 @@ function initPidFinder() {
     searchBtn.disabled = true;
     stopBtn.disabled   = false;
 
+    // Determine which worker to use
+    const gameId     = Number($('#originGame').value) || 3;
+    const isCXD      = currentEncounterMode === 'legendaries' && gameId === 15;
+    const workerPath = isCXD ? './src/lib/gen3/cxd-worker.js' : './src/lib/gen3/rng-worker.js';
+
     // Spawn workers across available cores
     const workerCount = Math.min(navigator.hardwareConcurrency || 4, 8);
     const totalSeeds  = 0x100000000; // 2^32
@@ -4589,7 +4601,7 @@ function initPidFinder() {
     for (let i = 0; i < workerCount; i++) {
       const start = i * chunkSize;
       const end   = Math.min(start + chunkSize, totalSeeds);
-      const worker = new Worker('./src/lib/gen3/rng-worker.js');
+      const worker = new Worker(workerPath);
       pfWorkers.push(worker);
 
       worker.onmessage = function (msg) {
@@ -4632,23 +4644,34 @@ function initPidFinder() {
       // Look up encounter slot tables for this game + location.
       // Static (legendary) encounters do NOT use wild encounter slots,
       // so pass null to skip encounter-chain validation.
-      const gameId     = Number($('#originGame').value) || 3;
       const locationId = Number($('#metLocation').value) || 0;
       const slotTables = currentEncounterMode === 'legendaries'
         ? null
         : (ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]) || null;
 
-      worker.postMessage({
-        startSeed: start, endSeed: end,
-        nature, ability,
-        genderThreshold: genderThreshold === -1 ? -1 : genderThreshold,
-        targetGender, tid, sid, wantShiny,
-        minIVs, maxIVs, methods,
-        maxResults: Math.ceil(200 / workerCount),
-        targetSpecies: speciesId,
-        slotTables,
-        gameId
-      });
+      if (isCXD) {
+        // CXD worker only needs core filters (no methods / slot tables)
+        worker.postMessage({
+          startSeed: start, endSeed: end,
+          nature, ability,
+          genderThreshold: genderThreshold === -1 ? -1 : genderThreshold,
+          targetGender, tid, sid, wantShiny,
+          minIVs, maxIVs,
+          maxResults: Math.ceil(200 / workerCount)
+        });
+      } else {
+        worker.postMessage({
+          startSeed: start, endSeed: end,
+          nature, ability,
+          genderThreshold: genderThreshold === -1 ? -1 : genderThreshold,
+          targetGender, tid, sid, wantShiny,
+          minIVs, maxIVs, methods,
+          maxResults: Math.ceil(200 / workerCount),
+          targetSpecies: speciesId,
+          slotTables,
+          gameId
+        });
+      }
     }
   });
 
@@ -4702,9 +4725,12 @@ function initPidFinder() {
       const abilityName = abilitySlot === 0 ? rAbility0Name : rAbility1Name;
 
       // For static (legendary) encounters, show method without 'H' prefix
-      const methodLabel = currentEncounterMode === 'legendaries'
-        ? r.method.replace('H', '')
-        : r.method;
+      // CXD results already have method='CXD' so no replacement needed
+      const methodLabel = r.method === 'CXD'
+        ? 'CXD'
+        : currentEncounterMode === 'legendaries'
+          ? r.method.replace('H', '')
+          : r.method;
 
       const tr = document.createElement('tr');
       tr.innerHTML =
@@ -4797,10 +4823,12 @@ function initPidFinder() {
 
     checkShiny();
 
-    const statusMethod = currentEncounterMode === 'legendaries'
-      ? r.method.replace('H', '')
-      : r.method;
-    if (statusSpan) statusSpan.textContent = `PID set (Method ${statusMethod}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
+    const statusMethod = r.method === 'CXD'
+      ? 'CXD'
+      : currentEncounterMode === 'legendaries'
+        ? r.method.replace('H', '')
+        : r.method;
+    if (statusSpan) statusSpan.textContent = `PID set (${statusMethod === 'CXD' ? 'CXD' : 'Method ' + statusMethod}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
     closeModal();
   }
 }
@@ -4942,6 +4970,54 @@ function collect(){
   };
 }
 
+// ── Profanity check for Base64 box names ───────────────────────────────
+// Build a single regex from the word list for fast substring matching.
+const _profanityRe = new RegExp(
+  PROFANITY_LIST.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
+  'i'
+);
+
+/**
+ * Scan the Base64 box-name output for profanity.
+ * Returns an array of { box, word } objects for every match found.
+ */
+function checkBase64Profanity(b64Text) {
+  const hits = [];
+  // Parse individual box names from the formatted output
+  const lines = b64Text.split('\n');
+  for (const line of lines) {
+    const m = line.match(/Box\s+(\d+):\s+\(([^)]*)\)/);
+    if (!m) continue;
+    const boxNum = Number(m[1]);
+    const boxName = m[2];
+    // Test the box name against the full profanity regex
+    const hit = boxName.match(new RegExp(
+      PROFANITY_LIST.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
+      'gi'
+    ));
+    if (hit) {
+      for (const word of hit) hits.push({ box: boxNum, word });
+    }
+  }
+  return hits;
+}
+
+/** Show or hide the profanity warning banner above the Base64 output. */
+function updateProfanityWarning(b64Text) {
+  const banner = document.getElementById('profanityWarning');
+  if (!banner) return;
+  const hits = checkBase64Profanity(b64Text);
+  if (hits.length === 0) {
+    banner.style.display = 'none';
+    banner.textContent = '';
+    return;
+  }
+  // Build a human-readable message
+  const details = hits.map(h => `Box ${h.box}: "${h.word}"`).join(', ');
+  banner.textContent = `⚠️ This code may be censored on the Nintendo Switch — detected: ${details}`;
+  banner.style.display = 'block';
+}
+
 function onGenerate(){
   // Check if button is disabled and show validation errors
   if ($('#generateBtn').getAttribute('data-disabled') === 'true') {
@@ -4955,6 +5031,9 @@ function onGenerate(){
   const b64 = toBase64Emerald(result.bytes);
   $('#hexOutput').value = hex;
   $('#base64Output').value = b64;
+
+  // Check for profanity in the generated box names
+  updateProfanityWarning(b64);
 }
 
 function onLoadFromHex(){
