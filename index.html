@@ -222,6 +222,9 @@
     /* Mystery-specific elements are hidden by default and shown when mystery mode active */
     .show-when-mystery { display: none; }
     body.encounter-mystery .show-when-mystery { display: flex; }
+    /* CXD Shadow-specific elements */
+    .show-when-cxd { display: none; }
+    body.encounter-cxd_shadow .show-when-cxd { display: flex; }
     /* Move rows: select + small PP box */
     .move-list .move-row {
       display: flex;
@@ -526,6 +529,7 @@
         <option value="legendaries">Legendaries</option>
         <option value="wild">Wild</option>
         <option value="mystery">Mystery Gifts</option>
+        <option value="cxd_shadow">XD / Colosseum</option>
       </select>
       <label class="override-toggle" style="margin-left: 1rem; display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: rgba(255,255,255,0.6); cursor: pointer;" title="Unlock all fields for manual editing. Useful for importing Pokémon or advanced customization.">
         <input type="checkbox" id="manualOverride" style="accent-color: #f59e0b;" />
@@ -548,6 +552,11 @@
       <div class="row">
         <label for="species-input">Pokémon</label>
         <select id="species"></select>
+      </div>
+
+      <div class="row show-when-cxd">
+        <label for="shadowEncounter">Encounter</label>
+        <select id="shadowEncounter"></select>
       </div>
 
       <div class="row">
@@ -636,6 +645,9 @@
           <label for="sid">SID</label>
           <input id="sid" type="number" min="0" max="65535" value="54321" />
         </div>
+      </div>
+      <div id="gcTidSidWarning" class="profanity-warning" style="display:none;">
+        &#x26A0;&#xFE0F; This TID/SID combination is <b>not possible</b> in Colosseum/XD. The game generates TID and SID as consecutive GC&nbsp;RNG outputs &mdash; only certain pairs are valid.
       </div>
 
       <div class="row shiny-external">

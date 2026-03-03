@@ -5,7 +5,8 @@
       "species": 176,
       "level": 20,
       "moves": "118,204,186,281",
-      "comment": "Togetic: Cipher Peon Fein @ Outskirt Stand"
+      "comment": "Togetic: Cipher Peon Fein @ Outskirt Stand",
+      "location": 1
     }
   ],
   "003": [
@@ -14,30 +15,34 @@
       "species": 153,
       "level": 30,
       "moves": "241,235,075,034",
-      "comment": "Bayleef: Cipher Peon Verde @ Phenac City"
+      "comment": "Bayleef: Cipher Peon Verde @ Phenac City",
+      "location": 3
     },
     {
       "shadow_index": 3,
       "species": 156,
       "level": 30,
       "moves": "241,108,091,172",
-      "comment": "Quilava: Cipher Peon Rosso @ Phenac City"
+      "comment": "Quilava: Cipher Peon Rosso @ Phenac City",
+      "location": 3
     },
     {
       "shadow_index": 4,
       "species": 159,
       "level": 30,
       "moves": "240,184,044,057",
-      "comment": "Croconaw: Cipher Peon Bluno @ Phenac City"
+      "comment": "Croconaw: Cipher Peon Bluno @ Phenac City",
+      "location": 3
     }
   ],
   "005": [
     {
       "shadow_index": 1,
-      "species": 296,
+      "species": 335,
       "level": 30,
       "moves": "193,116,233,238",
-      "comment": "Makuhita: Miror B.Peon Trudly @ Phenac City"
+      "comment": "Makuhita: Miror B.Peon Trudly @ Phenac City",
+      "location": 5
     }
   ],
   "015": [
@@ -46,56 +51,64 @@
       "species": 164,
       "level": 30,
       "moves": "211,095,115,019",
-      "comment": "Noctowl: Rider Nover @ Pyrite Town"
+      "comment": "Noctowl: Rider Nover @ Pyrite Town",
+      "location": 15
     },
     {
       "shadow_index": 6,
       "species": 180,
       "level": 30,
       "moves": "085,086,178,084",
-      "comment": "Flaaffy: St.Performer Diogo @ Pyrite Town"
+      "comment": "Flaaffy: St.Performer Diogo @ Pyrite Town",
+      "location": 15
     },
     {
       "shadow_index": 7,
       "species": 188,
       "level": 30,
       "moves": "235,079,178,072",
-      "comment": "Skiploom: Rider Leba @ Pyrite Town"
+      "comment": "Skiploom: Rider Leba @ Pyrite Town",
+      "location": 15
     },
     {
       "shadow_index": 8,
       "species": 195,
       "level": 30,
       "moves": "341,133,021,057",
-      "comment": "Quagsire: Bandana Guy Divel @ Pyrite Town"
+      "comment": "Quagsire: Bandana Guy Divel @ Pyrite Town",
+      "location": 15
     },
     {
       "shadow_index": 9,
       "species": 200,
       "level": 30,
       "moves": "060,109,212,247",
-      "comment": "Misdreavus: Rider Vant @ Pyrite Town"
+      "comment": "Misdreavus: Rider Vant @ Pyrite Town",
+      "location": 15
     },
     {
       "shadow_index": 11,
       "species": 162,
       "level": 33,
       "moves": "231,270,098,070",
-      "comment": "Furret: Rogue Cail @ Pyrite Town"
+      "comment": "Furret: Rogue Cail @ Pyrite Town",
+      "location": 15
     },
     {
       "shadow_index": 12,
       "species": 218,
       "level": 30,
       "moves": "241,281,088,053",
-      "comment": "Slugma: Roller Boy Lon @ Pyrite Town"
+      "comment": "Slugma: Roller Boy Lon @ Pyrite Town",
+      "location": 15
     },
     {
       "shadow_index": 15,
       "species": 211,
       "level": 33,
       "moves": "042,107,040,057",
-      "comment": "Qwilfish: Hunter Doken @ Pyrite Bldg"
+      "comment": "Qwilfish: Hunter Doken @ Pyrite Bldg",
+      "location": 15
     }
   ],
   "025": [
@@ -104,7 +117,8 @@
       "species": 193,
       "level": 33,
       "moves": "197,048,049,253",
-      "comment": "Yanma: Cipher Peon Nore @ Pyrite Bldg"
+      "comment": "Yanma: Cipher Peon Nore @ Pyrite Bldg",
+      "location": 25
     }
   ],
   "028": [
@@ -113,14 +127,16 @@
       "species": 223,
       "level": 20,
       "moves": "061,199,060,062",
-      "comment": "Remoraid: Miror B.Peon Reath @ Pyrite Bldg"
+      "comment": "Remoraid: Miror B.Peon Reath @ Pyrite Bldg",
+      "location": 28
     },
     {
       "shadow_index": 14,
       "species": 226,
       "level": 33,
       "moves": "017,048,061,036",
-      "comment": "Mantine: Miror B.Peon Ferma @ Pyrite Bldg"
+      "comment": "Mantine: Miror B.Peon Ferma @ Pyrite Bldg",
+      "location": 28
     }
   ],
   "029": [
@@ -129,7 +145,8 @@
       "species": 206,
       "level": 33,
       "moves": "180,137,281,036",
-      "comment": "Dunsparce: Rider Sosh @ Pyrite Cave"
+      "comment": "Dunsparce: Rider Sosh @ Pyrite Cave",
+      "location": 29
     }
   ],
   "030": [
@@ -138,39 +155,44 @@
       "species": 223,
       "level": 20,
       "moves": "061,199,060,062",
-      "comment": "Remoraid: Miror B.Peon Reath @ Pyrite Cave"
+      "comment": "Remoraid: Miror B.Peon Reath @ Pyrite Cave",
+      "location": 30
     },
     {
       "shadow_index": 14,
       "species": 226,
       "level": 33,
       "moves": "017,048,061,036",
-      "comment": "Mantine: Miror B.Peon Ferma @ Pyrite Cave"
+      "comment": "Mantine: Miror B.Peon Ferma @ Pyrite Cave",
+      "location": 30
     },
     {
       "shadow_index": 19,
       "species": 185,
       "level": 35,
       "moves": "175,335,067,157",
-      "comment": "Sudowoodo: Cipher Admin Miror B. @ Pyrite Cave"
+      "comment": "Sudowoodo: Cipher Admin Miror B. @ Pyrite Cave",
+      "location": 30
     }
   ],
   "031": [
     {
       "shadow_index": 16,
-      "species": 307,
+      "species": 356,
       "level": 33,
       "moves": "197,347,093,136",
-      "comment": "Meditite: Rider Twan @ Pyrite Cave"
+      "comment": "Meditite: Rider Twan @ Pyrite Cave",
+      "location": 31
     }
   ],
   "032": [
     {
       "shadow_index": 18,
-      "species": 333,
+      "species": 358,
       "level": 33,
       "moves": "119,047,219,019",
-      "comment": "Swablu: Hunter Zalo @ Pyrite Cave"
+      "comment": "Swablu: Hunter Zalo @ Pyrite Cave",
+      "location": 32
     }
   ],
   "039": [
@@ -179,7 +201,8 @@
       "species": 237,
       "level": 38,
       "moves": "097,116,167,229",
-      "comment": "Hitmontop: Cipher Peon Skrub @ Agate Village"
+      "comment": "Hitmontop: Cipher Peon Skrub @ Agate Village",
+      "location": 39
     }
   ],
   "047": [
@@ -188,7 +211,8 @@
       "species": 166,
       "level": 40,
       "moves": "226,219,048,004",
-      "comment": "Ledian: Cipher Peon Kloak @ The Under"
+      "comment": "Ledian: Cipher Peon Kloak @ The Under",
+      "location": 47
     }
   ],
   "055": [
@@ -197,7 +221,8 @@
       "species": 245,
       "level": 40,
       "moves": "240,043,016,057",
-      "comment": "Suicune (Surf): Cipher Admin Venus @ The Under"
+      "comment": "Suicune (Surf): Cipher Admin Venus @ The Under",
+      "location": 55
     }
   ],
   "058": [
@@ -206,28 +231,32 @@
       "species": 207,
       "level": 43,
       "moves": "185,028,040,163",
-      "comment": "Gligar: Hunter Frena @ The Under Subway"
+      "comment": "Gligar: Hunter Frena @ The Under Subway",
+      "location": 58
     },
     {
       "shadow_index": 25,
       "species": 234,
       "level": 43,
       "moves": "310,095,043,036",
-      "comment": "Stantler: Chaser Liaks @ The Under Subway"
+      "comment": "Stantler: Chaser Liaks @ The Under Subway",
+      "location": 58
     },
     {
       "shadow_index": 26,
       "species": 221,
       "level": 43,
       "moves": "203,316,091,059",
-      "comment": "Piloswine: Bodybuilder Lonia @ The Under Subway"
+      "comment": "Piloswine: Bodybuilder Lonia @ The Under Subway",
+      "location": 58
     },
     {
       "shadow_index": 27,
       "species": 215,
       "level": 43,
       "moves": "185,103,154,196",
-      "comment": "Sneasel: Rider Nelis @ The Under Subway"
+      "comment": "Sneasel: Rider Nelis @ The Under Subway",
+      "location": 58
     }
   ],
   "067": [
@@ -236,28 +265,32 @@
       "species": 190,
       "level": 43,
       "moves": "226,321,154,129",
-      "comment": "Aipom: Cipher Peon Cole @ Shadow PKMN Lab"
+      "comment": "Aipom: Cipher Peon Cole @ Shadow PKMN Lab",
+      "location": 67
     },
     {
       "shadow_index": 29,
       "species": 198,
       "level": 43,
       "moves": "185,212,101,019",
-      "comment": "Murkrow: Cipher Peon Lare @ Shadow PKMN Lab"
+      "comment": "Murkrow: Cipher Peon Lare @ Shadow PKMN Lab",
+      "location": 67
     },
     {
       "shadow_index": 30,
       "species": 205,
       "level": 43,
       "moves": "153,182,117,229",
-      "comment": "Forretress: Cipher Peon Vana @ Shadow PKMN Lab"
+      "comment": "Forretress: Cipher Peon Vana @ Shadow PKMN Lab",
+      "location": 67
     },
     {
       "shadow_index": 37,
       "species": 198,
       "level": 43,
       "moves": "185,212,101,019",
-      "comment": "Murkrow: Cipher Peon Lare @ Shadow PKMN Lab (Trainer drops from ceiling: can lose during play-through, rematch later)"
+      "comment": "Murkrow: Cipher Peon Lare @ Shadow PKMN Lab (Trainer drops from ceiling: can lose during play-through, rematch later)",
+      "location": 67
     }
   ],
   "068": [
@@ -266,14 +299,16 @@
       "species": 237,
       "level": 38,
       "moves": "097,116,167,229",
-      "comment": "Hitmontop: Cipher Peon Skrub @ Shadow PKMN Lab"
+      "comment": "Hitmontop: Cipher Peon Skrub @ Shadow PKMN Lab",
+      "location": 68
     },
     {
       "shadow_index": 32,
-      "species": 329,
+      "species": 333,
       "level": 43,
       "moves": "242,103,328,225",
-      "comment": "Vibrava: Cipher Peon Remil @ Shadow PKMN Lab"
+      "comment": "Vibrava: Cipher Peon Remil @ Shadow PKMN Lab",
+      "location": 68
     }
   ],
   "069": [
@@ -282,42 +317,48 @@
       "species": 153,
       "level": 30,
       "moves": "241,235,075,034",
-      "comment": "Bayleef: Cipher Peon Verde @ Shadow PKMN Lab"
+      "comment": "Bayleef: Cipher Peon Verde @ Shadow PKMN Lab",
+      "location": 69
     },
     {
       "shadow_index": 3,
       "species": 156,
       "level": 30,
       "moves": "241,108,091,172",
-      "comment": "Quilava: Cipher Peon Rosso @ Shadow PKMN Lab"
+      "comment": "Quilava: Cipher Peon Rosso @ Shadow PKMN Lab",
+      "location": 69
     },
     {
       "shadow_index": 4,
       "species": 159,
       "level": 30,
       "moves": "240,184,044,057",
-      "comment": "Croconaw: Cipher Peon Bluno @ Shadow PKMN Lab"
+      "comment": "Croconaw: Cipher Peon Bluno @ Shadow PKMN Lab",
+      "location": 69
     },
     {
       "shadow_index": 31,
       "species": 210,
       "level": 43,
       "moves": "044,184,046,070",
-      "comment": "Granbull: Cipher Peon Tanie @ Shadow PKMN Lab"
+      "comment": "Granbull: Cipher Peon Tanie @ Shadow PKMN Lab",
+      "location": 69
     },
     {
       "shadow_index": 33,
       "species": 168,
       "level": 43,
       "moves": "169,184,141,188",
-      "comment": "Ariados: Cipher Peon Lesar @ Shadow PKMN Lab"
+      "comment": "Ariados: Cipher Peon Lesar @ Shadow PKMN Lab",
+      "location": 69
     },
     {
       "shadow_index": 34,
       "species": 243,
       "level": 40,
       "moves": "240,043,098,087",
-      "comment": "Raikou: Cipher Admin Ein @ Shadow PKMN Lab"
+      "comment": "Raikou: Cipher Admin Ein @ Shadow PKMN Lab",
+      "location": 69
     }
   ],
   "076": [
@@ -326,7 +367,8 @@
       "species": 244,
       "level": 40,
       "moves": "241,043,044,126",
-      "comment": "Entei: Cipher Admin Dakim @ Mt. Battle"
+      "comment": "Entei: Cipher Admin Dakim @ Mt. Battle",
+      "location": 76
     }
   ],
   "104": [
@@ -335,7 +377,8 @@
       "species": 185,
       "level": 35,
       "moves": "175,335,067,157",
-      "comment": "Sudowoodo: Cipher Admin Miror B. @ Realgam Tower"
+      "comment": "Sudowoodo: Cipher Admin Miror B. @ Realgam Tower",
+      "location": 104
     }
   ],
   "106": [
@@ -344,7 +387,8 @@
       "species": 244,
       "level": 40,
       "moves": "241,043,044,126",
-      "comment": "Entei: Cipher Admin Dakim @ Realgam Tower"
+      "comment": "Entei: Cipher Admin Dakim @ Realgam Tower",
+      "location": 106
     }
   ],
   "109": [
@@ -353,14 +397,16 @@
       "species": 192,
       "level": 45,
       "moves": "241,074,275,076",
-      "comment": "Sunflora: Cipher Peon Baila @ Realgam Tower"
+      "comment": "Sunflora: Cipher Peon Baila @ Realgam Tower",
+      "location": 109
     },
     {
       "shadow_index": 36,
       "species": 225,
       "level": 45,
       "moves": "059,213,217,019",
-      "comment": "Delibird: Cipher Peon Arton @ Realgam Tower"
+      "comment": "Delibird: Cipher Peon Arton @ Realgam Tower",
+      "location": 109
     }
   ],
   "110": [
@@ -369,7 +415,8 @@
       "species": 245,
       "level": 40,
       "moves": "240,043,016,057",
-      "comment": "Suicune (Surf): Cipher Admin Venus @ Realgam Tower"
+      "comment": "Suicune (Surf): Cipher Admin Venus @ Realgam Tower",
+      "location": 110
     }
   ],
   "111": [
@@ -378,7 +425,8 @@
       "species": 214,
       "level": 45,
       "moves": "179,203,068,280",
-      "comment": "Heracross: Cipher Peon Dioge @ Realgam Tower"
+      "comment": "Heracross: Cipher Peon Dioge @ Realgam Tower",
+      "location": 111
     }
   ],
   "113": [
@@ -387,7 +435,8 @@
       "species": 243,
       "level": 40,
       "moves": "240,043,098,087",
-      "comment": "Raikou: Cipher Admin Ein @ Realgam Tower"
+      "comment": "Raikou: Cipher Admin Ein @ Realgam Tower",
+      "location": 113
     }
   ],
   "115": [
@@ -396,21 +445,24 @@
       "species": 153,
       "level": 30,
       "moves": "241,235,075,034",
-      "comment": "Bayleef: Cipher Peon Verde @ Realgam Tower"
+      "comment": "Bayleef: Cipher Peon Verde @ Realgam Tower",
+      "location": 115
     },
     {
       "shadow_index": 3,
       "species": 156,
       "level": 30,
       "moves": "241,108,091,172",
-      "comment": "Quilava: Cipher Peon Rosso @ Realgam Tower"
+      "comment": "Quilava: Cipher Peon Rosso @ Realgam Tower",
+      "location": 115
     },
     {
       "shadow_index": 4,
       "species": 159,
       "level": 30,
       "moves": "240,184,044,057",
-      "comment": "Croconaw: Cipher Peon Bluno @ Realgam Tower"
+      "comment": "Croconaw: Cipher Peon Bluno @ Realgam Tower",
+      "location": 115
     }
   ],
   "117": [
@@ -419,7 +471,8 @@
       "species": 227,
       "level": 47,
       "moves": "065,319,314,211",
-      "comment": "Skarmory: Snagem Head Gonzap @ Realgam Tower"
+      "comment": "Skarmory: Snagem Head Gonzap @ Realgam Tower",
+      "location": 117
     }
   ],
   "118": [
@@ -428,42 +481,48 @@
       "species": 241,
       "level": 48,
       "moves": "208,111,205,034",
-      "comment": "Miltank: Bodybuilder Jomas @ Tower Colosseum"
+      "comment": "Miltank: Bodybuilder Jomas @ Tower Colosseum",
+      "location": 118
     },
     {
       "shadow_index": 40,
-      "species": 359,
+      "species": 376,
       "level": 48,
       "moves": "195,014,163,185",
-      "comment": "Absol: Rider Delan @ Tower Colosseum"
+      "comment": "Absol: Rider Delan @ Tower Colosseum",
+      "location": 118
     },
     {
       "shadow_index": 41,
       "species": 229,
       "level": 48,
       "moves": "185,336,123,053",
-      "comment": "Houndoom: Cipher Peon Nella @ Tower Colosseum"
+      "comment": "Houndoom: Cipher Peon Nella @ Tower Colosseum",
+      "location": 118
     },
     {
       "shadow_index": 42,
-      "species": 357,
+      "species": 369,
       "level": 49,
       "moves": "076,235,345,019",
-      "comment": "Tropius: Cipher Peon Ston @ Tower Colosseum"
+      "comment": "Tropius: Cipher Peon Ston @ Tower Colosseum",
+      "location": 118
     },
     {
       "shadow_index": 43,
-      "species": 376,
+      "species": 400,
       "level": 50,
       "moves": "063,334,232,094",
-      "comment": "Metagross: Cipher Nascour @ Tower Colosseum"
+      "comment": "Metagross: Cipher Nascour @ Tower Colosseum",
+      "location": 118
     },
     {
       "shadow_index": 44,
       "species": 248,
       "level": 55,
       "moves": "242,087,157,059",
-      "comment": "Tyranitar: Cipher Head Evice @ Tower Colosseum"
+      "comment": "Tyranitar: Cipher Head Evice @ Tower Colosseum",
+      "location": 118
     }
   ],
   "125": [
@@ -472,35 +531,40 @@
       "species": 185,
       "level": 35,
       "moves": "175,335,067,157",
-      "comment": "Sudowoodo: Cipher Admin Miror B. @ Deep Colosseum"
+      "comment": "Sudowoodo: Cipher Admin Miror B. @ Deep Colosseum",
+      "location": 125
     },
     {
       "shadow_index": 21,
       "species": 244,
       "level": 40,
       "moves": "241,043,044,126",
-      "comment": "Entei: Cipher Admin Dakim @ Deep Colosseum"
+      "comment": "Entei: Cipher Admin Dakim @ Deep Colosseum",
+      "location": 125
     },
     {
       "shadow_index": 23,
       "species": 245,
       "level": 40,
       "moves": "240,043,016,056",
-      "comment": "Suicune (Hydro Pump): Cipher Admin Venus @ Deep Colosseum"
+      "comment": "Suicune (Hydro Pump): Cipher Admin Venus @ Deep Colosseum",
+      "location": 125
     },
     {
       "shadow_index": 34,
       "species": 243,
       "level": 40,
       "moves": "240,043,098,087",
-      "comment": "Raikou: Cipher Admin Ein @ Deep Colosseum"
+      "comment": "Raikou: Cipher Admin Ein @ Deep Colosseum",
+      "location": 125
     },
     {
       "shadow_index": 57,
       "species": 213,
       "level": 45,
       "moves": "219,227,156,117",
-      "comment": "Shuckle: Deep King Agnol @ Deep Colosseum"
+      "comment": "Shuckle: Deep King Agnol @ Deep Colosseum",
+      "location": 125
     }
   ],
   "132": [
@@ -509,77 +573,88 @@
       "species": 153,
       "level": 30,
       "moves": "241,235,075,034",
-      "comment": "Bayleef: Cipher Peon Verde @ Snagem Hideout"
+      "comment": "Bayleef: Cipher Peon Verde @ Snagem Hideout",
+      "location": 132
     },
     {
       "shadow_index": 3,
       "species": 156,
       "level": 30,
       "moves": "241,108,091,172",
-      "comment": "Quilava: Cipher Peon Rosso @ Snagem Hideout"
+      "comment": "Quilava: Cipher Peon Rosso @ Snagem Hideout",
+      "location": 132
     },
     {
       "shadow_index": 4,
       "species": 159,
       "level": 30,
       "moves": "240,184,044,057",
-      "comment": "Croconaw: Cipher Peon Bluno @ Snagem Hideout"
+      "comment": "Croconaw: Cipher Peon Bluno @ Snagem Hideout",
+      "location": 132
     },
     {
       "shadow_index": 10,
       "species": 193,
       "level": 33,
       "moves": "197,048,049,253",
-      "comment": "Yanma: Cipher Peon Nore @ Snagem Hideout"
+      "comment": "Yanma: Cipher Peon Nore @ Snagem Hideout",
+      "location": 132
     },
     {
       "shadow_index": 20,
       "species": 237,
       "level": 38,
       "moves": "097,116,167,229",
-      "comment": "Hitmontop: Cipher Peon Skrub @ Snagem Hideout"
+      "comment": "Hitmontop: Cipher Peon Skrub @ Snagem Hideout",
+      "location": 132
     },
     {
       "shadow_index": 22,
       "species": 166,
       "level": 40,
       "moves": "226,219,048,004",
-      "comment": "Ledian: Cipher Peon Kloak @ Snagem Hideout"
+      "comment": "Ledian: Cipher Peon Kloak @ Snagem Hideout",
+      "location": 132
     },
     {
       "shadow_index": 35,
       "species": 192,
       "level": 45,
       "moves": "241,074,275,076",
-      "comment": "Sunflora: Cipher Peon Baila @ Snagem Hideout"
+      "comment": "Sunflora: Cipher Peon Baila @ Snagem Hideout",
+      "location": 132
     },
     {
       "shadow_index": 36,
       "species": 225,
       "level": 45,
       "moves": "059,213,217,019",
-      "comment": "Delibird: Cipher Peon Arton @ Snagem Hideout"
+      "comment": "Delibird: Cipher Peon Arton @ Snagem Hideout",
+      "location": 132
     },
     {
       "shadow_index": 37,
       "species": 214,
       "level": 45,
       "moves": "179,203,068,280",
-      "comment": "Heracross: Cipher Peon Dioge @ Snagem Hideout (Trainer drops from ceiling: can lose during play-through, rematch later)"
+      "comment": "Heracross: Cipher Peon Dioge @ Snagem Hideout (Trainer drops from ceiling: can lose during play-through, rematch later)",
+      "location": 132
     },
     {
       "shadow_index": 55,
       "species": 235,
       "level": 45,
       "moves": "166,039,003,231",
-      "comment": "Smeargle: Team Snagem Biden @ Snagem Hideout"
+      "comment": "Smeargle: Team Snagem Biden @ Snagem Hideout",
+      "location": 132
     },
     {
       "shadow_index": 56,
       "species": 217,
       "level": 45,
       "moves": "185,313,122,163",
-      "comment": "Ursaring: Team Snagem Agrev @ Snagem Hideout"
+      "comment": "Ursaring: Team Snagem Agrev @ Snagem Hideout",
+      "location": 132
     }
   ],
   "133": [
@@ -588,21 +663,24 @@
       "species": 207,
       "level": 43,
       "moves": "185,028,040,163",
-      "comment": "Gligar: Hunter Frena @ Snagem Hideout"
+      "comment": "Gligar: Hunter Frena @ Snagem Hideout",
+      "location": 133
     },
     {
       "shadow_index": 25,
       "species": 234,
       "level": 43,
       "moves": "310,095,043,036",
-      "comment": "Stantler: Chaser Liaks @ Snagem Hideout"
+      "comment": "Stantler: Chaser Liaks @ Snagem Hideout",
+      "location": 133
     },
     {
       "shadow_index": 38,
       "species": 227,
       "level": 47,
       "moves": "065,319,314,211",
-      "comment": "Skarmory: Snagem Head Gonzap @ Snagem Hideout"
+      "comment": "Skarmory: Snagem Head Gonzap @ Snagem Hideout",
+      "location": 133
     }
   ],
   "134": [
@@ -611,14 +689,16 @@
       "species": 221,
       "level": 43,
       "moves": "203,316,091,059",
-      "comment": "Piloswine: Bodybuilder Lonia @ Snagem Hideout"
+      "comment": "Piloswine: Bodybuilder Lonia @ Snagem Hideout",
+      "location": 134
     },
     {
       "shadow_index": 27,
       "species": 215,
       "level": 43,
       "moves": "185,103,154,196",
-      "comment": "Sneasel: Rider Nelis @ Snagem Hideout"
+      "comment": "Sneasel: Rider Nelis @ Snagem Hideout",
+      "location": 134
     }
   ]
 }

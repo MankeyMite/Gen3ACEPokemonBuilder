@@ -175,11 +175,13 @@ pre{white-space:pre-wrap;word-break:break-word}
 body.encounter-wild .wild-only { display: flex; }
 .wild-or-legend { display: none; }
 body.encounter-wild .wild-or-legend,
-body.encounter-legendaries .wild-or-legend { display: flex; }
+body.encounter-legendaries .wild-or-legend,
+body.encounter-cxd_shadow .wild-or-legend { display: flex; }
 
 /* Hide the external Shiny checkbox row when PID Finder is available */
 body.encounter-wild .shiny-external,
-body.encounter-legendaries .shiny-external { display: none; }
+body.encounter-legendaries .shiny-external,
+body.encounter-cxd_shadow .shiny-external { display: none; }
 
 .pid-finder-btn {
   font-size: 0.9rem;

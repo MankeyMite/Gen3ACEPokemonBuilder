@@ -18,6 +18,7 @@ import { LEARNSETS } from './data/learnsets.gen3.js';
 import { WILD_ENCOUNTERS } from './data/wildEncounters.gen3.js';
 import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
 import { PROFANITY_LIST } from './data/profanity.gen3.js';
+import { CXD_SHADOW_ENCOUNTERS, CXD_SHADOW_SPECIES, getShadowEncountersForSpecies, isValidGCTidSid } from './data/shadowEncounters.gen3.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -1094,8 +1095,9 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
   const data = LEARNSETS[speciesId];
   let baseMoves;
 
-  if (manualOverrideActive) {
-    // Manual override: show ALL Gen 3 moves regardless of species learnset
+  if (manualOverrideActive || currentEncounterMode === 'cxd_shadow') {
+    // Manual override / CXD Shadow: show ALL Gen 3 moves regardless of species learnset
+    // (shadow encounters can know moves outside the normal learnset)
     baseMoves = MOVES;
   } else if (data) {
     const mode = currentEncounterMode;
@@ -2252,6 +2254,7 @@ function boot(){
       document.body.classList.toggle('encounter-wild', currentEncounterMode === 'wild');
       document.body.classList.toggle('encounter-legendaries', currentEncounterMode === 'legendaries');
       document.body.classList.toggle('encounter-mystery', currentEncounterMode === 'mystery');
+      document.body.classList.toggle('encounter-cxd_shadow', currentEncounterMode === 'cxd_shadow');
       
       // Filter species list based on encounter mode
       updateSpeciesListForMode();
@@ -2329,7 +2332,8 @@ function boot(){
       hatched: {label: 'Hatched', color: '#10b981', text: 'Pokémon that came from eggs, and not met in the wild. This mode is recommended for any Pokemon that can be obtained through breeding, as it allows full customization for IVs, shinyness, TID and SID.'},
       legendaries: {label: 'Legendaries', color: '#f59e0b', text: 'All legendary Pokémon with in-game encounters. IVs are hand picked for best possible per nature for Method 1. You may therefore not choose the SID if you want it shiny.'},
       wild: {label: 'Wild', color: '#60a5fa', text: 'Wild encounters (in the overworld). Recommended only if you prefer it looking like it was RNG manipulated. Uses Method 1 encounter slots to aim for best IVs per nature for each species, and you may therefore not choose the SID if you want it shiny.'},
-      mystery: {label: 'Mystery Gifts', color: '#ef476f', text: 'Mystery Gift events — Get Distribution Event Pokémon! These have strict rules, so you may only change a few fields. IVs are hand picked for the best possible for each nature.'}
+      mystery: {label: 'Mystery Gifts', color: '#ef476f', text: 'Mystery Gift events — Get Distribution Event Pokémon! These have strict rules, so you may only change a few fields. IVs are hand picked for the best possible for each nature.'},
+      cxd_shadow: {label: 'XD / Colosseum', color: '#a78bfa', text: 'Shadow Pokémon from Pokémon XD: Gale of Darkness and Pokémon Colosseum. Choose a species and encounter location, then use the PID Finder with CXD method. TID and SID must be a valid GameCube RNG pair.'}
     };
     const m = map[mode] || {label: '', color: '#94a3b8', text: ''};
     // Render pill + text so the description is clearly associated with the selected mode
@@ -3108,6 +3112,10 @@ function boot(){
           filteredSpecies = SPECIES.filter(s => isGiftPokemon(s[0]));
         }
         break;
+      case 'cxd_shadow':
+        // Only show species with CXD shadow encounter data
+        filteredSpecies = SPECIES.filter(s => CXD_SHADOW_SPECIES.has(s[0]));
+        break;
       default:
         filteredSpecies = SPECIES;
     }
@@ -3271,6 +3279,16 @@ function boot(){
             natureElLocal.dispatchEvent(new Event('change'));
           }
         }
+    } else if (mode === 'cxd_shadow') {
+      // CXD Shadow mode: populate shadow encounter sub-selector and auto-apply
+      if (genderSelect) {
+        genderSelect.style.pointerEvents = 'none';
+        genderSelect.style.opacity = '0.6';
+        genderSelect.style.cursor = 'not-allowed';
+      }
+      if (!manualOverrideActive) {
+        applyCXDShadowEncounterForSpecies(speciesId);
+      }
     } else {
       // Fallback: re-enable gender selection
       if (genderSelect) {
@@ -3283,6 +3301,128 @@ function boot(){
     
     // Update legality status after mode change
     updateLegalityStatus();
+  }
+
+  /* ══════════════════════════════════════════════════════════
+   *  CXD Shadow Encounter helpers
+   * ══════════════════════════════════════════════════════════ */
+
+  /**
+   * Populate the #shadowEncounter dropdown with all encounters for the given
+   * species, and auto-apply the first one.
+   */
+  function applyCXDShadowEncounterForSpecies(speciesId) {
+    const encounters = getShadowEncountersForSpecies(speciesId);
+    const sel = document.getElementById('shadowEncounter');
+    if (!sel) return;
+    sel.innerHTML = '';
+
+    if (!encounters.length) {
+      sel.innerHTML = '<option value="">— No encounters —</option>';
+      return;
+    }
+
+    // Build dropdown options:  "Trainer @ Location [###] (Game, Lv##)"
+    for (let i = 0; i < encounters.length; i++) {
+      const enc = encounters[i];
+      const locPad = String(enc.location).padStart(3, '0');
+      const gameLabel = enc.game === 'colo' ? 'Colo' : 'XD';
+      const opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = `${enc.trainer} @ ${enc.locationName} [${locPad}] (${gameLabel}, Lv${enc.level})`;
+      sel.appendChild(opt);
+    }
+    sel.value = '0';
+    // Apply the first encounter immediately
+    applyCXDShadowPreset(encounters[0]);
+  }
+
+  /**
+   * Apply a single CXD shadow encounter preset to the form.
+   * Sets origin game, met location, met level, level, moves, and fateful encounter.
+   */
+  function applyCXDShadowPreset(enc) {
+    if (!enc) return;
+
+    // Origin game: Colosseum/XD = game ID 15
+    const originGameSelect = $('#originGame');
+    if (originGameSelect) {
+      originGameSelect.value = '15';
+      // Refresh location list for Colosseum/XD
+      if (metLocationWrapper && metLocationWrapper.updateList) {
+        metLocationWrapper.updateList(getLocationsForGame(15));
+      }
+    }
+
+    // Met location
+    const metLocationSelect = $('#metLocation');
+    if (metLocationSelect) {
+      metLocationSelect.value = String(enc.location);
+    }
+
+    // Met level and level
+    const metLevelInput = $('#metLevel');
+    const levelInput = $('#level');
+    if (metLevelInput) metLevelInput.value = String(enc.level);
+    if (levelInput) levelInput.value = String(enc.level);
+    computeAndSetExpFromLevel();
+
+    // Moves
+    const moveIds = enc.moves || [];
+    for (let i = 0; i < 4; i++) {
+      const moveEl = $(`#move${i + 1}`);
+      if (moveEl) moveEl.value = String(moveIds[i] || 0);
+    }
+    // Show all moves in dropdown for this species so shadow moves are available
+    updateMovesForSpecies(enc.species, { preserveValue: true });
+
+    // Fateful encounter — shadow Pokémon from Colosseum/XD are NOT fateful
+    // (only specific event distributions like Ageto Celebi are fateful)
+    const fatefulCheckbox = $('#fatefulEncounter');
+    if (fatefulCheckbox) fatefulCheckbox.checked = false;
+
+    // IVs: reset to 31 (user can pick via PID Finder)
+    $('#ivHp').value = '31';
+    $('#ivAtk').value = '31';
+    $('#ivDef').value = '31';
+    $('#ivSpAtk').value = '31';
+    $('#ivSpDef').value = '31';
+    $('#ivSpe').value = '31';
+
+    updateHiddenPower();
+    try { validateForm(); } catch (e) {}
+    try { updateGCTidSidWarning(); } catch (e) {}
+  }
+
+  // Wire up the shadow encounter dropdown change handler
+  const shadowEncounterSel = document.getElementById('shadowEncounter');
+  if (shadowEncounterSel) {
+    shadowEncounterSel.addEventListener('change', () => {
+      if (currentEncounterMode !== 'cxd_shadow') return;
+      const speciesId = Number($('#species').value) || 0;
+      const encounters = getShadowEncountersForSpecies(speciesId);
+      const idx = Number(shadowEncounterSel.value) || 0;
+      if (encounters[idx]) {
+        applyCXDShadowPreset(encounters[idx]);
+      }
+    });
+  }
+
+  /**
+   * Check and display warning if TID/SID pair is invalid for GC RNG.
+   * Only shown when in cxd_shadow mode.
+   */
+  function updateGCTidSidWarning() {
+    const warningEl = document.getElementById('gcTidSidWarning');
+    if (!warningEl) return;
+    if (currentEncounterMode !== 'cxd_shadow') {
+      warningEl.style.display = 'none';
+      return;
+    }
+    const tid = Number($('#tid').value) & 0xFFFF;
+    const sid = Number($('#sid').value) & 0xFFFF;
+    const valid = isValidGCTidSid(tid, sid);
+    warningEl.style.display = valid ? 'none' : '';
   }
 
   /**
@@ -3557,6 +3697,12 @@ function boot(){
       const levelInput = $('#level'); if (levelInput) levelInput.value = '100';
       const expEl = $('#expTotal'); if (expEl) expEl.value = String(expForLevel(GROUP.MEDIUM_FAST, 100));
       const fateful = $('#fatefulEncounter'); if (fateful) fateful.checked = false;
+
+      // Clear GC TID/SID warning and shadow encounter dropdown
+      const gcWarn = document.getElementById('gcTidSidWarning');
+      if (gcWarn) gcWarn.style.display = 'none';
+      const shadowEnc = document.getElementById('shadowEncounter');
+      if (shadowEnc) { shadowEnc.innerHTML = ''; }
 
       // Reset basic trainer info and PID/IVs to neutral values
       const tid = $('#tid'); if (tid) tid.value = '';
@@ -4034,13 +4180,15 @@ function boot(){
     });
   });
 
-  // TID and SID: cap at 65535
+  // TID and SID: cap at 65535, and check GC RNG validity when in CXD shadow mode
   $('#tid').addEventListener('input', (e) => {
     e.target.value = clampInt(e.target.value, 0, 65535);
+    try { updateGCTidSidWarning(); } catch (ex) {}
   });
 
   $('#sid').addEventListener('input', (e) => {
     e.target.value = clampInt(e.target.value, 0, 65535);
+    try { updateGCTidSidWarning(); } catch (ex) {}
   });
 
   // Friendship: cap at 0-255
@@ -4499,8 +4647,8 @@ function initPidFinder() {
     }
 
     const currentGameId = Number($('#originGame').value) || 3;
-    if (currentEncounterMode === 'legendaries' && currentGameId === 15) {
-      // Colosseum/XD shadow encounters use CXD PRNG only
+    if (currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'legendaries' && currentGameId === 15)) {
+      // CXD shadow encounters use CXD PRNG only
       if (pfM1) { pfM1.checked = true;  pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, 'CXD'); }
       if (pfM2) { pfM2.checked = false; pfM2.parentElement.style.display = 'none'; }
       if (pfM4) { pfM4.checked = false; pfM4.parentElement.style.display = 'none'; }
@@ -4595,7 +4743,7 @@ function initPidFinder() {
 
     // Determine which worker to use
     const gameId     = Number($('#originGame').value) || 3;
-    const isCXD      = currentEncounterMode === 'legendaries' && gameId === 15;
+    const isCXD      = currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'legendaries' && gameId === 15);
     const workerPath = isCXD ? './src/lib/gen3/cxd-worker.js' : './src/lib/gen3/rng-worker.js';
 
     // Spawn workers across available cores
@@ -4979,9 +5127,10 @@ function collect(){
 }
 
 // ── Profanity check for Base64 box names ───────────────────────────────
-// Build a single regex from the word list for fast substring matching.
+// Build a single regex from the pattern list (patterns are already regex strings
+// from the Nintendo Switch filter, so they are joined directly without escaping).
 const _profanityRe = new RegExp(
-  PROFANITY_LIST.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
+  PROFANITY_LIST.join('|'),
   'i'
 );
 
@@ -5000,7 +5149,7 @@ function checkBase64Profanity(b64Text) {
     const boxName = m[2];
     // Test the box name against the full profanity regex
     const hit = boxName.match(new RegExp(
-      PROFANITY_LIST.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
+      PROFANITY_LIST.join('|'),
       'gi'
     ));
     if (hit) {
