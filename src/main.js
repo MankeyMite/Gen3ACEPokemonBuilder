@@ -1094,7 +1094,10 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
   const data = LEARNSETS[speciesId];
   let baseMoves;
 
-  if (data) {
+  if (manualOverrideActive) {
+    // Manual override: show ALL Gen 3 moves regardless of species learnset
+    baseMoves = MOVES;
+  } else if (data) {
     const mode = currentEncounterMode;
     const level = Number($('#level')?.value) || 100;
 
@@ -2294,6 +2297,11 @@ function boot(){
       try { lockLanguageForMewLegend(); } catch (e) {}
       try { enforceJapaneseOption(); } catch (e) {}
       try { updateFatefulLocking(); } catch (e) {}
+      // Refresh move dropdowns — override shows all Gen 3 moves, normal re-applies learnset
+      try {
+        const speciesId = Number($('#species').value) || 0;
+        if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
+      } catch (e) {}
       // Unlock gender control if override is on
       try {
         const genderEl = document.querySelector('#gender');

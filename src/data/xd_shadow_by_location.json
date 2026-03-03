@@ -1,0 +1,706 @@
+{
+  "008": [
+    {
+      "shadow_index": 10,
+      "species": 318,
+      "level": 15,
+      "moves": "352,287,184,044",
+      "comment": "Carvanha: Cipher Peon Cabol @ Cipher Lab"
+    },
+    {
+      "shadow_index": 12,
+      "species": 301,
+      "level": 18,
+      "moves": "290,186,213,351",
+      "comment": "Delcatty: Cipher Admin Lovrina @ Cipher Lab"
+    },
+    {
+      "shadow_index": 23,
+      "species": 285,
+      "level": 15,
+      "moves": "206,287,072,078",
+      "comment": "Shroomish: Cipher R&D Klots @ Cipher Lab"
+    }
+  ],
+  "009": [
+    {
+      "shadow_index": 9,
+      "species": 322,
+      "level": 14,
+      "moves": "036,204,091,052",
+      "comment": "Numel: Cipher Peon Solox @ Cipher Lab"
+    }
+  ],
+  "010": [
+    {
+      "shadow_index": 8,
+      "species": 167,
+      "level": 14,
+      "moves": "091,287,324,101",
+      "comment": "Spinarak: Cipher Peon Nexir @ Cipher Lab"
+    }
+  ],
+  "011": [
+    {
+      "shadow_index": 3,
+      "species": 363,
+      "level": 17,
+      "moves": "062,204,055,189",
+      "comment": "Spheal: Cipher Peon Blusix @ Cipher Lab"
+    },
+    {
+      "shadow_index": 4,
+      "species": 343,
+      "level": 17,
+      "moves": "317,287,189,060",
+      "comment": "Baltoy: Cipher Peon Browsix @ Cipher Lab"
+    },
+    {
+      "shadow_index": 5,
+      "species": 179,
+      "level": 17,
+      "moves": "034,215,084,086",
+      "comment": "Mareep: Cipher Peon Yellosix @ Cipher Lab"
+    },
+    {
+      "shadow_index": 6,
+      "species": 316,
+      "level": 17,
+      "moves": "351,047,124,092",
+      "comment": "Gulpin: Cipher Peon Purpsix @ Cipher Lab"
+    },
+    {
+      "shadow_index": 7,
+      "species": 273,
+      "level": 17,
+      "moves": "202,287,331,290",
+      "comment": "Seedot: Cipher Peon Greesix @ Cipher Lab"
+    },
+    {
+      "shadow_index": 14,
+      "species": 228,
+      "level": 17,
+      "moves": "185,204,052,046",
+      "comment": "Houndour: Cipher Peon Resix @ Cipher Lab"
+    }
+  ],
+  "064": [
+    {
+      "shadow_index": 31,
+      "species": 58,
+      "level": 28,
+      "moves": "053,204,044,036",
+      "comment": "Growlithe: Cipher Peon Humah @ Cipher Key Lair"
+    },
+    {
+      "shadow_index": 32,
+      "species": 46,
+      "level": 28,
+      "moves": "147,287,163,206",
+      "comment": "Paras: Cipher Peon Humah @ Cipher Key Lair"
+    }
+  ],
+  "065": [
+    {
+      "shadow_index": 33,
+      "species": 90,
+      "level": 29,
+      "moves": "036,287,057,062",
+      "comment": "Shellder: Cipher Peon Gorog @ Cipher Key Lair"
+    }
+  ],
+  "066": [
+    {
+      "shadow_index": 34,
+      "species": 15,
+      "level": 30,
+      "moves": "188,226,041,014",
+      "comment": "Beedrill: Cipher Peon Lok @ Cipher Key Lair"
+    },
+    {
+      "shadow_index": 35,
+      "species": 17,
+      "level": 30,
+      "moves": "017,287,211,297",
+      "comment": "Pidgeotto: Cipher Peon Lok @ Cipher Key Lair"
+    }
+  ],
+  "067": [
+    {
+      "shadow_index": 36,
+      "species": 12,
+      "level": 30,
+      "moves": "094,234,079,332",
+      "comment": "Butterfree: Cipher Peon Targ @ Cipher Key Lair"
+    },
+    {
+      "shadow_index": 37,
+      "species": 114,
+      "level": 30,
+      "moves": "076,234,241,275",
+      "comment": "Tangela: Cipher Peon Targ @ Cipher Key Lair"
+    },
+    {
+      "shadow_index": 46,
+      "species": 82,
+      "level": 30,
+      "moves": "038,287,240,087",
+      "comment": "Magneton: Cipher Peon Snidle @ Cipher Key Lair"
+    }
+  ],
+  "069": [
+    {
+      "shadow_index": 42,
+      "species": 57,
+      "level": 34,
+      "moves": "238,270,116,179",
+      "comment": "Primeape: Cipher Admin Gorigan @ Cipher Key Lair"
+    },
+    {
+      "shadow_index": 43,
+      "species": 97,
+      "level": 34,
+      "moves": "094,226,096,247",
+      "comment": "Hypno: Cipher Admin Gorigan @ Cipher Key Lair"
+    }
+  ],
+  "070": [
+    {
+      "shadow_index": 39,
+      "species": 49,
+      "level": 32,
+      "moves": "318,287,164,094",
+      "comment": "Venomoth: Cipher Peon Angic @ Cipher Key Lair"
+    },
+    {
+      "shadow_index": 40,
+      "species": 70,
+      "level": 32,
+      "moves": "345,234,188,230",
+      "comment": "Weepinbell: Cipher Peon Angic @ Cipher Key Lair"
+    },
+    {
+      "shadow_index": 41,
+      "species": 24,
+      "level": 33,
+      "moves": "188,287,137,044",
+      "comment": "Arbok: Cipher Peon Smarton @ Cipher Key Lair"
+    }
+  ],
+  "071": [
+    {
+      "shadow_index": 30,
+      "species": 335,
+      "level": 28,
+      "moves": "280,287,068,306",
+      "comment": "Zangoose: Thug Zook @ Cipher Key Lair"
+    }
+  ],
+  "073": [
+    {
+      "shadow_index": 69,
+      "species": 310,
+      "level": 44,
+      "moves": "087,287,240,044",
+      "comment": "Manectric: Cipher Admin Eldes @ Citadark Isle"
+    },
+    {
+      "shadow_index": 70,
+      "species": 373,
+      "level": 50,
+      "moves": "337,287,349,332",
+      "comment": "Salamence: Cipher Admin Eldes @ Citadark Isle"
+    },
+    {
+      "shadow_index": 71,
+      "species": 105,
+      "level": 44,
+      "moves": "089,047,014,157",
+      "comment": "Marowak: Cipher Admin Eldes @ Citadark Isle"
+    },
+    {
+      "shadow_index": 72,
+      "species": 131,
+      "level": 44,
+      "moves": "056,215,240,059",
+      "comment": "Lapras: Cipher Admin Eldes @ Citadark Isle"
+    }
+  ],
+  "074": [
+    {
+      "shadow_index": 73,
+      "species": 249,
+      "level": 50,
+      "moves": "354,297,089,056",
+      "comment": "Lugia: Grand Master Greevil @ Citadark Isle"
+    },
+    {
+      "shadow_index": 74,
+      "species": 145,
+      "level": 50,
+      "moves": "326,226,319,085",
+      "comment": "Zapdos: Grand Master Greevil @ Citadark Isle"
+    },
+    {
+      "shadow_index": 75,
+      "species": 146,
+      "level": 50,
+      "moves": "326,234,261,053",
+      "comment": "Moltres: Grand Master Greevil @ Citadark Isle"
+    },
+    {
+      "shadow_index": 76,
+      "species": 144,
+      "level": 50,
+      "moves": "326,215,114,058",
+      "comment": "Articuno: Grand Master Greevil @ Citadark Isle"
+    },
+    {
+      "shadow_index": 77,
+      "species": 128,
+      "level": 46,
+      "moves": "089,287,039,034",
+      "comment": "Tauros: Grand Master Greevil @ Citadark Isle"
+    },
+    {
+      "shadow_index": 78,
+      "species": 112,
+      "level": 46,
+      "moves": "224,270,184,089",
+      "comment": "Rhydon: Grand Master Greevil @ Citadark Isle"
+    },
+    {
+      "shadow_index": 79,
+      "species": 103,
+      "level": 46,
+      "moves": "094,287,095,246",
+      "comment": "Exeggutor: Grand Master Greevil @ Citadark Isle"
+    }
+  ],
+  "075": [
+    {
+      "shadow_index": 68,
+      "species": 51,
+      "level": 40,
+      "moves": "089,204,201,161",
+      "comment": "Dugtrio: Cipher Peon Kolax @ Citadark Isle"
+    }
+  ],
+  "076": [
+    {
+      "shadow_index": 38,
+      "species": 20,
+      "level": 34,
+      "moves": "162,287,184,158",
+      "comment": "Raticate: Chaser Furgy @ Citadark Isle"
+    },
+    {
+      "shadow_index": 47,
+      "species": 85,
+      "level": 34,
+      "moves": "065,226,097,161",
+      "comment": "Dodrio: Chaser Furgy @ Citadark Isle"
+    },
+    {
+      "shadow_index": 48,
+      "species": 83,
+      "level": 36,
+      "moves": "163,226,014,332",
+      "comment": "Farfetch'd: Cipher Admin Lovrina @ Citadark Isle"
+    },
+    {
+      "shadow_index": 49,
+      "species": 334,
+      "level": 36,
+      "moves": "225,215,076,332",
+      "comment": "Altaria: Cipher Admin Lovrina @ Citadark Isle"
+    }
+  ],
+  "077": [
+    {
+      "shadow_index": 52,
+      "species": 126,
+      "level": 36,
+      "moves": "126,266,238,009",
+      "comment": "Magmar: Cipher Peon Grupel @ Citadark Isle"
+    },
+    {
+      "shadow_index": 53,
+      "species": 127,
+      "level": 35,
+      "moves": "012,270,206,066",
+      "comment": "Pinsir: Cipher Peon Grupel @ Citadark Isle"
+    }
+  ],
+  "080": [
+    {
+      "shadow_index": 54,
+      "species": 219,
+      "level": 38,
+      "moves": "257,287,089,053",
+      "comment": "Magcargo: Cipher Peon Kolest @ Citadark Isle"
+    },
+    {
+      "shadow_index": 55,
+      "species": 78,
+      "level": 40,
+      "moves": "076,226,241,053",
+      "comment": "Rapidash: Cipher Peon Kolest @ Citadark Isle"
+    }
+  ],
+  "081": [
+    {
+      "shadow_index": 56,
+      "species": 107,
+      "level": 38,
+      "moves": "005,270,170,327",
+      "comment": "Hitmonchan: Cipher Peon Karbon @ Citadark Isle"
+    },
+    {
+      "shadow_index": 57,
+      "species": 106,
+      "level": 38,
+      "moves": "136,287,170,025",
+      "comment": "Hitmonlee: Cipher Peon Petro @ Citadark Isle"
+    }
+  ],
+  "084": [
+    {
+      "shadow_index": 58,
+      "species": 108,
+      "level": 38,
+      "moves": "038,270,111,205",
+      "comment": "Lickitung: Cipher Peon Geftal @ Citadark Isle"
+    },
+    {
+      "shadow_index": 59,
+      "species": 123,
+      "level": 40,
+      "moves": "013,234,318,163",
+      "comment": "Scyther: Cipher Peon Leden @ Citadark Isle"
+    },
+    {
+      "shadow_index": 60,
+      "species": 113,
+      "level": 39,
+      "moves": "085,186,135,285",
+      "comment": "Chansey: Cipher Peon Leden @ Citadark Isle"
+    }
+  ],
+  "085": [
+    {
+      "shadow_index": 50,
+      "species": 115,
+      "level": 35,
+      "moves": "089,047,039,146",
+      "comment": "Kangaskhan: Cipher Peon Litnar @ Citadark Isle"
+    },
+    {
+      "shadow_index": 51,
+      "species": 354,
+      "level": 37,
+      "moves": "185,270,247,174",
+      "comment": "Banette: Cipher Peon Litnar @ Citadark Isle"
+    }
+  ],
+  "087": [
+    {
+      "shadow_index": 60,
+      "species": 113,
+      "level": 39,
+      "moves": "085,186,135,285",
+      "comment": "Chansey: Cipher Peon Leden @ Citadark Isle"
+    },
+    {
+      "shadow_index": 61,
+      "species": 338,
+      "level": 41,
+      "moves": "094,226,241,322",
+      "comment": "Solrock: Cipher Admin Snattle @ Citadark Isle"
+    },
+    {
+      "shadow_index": 62,
+      "species": 121,
+      "level": 41,
+      "moves": "127,287,058,105",
+      "comment": "Starmie: Cipher Admin Snattle @ Citadark Isle"
+    },
+    {
+      "shadow_index": 63,
+      "species": 125,
+      "level": 43,
+      "moves": "238,266,086,085",
+      "comment": "Electabuzz: Cipher Admin Ardos @ Citadark Isle"
+    },
+    {
+      "shadow_index": 64,
+      "species": 277,
+      "level": 43,
+      "moves": "143,226,097,263",
+      "comment": "Swellow: Cipher Admin Ardos @ Citadark Isle"
+    },
+    {
+      "shadow_index": 65,
+      "species": 143,
+      "level": 43,
+      "moves": "090,287,174,034",
+      "comment": "Snorlax: Cipher Admin Ardos @ Citadark Isle"
+    },
+    {
+      "shadow_index": 66,
+      "species": 62,
+      "level": 42,
+      "moves": "056,270,240,280",
+      "comment": "Poliwrath: Cipher Admin Gorigan @ Citadark Isle"
+    },
+    {
+      "shadow_index": 67,
+      "species": 122,
+      "level": 42,
+      "moves": "094,266,227,009",
+      "comment": "Mr. Mime: Cipher Admin Gorigan @ Citadark Isle"
+    }
+  ],
+  "088": [
+    {
+      "shadow_index": 44,
+      "species": 55,
+      "level": 33,
+      "moves": "127,204,244,280",
+      "comment": "Golduck: Navigator Abson @ Citadark Isle"
+    },
+    {
+      "shadow_index": 45,
+      "species": 302,
+      "level": 33,
+      "moves": "247,270,185,105",
+      "comment": "Sableye: Navigator Abson @ Citadark Isle"
+    }
+  ],
+  "090": [
+    {
+      "shadow_index": 13,
+      "species": 299,
+      "level": 26,
+      "moves": "085,270,086,157",
+      "comment": "Nosepass: Wanderer Miror B. @ Pok\u00e9 Spots"
+    }
+  ],
+  "092": [
+    {
+      "shadow_index": 29,
+      "species": 100,
+      "level": 19,
+      "moves": "243,287,209,129",
+      "comment": "Voltorb: Wanderer Miror B. @ Cave Pok\u00e9 Spot"
+    }
+  ],
+  "094": [
+    {
+      "shadow_index": 11,
+      "species": 315,
+      "level": 22,
+      "moves": "345,186,320,073",
+      "comment": "Roselia: Cipher Peon Fasin @ Phenac City"
+    },
+    {
+      "shadow_index": 22,
+      "species": 177,
+      "level": 22,
+      "moves": "248,226,101,332",
+      "comment": "Natu: Cipher Peon Eloin @ Phenac City"
+    },
+    {
+      "shadow_index": 24,
+      "species": 52,
+      "level": 22,
+      "moves": "163,047,006,044",
+      "comment": "Meowth: Cipher Peon Fostin @ Phenac City"
+    }
+  ],
+  "096": [
+    {
+      "shadow_index": 4,
+      "species": 343,
+      "level": 17,
+      "moves": "317,287,189,060",
+      "comment": "Baltoy: Cipher Peon Browsix  @ Phenac City"
+    },
+    {
+      "shadow_index": 5,
+      "species": 179,
+      "level": 17,
+      "moves": "034,215,084,086",
+      "comment": "Mareep: Cipher Peon Yellosix @ Phenac City"
+    },
+    {
+      "shadow_index": 20,
+      "species": 204,
+      "level": 20,
+      "moves": "042,287,191,068",
+      "comment": "Pineco: Cipher Peon Gonrap @ Phenac City"
+    }
+  ],
+  "097": [
+    {
+      "shadow_index": 19,
+      "species": 361,
+      "level": 20,
+      "moves": "352,047,044,196",
+      "comment": "Snorunt: Cipher Peon Exinn @ Phenac City"
+    }
+  ],
+  "100": [
+    {
+      "shadow_index": 3,
+      "species": 363,
+      "level": 17,
+      "moves": "062,204,055,189",
+      "comment": "Spheal: Cipher Peon Blusix  @ Phenac City"
+    },
+    {
+      "shadow_index": 6,
+      "species": 316,
+      "level": 17,
+      "moves": "351,047,124,092",
+      "comment": "Gulpin: Cipher Peon Purpsix @ Phenac City"
+    },
+    {
+      "shadow_index": 7,
+      "species": 273,
+      "level": 17,
+      "moves": "202,287,331,290",
+      "comment": "Seedot: Cipher Peon Greesix @ Phenac City"
+    },
+    {
+      "shadow_index": 14,
+      "species": 228,
+      "level": 17,
+      "moves": "185,204,052,046",
+      "comment": "Houndour: Cipher Peon Resix  @ Phenac City"
+    },
+    {
+      "shadow_index": 21,
+      "species": 220,
+      "level": 22,
+      "moves": "246,204,054,341",
+      "comment": "Swinub: Cipher Peon Greck @ Phenac City"
+    }
+  ],
+  "107": [
+    {
+      "shadow_index": 25,
+      "species": 21,
+      "level": 22,
+      "moves": "206,226,043,332",
+      "comment": "Spearow: Cipher Peon Ezin @ Phenac Stadium"
+    },
+    {
+      "shadow_index": 26,
+      "species": 88,
+      "level": 23,
+      "moves": "188,270,325,107",
+      "comment": "Grimer: Cipher Peon Faltly @ Phenac Stadium"
+    },
+    {
+      "shadow_index": 27,
+      "species": 86,
+      "level": 23,
+      "moves": "057,270,219,058",
+      "comment": "Seel: Cipher Peon Egrog @ Phenac Stadium"
+    },
+    {
+      "shadow_index": 28,
+      "species": 337,
+      "level": 25,
+      "moves": "094,226,240,317",
+      "comment": "Lunatone: Cipher Admin Snattle @ Phenac Stadium"
+    }
+  ],
+  "109": [
+    {
+      "shadow_index": 2,
+      "species": 37,
+      "level": 18,
+      "moves": "257,204,052,091",
+      "comment": "Vulpix: Cipher Peon Mesin @ ONBS Building"
+    },
+    {
+      "shadow_index": 15,
+      "species": 296,
+      "level": 18,
+      "moves": "280,287,292,317",
+      "comment": "Makuhita: Cipher Peon Torkin @ ONBS Building"
+    }
+  ],
+  "110": [
+    {
+      "shadow_index": 16,
+      "species": 355,
+      "level": 19,
+      "moves": "247,270,310,109",
+      "comment": "Duskull: Cipher Peon Lobar @ ONBS Building"
+    }
+  ],
+  "111": [
+    {
+      "shadow_index": 18,
+      "species": 303,
+      "level": 22,
+      "moves": "206,047,011,334",
+      "comment": "Mawile: Cipher Cmdr Exol @ ONBS Building"
+    }
+  ],
+  "119": [
+    {
+      "shadow_index": 17,
+      "species": 280,
+      "level": 20,
+      "moves": "351,047,115,093",
+      "comment": "Ralts: Cipher Peon Feldas @ ONBS Building"
+    }
+  ],
+  "143": [
+    {
+      "shadow_index": 1,
+      "species": 216,
+      "level": 11,
+      "moves": "216,287,122,232",
+      "comment": "Teddiursa: Cipher Peon Naps @ Pok\u00e9mon HQ Lab -- treat as Gift as it can only be captured in a Pok\u00e9 Ball"
+    }
+  ],
+  "153": [
+    {
+      "shadow_index": 83,
+      "species": 165,
+      "level": 10,
+      "moves": "060,287,332,048",
+      "comment": "Ledyba: Casual Guy Cyle @ Gateon Port"
+    }
+  ],
+  "162": [
+    {
+      "shadow_index": 80,
+      "species": 149,
+      "level": 55,
+      "moves": "063,215,349,089",
+      "comment": "Dragonite: Wanderer Miror B. @ Gateon Port"
+    },
+    {
+      "shadow_index": 82,
+      "species": 261,
+      "level": 10,
+      "moves": "091,215,305,336",
+      "comment": "Poochyena: Bodybuilder Kilen @ Gateon Port"
+    }
+  ],
+  "164": [
+    {
+      "shadow_index": 81,
+      "species": 175,
+      "level": 25,
+      "moves": "266,161,246,270",
+      "comment": "Togepi: Pok\u00e9mon Trainer Hordel @ Outskirt Stand"
+    }
+  ]
+}
