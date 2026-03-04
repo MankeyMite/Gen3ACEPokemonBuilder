@@ -1,3 +1,11 @@
+Patch Notes - (V.0.2.6)
+- Added proper PID search algorithm (it's much faster)
+- Added correct CXD PID type generation for Colosseum/XD mode.
+- Added profanity filter for the BASE64 codes, because of Nintendo's strict filters on the Switch. 
+- Changed to GPL-3.0 License because of parsed PkHex files. 
+- Fixed illegal generations happening when EVs were above 100 and met level was same as current level. 
+
+
 Patch Notes - (V.0.2.5)
 
 - Added PID Search function to Wild and Legendary mode. This allows users to find and use their own PIDs. 

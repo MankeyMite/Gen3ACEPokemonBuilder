@@ -2331,8 +2331,8 @@ function boot(){
     if (!el) return;
     const map = {
       hatched: {label: 'Hatched', color: '#10b981', text: 'Pokémon that came from eggs, and not met in the wild. This mode is recommended for any Pokemon that can be obtained through breeding, as it allows full customization for IVs, shinyness, TID and SID.'},
-      legendaries: {label: 'Legendaries', color: '#f59e0b', text: 'All legendary Pokémon with in-game encounters. IVs are hand picked for best possible per nature for Method 1. You may therefore not choose the SID if you want it shiny.'},
-      wild: {label: 'Wild', color: '#60a5fa', text: 'Wild encounters (in the overworld). Recommended only if you prefer it looking like it was RNG manipulated. Uses Method 1 encounter slots to aim for best IVs per nature for each species, and you may therefore not choose the SID if you want it shiny.'},
+      legendaries: {label: 'Legendaries', color: '#f59e0b', text: 'All legendary Pokémon with in-game encounters. IVs are hand picked for best possible per nature for Method 1. Use the PID searcher for custom PID/shininess.'},
+      wild: {label: 'Wild', color: '#60a5fa', text: 'Wild encounters (in the overworld). Recommended only if you prefer it looking like it was RNG manipulated. Uses Method 1 encounter slots to aim for best IVs per nature for each species. Use the PID searcher for custom PID/shininess.'},
       mystery: {label: 'Mystery Gifts', color: '#ef476f', text: 'Mystery Gift events — Get Distribution Event Pokémon! These have strict rules, so you may only change a few fields. IVs are hand picked for the best possible for each nature.'},
       cxd_shadow: {label: 'XD / Colosseum', color: '#a78bfa', text: 'Shadow Pokémon from Pokémon XD: Gale of Darkness and Pokémon Colosseum. Choose a species and encounter location, then use the PID Finder with CXD method. TID and SID must be a valid GameCube RNG pair.'}
     };
