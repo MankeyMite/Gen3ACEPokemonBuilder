@@ -19,6 +19,7 @@ import { WILD_ENCOUNTERS } from './data/wildEncounters.gen3.js';
 import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
 import { PROFANITY_LIST } from './data/profanity.gen3.js';
 import { CXD_SHADOW_ENCOUNTERS, CXD_SHADOW_SPECIES, getShadowEncountersForSpecies, isValidGCTidSid } from './data/shadowEncounters.gen3.js';
+import { COLO_SHADOW_LOCKS, XD_SHADOW_LOCKS, COLO_NO_LOCK_SPECIES, XD_NO_LOCK_SPECIES } from './data/cxdLocks.gen3.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -3376,10 +3377,13 @@ function boot(){
     // Show all moves in dropdown for this species so shadow moves are available
     updateMovesForSpecies(enc.species, { preserveValue: true });
 
-    // Fateful encounter — shadow Pokémon from Colosseum/XD are NOT fateful
-    // (only specific event distributions like Ageto Celebi are fateful)
+    // Fateful encounter — all shadow Pokémon from Colosseum/XD are fateful
     const fatefulCheckbox = $('#fatefulEncounter');
-    if (fatefulCheckbox) fatefulCheckbox.checked = false;
+    if (fatefulCheckbox) fatefulCheckbox.checked = true;
+
+    // National Ribbon — required for Colosseum/XD Pokémon to pass legality
+    const nationalRibbonCb = $('#ribbonNational');
+    if (nationalRibbonCb) nationalRibbonCb.checked = true;
 
     // IVs: reset to 31 (user can pick via PID Finder)
     $('#ivHp').value = '31';
@@ -4527,6 +4531,7 @@ function updateGenderFromPID() {
 /* ── PID Finder (RNG-legal PID search via Web Workers) ─ */
 
 let pfWorkers = [];
+let pfWorkerSnapshots = [];
 let pfAllResults = [];
 
 function initPidFinder() {
@@ -4691,10 +4696,18 @@ function initPidFinder() {
   /* ── Stop running workers ──────────────────────────── */
 
   function stopSearch() {
-    pfWorkers.forEach(w => w.terminate());
+    pfWorkers.forEach(w => { try { w.postMessage({ stop: true }); } catch (_) {} });
+    pfWorkers.forEach(w => { try { w.terminate(); } catch (_) {} });
     pfWorkers = [];
+    // Merge whatever snapshots we have from the workers so far
+    pfAllResults = [];
+    for (const snap of pfWorkerSnapshots) {
+      if (snap) pfAllResults.push(...snap);
+    }
+    displayResults();
     searchBtn.disabled = false;
     stopBtn.disabled   = true;
+    progressText.textContent = pfAllResults.length ? 'Stopped (partial)' : 'Stopped';
   }
   stopBtn.addEventListener('click', stopSearch);
 
@@ -4746,13 +4759,36 @@ function initPidFinder() {
     const isCXD      = currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'legendaries' && gameId === 15);
     const workerPath = isCXD ? './src/lib/gen3/cxd-worker.js' : './src/lib/gen3/rng-worker.js';
 
-    // Spawn workers across available cores
-    const workerCount = Math.min(navigator.hardwareConcurrency || 4, 8);
+    // Decide fast-path (IV recovery) vs brute-force (full seed scan).
+    // IV recovery enumerates HP/ATK/DEF combos × 131 k inner checks instead
+    // of scanning all 2³² seeds, so one worker finishes almost instantly
+    // when the user asks for high minimum IVs.
+    const iv1Count = (maxIVs[0] - minIVs[0] + 1) *
+                     (maxIVs[1] - minIVs[1] + 1) *
+                     (maxIVs[2] - minIVs[2] + 1);
+    const useFastPath = iv1Count <= 4096;
+
+    const cores = navigator.hardwareConcurrency || 4;
+    const workerCount = useFastPath
+      ? 1
+      : Math.max(1, Math.min(Math.floor(cores / 2), 4));
     const totalSeeds  = 0x100000000; // 2^32
     const chunkSize   = Math.ceil(totalSeeds / workerCount);
     let finishedWorkers = 0;
     const progressArr   = new Array(workerCount).fill(0);
+    // Per-worker snapshot: each worker sends its current best results
+    // periodically.  We replace (not append) on each snapshot so partial
+    // results are always available if the user clicks Stop.
+    pfWorkerSnapshots = new Array(workerCount).fill(null);
     pfWorkers = [];
+
+    /** Merge all per-worker snapshots into pfAllResults for display. */
+    function mergeSnapshots() {
+      pfAllResults = [];
+      for (const snap of pfWorkerSnapshots) {
+        if (snap) pfAllResults.push(...snap);
+      }
+    }
 
     for (let i = 0; i < workerCount; i++) {
       const start = i * chunkSize;
@@ -4767,8 +4803,11 @@ function initPidFinder() {
           const pct = (progressArr.reduce((a, b) => a + b, 0) / workerCount * 100);
           progressFill.style.width = pct.toFixed(1) + '%';
           progressText.textContent = pct.toFixed(0) + '%';
+        } else if (d.type === 'snapshot') {
+          // Workers periodically send their current priority buffer
+          pfWorkerSnapshots[i] = d.results;
         } else if (d.type === 'done') {
-          pfAllResults.push(...d.results);
+          pfWorkerSnapshots[i] = d.results;
           finishedWorkers++;
           progressArr[i] = 1;
           const pct = (progressArr.reduce((a, b) => a + b, 0) / workerCount * 100);
@@ -4776,6 +4815,7 @@ function initPidFinder() {
           progressText.textContent = pct.toFixed(0) + '%';
 
           if (finishedWorkers === workerCount) {
+            mergeSnapshots();
             displayResults();
             searchBtn.disabled = false;
             stopBtn.disabled   = true;
@@ -4806,14 +4846,43 @@ function initPidFinder() {
         : (ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]) || null;
 
       if (isCXD) {
-        // CXD worker only needs core filters (no methods / slot tables)
+        // CXD worker: core filters + anti-shiny rerolling + team-lock data.
+        // Determine if the encounter is XD (for shiny value and lock lookup).
+        const cxdEncounters = getShadowEncountersForSpecies(speciesId);
+        const hasXD   = cxdEncounters.some(e => e.game === 'xd');
+        const hasColo = cxdEncounters.some(e => e.game === 'colo');
+
+        // Gather lock patterns for this species.
+        // If ANY encounter variant for this species has no locks, skip
+        // lock validation entirely (the lock-free encounter is always valid).
+        let teamLocks = null;
+        const xdNoLock   = XD_NO_LOCK_SPECIES.has(speciesId);
+        const coloNoLock = COLO_NO_LOCK_SPECIES.has(speciesId);
+        if (!(hasXD && xdNoLock) && !(hasColo && coloNoLock)) {
+          // Combine all lock patterns from both games
+          const patterns = [];
+          if (hasXD && XD_SHADOW_LOCKS[speciesId])
+            patterns.push(...XD_SHADOW_LOCKS[speciesId]);
+          if (hasColo && COLO_SHADOW_LOCKS[speciesId])
+            patterns.push(...COLO_SHADOW_LOCKS[speciesId]);
+          if (patterns.length > 0) teamLocks = patterns;
+        }
+
+        // TSV: for XD shadows, use (TID^SID)>>3.
+        // For Colo-only species, use 0xFFFFFFFF (no XD shiny rejection).
+        const isTSVNeeded = hasXD;
+        const tsvVal = isTSVNeeded ? ((tid ^ sid) >>> 3) : 0xFFFFFFFF;
+
         worker.postMessage({
           startSeed: start, endSeed: end,
           nature, ability,
           genderThreshold: genderThreshold === -1 ? -1 : genderThreshold,
           targetGender, tid, sid, wantShiny,
           minIVs, maxIVs,
-          maxResults: Math.ceil(200 / workerCount)
+          maxResults: Math.ceil(250 / workerCount),
+          noShiny: true,   // CXD shadows always anti-shiny
+          teamLocks,
+          tsv: tsvVal
         });
       } else {
         worker.postMessage({
@@ -4822,7 +4891,7 @@ function initPidFinder() {
           genderThreshold: genderThreshold === -1 ? -1 : genderThreshold,
           targetGender, tid, sid, wantShiny,
           minIVs, maxIVs, methods,
-          maxResults: Math.ceil(200 / workerCount),
+          maxResults: Math.ceil(250 / workerCount),
           targetSpecies: speciesId,
           slotTables,
           gameId
@@ -5026,7 +5095,7 @@ function collect(){
     }
   }
 
-  return {
+  const out = {
     speciesId: Number($('#species').value || 0),
     itemId: Number($('#item').value || 0),
     level: level($('#level').value || 50),
@@ -5103,6 +5172,21 @@ function collect(){
       Math.max(0, Math.min(3, Number($('#pp3')?.value || 0))),
       Math.max(0, Math.min(3, Number($('#pp4')?.value || 0)))
     ],
+    // ── EV > 100 legality fix ──────────────────────────────────────
+    // If any single stat has EVs > 100 and the Pokémon's level equals its
+    // met level (i.e. never battled), add 1 EXP to avoid a legality flag.
+    // A freshly-caught mon can't have >100 EVs in a stat without gaining
+    // at least some experience.
+    evLegalityBump: (function() {
+      const lv  = Math.max(1, Math.min(100, Number($('#level')?.value || 1)));
+      const met = Math.max(0, Math.min(100, Number($('#metLevel')?.value || 0)));
+      if (lv === met) {
+        const evVals = ['#evHp','#evAtk','#evDef','#evSpAtk','#evSpDef','#evSpe']
+          .map(id => Math.max(0, Math.min(252, Number($(id)?.value || 0))));
+        if (evVals.some(v => v > 100)) return true;
+      }
+      return false;
+    })(),
     ribbons: {
       cool: Number($('#ribbonCool')?.value || 0),
       beauty: Number($('#ribbonBeauty')?.value || 0),
@@ -5124,6 +5208,14 @@ function collect(){
       fatefulEncounter: $('#fatefulEncounter')?.checked || false
     }
   };
+
+  // ── EV > 100 legality fix: bump EXP by 1 when at met level ──────────
+  if (out.evLegalityBump) {
+    out.totalExp += 1;
+  }
+  delete out.evLegalityBump;
+
+  return out;
 }
 
 // ── Profanity check for Base64 box names ───────────────────────────────

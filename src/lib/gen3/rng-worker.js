@@ -167,8 +167,221 @@ function checkSlotWithLevel(slotState, speciesSlots, allSlotTables, targetSpecie
   return null;
 }
 
-/* ── Main search loop ────────────────────────────────── */
-self.onmessage = function (e) {
+/* ── Priority-buffer helper ────────────────────────────── */
+
+function makePriorityBuffer(cap) {
+  const buf = [];
+  let worstTotal = -1;
+
+  function tryAdd(entry, total) {
+    if (buf.length >= cap && total <= worstTotal) return;
+    entry._t = total;
+    buf.push(entry);
+    if (buf.length > cap) {
+      let mi = 0, mv = buf[0]._t;
+      for (let j = 1; j < buf.length; j++) {
+        if (buf[j]._t < mv) { mv = buf[j]._t; mi = j; }
+      }
+      buf.splice(mi, 1);
+    }
+    if (buf.length >= cap) {
+      worstTotal = buf[0]._t;
+      for (let j = 1; j < buf.length; j++) {
+        if (buf[j]._t < worstTotal) worstTotal = buf[j]._t;
+      }
+    }
+  }
+
+  return { buf, tryAdd, getWorst: () => worstTotal, full: () => buf.length >= cap };
+}
+
+/* ── PID + shiny helpers ──────────────────────────────── */
+
+function checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny) {
+  if (pid % 25 !== nature) return false;
+  if (ability >= 0 && (pid & 1) !== ability) return false;
+  if (targetGender < 2) {
+    const gb = pid & 0xFF;
+    if (targetGender === 0 && gb >= genderThreshold) return false;
+    if (targetGender === 1 && gb < genderThreshold) return false;
+  }
+  const xv = ((pid >>> 16) ^ (pid & 0xFFFF)) ^ trainerXor;
+  if (wantShiny && xv >= 8) return false;
+  if (!wantShiny && xv < 8) return false;
+  return true;
+}
+
+/* ══════════════════════════════════════════════════════════
+ *  FAST PATH — IV-recovery search (≤ 4 096 iv1 combos)
+ *
+ *  Instead of brute-forcing 2³² seeds we enumerate the
+ *  small set of valid HP/ATK/DEF triplets, recover the
+ *  32-bit RNG state that produced them, verify the next
+ *  RNG call matches the SPA/SPD/SPE range, then walk
+ *  backwards to the PID.
+ * ══════════════════════════════════════════════════════════ */
+
+function fastSearch(params, isStopped) {
+  const {
+    nature, ability, genderThreshold, targetGender,
+    tid, sid, wantShiny,
+    minIVs, maxIVs, methods, maxResults,
+    targetSpecies, slotTables, gameId
+  } = params;
+
+  const doValidation = !!(slotTables && targetSpecies);
+  const speciesSlots = doValidation ? buildSpeciesSlotMap(slotTables, targetSpecies) : null;
+  const hasAnySlots  = speciesSlots && Object.keys(speciesSlots).length > 0;
+  const canSync      = (gameId === 3);
+
+  const pb = makePriorityBuffer(maxResults || 50);
+  const m1 = methods[0], m2 = methods[1], m4 = methods[2];
+  const trainerXor = (tid ^ sid) >>> 0;
+
+  const mHp = minIVs[0], mAtk = minIVs[1], mDef = minIVs[2],
+        mSpA = minIVs[3], mSpD = minIVs[4], mSpe = minIVs[5];
+  const xHp = maxIVs[0], xAtk = maxIVs[1], xDef = maxIVs[2],
+        xSpA = maxIVs[3], xSpD = maxIVs[4], xSpe = maxIVs[5];
+
+  const totalCombos = (xHp - mHp + 1) * (xAtk - mAtk + 1) * (xDef - mDef + 1);
+  let combo = 0;
+  const progressTick = Math.max(1, Math.floor(totalCombos / 50));
+
+  for (let hp = mHp; hp <= xHp; hp++) {
+    for (let atk = mAtk; atk <= xAtk; atk++) {
+      for (let def = mDef; def <= xDef; def++) {
+        combo++;
+        if (combo % progressTick === 0) {
+          self.postMessage({ type: 'progress', done: combo, total: totalCombos });
+          if (pb.buf.length > 0) self.postMessage({ type: 'snapshot', results: pb.buf });
+          if (isStopped()) { self.postMessage({ type: 'done', results: pb.buf }); return; }
+        }
+
+        const low15 = hp | (atk << 5) | (def << 10);
+        const ivPartial = hp + atk + def;
+
+        for (let bit15 = 0; bit15 <= 1; bit15++) {
+          const iv1Hi = ((low15 | (bit15 << 15)) << 16) >>> 0;
+
+          for (let x = 0; x < 65536; x++) {
+            const seedIV1 = (iv1Hi | x) >>> 0;
+
+            /* ── H1 & H4 share iv1 at position seed3 ─────── */
+            if (m1 || m4) {
+              let h1spe = -1, h1spa = -1, h1spd = -1;
+              let h4spe = -1, h4spa = -1, h4spd = -1;
+              let anyHit = false;
+
+              if (m1) {
+                const out = advance(seedIV1) >>> 16;
+                const spe = out & 0x1F;
+                if (spe >= mSpe && spe <= xSpe) {
+                  const spa = (out >> 5) & 0x1F;
+                  if (spa >= mSpA && spa <= xSpA) {
+                    const spd = (out >> 10) & 0x1F;
+                    if (spd >= mSpD && spd <= xSpD) {
+                      h1spe = spe; h1spa = spa; h1spd = spd; anyHit = true;
+                    }
+                  }
+                }
+              }
+
+              if (m4) {
+                const out = advance(advance(seedIV1)) >>> 16;
+                const spe = out & 0x1F;
+                if (spe >= mSpe && spe <= xSpe) {
+                  const spa = (out >> 5) & 0x1F;
+                  if (spa >= mSpA && spa <= xSpA) {
+                    const spd = (out >> 10) & 0x1F;
+                    if (spd >= mSpD && spd <= xSpD) {
+                      h4spe = spe; h4spa = spa; h4spd = spd; anyHit = true;
+                    }
+                  }
+                }
+              }
+
+              if (anyHit) {
+                // Both H1/H4 produce the same PID from this seedIV1
+                const s2 = reverse(seedIV1);
+                const pidHigh = s2 >>> 16;
+                const s1 = reverse(s2);
+                const pidLow = s1 >>> 16;
+                const pid = ((pidHigh << 16) | pidLow) >>> 0;
+
+                if (checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny)) {
+                  const seed0 = reverse(s1);
+
+                  let initSeed = null, metLevels = null;
+                  let chainOK = true;
+                  if (doValidation && hasAnySlots) {
+                    const chain = validateEncounterChain(s1, nature, speciesSlots, canSync, slotTables, targetSpecies);
+                    if (!chain) { chainOK = false; }
+                    else { initSeed = chain.initSeed; metLevels = chain.metLevels; }
+                  }
+
+                  if (chainOK) {
+                    if (h1spe >= 0) {
+                      const t = ivPartial + h1spe + h1spa + h1spd;
+                      const ivs = { hp, atk, def, spa: h1spa, spd: h1spd, spe: h1spe };
+                      pb.tryAdd({ seed: seed0, pid, method: 'H1', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels }, t);
+                    }
+                    if (h4spe >= 0) {
+                      const t = ivPartial + h4spe + h4spa + h4spd;
+                      const ivs = { hp, atk, def, spa: h4spa, spd: h4spd, spe: h4spe };
+                      pb.tryAdd({ seed: seed0, pid, method: 'H4', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels }, t);
+                    }
+                  }
+                }
+              }
+            }
+
+            /* ── H2: iv1 at position seed4 ───────────────── */
+            if (m2) {
+              const out = advance(seedIV1) >>> 16;
+              const spe = out & 0x1F;
+              if (spe < mSpe || spe > xSpe) continue; // only skips H2 for this x
+              const spa = (out >> 5) & 0x1F;
+              if (spa < mSpA || spa > xSpA) continue;
+              const spd = (out >> 10) & 0x1F;
+              if (spd < mSpD || spd > xSpD) continue;
+
+              // Walk back: seedIV1=seed4 → seed3(skip) → seed2(pidHi) → seed1(pidLo)
+              const s3 = reverse(seedIV1);
+              const s2 = reverse(s3);
+              const pidHigh = s2 >>> 16;
+              const s1 = reverse(s2);
+              const pidLow = s1 >>> 16;
+              const pid = ((pidHigh << 16) | pidLow) >>> 0;
+
+              if (!checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny)) continue;
+
+              const seed0 = reverse(s1);
+              let initSeed = null, metLevels = null;
+              if (doValidation && hasAnySlots) {
+                const chain = validateEncounterChain(s1, nature, speciesSlots, canSync, slotTables, targetSpecies);
+                if (!chain) continue;
+                initSeed = chain.initSeed;
+                metLevels = chain.metLevels;
+              }
+
+              const t = ivPartial + spe + spa + spd;
+              const ivs = { hp, atk, def, spa, spd, spe };
+              pb.tryAdd({ seed: seed0, pid, method: 'H2', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels }, t);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  self.postMessage({ type: 'done', results: pb.buf });
+}
+
+/* ══════════════════════════════════════════════════════════
+ *  BRUTE-FORCE PATH — full 2³² seed scan
+ * ══════════════════════════════════════════════════════════ */
+
+function bruteForceSearch(params, isStopped) {
   const {
     startSeed, endSeed,
     nature, ability,
@@ -176,35 +389,32 @@ self.onmessage = function (e) {
     tid, sid, wantShiny,
     minIVs, maxIVs, methods, maxResults,
     targetSpecies, slotTables, gameId
-  } = e.data;
+  } = params;
 
-  /* Build species-slot lookup */
   const doValidation = !!(slotTables && targetSpecies);
   const speciesSlots = doValidation ? buildSpeciesSlotMap(slotTables, targetSpecies) : null;
   const hasAnySlots  = speciesSlots && Object.keys(speciesSlots).length > 0;
-  const canSync      = (gameId === 3);     // Synchronize lead: Emerald only
+  const canSync      = (gameId === 3);
 
-  const results = [];
-  const cap = maxResults || 500;
-  const TICK = 0x800000;
+  const pb = makePriorityBuffer(maxResults || 50);
+  const TICK = 0x400000;
   const tickMask = TICK - 1;
+  const trainerXor = (tid ^ sid) >>> 0;
 
   const mHp = minIVs[0], mAtk = minIVs[1], mDef = minIVs[2],
         mSpA = minIVs[3], mSpD = minIVs[4], mSpe = minIVs[5];
   const xHp = maxIVs ? maxIVs[0] : 31, xAtk = maxIVs ? maxIVs[1] : 31, xDef = maxIVs ? maxIVs[2] : 31,
         xSpA = maxIVs ? maxIVs[3] : 31, xSpD = maxIVs ? maxIVs[4] : 31, xSpe = maxIVs ? maxIVs[5] : 31;
   const m1 = methods[0], m2 = methods[1], m4 = methods[2];
-  const trainerXor = (tid ^ sid) >>> 0;
 
   for (let seed = startSeed; seed < endSeed; seed++) {
     if (((seed - startSeed) & tickMask) === 0 && seed > startSeed) {
       self.postMessage({ type: 'progress', done: seed - startSeed, total: endSeed - startSeed });
-      if (results.length >= cap) break;
+      if (pb.buf.length > 0) self.postMessage({ type: 'snapshot', results: pb.buf });
+      if (isStopped()) break;
     }
 
     let s = seed >>> 0;
-
-    /* Two advances → PID */
     s = advance(s);
     const pidLow = s >>> 16;
     const pidLowState = s;
@@ -212,21 +422,17 @@ self.onmessage = function (e) {
     const pidHigh = s >>> 16;
     const pid = ((pidHigh << 16) | pidLow) >>> 0;
 
-    /* ── Fast filter cascade ─────────────────────────── */
     if (pid % 25 !== nature)  continue;
     if (ability >= 0 && (pid & 1) !== ability) continue;
-
     if (targetGender < 2) {
       const gb = pid & 0xFF;
       if (targetGender === 0 && gb >= genderThreshold) continue;
       if (targetGender === 1 && gb < genderThreshold)  continue;
     }
-
     const xv = (pidHigh ^ pidLow) ^ trainerXor;
     if (wantShiny  && xv >= 8) continue;
     if (!wantShiny && xv <  8) continue;
 
-    /* ── IV check per method (before encounter validation) ── */
     const s3 = advance(s);
     const s4 = advance(s3);
     const s5 = advance(s4);
@@ -234,7 +440,6 @@ self.onmessage = function (e) {
 
     let h1 = null, h2 = null, h4 = null;
 
-    /* Method H1  iv1=r3  iv2=r4 */
     if (m1) {
       const hp=r3&0x1F; if(hp>=mHp&&hp<=xHp){
       const atk=(r3>>5)&0x1F; if(atk>=mAtk&&atk<=xAtk){
@@ -245,8 +450,6 @@ self.onmessage = function (e) {
         h1={hp,atk,def,spa,spd,spe};
       }}}}}}
     }
-
-    /* Method H2  iv1=r4  iv2=r5 */
     if (m2) {
       const hp=r4&0x1F; if(hp>=mHp&&hp<=xHp){
       const atk=(r4>>5)&0x1F; if(atk>=mAtk&&atk<=xAtk){
@@ -257,8 +460,6 @@ self.onmessage = function (e) {
         h2={hp,atk,def,spa,spd,spe};
       }}}}}}
     }
-
-    /* Method H4  iv1=r3  iv2=r5 */
     if (m4) {
       const hp=r3&0x1F; if(hp>=mHp&&hp<=xHp){
       const atk=(r3>>5)&0x1F; if(atk>=mAtk&&atk<=xAtk){
@@ -272,7 +473,12 @@ self.onmessage = function (e) {
 
     if (!h1 && !h2 && !h4) continue;
 
-    /* ── Encounter-chain validation (only for IV-matching seeds) ── */
+    const t1 = h1 ? (h1.hp + h1.atk + h1.def + h1.spa + h1.spd + h1.spe) : -1;
+    const t2 = h2 ? (h2.hp + h2.atk + h2.def + h2.spa + h2.spd + h2.spe) : -1;
+    const t4 = h4 ? (h4.hp + h4.atk + h4.def + h4.spa + h4.spd + h4.spe) : -1;
+    const bestMethodTotal = Math.max(t1, t2, t4);
+    if (pb.full() && bestMethodTotal <= pb.getWorst()) continue;
+
     let initSeed = null, metLevels = null;
     if (doValidation && hasAnySlots) {
       const chain = validateEncounterChain(pidLowState, nature, speciesSlots, canSync, slotTables, targetSpecies);
@@ -281,11 +487,30 @@ self.onmessage = function (e) {
       metLevels = chain.metLevels;
     }
 
-    /* ── Push validated results ──────────────────────── */
-    if (h1) results.push({seed:seed>>>0,pid,method:'H1',ivs:h1,hpt:hpType(h1),hpp:hpPower(h1),initSeed,metLevels});
-    if (h2) results.push({seed:seed>>>0,pid,method:'H2',ivs:h2,hpt:hpType(h2),hpp:hpPower(h2),initSeed,metLevels});
-    if (h4) results.push({seed:seed>>>0,pid,method:'H4',ivs:h4,hpt:hpType(h4),hpp:hpPower(h4),initSeed,metLevels});
+    if (h1) pb.tryAdd({seed:seed>>>0,pid,method:'H1',ivs:h1,hpt:hpType(h1),hpp:hpPower(h1),initSeed,metLevels}, t1);
+    if (h2) pb.tryAdd({seed:seed>>>0,pid,method:'H2',ivs:h2,hpt:hpType(h2),hpp:hpPower(h2),initSeed,metLevels}, t2);
+    if (h4) pb.tryAdd({seed:seed>>>0,pid,method:'H4',ivs:h4,hpt:hpType(h4),hpp:hpPower(h4),initSeed,metLevels}, t4);
   }
 
-  self.postMessage({ type: 'done', results });
+  self.postMessage({ type: 'done', results: pb.buf });
+}
+
+/* ── Entry point ─────────────────────────────────────── */
+self.onmessage = function (e) {
+  let stopped = false;
+  self.onmessage = function () { stopped = true; };
+  const isStopped = () => stopped;
+
+  // Decide: fast IV-recovery or brute-force
+  const minIVs = e.data.minIVs;
+  const maxIVs = e.data.maxIVs || [31,31,31,31,31,31];
+  const iv1Count = (maxIVs[0] - minIVs[0] + 1) *
+                   (maxIVs[1] - minIVs[1] + 1) *
+                   (maxIVs[2] - minIVs[2] + 1);
+
+  if (iv1Count <= 4096) {
+    fastSearch(e.data, isStopped);
+  } else {
+    bruteForceSearch(e.data, isStopped);
+  }
 };
