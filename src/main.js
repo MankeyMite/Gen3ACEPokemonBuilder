@@ -1306,38 +1306,23 @@ function updateUnownFormFromPID() {
 }
 
 /**
- * Filter the Unown form dropdown to only show forms available in the
- * currently selected Tanoby chamber.  If no chamber is selected or the
- * location isn't a Tanoby chamber, show all 28 forms.
+ * Ensure all 28 Unown forms are visible in the dropdown.
+ * (Previously filtered by location; now all forms are always selectable
+ * and picking a form snaps the location instead.)
  */
 function filterUnownFormsByLocation() {
   const sel = document.getElementById('unownForm');
   if (!sel) return;
-  const locId = Number($('#metLocation')?.value || 0);
-  const allowedForms = getTanobyFormsForLocation(locId); // null if not Tanoby
-  const currentForm = Number(sel.value);
-
   for (const opt of Array.from(sel.options)) {
-    const fi = Number(opt.value);
-    if (allowedForms) {
-      opt.hidden = !allowedForms.includes(fi);
-      opt.disabled = !allowedForms.includes(fi);
-    } else {
-      opt.hidden = false;
-      opt.disabled = false;
-    }
-  }
-
-  // If current form is not valid in this chamber, auto-pick the first valid one
-  if (allowedForms && !allowedForms.includes(currentForm)) {
-    sel.value = String(allowedForms[0]);
-    updateUnownFormSprite();
+    opt.hidden = false;
+    opt.disabled = false;
   }
 }
 
 /**
- * When the Unown form dropdown changes, filter the met location list
- * to only show Tanoby chambers that can produce this form.
+ * When the Unown form dropdown changes, snap the met location
+ * to a valid Tanoby chamber for the chosen form (if the current
+ * location cannot produce it).  The full location list is kept intact.
  */
 function filterUnownLocationsByForm() {
   if (currentEncounterMode !== 'wild') return;
@@ -1346,19 +1331,27 @@ function filterUnownLocationsByForm() {
 
   const formIndex = Number(document.getElementById('unownForm')?.value ?? 0);
   const validLocIds = getTanobyLocationsForForm(formIndex);
-  const currentGame = Number($('#originGame')?.value || 0);
 
-  // Filter met locations to only valid chambers for this form
-  const baseLocations = getLocationsForGame(currentGame);
-  const filteredLocations = baseLocations.filter(([id]) => validLocIds.includes(id));
-  if (metLocationWrapper && metLocationWrapper.updateList) {
-    metLocationWrapper.updateList(filteredLocations);
-  }
-
-  // If current location not valid for this form, pick the first valid one
+  // If current location cannot produce this form, snap to the first valid one
   const curLoc = Number($('#metLocation')?.value || 0);
-  if (!validLocIds.includes(curLoc) && filteredLocations.length) {
-    $('#metLocation').value = String(filteredLocations[0][0]);
+  if (!validLocIds.includes(curLoc) && validLocIds.length) {
+    $('#metLocation').value = String(validLocIds[0]);
+    // Snap met level for the new location
+    const gameId = Number($('#originGame')?.value || 0);
+    const enc = WILD_ENCOUNTERS[speciesId];
+    if (enc && enc[gameId] && enc[gameId][validLocIds[0]]) {
+      const ranges = enc[gameId][validLocIds[0]];
+      const ml = $('#metLevel');
+      if (ml && ranges && ranges.length) {
+        ml.value = String(snapToValidLevel(ranges, Number(ml.value) || 0));
+        const absMin = ranges[0][0];
+        const absMax = ranges[ranges.length - 1].length > 1 ? ranges[ranges.length - 1][1] : ranges[ranges.length - 1][0];
+        ml.min = String(absMin);
+        ml.max = String(absMax);
+        ml.title = `Valid levels: ${rangesToLabel(ranges)}`;
+      }
+    }
+    try { updateBallLocking(); } catch (e) {}
   }
 }
 
@@ -3489,6 +3482,9 @@ function boot(){
             natureElLocal.dispatchEvent(new Event('change'));
           }
         }
+
+      // Ensure ability is visibly selected after all preset logic
+      if (abilitySelect && !abilitySelect.value) abilitySelect.value = '0';
     } else if (mode === 'cxd_shadow') {
       // CXD Shadow mode: populate shadow encounter sub-selector and auto-apply
       // Gender is NOT locked — user can choose gender freely
