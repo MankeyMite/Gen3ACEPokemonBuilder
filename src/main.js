@@ -1787,7 +1787,8 @@ function boot(){
       
       // Check ball legality for legendary mode
       const ballId = Number($('#ball').value) || 0;
-      if (ballId === 5) {
+      const legendLocId = Number($('#metLocation')?.value) || 0;
+      if (ballId === 5 && !SAFARI_ZONE_IDS.includes(legendLocId)) {
         errors.push('Legendary Pokémon cannot be caught in a Safari Ball');
       }
       
@@ -2232,6 +2233,7 @@ function boot(){
     if (currentEncounterMode === 'wild') {
       const speciesId = Number($('#species').value) || 0;
       updateWildEncounterFilters(speciesId);
+      try { updateBallLocking(); } catch (e) {}
       updateLegalityStatus();
       return;
     }
@@ -2715,18 +2717,18 @@ function boot(){
           const locId = Number($('#metLocation')?.value) || 0;
           const isSafariZone = SAFARI_ZONE_IDS.includes(locId);
 
-          if (currentEncounterMode === 'hatched') {
-            // Hatched: force Poké Ball and lock
+          if (isSafariZone) {
+            // Safari Zone: force Safari Ball and lock, regardless of encounter mode
             if (ballEl.updateList) ballEl.updateList(BALLS);
-            try { ballEl.value = '4'; } catch (e) {}
+            try { ballEl.value = '5'; } catch (e) {}
             ballEl.disabled = true;
             ballEl.style.pointerEvents = 'none';
             ballEl.style.opacity = '0.6';
             ballEl.style.cursor = 'not-allowed';
-          } else if ((currentEncounterMode === 'wild' || currentEncounterMode === 'legendaries') && isSafariZone) {
-            // Wild/Legendary at Safari Zone: force Safari Ball and lock
+          } else if (currentEncounterMode === 'hatched') {
+            // Hatched: force Poké Ball and lock
             if (ballEl.updateList) ballEl.updateList(BALLS);
-            try { ballEl.value = '5'; } catch (e) {}
+            try { ballEl.value = '4'; } catch (e) {}
             ballEl.disabled = true;
             ballEl.style.pointerEvents = 'none';
             ballEl.style.opacity = '0.6';
@@ -3470,6 +3472,9 @@ function boot(){
 
       // Apply wild encounter filtering for origin game, met location, met level
       updateWildEncounterFilters(speciesId);
+
+      // Re-check ball locking after location was set (may now be Safari Zone)
+      try { updateBallLocking(); } catch (e) {}
 
       // Auto-select ability slot 0 for wild encounters
       const abilitySelect = $('#ability');
