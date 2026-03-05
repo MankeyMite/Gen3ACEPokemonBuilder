@@ -20,7 +20,7 @@ import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
 import { PROFANITY_LIST } from './data/profanity.gen3.js';
 import { CXD_SHADOW_ENCOUNTERS, CXD_SHADOW_SPECIES, getShadowEncountersForSpecies, isValidGCTidSid } from './data/shadowEncounters.gen3.js';
 import { COLO_SHADOW_LOCKS, XD_SHADOW_LOCKS, COLO_NO_LOCK_SPECIES, XD_NO_LOCK_SPECIES } from './data/cxdLocks.gen3.js';
-import { getSpritePath, getUnownFormIndex, getUnownFormChar, getUnownFormSuffix, getUnownSpritePath, UNOWN_FORMS, TANOBY_FORMS_BY_LOCATION, getTanobyFormsForLocation, getTanobyLocationsForForm } from './data/nationalDex.gen3.js';
+import { getSpritePath, getUnownFormIndex, getUnownFormChar, getUnownFormSuffix, getUnownSpritePath, getShinySpriteUrl, getUnownShinySpriteUrl, UNOWN_FORMS, TANOBY_FORMS_BY_LOCATION, getTanobyFormsForLocation, getTanobyLocationsForForm } from './data/nationalDex.gen3.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -1237,19 +1237,43 @@ function highlightMissingFields() {
 function updateSpeciesSprite(speciesId) {
   const img = $('#speciesSprite');
   if (!img) return;
+  img.onerror = null;
+  const isShiny = $('#shiny')?.checked || false;
+
   // Unown: use form-specific sprite
   if (speciesId === 201) {
     const pid = parsePidInput($('#pid')?.value || '0');
     const formIndex = getUnownFormIndex(pid);
-    img.src = getUnownSpritePath(formIndex);
+    const localPath = getUnownSpritePath(formIndex);
+    if (isShiny) {
+      img.onerror = () => { img.onerror = null; img.src = localPath; };
+      img.src = getUnownShinySpriteUrl();
+    } else {
+      img.src = localPath;
+    }
     img.alt = `Unown ${UNOWN_FORMS[formIndex]}`;
     img.classList.add('visible');
     return;
   }
+
   const species = SPECIES.find(s => s[0] === speciesId);
-  const path = species ? getSpritePath(species[1]) : null;
-  if (path) {
-    img.src = path;
+  const localPath = species ? getSpritePath(species[1]) : null;
+
+  if (isShiny && species) {
+    const shinyUrl = getShinySpriteUrl(species[1]);
+    if (shinyUrl) {
+      if (localPath) {
+        img.onerror = () => { img.onerror = null; img.src = localPath; };
+      }
+      img.src = shinyUrl;
+      img.alt = species[1];
+      img.classList.add('visible');
+      return;
+    }
+  }
+
+  if (localPath) {
+    img.src = localPath;
     img.alt = species[1];
     img.classList.add('visible');
   } else {
@@ -4658,6 +4682,9 @@ function checkShiny() {
   if (shinyCheckbox) {
     shinyCheckbox.checked = isShiny;
   }
+
+  // Refresh sprite to show shiny/normal version
+  updateSpeciesSprite(Number($('#species').value) || 0);
 }
 
 // Calculate a shiny PID for given TID/SID, nature, and gender

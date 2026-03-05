@@ -451,6 +451,28 @@ export function getUnownSpritePath(formIndex) {
   return `src/data/Sprites/0201-${getUnownFormSuffix(formIndex)}.png`;
 }
 
+// ── Shiny sprite URL helpers (pokemondb.net RS shiny sprites) ──
+
+const SHINY_SPRITE_BASE = 'https://img.pokemondb.net/sprites/ruby-sapphire/shiny';
+
+function speciesNameToSlug(name) {
+  return name
+    .toLowerCase()
+    .replace(/♀/g, '-f')
+    .replace(/♂/g, '-m')
+    .replace(/['.’]/g, '')
+    .replace(/\s+/g, '-');
+}
+
+export function getShinySpriteUrl(speciesName) {
+  if (!speciesName || speciesName === '?' || speciesName === '??????????') return null;
+  return `${SHINY_SPRITE_BASE}/${speciesNameToSlug(speciesName)}.png`;
+}
+
+export function getUnownShinySpriteUrl() {
+  return `${SHINY_SPRITE_BASE}/unown.png`;
+}
+
 // ── Tanoby Ruins chamber → Unown form slot mapping (PKHeX TanobyRuins3.cs) ──
 // Each array has 12 entries (one per encounter slot) giving the form index.
 export const TANOBY_FORMS_BY_LOCATION = {
