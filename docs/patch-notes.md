@@ -1,3 +1,10 @@
+Patch Notes - (V.0.2.7)
+- Added sprites for each Pokémon
+- Fixed Safari encounters for all games
+- Added RNG for Unown encounters
+- Added reworked shiny funciton
+- New UI for better readability
+
 Patch Notes - (V.0.2.6)
 - Added proper PID search algorithm (it's much faster)
 - Added correct CXD PID type generation for Colosseum/XD mode.
