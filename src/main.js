@@ -469,6 +469,8 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
 let currentEncounterMode = 'hatched';
 // When true, the PID Finder has set the met level and it should stay locked
 let pidFinderLockedMetLevel = false;
+// When true, a PID Finder result is applied — protects PID/IVs/nature from preset overwrites
+let pidFinderResultActive = false;
 // When true, the Manual Override checkbox is active — all field locks are bypassed
 let manualOverrideActive = false;
 // When true, skip applying simple-mode PID presets (used during imports)
@@ -648,7 +650,6 @@ function fillSelect(el, list, opts = {}) {
 // Ensure Mew in Legendary mode is at least level 30. Called after species/mode changes.
 function enforceMewLegendMinLevel() {
   try {
-    if (manualOverrideActive) return; // override skips forced level constraints
     if (currentEncounterMode !== 'legendaries') return;
     const sp = Number($('#species')?.value || 0);
     if (sp !== 151) return;
@@ -850,7 +851,7 @@ function createAutocomplete(selectEl, list, opts = {}) {
       if (input.value && !selectedId) {
         // Skip auto-resolve when Manual Override is active (import or PID
         // Finder result applied) to prevent any async preset application.
-        if (manualOverrideActive) return;
+        if (suppressPresetApply) return;
         const exactMatch = items.find(item => 
           item.name.toLowerCase() === input.value.toLowerCase()
         );
@@ -1816,6 +1817,8 @@ function boot(){
         shinyCheckbox.checked = false;
         checkShiny();
       }
+      // Reset PID Finder locks when species changes (result is no longer valid)
+      if (pidFinderResultActive) unlockPidFinderFields();
       // Always update gender dropdown for selected species
       handleEncounterModeChange(speciesId);
 
@@ -2250,7 +2253,19 @@ function boot(){
         if (ml) { ml.min = '0'; ml.max = '100'; ml.title = ''; }
       } catch (ee) {}
       pidFinderLockedMetLevel = false;
+      // Reset PID Finder field locks when encounter mode changes
+      if (pidFinderResultActive) unlockPidFinderFields();
+      // Unlock CXD-specific field locks (origin game, met location, met level)
+      const unlockEl = (el) => { if (!el) return; el.disabled = false; el.style.pointerEvents = ''; el.style.opacity = ''; el.style.cursor = ''; };
+      unlockEl($('#originGame'));
+      unlockEl($('#metLocation'));
+      unlockEl($('#metLevel'));
+      // Reset Make Shiny row visibility (let CSS handle it for non-CXD modes)
+      const makeShinyRowEl = document.getElementById('makeShinyRow');
+      if (makeShinyRowEl) makeShinyRowEl.style.display = '';
       currentEncounterMode = e.target.value;
+      // For CXD mode, hide Make Shiny by default (shown per-encounter if Colosseum)
+      if (currentEncounterMode === 'cxd_shadow' && makeShinyRowEl) makeShinyRowEl.style.display = 'none';
       // Add body classes for special encounter modes so CSS/JS can adjust visibility
       document.body.classList.toggle('encounter-wild', currentEncounterMode === 'wild');
       document.body.classList.toggle('encounter-legendaries', currentEncounterMode === 'legendaries');
@@ -2284,6 +2299,7 @@ function boot(){
       try { lockLanguageForMewLegend(); } catch (e) {}
       try { enforceMewLegendMinLevel(); } catch (e) {}
       try { updateFatefulLocking(); } catch (e) {}
+      try { updateShinyCheckboxState(); } catch (e) {}
     });
   }
 
@@ -2292,6 +2308,8 @@ function boot(){
   if (overrideCheckbox) {
     overrideCheckbox.addEventListener('change', (e) => {
       manualOverrideActive = e.target.checked;
+      // Clear PID Finder locks when override is toggled
+      if (pidFinderResultActive) unlockPidFinderFields();
       // Re-run all locking functions — they will skip locks when override is active
       try { updateMetLevelLocking(); } catch (e) {}
       try { updateBallLocking(); } catch (e) {}
@@ -2400,6 +2418,29 @@ function boot(){
       pidEl.style.opacity = shouldLock ? '0.6' : '';
       pidEl.style.cursor = shouldLock ? 'not-allowed' : '';
     } catch (e) {}
+  }
+
+  /**
+   * Unlock all fields that were locked by the PID Finder result.
+   * Called when species or encounter mode changes, invalidating the previous result.
+   */
+  function unlockPidFinderFields() {
+    pidFinderResultActive = false;
+    pidFinderLockedMetLevel = false;
+    const unlock = (el) => {
+      if (!el) return;
+      el.disabled = false;
+      el.style.pointerEvents = '';
+      el.style.opacity = '';
+      el.style.cursor = '';
+    };
+    unlock($('#nature'));
+    unlock($('#gender'));
+    unlock($('#ability'));
+    for (const id of ['ivHp','ivAtk','ivDef','ivSpAtk','ivSpDef','ivSpe']) {
+      unlock($('#' + id));
+    }
+    try { updateMetLevelLocking(); } catch (e) {}
   }
 
   // By default, Japanese (language id '1') is not selectable in the UI because
@@ -3184,10 +3225,10 @@ function boot(){
     try { updateTidSidLocking(); } catch (e) {}
     }
     if (mode === 'legendaries' && STATIC_ENCOUNTERS[speciesId]) {
-      // For legendary encounters, apply preset data (skip when manual override is active)
-      if (!manualOverrideActive) applyStaticEncounterPreset(speciesId);
+      // For legendary encounters, apply preset data (skip when PID Finder is active)
+      if (!pidFinderResultActive) applyStaticEncounterPreset(speciesId);
       // Make gender read-only for legendaries (can still update from PID, but user can't manually change)
-      if (genderSelect && !manualOverrideActive) {
+      if (genderSelect && !pidFinderResultActive) {
         genderSelect.style.pointerEvents = 'none';
         genderSelect.style.opacity = '0.6';
         genderSelect.style.cursor = 'not-allowed';
@@ -3272,9 +3313,9 @@ function boot(){
       if (abilitySelect) abilitySelect.value = '0';
 
         // Re-apply nature preset so PID/IV reflect the selected nature for wild mode
-        // Skip during imports (suppressPresetApply) and when Manual Override is
-        // active (user imported or used PID Finder) to preserve their PID/IVs.
-        if (!suppressPresetApply && !manualOverrideActive) {
+        // Skip during imports (suppressPresetApply) and when
+        // PID Finder result is active to preserve their PID/IVs.
+        if (!suppressPresetApply && !pidFinderResultActive) {
           const natureElLocal = document.querySelector('#nature');
           if (natureElLocal) {
             natureElLocal.dispatchEvent(new Event('change'));
@@ -3282,14 +3323,41 @@ function boot(){
         }
     } else if (mode === 'cxd_shadow') {
       // CXD Shadow mode: populate shadow encounter sub-selector and auto-apply
+      // Gender is NOT locked — user can choose gender freely
       if (genderSelect) {
-        genderSelect.style.pointerEvents = 'none';
-        genderSelect.style.opacity = '0.6';
-        genderSelect.style.cursor = 'not-allowed';
+        genderSelect.style.pointerEvents = '';
+        genderSelect.style.opacity = '';
+        genderSelect.style.cursor = '';
       }
-      if (!manualOverrideActive) {
-        applyCXDShadowEncounterForSpecies(speciesId);
+      // Lock origin game (always game ID 15 for CXD)
+      const originGameEl = $('#originGame');
+      if (originGameEl) {
+        originGameEl.disabled = true;
+        originGameEl.style.pointerEvents = 'none';
+        originGameEl.style.opacity = '0.6';
+        originGameEl.style.cursor = 'not-allowed';
       }
+      // Lock met location (set by the shadow encounter preset)
+      const metLocEl = $('#metLocation');
+      if (metLocEl) {
+        metLocEl.disabled = true;
+        metLocEl.style.pointerEvents = 'none';
+        metLocEl.style.opacity = '0.6';
+        metLocEl.style.cursor = 'not-allowed';
+      }
+      // Lock met level (set by the shadow encounter preset)
+      const metLvlEl = $('#metLevel');
+      if (metLvlEl) {
+        metLvlEl.disabled = true;
+        metLvlEl.style.pointerEvents = 'none';
+        metLvlEl.style.opacity = '0.6';
+        metLvlEl.style.cursor = 'not-allowed';
+      }
+      // Update shiny checkbox state (CXD tooltip)
+      try { updateShinyCheckboxState(); } catch (e) {}
+      // Always populate the shadow encounter dropdown and auto-apply the preset.
+      // Only skip auto-apply when PID Finder result is active.
+      applyCXDShadowEncounterForSpecies(speciesId, !pidFinderResultActive);
     } else {
       // Fallback: re-enable gender selection
       if (genderSelect) {
@@ -3312,7 +3380,7 @@ function boot(){
    * Populate the #shadowEncounter dropdown with all encounters for the given
    * species, and auto-apply the first one.
    */
-  function applyCXDShadowEncounterForSpecies(speciesId) {
+  function applyCXDShadowEncounterForSpecies(speciesId, applyPreset = true) {
     const encounters = getShadowEncountersForSpecies(speciesId);
     const sel = document.getElementById('shadowEncounter');
     if (!sel) return;
@@ -3320,6 +3388,7 @@ function boot(){
 
     if (!encounters.length) {
       sel.innerHTML = '<option value="">— No encounters —</option>';
+      try { updateMakeShinyVisibility(null); } catch (e) {}
       return;
     }
 
@@ -3334,8 +3403,13 @@ function boot(){
       sel.appendChild(opt);
     }
     sel.value = '0';
-    // Apply the first encounter immediately
-    applyCXDShadowPreset(encounters[0]);
+    // Apply the first encounter (or just update visibility when override is active)
+    if (applyPreset) {
+      applyCXDShadowPreset(encounters[0]);
+    } else {
+      // Still update Make Shiny button visibility based on selected encounter
+      try { updateMakeShinyVisibility(encounters[0]); } catch (e) {}
+    }
   }
 
   /**
@@ -3396,6 +3470,29 @@ function boot(){
     updateHiddenPower();
     try { validateForm(); } catch (e) {}
     try { updateGCTidSidWarning(); } catch (e) {}
+    try { updateMakeShinyVisibility(enc); } catch (e) {}
+  }
+
+  /**
+   * Show or hide the Make Shiny button for CXD shadow mode.
+   * XD shadows are shiny-locked — hide the button.
+   * Colosseum shadows are NOT shiny-locked — show the button.
+   * For non-CXD modes, visibility is handled by the CSS `wild-or-legend` class.
+   */
+  function updateMakeShinyVisibility(enc) {
+    const row = document.getElementById('makeShinyRow');
+    if (!row) return;
+    if (currentEncounterMode !== 'cxd_shadow') {
+      // Non-CXD modes: let CSS handle visibility (wild-or-legend class)
+      row.style.display = '';
+      return;
+    }
+    // CXD mode: show only for Colosseum encounters
+    if (enc && enc.game === 'colo') {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
   }
 
   // Wire up the shadow encounter dropdown change handler
@@ -3408,6 +3505,7 @@ function boot(){
       const idx = Number(shadowEncounterSel.value) || 0;
       if (encounters[idx]) {
         applyCXDShadowPreset(encounters[idx]);
+        updateMakeShinyVisibility(encounters[idx]);
       }
     });
   }
@@ -3441,8 +3539,8 @@ function boot(){
     if (currentEncounterMode === 'mystery') return;
 
     // Skip preset application during imports so imported PID/IVs are preserved,
-    // and also when Manual Override is active (autocomplete blur may fire late).
-    if (suppressPresetApply || manualOverrideActive) return;
+    // and also when PID Finder result is active.
+    if (suppressPresetApply || pidFinderResultActive) return;
 
     // Check if this is a fixed event (like WISHMKR Jirachi)
     if (encounter.fixedEvent) {
@@ -3655,6 +3753,13 @@ function boot(){
               if (sp === 151 && val < 30) val = 30;
             } catch (eee) {}
           }
+          // CXD Shadow: current level must be >= met level
+          if (currentEncounterMode === 'cxd_shadow') {
+            try {
+              const metLvl = Number($('#metLevel')?.value || 1);
+              if (val < metLvl) val = metLvl;
+            } catch (eee) {}
+          }
       } catch (ee) {}
       if (String(e.target.value) !== String(val)) {
         e.target.value = String(val);
@@ -3744,7 +3849,7 @@ function boot(){
   }
 
   function applyPresetIfSimple(){
-    if (suppressPresetApply) return; 
+    if (suppressPresetApply || pidFinderResultActive) return; 
     if (currentEncounterMode === 'mystery') return; // mystery uses its own presets
     if(document.body.classList.contains('mode-simple')){
       const preset = getSelectedPreset();
@@ -3774,8 +3879,8 @@ function boot(){
       checkShiny();
       
       // Check if PID matches a preset and update IVs
-      // Skip when manualOverrideActive so imports / PID Finder results aren't overwritten
-      if (!manualOverrideActive) {
+      // Skip when pidFinderResultActive so PID Finder results aren't overwritten
+      if (!pidFinderResultActive) {
         const found = findPresetByPid(val);
         if(found && found.preset && found.preset.ivs){
           // populate IV inputs
@@ -3817,11 +3922,19 @@ function boot(){
           if (evt && evt.shinyLocked) {
             shinyCheckboxLocal.checked = false;
             shinyCheckboxLocal.disabled = true;
+            shinyCheckboxLocal.title = 'This Pokémon is shiny locked!';
             return;
           }
         }
-        // Default: ensure enabled
+        // CXD shadow mode: shiny locked in-game, but user can still force-shiny by SID
+        if (currentEncounterMode === 'cxd_shadow') {
+          shinyCheckboxLocal.disabled = false;
+          shinyCheckboxLocal.title = 'Shiny locked in-game — checking this adjusts your SID';
+          return;
+        }
+        // Default: ensure enabled, clear tooltip
         shinyCheckboxLocal.disabled = false;
+        shinyCheckboxLocal.title = '';
       } catch (e) {}
     }
     
@@ -3837,10 +3950,10 @@ function boot(){
       const speciesId = Number($('#species').value) || 0;
       const ability = Number($('#ability').value);
       
-      // For legendaries, wild encounters, and Box Event mystery gifts, adjust SID instead of PID
+      // For legendaries, wild, CXD shadow, and Box Event mystery gifts, adjust SID instead of PID
       const isBoxEvent = currentEncounterMode === 'mystery' && 
         String($('#mysteryEvent')?.value || '').toUpperCase() === 'BOX_EVENT';
-      if (currentEncounterMode === 'legendaries' || currentEncounterMode === 'wild' || isBoxEvent) {
+      if (currentEncounterMode === 'legendaries' || currentEncounterMode === 'wild' || currentEncounterMode === 'cxd_shadow' || isBoxEvent) {
         const pid = parsePidInput($('#pid').value);
         
         if (e.target.checked) {
@@ -3899,7 +4012,75 @@ function boot(){
     pidInput.addEventListener('input', () => {
       updateGenderFromPID();
       checkShiny();
+      updateMakeShinyButton();
     });
+  }
+
+  /* ── Make Shiny button (adjusts SID to match current PID) ───────── */
+  const makeShinyBtn = document.getElementById('makeShinyBtn');
+  const makeShinyStatus = document.getElementById('makeShinyStatus');
+  const shinyIndicatorBtn = document.getElementById('shinyIndicatorBtn');
+
+  function updateMakeShinyButton() {
+    if (!makeShinyBtn) return;
+    const pid = parsePidInput($('#pid').value);
+    const tid = Number($('#tid').value) & 0xFFFF;
+    const sid = Number($('#sid').value) & 0xFFFF;
+    const pidHigh = (pid >>> 16) & 0xFFFF;
+    const pidLow = pid & 0xFFFF;
+    const xor = (pidHigh ^ pidLow) ^ (tid ^ sid);
+    const isShiny = xor < 8;
+
+    if (isShiny) {
+      makeShinyBtn.textContent = '\u2728 Undo Shiny';
+      makeShinyBtn.classList.add('is-shiny');
+    } else {
+      makeShinyBtn.textContent = '\u2728 Make Shiny';
+      makeShinyBtn.classList.remove('is-shiny');
+    }
+    if (shinyIndicatorBtn) {
+      shinyIndicatorBtn.classList.toggle('active', isShiny);
+    }
+  }
+
+  if (makeShinyBtn) {
+    makeShinyBtn.addEventListener('click', () => {
+      const pid = parsePidInput($('#pid').value);
+      const tid = Number($('#tid').value) & 0xFFFF;
+      const sid = Number($('#sid').value) & 0xFFFF;
+      const pidHigh = (pid >>> 16) & 0xFFFF;
+      const pidLow = pid & 0xFFFF;
+      const xor = (pidHigh ^ pidLow) ^ (tid ^ sid);
+      const isShiny = xor < 8;
+
+      if (!isShiny) {
+        // Make shiny: set SID so xor = 0 (pidHigh ^ pidLow ^ tid ^ newSid) = 0
+        const newSid = (pidHigh ^ pidLow ^ tid) & 0xFFFF;
+        $('#sid').value = String(newSid);
+        if (makeShinyStatus) {
+          makeShinyStatus.textContent = `SID set to ${newSid}`;
+          makeShinyStatus.style.color = 'var(--emerald, #10b981)';
+        }
+      } else {
+        // Undo shiny: set SID so xor >= 8
+        const xorBase = pidHigh ^ pidLow ^ tid;
+        const newSid = (xorBase ^ 8) & 0xFFFF;
+        $('#sid').value = String(newSid);
+        if (makeShinyStatus) {
+          makeShinyStatus.textContent = `SID set to ${newSid}`;
+          makeShinyStatus.style.color = 'var(--text-muted, #94a3b8)';
+        }
+      }
+
+      checkShiny();
+      updateMakeShinyButton();
+      try { updateGCTidSidWarning(); } catch (e) {}
+    });
+
+    // Keep button state in sync when TID/SID change
+    $('#tid').addEventListener('input', updateMakeShinyButton);
+    $('#sid').addEventListener('input', updateMakeShinyButton);
+    updateMakeShinyButton(); // Initial state
   }
 
   // Wire nature/gender changes to apply preset PID when in simple mode
@@ -3933,8 +4114,8 @@ function boot(){
       }
 
       // If we're in legendaries or wild mode, apply the per-nature legendary preset
-      // Also skip when manualOverrideActive (import / PID Finder selected a result)
-      if (!suppressPresetApply && !manualOverrideActive && (currentEncounterMode === 'legendaries' || currentEncounterMode === 'wild')) {
+      // Also skip when pidFinderResultActive (PID Finder selected a result)
+      if (!suppressPresetApply && !pidFinderResultActive && (currentEncounterMode === 'legendaries' || currentEncounterMode === 'wild')) {
         const speciesId = Number($('#species').value) || 0;
         const targetNature = Number(natureEl.value || 0);
 
@@ -3985,7 +4166,7 @@ function boot(){
             updateLegalityStatus();
           }
         }
-      } else if (!suppressPresetApply && !manualOverrideActive) {
+      } else if (!suppressPresetApply && !pidFinderResultActive) {
         // Normal mode: calculate PID to match the selected nature
         const pidEl = document.querySelector('#pid');
         if(pidEl){
@@ -4289,8 +4470,8 @@ function checkShiny() {
   const xor = (pidHigh ^ pidLow) ^ (tid ^ sid);
   const isShiny = xor < 8;
   
-  // Update both shiny indicators (advanced mode and simple mode)
-  const indicators = [document.querySelector('#shinyIndicator'), document.querySelector('#shinyIndicatorSimple')];
+  // Update all shiny indicators (advanced mode, simple mode, and make-shiny button)
+  const indicators = [document.querySelector('#shinyIndicator'), document.querySelector('#shinyIndicatorSimple'), document.querySelector('#shinyIndicatorBtn')];
   indicators.forEach(indicator => {
     if (indicator) {
       if (isShiny) {
@@ -4982,11 +5163,9 @@ function initPidFinder() {
   /* ── Apply selected result ─────────────────────────── */
 
   function selectResult(r) {
-    // Enable manual override so subsequent nature/species changes don't overwrite
-    // the PID Finder result via preset application
-    manualOverrideActive = true;
-    const overrideCb = document.querySelector('#manualOverride');
-    if (overrideCb) overrideCb.checked = true;
+    // Mark PID Finder result as active — this guards preset-application paths
+    // from overwriting the selected PID/IVs without enabling full Manual Override.
+    pidFinderResultActive = true;
 
     // Sync TID/SID from PID Finder modal back to main form
     const pfTid = Number(document.getElementById('pfTid').value) & 0xFFFF;
@@ -5039,11 +5218,22 @@ function initPidFinder() {
       abilitySel.value = String(abilityBit);
       // If the species only has one ability, option '1' doesn't exist — fall back
       if (abilitySel.value !== String(abilityBit)) abilitySel.value = '0';
-      // Lock the ability so the user can't accidentally change it (would invalidate PID)
-      abilitySel.disabled = true;
-      abilitySel.style.pointerEvents = 'none';
-      abilitySel.style.opacity = '0.6';
-      abilitySel.style.cursor = 'not-allowed';
+    }
+
+    // Lock nature, gender, ability, and IVs so casual changes don't invalidate
+    // the PID Finder result.  Manual Override can still unlock everything.
+    const lockStyle = (el) => {
+      if (!el) return;
+      el.disabled = true;
+      el.style.pointerEvents = 'none';
+      el.style.opacity = '0.6';
+      el.style.cursor = 'not-allowed';
+    };
+    lockStyle($('#nature'));
+    lockStyle($('#gender'));
+    lockStyle(abilitySel);
+    for (const id of ['ivHp','ivAtk','ivDef','ivSpAtk','ivSpDef','ivSpe']) {
+      lockStyle($('#' + id));
     }
 
     checkShiny();

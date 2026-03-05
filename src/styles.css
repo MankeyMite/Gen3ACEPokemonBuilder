@@ -195,6 +195,34 @@ body.encounter-cxd_shadow .shiny-external { display: none; }
   margin-left: 0.5rem;
 }
 
+.make-shiny-btn {
+  font-size: 0.9rem;
+  padding: 0.5rem 1.1rem;
+  white-space: nowrap;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: #fff;
+  border: none;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  transition: filter 0.15s, box-shadow 0.15s;
+}
+.make-shiny-btn:hover {
+  filter: brightness(1.12);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.45);
+}
+.make-shiny-btn.is-shiny {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+.make-shiny-btn.is-shiny:hover {
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.45);
+}
+
+.make-shiny-status {
+  font-size: 0.82rem;
+  margin-left: 0.5rem;
+  color: var(--text-muted, #94a3b8);
+}
+
 /* Overlay */
 .pid-finder-overlay {
   display: none;
