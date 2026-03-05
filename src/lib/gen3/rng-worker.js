@@ -138,6 +138,47 @@ function validateEncounterChain(pidLowState, nature, speciesSlots, canSync, allS
 }
 
 /**
+ * Unown-specific encounter-chain backward validation for FRLG.
+ *
+ * Unown uses a fundamentally different RNG chain than regular wild Pokémon:
+ *   - PID byte order is reversed: pid = (a << 16) | b  (first call HIGH)
+ *   - No nature rejection loop — the loop rejects on FORM instead
+ *   - No nature call consumed between Level and PID loop
+ *   - Chain: ESV → Level(skip) → [form-rejected PID pairs] → accepted A → B → IVs
+ *   - No Synchronize (FR/LG only)
+ *
+ * @param {number} pidAState - RNG state of the first accepted PID call (a)
+ * @param {number} unownForm - target Unown form (0–27)
+ * @param {Object} speciesSlots - slot index lookup from buildSpeciesSlotMap
+ * @param {Object} allSlotTables - raw slotTables for level computation
+ * @param {number} targetSpecies - species ID (201)
+ * @returns {{initSeed:number, metLevels:number[]}|null}
+ */
+function validateEncounterChainUnown(pidAState, unownForm, speciesSlots, allSlotTables, targetSpecies) {
+  let curState = pidAState;
+
+  for (let K = 0; K <= MAX_REJECTIONS; K++) {
+    if (K > 0) {
+      // Step back 2 states (one more rejected PID pair: a, b)
+      curState = reverse(reverse(curState));
+
+      // Verify the rejected PID at curState had the WRONG form
+      // (if it had the right form, the game would have accepted it — blocking)
+      const rejA = curState >>> 16;
+      const rejB = advance(curState) >>> 16;
+      const rejPid = ((rejA << 16) | rejB) >>> 0;
+      if (getUnownForm(rejPid) === unownForm) break; // blocking PID
+    }
+
+    // ESV is 2 states before curState: ESV → Level → curState(PID_a)
+    const slotState = reverse(reverse(curState));
+    const result = checkSlotWithLevel(slotState, speciesSlots, allSlotTables, targetSpecies);
+    if (result !== null) return result;
+  }
+  return null;
+}
+
+/**
  * Check whether the slot determined by slotState contains the target species,
  * and if so compute every possible met level (one per sub-area table).
  * @returns {{initSeed:number, metLevels:number[]}|null}
@@ -197,7 +238,7 @@ function makePriorityBuffer(cap) {
 
 /* ── PID + shiny helpers ──────────────────────────────── */
 
-function checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny) {
+function checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny, unownForm) {
   if (pid % 25 !== nature) return false;
   if (ability >= 0 && (pid & 1) !== ability) return false;
   if (targetGender < 2) {
@@ -208,7 +249,23 @@ function checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXo
   const xv = ((pid >>> 16) ^ (pid & 0xFFFF)) ^ trainerXor;
   if (wantShiny && xv >= 8) return false;
   if (!wantShiny && xv < 8) return false;
+  // Unown form filter
+  if (unownForm >= 0) {
+    const form = (((pid & 0x3000000) >> 18) |
+                  ((pid & 0x30000)   >> 12) |
+                  ((pid & 0x300)     >>  6) |
+                   (pid & 0x3)) % 28;
+    if (form !== unownForm) return false;
+  }
   return true;
+}
+
+/* ── Unown form from PID ──────────────────────────────── */
+function getUnownForm(pid) {
+  return (((pid & 0x3000000) >> 18) |
+          ((pid & 0x30000)   >> 12) |
+          ((pid & 0x300)     >>  6) |
+           (pid & 0x3)) % 28;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -226,8 +283,11 @@ function fastSearch(params, isStopped) {
     nature, ability, genderThreshold, targetGender,
     tid, sid, wantShiny,
     minIVs, maxIVs, methods, maxResults,
-    targetSpecies, slotTables, gameId
+    targetSpecies, slotTables, gameId,
+    unownForm: rawUnownForm
   } = params;
+  const unownForm = (rawUnownForm != null && rawUnownForm >= 0) ? rawUnownForm : -1;
+  const isUnown = unownForm >= 0;
 
   const doValidation = !!(slotTables && targetSpecies);
   const speciesSlots = doValidation ? buildSpeciesSlotMap(slotTables, targetSpecies) : null;
@@ -306,15 +366,21 @@ function fastSearch(params, isStopped) {
                 const pidHigh = s2 >>> 16;
                 const s1 = reverse(s2);
                 const pidLow = s1 >>> 16;
-                const pid = ((pidHigh << 16) | pidLow) >>> 0;
+                // Unown: pid = (a << 16) | b where a=first call, b=second call
+                // Regular: pid = (b << 16) | a  (pidHigh=b, pidLow=a)
+                const pid = isUnown
+                  ? ((pidLow << 16) | pidHigh) >>> 0
+                  : ((pidHigh << 16) | pidLow) >>> 0;
 
-                if (checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny)) {
+                if (checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny, unownForm)) {
                   const seed0 = reverse(s1);
 
                   let initSeed = null, metLevels = null;
                   let chainOK = true;
                   if (doValidation && hasAnySlots) {
-                    const chain = validateEncounterChain(s1, nature, speciesSlots, canSync, slotTables, targetSpecies);
+                    const chain = isUnown
+                      ? validateEncounterChainUnown(s1, unownForm, speciesSlots, slotTables, targetSpecies)
+                      : validateEncounterChain(s1, nature, speciesSlots, canSync, slotTables, targetSpecies);
                     if (!chain) { chainOK = false; }
                     else { initSeed = chain.initSeed; metLevels = chain.metLevels; }
                   }
@@ -351,14 +417,18 @@ function fastSearch(params, isStopped) {
               const pidHigh = s2 >>> 16;
               const s1 = reverse(s2);
               const pidLow = s1 >>> 16;
-              const pid = ((pidHigh << 16) | pidLow) >>> 0;
+              const pid = isUnown
+                ? ((pidLow << 16) | pidHigh) >>> 0
+                : ((pidHigh << 16) | pidLow) >>> 0;
 
-              if (!checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny)) continue;
+              if (!checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny, unownForm)) continue;
 
               const seed0 = reverse(s1);
               let initSeed = null, metLevels = null;
               if (doValidation && hasAnySlots) {
-                const chain = validateEncounterChain(s1, nature, speciesSlots, canSync, slotTables, targetSpecies);
+                const chain = isUnown
+                  ? validateEncounterChainUnown(s1, unownForm, speciesSlots, slotTables, targetSpecies)
+                  : validateEncounterChain(s1, nature, speciesSlots, canSync, slotTables, targetSpecies);
                 if (!chain) continue;
                 initSeed = chain.initSeed;
                 metLevels = chain.metLevels;
@@ -388,8 +458,11 @@ function bruteForceSearch(params, isStopped) {
     genderThreshold, targetGender,
     tid, sid, wantShiny,
     minIVs, maxIVs, methods, maxResults,
-    targetSpecies, slotTables, gameId
+    targetSpecies, slotTables, gameId,
+    unownForm: rawUnownForm
   } = params;
+  const unownForm = (rawUnownForm != null && rawUnownForm >= 0) ? rawUnownForm : -1;
+  const isUnown = unownForm >= 0;
 
   const doValidation = !!(slotTables && targetSpecies);
   const speciesSlots = doValidation ? buildSpeciesSlotMap(slotTables, targetSpecies) : null;
@@ -416,11 +489,15 @@ function bruteForceSearch(params, isStopped) {
 
     let s = seed >>> 0;
     s = advance(s);
-    const pidLow = s >>> 16;
-    const pidLowState = s;
+    const pidFirst = s >>> 16;     // first RNG call (a)
+    const pidFirstState = s;
     s = advance(s);
-    const pidHigh = s >>> 16;
-    const pid = ((pidHigh << 16) | pidLow) >>> 0;
+    const pidSecond = s >>> 16;    // second RNG call (b)
+    // Unown: pid = (a << 16) | b  (first call HIGH)
+    // Regular: pid = (b << 16) | a  (second call HIGH)
+    const pid = isUnown
+      ? ((pidFirst << 16) | pidSecond) >>> 0
+      : ((pidSecond << 16) | pidFirst) >>> 0;
 
     if (pid % 25 !== nature)  continue;
     if (ability >= 0 && (pid & 1) !== ability) continue;
@@ -429,9 +506,14 @@ function bruteForceSearch(params, isStopped) {
       if (targetGender === 0 && gb >= genderThreshold) continue;
       if (targetGender === 1 && gb < genderThreshold)  continue;
     }
-    const xv = (pidHigh ^ pidLow) ^ trainerXor;
+    const xv = ((pid >>> 16) ^ (pid & 0xFFFF)) ^ trainerXor;
     if (wantShiny  && xv >= 8) continue;
     if (!wantShiny && xv <  8) continue;
+
+    // Unown form filter
+    if (unownForm >= 0) {
+      if (getUnownForm(pid) !== unownForm) continue;
+    }
 
     const s3 = advance(s);
     const s4 = advance(s3);
@@ -481,7 +563,9 @@ function bruteForceSearch(params, isStopped) {
 
     let initSeed = null, metLevels = null;
     if (doValidation && hasAnySlots) {
-      const chain = validateEncounterChain(pidLowState, nature, speciesSlots, canSync, slotTables, targetSpecies);
+      const chain = isUnown
+        ? validateEncounterChainUnown(pidFirstState, unownForm, speciesSlots, slotTables, targetSpecies)
+        : validateEncounterChain(pidFirstState, nature, speciesSlots, canSync, slotTables, targetSpecies);
       if (chain === null) continue;
       initSeed  = chain.initSeed;
       metLevels = chain.metLevels;

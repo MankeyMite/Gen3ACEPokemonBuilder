@@ -355,7 +355,14 @@
     /* Autocomplete styling */
     .autocomplete-wrapper {
       position: relative;
-      flex: 1;
+      flex: 0 0 auto;
+      width: 240px;
+    }
+
+    /* Move autocompletes stretch to fill their row */
+    .move-row .autocomplete-wrapper {
+      flex: 1 1 auto;
+      width: auto;
     }
 
     .autocomplete-input {
@@ -552,11 +559,17 @@
       <div class="row">
         <label for="species-input">Pokémon</label>
         <select id="species"></select>
+        <img id="speciesSprite" class="species-sprite" alt="" />
       </div>
 
       <div class="row show-when-cxd">
         <label for="shadowEncounter">Encounter</label>
         <select id="shadowEncounter"></select>
+      </div>
+
+      <div class="row" id="unownFormRow" style="display:none;">
+        <label for="unownForm">Form</label>
+        <select id="unownForm"></select>
       </div>
 
       <div class="row">

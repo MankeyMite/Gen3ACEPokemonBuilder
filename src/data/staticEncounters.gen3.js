@@ -416,6 +416,7 @@ function isGiftPokemon(speciesId) {
 function isBreedable(speciesId) {
   if (isLegendary(speciesId)) return false;
   if (speciesId === 132) return false; // Ditto
+  if (speciesId === 201) return false; // Unown
   // Baby Pokémon that can't breed: Pichu, Cleffa, Igglybuff, Togepi, Tyrogue, Smoochum, Elekid, Magby, Azurill, Wynaut
   const babies = [172, 173, 174, 175, 236, 238, 239, 240, 298, 360];
   // Actually, babies CAN be obtained from breeding, so they're fine for "breedable" mode

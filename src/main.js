@@ -20,6 +20,7 @@ import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
 import { PROFANITY_LIST } from './data/profanity.gen3.js';
 import { CXD_SHADOW_ENCOUNTERS, CXD_SHADOW_SPECIES, getShadowEncountersForSpecies, isValidGCTidSid } from './data/shadowEncounters.gen3.js';
 import { COLO_SHADOW_LOCKS, XD_SHADOW_LOCKS, COLO_NO_LOCK_SPECIES, XD_NO_LOCK_SPECIES } from './data/cxdLocks.gen3.js';
+import { getSpritePath, getUnownFormIndex, getUnownFormChar, getUnownFormSuffix, getUnownSpritePath, UNOWN_FORMS, TANOBY_FORMS_BY_LOCATION, getTanobyFormsForLocation, getTanobyLocationsForForm } from './data/nationalDex.gen3.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -1065,6 +1066,11 @@ function updateWildEncounterFilters(speciesId) {
       metLevelInput.title = '';
     }
   }
+
+  // Unown: filter form dropdown to match the (now-updated) met location
+  if (speciesId === 201) {
+    filterUnownFormsByLocation();
+  }
 }
 
 /**
@@ -1227,6 +1233,151 @@ function highlightMissingFields() {
   
   return missingFields;
 }
+
+function updateSpeciesSprite(speciesId) {
+  const img = $('#speciesSprite');
+  if (!img) return;
+  // Unown: use form-specific sprite
+  if (speciesId === 201) {
+    const pid = parsePidInput($('#pid')?.value || '0');
+    const formIndex = getUnownFormIndex(pid);
+    img.src = getUnownSpritePath(formIndex);
+    img.alt = `Unown ${UNOWN_FORMS[formIndex]}`;
+    img.classList.add('visible');
+    return;
+  }
+  const species = SPECIES.find(s => s[0] === speciesId);
+  const path = species ? getSpritePath(species[1]) : null;
+  if (path) {
+    img.src = path;
+    img.alt = species[1];
+    img.classList.add('visible');
+  } else {
+    img.removeAttribute('src');
+    img.alt = '';
+    img.classList.remove('visible');
+  }
+}
+
+// ── Unown form helpers ──────────────────────────────────
+/** Populate and show/hide the Unown form dropdown based on current species. */
+function updateUnownFormVisibility(speciesId) {
+  const row = document.getElementById('unownFormRow');
+  if (!row) return;
+  if (speciesId === 201) {
+    // Populate dropdown with all 28 forms initially
+    const sel = document.getElementById('unownForm');
+    if (sel && sel.options.length === 0) {
+      for (let i = 0; i < 28; i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        const ch = UNOWN_FORMS[i];
+        opt.textContent = ch === '!' ? '! (Exclamation)' : ch === '?' ? '? (Question)' : ch;
+        sel.appendChild(opt);
+      }
+    }
+    // Sync to current PID
+    updateUnownFormFromPID();
+    // In wild mode, restrict forms to those available in the current chamber
+    if (currentEncounterMode === 'wild') {
+      filterUnownFormsByLocation();
+    }
+    row.style.display = '';
+  } else {
+    row.style.display = 'none';
+  }
+}
+
+/** Sync the Unown form dropdown + sprite to the current PID value. */
+function updateUnownFormFromPID() {
+  const speciesId = Number($('#species')?.value || 0);
+  if (speciesId !== 201) return;
+  const pid = parsePidInput($('#pid')?.value || '0');
+  const formIndex = getUnownFormIndex(pid);
+  const sel = document.getElementById('unownForm');
+  if (sel) sel.value = String(formIndex);
+  // Update sprite to matching form
+  const img = $('#speciesSprite');
+  if (img) {
+    img.src = getUnownSpritePath(formIndex);
+    img.alt = `Unown ${UNOWN_FORMS[formIndex]}`;
+    img.classList.add('visible');
+  }
+}
+
+/**
+ * Filter the Unown form dropdown to only show forms available in the
+ * currently selected Tanoby chamber.  If no chamber is selected or the
+ * location isn't a Tanoby chamber, show all 28 forms.
+ */
+function filterUnownFormsByLocation() {
+  const sel = document.getElementById('unownForm');
+  if (!sel) return;
+  const locId = Number($('#metLocation')?.value || 0);
+  const allowedForms = getTanobyFormsForLocation(locId); // null if not Tanoby
+  const currentForm = Number(sel.value);
+
+  for (const opt of Array.from(sel.options)) {
+    const fi = Number(opt.value);
+    if (allowedForms) {
+      opt.hidden = !allowedForms.includes(fi);
+      opt.disabled = !allowedForms.includes(fi);
+    } else {
+      opt.hidden = false;
+      opt.disabled = false;
+    }
+  }
+
+  // If current form is not valid in this chamber, auto-pick the first valid one
+  if (allowedForms && !allowedForms.includes(currentForm)) {
+    sel.value = String(allowedForms[0]);
+    updateUnownFormSprite();
+  }
+}
+
+/**
+ * When the Unown form dropdown changes, filter the met location list
+ * to only show Tanoby chambers that can produce this form.
+ */
+function filterUnownLocationsByForm() {
+  if (currentEncounterMode !== 'wild') return;
+  const speciesId = Number($('#species')?.value || 0);
+  if (speciesId !== 201) return;
+
+  const formIndex = Number(document.getElementById('unownForm')?.value ?? 0);
+  const validLocIds = getTanobyLocationsForForm(formIndex);
+  const currentGame = Number($('#originGame')?.value || 0);
+
+  // Filter met locations to only valid chambers for this form
+  const baseLocations = getLocationsForGame(currentGame);
+  const filteredLocations = baseLocations.filter(([id]) => validLocIds.includes(id));
+  if (metLocationWrapper && metLocationWrapper.updateList) {
+    metLocationWrapper.updateList(filteredLocations);
+  }
+
+  // If current location not valid for this form, pick the first valid one
+  const curLoc = Number($('#metLocation')?.value || 0);
+  if (!validLocIds.includes(curLoc) && filteredLocations.length) {
+    $('#metLocation').value = String(filteredLocations[0][0]);
+  }
+}
+
+/** Update sprite to match the currently selected Unown form. */
+function updateUnownFormSprite() {
+  const formIndex = Number(document.getElementById('unownForm')?.value ?? 0);
+  const img = $('#speciesSprite');
+  if (img) {
+    img.src = getUnownSpritePath(formIndex);
+    img.alt = `Unown ${UNOWN_FORMS[formIndex]}`;
+    img.classList.add('visible');
+  }
+}
+
+// When user manually picks a form, update sprite + filter locations
+document.getElementById('unownForm')?.addEventListener('change', function () {
+  updateUnownFormSprite();
+  filterUnownLocationsByForm();
+});
 
 function boot(){
   // Function to update ability select based on species
@@ -1811,6 +1962,10 @@ function boot(){
       }
       // Update ability select based on species
       updateAbilitySelect(speciesId);
+      // Update species sprite
+      updateSpeciesSprite(speciesId);
+      // Show/hide Unown form dropdown
+      updateUnownFormVisibility(speciesId);
       // Uncheck shiny since species changed (gender ratios may differ)
       const shinyCheckbox = document.querySelector('#shiny');
       if (shinyCheckbox && shinyCheckbox.checked) {
@@ -1933,6 +2088,10 @@ function boot(){
     $('#species').parentElement.classList.remove('field-error');
     try { lockLanguageForMewLegend(); } catch (e) {}
     try { enforceMewLegendMinLevel(); } catch (e) {}
+    // Update sprite (covers imports / preset changes)
+    updateSpeciesSprite(Number($('#species').value) || 0);
+    // Update Unown form visibility (covers imports / mode changes)
+    updateUnownFormVisibility(Number($('#species').value) || 0);
   });
   $('#species').addEventListener('input', () => {
     validateForm();
@@ -2170,6 +2329,10 @@ function boot(){
             const cur = Number(ml.value) || 0;
             ml.value = String(snapToValidLevel(ranges, cur));
           }
+        }
+        // Unown: filter form dropdown to forms available in this chamber
+        if (spId === 201) {
+          filterUnownFormsByLocation();
         }
       }
     });
@@ -3125,9 +3288,9 @@ function boot(){
     let filteredSpecies;
     switch(currentEncounterMode) {
       case 'hatched':
-        // Exclude legendaries (only breedable pokemon) and Ditto (cannot be bred)
+        // Exclude legendaries (only breedable pokemon), Ditto, and Unown (cannot be bred)
         // Also exclude placeholder/unknown species entries (names with '?')
-        filteredSpecies = SPECIES.filter(s => !isLegendary(s[0]) && s[0] !== 132 && !String(s[1]||'').includes('?'));
+        filteredSpecies = SPECIES.filter(s => !isLegendary(s[0]) && s[0] !== 132 && s[0] !== 201 && !String(s[1]||'').includes('?'));
         break;
       case 'legendaries':
         // Only legendaries
@@ -3877,6 +4040,13 @@ function boot(){
       
       // Check if shiny
       checkShiny();
+      
+      // Update Unown form from PID
+      updateUnownFormFromPID();
+      // If Unown in wild mode, update met location to match new form
+      if (Number($('#species')?.value || 0) === 201 && currentEncounterMode === 'wild') {
+        filterUnownLocationsByForm();
+      }
       
       // Check if PID matches a preset and update IVs
       // Skip when pidFinderResultActive so PID Finder results aren't overwritten
@@ -5063,7 +5233,8 @@ function initPidFinder() {
           maxResults: Math.ceil(250 / workerCount),
           noShiny: true,   // CXD shadows always anti-shiny
           teamLocks,
-          tsv: tsvVal
+          tsv: tsvVal,
+          unownForm: speciesId === 201 ? Number($('#unownForm')?.value ?? -1) : -1
         });
       } else {
         worker.postMessage({
@@ -5075,7 +5246,8 @@ function initPidFinder() {
           maxResults: Math.ceil(250 / workerCount),
           targetSpecies: speciesId,
           slotTables,
-          gameId
+          gameId,
+          unownForm: speciesId === 201 ? Number($('#unownForm')?.value ?? -1) : -1
         });
       }
     }
@@ -5311,9 +5483,11 @@ function collect(){
       heart: $('#markHeart')?.checked || false
     },
     // If we're in simple mode, prefer the preset's IVs (and PID) to avoid mismatches.
+    // BUT skip this when a PID Finder result is active — the finder already set the
+    // correct correlated IVs in the DOM fields.
     ivs: (function(){
       try{
-        if(document.body.classList.contains('mode-simple')){
+        if(document.body.classList.contains('mode-simple') && !pidFinderResultActive){
           const natureIndex = Number($('#nature').value || 0);
           const natureName = NATURES[natureIndex] || null;
           const gender = ($('#gender').value || 'male');

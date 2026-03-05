@@ -107,7 +107,22 @@ h1 {
 }
 
 .row{display:flex;gap:.75rem;align-items:center;margin:.5rem 0}
-.row.two>div{flex:1}
+
+/* Species sprite */
+.species-sprite {
+  width: 64px;
+  height: 64px;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: none;
+}
+.species-sprite.visible {
+  display: block;
+}
 .row.six>div{flex:1;min-width:100px}
 label{min-width:140px;color:var(--accent-glow)}
 
@@ -127,8 +142,20 @@ input:focus, select:focus, textarea:focus {
   background: rgba(10, 20, 40, 0.8);
 }
 
-select, input[type="number"], input[type="text"]{width:100%}
 .moves select{display:block;margin:.25rem 0}
+
+/* ── Field sizing: compact inputs instead of full-width stretch ── */
+.row > select { width: auto; min-width: 140px; }
+.row > input[type="number"] { width: 100px; }
+.row > input[type="text"] { width: 200px; }
+#pid { width: 160px; }
+
+/* Grid cells (IVs / EVs) fill their column */
+.grid input[type="number"] { width: 100%; }
+
+/* TID / SID paired row */
+.row.two > div { flex: 0 0 auto; width: 160px; }
+.row.two > div input[type="number"] { width: 100%; }
 #output{width:100%;font-family:ui-monospace,Menlo,Consolas,monospace}
 #hexOutput{width:100%;font-family:ui-monospace,Menlo,Consolas,monospace;height:200px;resize:none}
 
