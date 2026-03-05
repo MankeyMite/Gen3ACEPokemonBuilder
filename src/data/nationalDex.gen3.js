@@ -451,9 +451,9 @@ export function getUnownSpritePath(formIndex) {
   return `src/data/Sprites/0201-${getUnownFormSuffix(formIndex)}.png`;
 }
 
-// ── Shiny sprite URL helpers (pokemondb.net RS shiny sprites) ──
+// ── Online sprite URL helpers (pokemondb.net Ruby/Sapphire) ──
 
-const SHINY_SPRITE_BASE = 'https://img.pokemondb.net/sprites/ruby-sapphire/shiny';
+const POKEMONDB_SPRITE_BASE = 'https://img.pokemondb.net/sprites/ruby-sapphire';
 
 function speciesNameToSlug(name) {
   return name
@@ -464,13 +464,17 @@ function speciesNameToSlug(name) {
     .replace(/\s+/g, '-');
 }
 
-export function getShinySpriteUrl(speciesName) {
-  if (!speciesName || speciesName === '?' || speciesName === '??????????') return null;
-  return `${SHINY_SPRITE_BASE}/${speciesNameToSlug(speciesName)}.png`;
+function getOnlineVariantSegment(shiny) {
+  return shiny ? 'shiny' : 'normal';
 }
 
-export function getUnownShinySpriteUrl() {
-  return `${SHINY_SPRITE_BASE}/unown.png`;
+export function getOnlineSpriteUrl(speciesName, shiny = false) {
+  if (!speciesName || speciesName === '?' || speciesName === '??????????') return null;
+  return `${POKEMONDB_SPRITE_BASE}/${getOnlineVariantSegment(shiny)}/${speciesNameToSlug(speciesName)}.png`;
+}
+
+export function getOnlineUnownSpriteUrl(shiny = false) {
+  return `${POKEMONDB_SPRITE_BASE}/${getOnlineVariantSegment(shiny)}/unown.png`;
 }
 
 // ── Tanoby Ruins chamber → Unown form slot mapping (PKHeX TanobyRuins3.cs) ──
