@@ -1,4 +1,4 @@
-// IV input selectors (used for visibility and clamping)
+﻿// IV input selectors (used for visibility and clamping)
 const ivIds = ['#ivHp','#ivAtk','#ivDef','#ivSpAtk','#ivSpDef','#ivSpe'];
 import { NATURES, LANGUAGES } from './lib/gen3/constants.js';
 import { SPECIES } from './data/species.gen3.js';
@@ -7,7 +7,7 @@ import { MOVES } from './data/moves.gen3.js';
 import { BALLS } from './data/balls.gen3.js';
 import { LOCATIONS } from './data/locations.gen3.js';
 import { PID_PRESETS } from './data/pid_presets.gen3.js';
-import { STATIC_ENCOUNTERS, isLegendary, isBreedable, isGiftPokemon } from './data/staticEncounters.gen3.js';
+import { STATIC_ENCOUNTERS, isLegendary, isBreedable, isGiftPokemon, STATIC_CATEGORIES, STATIC_ENCOUNTER_LIST, STATIC_SPECIES_SET, getEncountersByCategory, getSpeciesForCategory, getEncountersForSpeciesGame, getEncounterForSpecies } from './data/staticEncounters.gen3.js';
 import { getLegendaryPreset, isColosseumXDLegendary } from './data/legendaryPresets.gen3.js';
 import { buildPokemonBytes, toHexString, toFormattedHex, toBase64Emerald, coreSource, parsePokemonBytes, buildDecryptedPokemonFile } from './lib/gen3/builder.js';
 import { GROUP, expForLevel, levelForExp } from './lib/exp.js';
@@ -523,13 +523,13 @@ const GENDER_THRESHOLDS = {
   300: 191, 301: 191,         // Skitty line
   
   // Female-only species (threshold 255)
-  29: 255, 30: 255, 31: 255,  // Nidoran♀ line
+  29: 255, 30: 255, 31: 255,  // Nidoranâ™€ line
   113: 255, 242: 255, 440: 255, // Chansey line
   238: 255, 124: 255,          // Smoochum, Jynx
   387: 255,                    // Illumise
   
   // Male-only species (threshold 0)
-  32: 0, 33: 0, 34: 0,    // Nidoran♂ line
+  32: 0, 33: 0, 34: 0,    // Nidoranâ™‚ line
   106: 0, 107: 0, 236: 0, 237: 0, // Hitmons
   128: 0,                  // Tauros
   386: 0,                  // Volbeat
@@ -651,7 +651,7 @@ function fillSelect(el, list, opts = {}) {
 // Ensure Mew in Legendary mode is at least level 30. Called after species/mode changes.
 function enforceMewLegendMinLevel() {
   try {
-    if (currentEncounterMode !== 'legendaries') return;
+    if (currentEncounterMode !== 'static') return;
     const sp = Number($('#species')?.value || 0);
     if (sp !== 151) return;
     const levelEl = $('#level');
@@ -975,7 +975,7 @@ function rangesToLabel(ranges) {
  * the selected species' wild encounter data.
  *
  * The encounter data uses merged level ranges:
- *   locationId → [[min,max], ...]  (e.g. [[5,10],[20,30]])
+ *   locationId â†’ [[min,max], ...]  (e.g. [[5,10],[20,30]])
  *
  * Flow:
  *   1. Disable Origin Game options where the species has no wild encounters.
@@ -995,7 +995,7 @@ function updateWildEncounterFilters(speciesId) {
   const metLevelInput =    $('#metLevel');
   if (!originGameSelect) return;
 
-  // ── 1. Filter Origin Game options ───────────────────────────────────────
+  // â”€â”€ 1. Filter Origin Game options â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const availableGames = encounterData ? Object.keys(encounterData).map(Number) : [];
   const options = Array.from(originGameSelect.options);
   for (const opt of options) {
@@ -1006,7 +1006,7 @@ function updateWildEncounterFilters(speciesId) {
     opt.hidden   = !availableGames.includes(gId);
   }
 
-  // ── 2. Auto-select first available game if current is disabled ──────────
+  // â”€â”€ 2. Auto-select first available game if current is disabled â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let currentGame = Number(originGameSelect.value);
   if (!availableGames.includes(currentGame)) {
     if (availableGames.length) {
@@ -1015,7 +1015,7 @@ function updateWildEncounterFilters(speciesId) {
     }
   }
 
-  // ── 3. Filter Met Location to valid locations for species + game ────────
+  // â”€â”€ 3. Filter Met Location to valid locations for species + game â”€â”€â”€â”€â”€â”€â”€â”€
   if (encounterData && encounterData[currentGame]) {
     const gameLocs = encounterData[currentGame]; // { locId: [[min,max],...] }
     const locIds = Object.keys(gameLocs).map(Number);
@@ -1032,7 +1032,7 @@ function updateWildEncounterFilters(speciesId) {
       $('#metLocation').value = String(filteredLocations[0][0]);
     }
 
-    // ── 4. Snap Met Level to the closest valid level ──────────────────────
+    // â”€â”€ 4. Snap Met Level to the closest valid level â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const chosenLoc = Number($('#metLocation').value);
     const ranges = gameLocs[chosenLoc];
     if (ranges && ranges.length && metLevelInput) {
@@ -1133,7 +1133,7 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
     // Keep the empty/0 entry ("— None —") plus all legal moves
     baseMoves = MOVES.filter(([id]) => id === 0 || idSet.has(id));
   } else {
-    // No learnset data → show everything
+    // No learnset data â†’ show everything
     baseMoves = MOVES;
   }
 
@@ -1280,7 +1280,7 @@ function updateSpeciesSprite(speciesId) {
   }
 }
 
-// ── Unown form helpers ──────────────────────────────────
+// â”€â”€ Unown form helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 /** Populate and show/hide the Unown form dropdown based on current species. */
 function updateUnownFormVisibility(speciesId) {
   const row = document.getElementById('unownFormRow');
@@ -1561,7 +1561,7 @@ function boot(){
       if (fatefulCheckbox && fatefulCheckbox.checked) {
         errors.push('Fateful encounter cannot be checked for hatched Pokémon');
       }
-    } else if (mode === 'legendaries' && STATIC_ENCOUNTERS[speciesId]) {
+    } else if (mode === 'static' && STATIC_ENCOUNTERS[speciesId]) {
       // Legendary mode rules
       const encounter = STATIC_ENCOUNTERS[speciesId];
       
@@ -1893,14 +1893,14 @@ function boot(){
       statusEl.title = unknownLegalityMessage;
     } else if (result.legal) {
       statusEl.className = 'legal';
-      iconEl.textContent = '✓';
+      iconEl.textContent = 'âœ“';
       iconEl.style.color = '#22c55e';
       textEl.textContent = 'Legal';
       textEl.style.color = '#22c55e';
       statusEl.title = 'This Pokémon passes all legality checks';
     } else {
       statusEl.className = 'illegal';
-      iconEl.textContent = '✗';
+      iconEl.textContent = 'âœ—';
       iconEl.style.color = '#ef4444';
       textEl.textContent = 'Illegal';
       textEl.style.color = '#ef4444';
@@ -1951,8 +1951,8 @@ function boot(){
             const fatefulCheckbox = $('#fatefulEncounter');
             if (fatefulCheckbox) fatefulCheckbox.checked = true;
           } else {
-            $('#nickname').value = 'ミュウ'; // Mew in Japanese
-            $('#otName').value = 'ミュウ';   // OT also Mew in Japanese
+            $('#nickname').value = 'ãƒŸãƒ¥ã‚¦'; // Mew in Japanese
+            $('#otName').value = 'ãƒŸãƒ¥ã‚¦';   // OT also Mew in Japanese
             $('#language').value = '1';      // Japanese language
             const fatefulCheckbox = $('#fatefulEncounter');
             if (fatefulCheckbox) {
@@ -1967,7 +1967,7 @@ function boot(){
             $('#nickname').value = 'CELEBI';
             $('#language').value = '2'; // English
           } else {
-            $('#nickname').value = 'セレビィ'; // Celebi in Japanese
+            $('#nickname').value = 'ã‚»ãƒ¬ãƒ“ã‚£'; // Celebi in Japanese
             $('#language').value = '1';        // Japanese language
           }
         }
@@ -2447,7 +2447,7 @@ function boot(){
       if (currentEncounterMode === 'cxd_shadow' && makeShinyRowEl) makeShinyRowEl.style.display = 'none';
       // Add body classes for special encounter modes so CSS/JS can adjust visibility
       document.body.classList.toggle('encounter-wild', currentEncounterMode === 'wild');
-      document.body.classList.toggle('encounter-legendaries', currentEncounterMode === 'legendaries');
+      document.body.classList.toggle('encounter-static', currentEncounterMode === 'static');
       document.body.classList.toggle('encounter-mystery', currentEncounterMode === 'mystery');
       document.body.classList.toggle('encounter-cxd_shadow', currentEncounterMode === 'cxd_shadow');
       
@@ -2528,7 +2528,7 @@ function boot(){
     if (!el) return;
     const map = {
       hatched: {label: 'Hatched', color: '#10b981', text: 'Pokémon that came from eggs, and not met in the wild. This mode is recommended for any Pokemon that can be obtained through breeding, as it allows full customization for IVs, shinyness, TID and SID.'},
-      legendaries: {label: 'Legendaries', color: '#f59e0b', text: 'All legendary Pokémon with in-game encounters. IVs are hand picked for best possible per nature for Method 1. Use the PID searcher for custom PID/shininess.'},
+      static: {label: 'Static', color: '#f59e0b', text: 'All static encounters: starters, fossils, gifts, game corner, stationary, legends, events, and roamers. IVs are hand picked for best possible per nature for Method 1. Use the PID searcher for custom PID/shininess.'},
       wild: {label: 'Wild', color: '#60a5fa', text: 'Wild encounters (in the overworld). Recommended only if you prefer it looking like it was RNG manipulated. Uses Method 1 encounter slots to aim for best IVs per nature for each species. Use the PID searcher for custom PID/shininess.'},
       mystery: {label: 'Mystery Gifts', color: '#ef476f', text: 'Mystery Gift events — Get Distribution Event Pokémon! These have strict rules, so you may only change a few fields. IVs are hand picked for the best possible for each nature.'},
       cxd_shadow: {label: 'XD / Colosseum', color: '#a78bfa', text: 'Shadow Pokémon from Pokémon XD: Gale of Darkness and Pokémon Colosseum. Choose a species and encounter location, then use the PID Finder with CXD method. TID and SID must be a valid GameCube RNG pair.'}
@@ -2747,17 +2747,31 @@ function boot(){
             ballEl.style.pointerEvents = 'none';
             ballEl.style.opacity = '0.6';
             ballEl.style.cursor = 'not-allowed';
-          } else if (currentEncounterMode === 'wild' || currentEncounterMode === 'legendaries') {
-            // Wild/Legendary NOT at Safari Zone: remove Safari Ball from options
-            const filteredBalls = BALLS.filter(b => b[0] !== 5);
-            if (ballEl.updateList) ballEl.updateList(filteredBalls);
-            if (Number(ballEl.value) === 5) {
-              try { ballEl.value = '4'; } catch (e) {}
+          } else if (currentEncounterMode === 'wild' || currentEncounterMode === 'static') {
+            // Check if this static encounter has a fixed ball (starters, gifts, fossils, game corner)
+            const speciesId = Number($('#species')?.value || 0);
+            const currentGame = Number($('#originGame')?.value || 0);
+            const detEnc = currentEncounterMode === 'static' ? getEncounterForSpecies(speciesId, currentGame) : null;
+            if (detEnc && detEnc.fixedBall) {
+              // Fixed ball: force it and lock
+              if (ballEl.updateList) ballEl.updateList(BALLS);
+              try { ballEl.value = String(detEnc.fixedBall); } catch (e) {}
+              ballEl.disabled = true;
+              ballEl.style.pointerEvents = 'none';
+              ballEl.style.opacity = '0.6';
+              ballEl.style.cursor = 'not-allowed';
+            } else {
+              // Wild/Static NOT at Safari Zone, no fixed ball: remove Safari Ball from options
+              const filteredBalls = BALLS.filter(b => b[0] !== 5);
+              if (ballEl.updateList) ballEl.updateList(filteredBalls);
+              if (Number(ballEl.value) === 5) {
+                try { ballEl.value = '4'; } catch (e) {}
+              }
+              ballEl.disabled = false;
+              ballEl.style.pointerEvents = '';
+              ballEl.style.opacity = '';
+              ballEl.style.cursor = '';
             }
-            ballEl.disabled = false;
-            ballEl.style.pointerEvents = '';
-            ballEl.style.opacity = '';
-            ballEl.style.cursor = '';
           } else {
             // Other modes: full ball list, unlocked
             if (ballEl.updateList) ballEl.updateList(BALLS);
@@ -2776,7 +2790,7 @@ function boot(){
       if (!langSel || !langSel.options) return;
       const speciesId = Number($('#species')?.value || 0);
       const isMew = speciesId === 151;
-      if (!manualOverrideActive && currentEncounterMode === 'legendaries' && isMew) {
+      if (!manualOverrideActive && currentEncounterMode === 'static' && isMew) {
         // Ensure Japanese option is enabled and select it, then disable the control
         for (const o of Array.from(langSel.options)) {
           if (String(o.value) === '1') o.disabled = false;
@@ -2790,7 +2804,7 @@ function boot(){
         try {
           const otEl = $('#otName');
           if (otEl) {
-            otEl.value = 'ミュウ';
+            otEl.value = 'ãƒŸãƒ¥ã‚¦';
             otEl.disabled = true;
             otEl.style.pointerEvents = 'none';
             otEl.style.opacity = '0.6';
@@ -2801,7 +2815,7 @@ function boot(){
         try {
           const nickEl = $('#nickname');
           if (nickEl) {
-            nickEl.value = 'ミュウ';
+            nickEl.value = 'ãƒŸãƒ¥ã‚¦';
             nickEl.disabled = true;
             nickEl.style.pointerEvents = 'none';
             nickEl.style.opacity = '0.6';
@@ -3074,6 +3088,28 @@ function boot(){
     }
     loadMysteryGifts();
 
+    // ── Static encounter category dropdown ──────────────────────────
+    {
+      const catSel = document.getElementById('staticCategory');
+      if (catSel) {
+        catSel.innerHTML = '';
+        for (const cat of STATIC_CATEGORIES) {
+          const o = document.createElement('option');
+          o.value = cat.id;
+          o.textContent = cat.label;
+          catSel.appendChild(o);
+        }
+        catSel.addEventListener('change', () => {
+          updateSpeciesListForMode();
+          const sp = Number($('#species').value) || 0;
+          if (sp) {
+            handleEncounterModeChange(sp);
+            updateMovesForSpecies(sp, { preserveValue: false });
+          }
+        });
+      }
+    }
+
     // Clear UI state that may have been set by a previously-selected mystery event
     function clearMysteryEventState() {
       try {
@@ -3308,10 +3344,18 @@ function boot(){
         // Also exclude placeholder/unknown species entries (names with '?')
         filteredSpecies = SPECIES.filter(s => !isLegendary(s[0]) && s[0] !== 132 && s[0] !== 201 && !String(s[1]||'').includes('?'));
         break;
-      case 'legendaries':
-        // Only legendaries
-        filteredSpecies = SPECIES.filter(s => isLegendary(s[0]));
+      case 'static': {
+        // Filter species by selected category
+        const catVal = document.getElementById('staticCategory')?.value || '';
+        if (catVal) {
+          const catSpecies = new Set(getSpeciesForCategory(catVal));
+          filteredSpecies = SPECIES.filter(s => catSpecies.has(s[0]));
+        } else {
+          // No category selected — show all static encounter species
+          filteredSpecies = SPECIES.filter(s => STATIC_SPECIES_SET.has(s[0]));
+        }
         break;
+      }
       case 'wild':
         // Only species with actual wild encounter data,
         // excluding placeholder/unknown species entries (names with '?')
@@ -3403,7 +3447,7 @@ function boot(){
       }
     try { updateTidSidLocking(); } catch (e) {}
     }
-    if (mode === 'legendaries' && STATIC_ENCOUNTERS[speciesId]) {
+    if (mode === 'static' && STATIC_ENCOUNTERS[speciesId]) {
       // For legendary encounters, apply preset data (skip when PID Finder is active)
       if (!pidFinderResultActive) applyStaticEncounterPreset(speciesId);
       // Make gender read-only for legendaries (can still update from PID, but user can't manually change)
@@ -3557,9 +3601,9 @@ function boot(){
     updateLegalityStatus();
   }
 
-  /* ══════════════════════════════════════════════════════════
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    *  CXD Shadow Encounter helpers
-   * ══════════════════════════════════════════════════════════ */
+   * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
   /**
    * Populate the #shadowEncounter dropdown with all encounters for the given
@@ -3713,7 +3757,9 @@ function boot(){
   }
 
   /**
-   * Apply static encounter preset for a species
+   * Apply static encounter preset for a species.
+   * Uses both the legacy STATIC_ENCOUNTERS keyed object (for fixed events)
+   * and the new STATIC_ENCOUNTER_LIST (for per-game/category aware defaults).
    */
   function applyStaticEncounterPreset(speciesId) {
     const encounter = STATIC_ENCOUNTERS[speciesId];
@@ -3726,6 +3772,11 @@ function boot(){
     // Skip preset application during imports so imported PID/IVs are preserved,
     // and also when PID Finder result is active.
     if (suppressPresetApply || pidFinderResultActive) return;
+
+    // Look up the detailed encounter entry from the new list.
+    // Prefer matching by current origin game so that level/location are correct.
+    const currentGame = Number($('#originGame')?.value || 0);
+    const detailedEnc = getEncounterForSpecies(speciesId, currentGame);
 
     // Check if this is a fixed event (like WISHMKR Jirachi)
     if (encounter.fixedEvent) {
@@ -3774,31 +3825,32 @@ function boot(){
       }
     }
 
-    // Set origin game if specified (do this BEFORE met location so the
+    // Use detailed encounter for origin game / location / level if available
+    const gameId = detailedEnc ? detailedEnc.games[0] : encounter.defaultOriginGame;
+
+    // Set origin game (do this BEFORE met location so the
     // location list contains the correct entries for this game)
-    if (encounter.defaultOriginGame !== undefined) {
+    if (gameId !== undefined) {
       const originGameSelect = $('#originGame');
       if (originGameSelect) {
-        originGameSelect.value = String(encounter.defaultOriginGame);
+        originGameSelect.value = String(gameId);
         // Refresh location list for the new game
         if (metLocationWrapper && metLocationWrapper.updateList) {
-          metLocationWrapper.updateList(getLocationsForGame(encounter.defaultOriginGame));
+          metLocationWrapper.updateList(getLocationsForGame(gameId));
         }
       }
     }
 
-    // Set met location and level if available
-    if (encounter.defaultMetLocationId) {
-      // Use direct location ID (preferred)
+    // Set met location (prefer detailed encounter's location ID)
+    const locationId = detailedEnc ? detailedEnc.location : encounter.defaultMetLocationId;
+    if (locationId !== undefined) {
       const locationSelect = $('#metLocation');
       if (locationSelect) {
-        locationSelect.value = String(encounter.defaultMetLocationId);
+        locationSelect.value = String(locationId);
       }
     } else if (encounter.defaultMetLocation) {
-      // Fallback: search by location name
       const locationSelect = $('#metLocation');
       if (locationSelect) {
-        // Find the location ID by searching LOCATIONS array
         const location = LOCATIONS.find(loc => 
           loc[1] && loc[1].toLowerCase().includes(encounter.defaultMetLocation.toLowerCase())
         );
@@ -3808,36 +3860,25 @@ function boot(){
       }
     }
 
-    if (encounter.defaultMetLevel) {
+    // Set met level and current level
+    const metLevel = detailedEnc ? detailedEnc.level : encounter.defaultMetLevel;
+    if (metLevel) {
       const metLevelInput = $('#metLevel');
       const levelInput = $('#level');
       if (metLevelInput) {
-        metLevelInput.value = encounter.defaultMetLevel;
+        metLevelInput.value = metLevel;
       }
-      // Also set the main level to match
       if (levelInput) {
-        levelInput.value = encounter.defaultMetLevel;
+        levelInput.value = metLevel;
       }
-      // Update experience to match the new level
       computeAndSetExpFromLevel();
     }
 
-    // Set fateful encounter flag
-    if (encounter.defaultFatefulEncounter !== undefined) {
-      const fatefulCheckbox = $('#fatefulEncounter');
-      if (fatefulCheckbox) {
-        fatefulCheckbox.checked = encounter.defaultFatefulEncounter;
-      }
-    }
-    
-    // Auto-check fateful encounter for specific legendaries
-    // Mew (151), Lugia (249), Ho-Oh (250), Deoxys (410), Latios (408), Latias (407)
-    const fatefulEncounterRequired = [151, 249, 250, 410, 408, 407];
-    if (fatefulEncounterRequired.includes(speciesId)) {
-      const fatefulCheckbox = $('#fatefulEncounter');
-      if (fatefulCheckbox) {
-        fatefulCheckbox.checked = true;
-      }
+    // Set fateful encounter flag from detailed encounter or legacy data
+    const isFateful = detailedEnc ? !!detailedEnc.fateful : !!encounter.defaultFatefulEncounter;
+    const fatefulCheckbox = $('#fatefulEncounter');
+    if (fatefulCheckbox) {
+      fatefulCheckbox.checked = isFateful;
     }
 
     // Set default ribbons if specified
@@ -3850,10 +3891,20 @@ function boot(){
       }
     }
 
+    // Handle fixed ball from detailed encounter
+    if (detailedEnc && detailedEnc.fixedBall) {
+      try {
+        const ballEl = $('#ball');
+        if (ballEl) {
+          ballEl.value = String(detailedEnc.fixedBall);
+        }
+      } catch (e) {}
+    }
+
     // For non-fixed events, apply legendary PID and IV preset based on selected nature
     if (!encounter.fixedEvent) {
       const natureIndex = Number($('#nature').value || 0);
-      const originGame = encounter.defaultOriginGame || 2;
+      const originGame = gameId || 2;
       const preset = getLegendaryPreset(natureIndex, originGame);
       
       if (preset) {
@@ -3875,7 +3926,7 @@ function boot(){
       }
     }
 
-    // Update gender and ability - always set ability to 0 for legendaries
+    // Update gender and ability
     updateGenderFromPID();
     $('#ability').value = '0';
 
@@ -3932,7 +3983,7 @@ function boot(){
           else if ((tag === 'WISHMKR_BEST' || tag === 'WISHMKR_SHINY') && val < 5) val = 5;
           }
           // Legendary Mew: if in legendaries mode and species is Mew (151), enforce min level 30
-          else if (currentEncounterMode === 'legendaries') {
+          else if (currentEncounterMode === 'static') {
             try {
               const sp = Number($('#species')?.value || 0);
               if (sp === 151 && val < 30) val = 30;
@@ -4145,7 +4196,7 @@ function boot(){
       // For legendaries, wild, CXD shadow, and Box Event mystery gifts, adjust SID instead of PID
       const isBoxEvent = currentEncounterMode === 'mystery' && 
         String($('#mysteryEvent')?.value || '').toUpperCase() === 'BOX_EVENT';
-      if (currentEncounterMode === 'legendaries' || currentEncounterMode === 'wild' || currentEncounterMode === 'cxd_shadow' || isBoxEvent) {
+      if (currentEncounterMode === 'static' || currentEncounterMode === 'wild' || currentEncounterMode === 'cxd_shadow' || isBoxEvent) {
         const pid = parsePidInput($('#pid').value);
         
         if (e.target.checked) {
@@ -4208,7 +4259,7 @@ function boot(){
     });
   }
 
-  /* ── Make Shiny button (adjusts SID to match current PID) ───────── */
+  /* â”€â”€ Make Shiny button (adjusts SID to match current PID) â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   const makeShinyBtn = document.getElementById('makeShinyBtn');
   const makeShinyStatus = document.getElementById('makeShinyStatus');
   const shinyIndicatorBtn = document.getElementById('shinyIndicatorBtn');
@@ -4307,14 +4358,14 @@ function boot(){
 
       // If we're in legendaries or wild mode, apply the per-nature legendary preset
       // Also skip when pidFinderResultActive (PID Finder selected a result)
-      if (!suppressPresetApply && !pidFinderResultActive && (currentEncounterMode === 'legendaries' || currentEncounterMode === 'wild')) {
+      if (!suppressPresetApply && !pidFinderResultActive && (currentEncounterMode === 'static' || currentEncounterMode === 'wild')) {
         const speciesId = Number($('#species').value) || 0;
         const targetNature = Number(natureEl.value || 0);
 
         // Determine originGame: legendaries use the static encounter's defaultOriginGame,
         // wild uses the user's selected originGame (or default 2)
         let originGame = 2;
-        if (currentEncounterMode === 'legendaries') {
+        if (currentEncounterMode === 'static') {
           const encounter = STATIC_ENCOUNTERS[speciesId];
           originGame = encounter?.defaultOriginGame || 2;
           // Only apply for actual legendary species in legendaries mode
@@ -4349,7 +4400,7 @@ function boot(){
             updateGenderFromPID();
 
             // For legendaries, force ability to 0; for wild, derive ability bit from PID
-            if (currentEncounterMode === 'legendaries') {
+            if (currentEncounterMode === 'static') {
               $('#ability').value = '0';
             } else {
               $('#ability').value = String(preset.pid & 1);
@@ -4633,7 +4684,7 @@ function boot(){
   $('#importPokemonBtn')?.addEventListener('click', ()=> { $('#pk3FileInput').click(); });
   $('#pk3FileInput').addEventListener('change', onImportPk3);
 
-  // ── PID Finder wiring ──
+  // â”€â”€ PID Finder wiring â”€â”€
   initPidFinder();
 }
 
@@ -4904,7 +4955,7 @@ function updateGenderFromPID() {
   }
 }
 
-/* ── PID Finder (RNG-legal PID search via Web Workers) ─ */
+/* â”€â”€ PID Finder (RNG-legal PID search via Web Workers) â”€ */
 
 let pfWorkers = [];
 let pfWorkerSnapshots = [];
@@ -4925,7 +4976,7 @@ function initPidFinder() {
 
   if (!btn || !overlay) return;
 
-  /* ── Open / Close ──────────────────────────────────── */
+  /* â”€â”€ Open / Close â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   function openModal() {
     // Populate summary from current form values
@@ -4944,7 +4995,7 @@ function initPidFinder() {
       `<span class="pf-tag">Game: <b>${originGameText}</b></span>`
     ].filter(Boolean).join('');
 
-    /* ── Populate PID Finder Gender selector ─────────── */
+    /* â”€â”€ Populate PID Finder Gender selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     const pfGenderSel     = document.getElementById('pfGender');
     const gender          = $('#gender').value || 'male';
     const genderThreshold = getGenderThreshold(speciesId);
@@ -4971,7 +5022,7 @@ function initPidFinder() {
       pfGenderSel.value = gender;  // pre-select from main form
     }
 
-    /* ── Populate PID Finder Ability selector ─────────── */
+    /* â”€â”€ Populate PID Finder Ability selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     const pfAbilitySel = document.getElementById('pfAbility');
     try {
       const abilities = getSpeciesAbilities(speciesId);
@@ -5005,7 +5056,7 @@ function initPidFinder() {
       pfAbilitySel.disabled = false;
     }
 
-    /* ── Populate TID / SID / Shiny from main form ──── */
+    /* â”€â”€ Populate TID / SID / Shiny from main form â”€â”€â”€â”€ */
     const pfTidEl   = document.getElementById('pfTid');
     const pfSidEl   = document.getElementById('pfSid');
     const pfShinyEl = document.getElementById('pfShiny');
@@ -5013,7 +5064,7 @@ function initPidFinder() {
     if (pfSidEl) pfSidEl.value = String(Number($('#sid').value) || 0);
     if (pfShinyEl) pfShinyEl.checked = !!$('#shiny')?.checked;
 
-    /* ── Adjust method checkboxes based on encounter mode ── */
+    /* â”€â”€ Adjust method checkboxes based on encounter mode â”€â”€ */
     const pfM1  = document.getElementById('pfMethod1');
     const pfM2  = document.getElementById('pfMethod2');
     const pfM4  = document.getElementById('pfMethod4');
@@ -5028,12 +5079,12 @@ function initPidFinder() {
     }
 
     const currentGameId = Number($('#originGame').value) || 3;
-    if (currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'legendaries' && currentGameId === 15)) {
+    if (currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'static' && currentGameId === 15)) {
       // CXD shadow encounters use CXD PRNG only
       if (pfM1) { pfM1.checked = true;  pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, 'CXD'); }
       if (pfM2) { pfM2.checked = false; pfM2.parentElement.style.display = 'none'; }
       if (pfM4) { pfM4.checked = false; pfM4.parentElement.style.display = 'none'; }
-    } else if (currentEncounterMode === 'legendaries') {
+    } else if (currentEncounterMode === 'static') {
       // Static (non-CXD) encounters use Method 1 only
       if (pfM1) { pfM1.checked = true;  pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, 'Method 1'); }
       if (pfM2) { pfM2.checked = false; pfM2.parentElement.style.display = 'none'; }
@@ -5069,7 +5120,7 @@ function initPidFinder() {
     if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
   });
 
-  /* ── Stop running workers ──────────────────────────── */
+  /* â”€â”€ Stop running workers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   function stopSearch() {
     pfWorkers.forEach(w => { try { w.postMessage({ stop: true }); } catch (_) {} });
@@ -5087,7 +5138,7 @@ function initPidFinder() {
   }
   stopBtn.addEventListener('click', stopSearch);
 
-  /* ── Start search ──────────────────────────────────── */
+  /* â”€â”€ Start search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   searchBtn.addEventListener('click', () => {
     const speciesId      = Number($('#species').value) || 0;
@@ -5132,7 +5183,7 @@ function initPidFinder() {
 
     // Determine which worker to use
     const gameId     = Number($('#originGame').value) || 3;
-    const isCXD      = currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'legendaries' && gameId === 15);
+    const isCXD      = currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'static' && gameId === 15);
     const workerPath = isCXD ? './src/lib/gen3/cxd-worker.js' : './src/lib/gen3/rng-worker.js';
 
     // Decide fast-path (IV recovery) vs brute-force (full seed scan).
@@ -5217,7 +5268,7 @@ function initPidFinder() {
       // Static (legendary) encounters do NOT use wild encounter slots,
       // so pass null to skip encounter-chain validation.
       const locationId = Number($('#metLocation').value) || 0;
-      const slotTables = currentEncounterMode === 'legendaries'
+      const slotTables = currentEncounterMode === 'static'
         ? null
         : (ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]) || null;
 
@@ -5278,7 +5329,7 @@ function initPidFinder() {
     }
   });
 
-  /* ── Display results table ─────────────────────────── */
+  /* â”€â”€ Display results table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   function displayResults() {
     pfAllResults.sort((a, b) => {
@@ -5331,7 +5382,7 @@ function initPidFinder() {
       // CXD results already have method='CXD' so no replacement needed
       const methodLabel = r.method === 'CXD'
         ? 'CXD'
-        : currentEncounterMode === 'legendaries'
+        : currentEncounterMode === 'static'
           ? r.method.replace('H', '')
           : r.method;
 
@@ -5357,7 +5408,7 @@ function initPidFinder() {
     return `<td${cls}>${v}</td>`;
   }
 
-  /* ── Apply selected result ─────────────────────────── */
+  /* â”€â”€ Apply selected result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   function selectResult(r) {
     // Mark PID Finder result as active — this guards preset-application paths
@@ -5437,7 +5488,7 @@ function initPidFinder() {
 
     const statusMethod = r.method === 'CXD'
       ? 'CXD'
-      : currentEncounterMode === 'legendaries'
+      : currentEncounterMode === 'static'
         ? r.method.replace('H', '')
         : r.method;
     if (statusSpan) statusSpan.textContent = `PID set (${statusMethod === 'CXD' ? 'CXD' : 'Method ' + statusMethod}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
@@ -5561,7 +5612,7 @@ function collect(){
       Math.max(0, Math.min(3, Number($('#pp3')?.value || 0))),
       Math.max(0, Math.min(3, Number($('#pp4')?.value || 0)))
     ],
-    // ── EV > 100 legality fix ──────────────────────────────────────
+    // â”€â”€ EV > 100 legality fix â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // If any single stat has EVs > 100 and the Pokémon's level equals its
     // met level (i.e. never battled), add 1 EXP to avoid a legality flag.
     // A freshly-caught mon can't have >100 EVs in a stat without gaining
@@ -5598,7 +5649,7 @@ function collect(){
     }
   };
 
-  // ── EV > 100 legality fix: bump EXP by 1 when at met level ──────────
+  // â”€â”€ EV > 100 legality fix: bump EXP by 1 when at met level â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (out.evLegalityBump) {
     out.totalExp += 1;
   }
@@ -5607,7 +5658,7 @@ function collect(){
   return out;
 }
 
-// ── Profanity check for Base64 box names ───────────────────────────────
+// â”€â”€ Profanity check for Base64 box names â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Build a single regex from the pattern list (patterns are already regex strings
 // from the Nintendo Switch filter, so they are joined directly without escaping).
 const _profanityRe = new RegExp(
@@ -5652,7 +5703,7 @@ function updateProfanityWarning(b64Text) {
   }
   // Build a human-readable message
   const details = hits.map(h => `Box ${h.box}: "${h.word}"`).join(', ');
-  banner.textContent = `⚠️ This code may be censored on the Nintendo Switch — detected: ${details}`;
+  banner.textContent = `�� ️ This code may be censored on the Nintendo Switch — detected: ${details}`;
   banner.style.display = 'block';
 }
 

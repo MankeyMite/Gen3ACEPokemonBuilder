@@ -1,3 +1,8 @@
+Patch Notes - (V.0.2.8)
+- Added Static mode for all static encounters in RSEFRLG
+- Removed the Legal/Illegal checker, to prevent users from generating illegal pokemon that was states as legal by the website. Will reimplement this later.
+
+
 Patch Notes - (V.0.2.7)
 - Added sprites for each Pokémon
 - Fixed Safari encounters for all games

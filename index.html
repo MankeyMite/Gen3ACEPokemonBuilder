@@ -222,6 +222,9 @@
     /* Mystery-specific elements are hidden by default and shown when mystery mode active */
     .show-when-mystery { display: none; }
     body.encounter-mystery .show-when-mystery { display: flex; }
+    /* Static encounter-specific elements (category dropdown) */
+    .show-when-static { display: none; }
+    body.encounter-static .show-when-static { display: flex; }
     /* CXD Shadow-specific elements */
     .show-when-cxd { display: none; }
     body.encounter-cxd_shadow .show-when-cxd { display: flex; }
@@ -510,7 +513,7 @@
   <header class="container">
     <h1>Gen 3 ACE Pokémon Builder</h1>
     <p class="muted" style="margin-top: -0.75rem; margin-bottom: 1rem;">
-      <span style="font-size: 0.85em; opacity: 0.8;">v0.2.7</span>
+      <span style="font-size: 0.85em; opacity: 0.8;">v0.2.8</span>
     </p>
     <p class="muted">Build custom Pokémon for Gen III games. Import from raw hex data, .pk3/ek3 files, or create your Pokémon from scratch. Export as BASE64 box codes, raw hex data, or a .pk3/ek3 file. New here? <a href="./docs/spawn-setup-interactive.html" target="_blank">How to spawn Pokemon in your game from this tool</a> — step-by-step setup. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
 
@@ -533,7 +536,7 @@
       <label for="encounterMode" style="margin-right: 0.5rem; font-weight: 500; color: rgba(255,255,255,0.7);">Encounter Type:</label>
       <select id="encounterMode" style="padding: 0.35rem 0.5rem; border-radius: 6px; background: rgba(30,41,59,0.9); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.25); font-size: 0.9rem; cursor: pointer;">
         <option value="hatched" selected>Hatched</option>
-        <option value="legendaries">Legendaries</option>
+        <option value="static">Static</option>
         <option value="wild">Wild</option>
         <option value="mystery">Mystery Gifts</option>
         <option value="cxd_shadow">XD / Colosseum</option>
@@ -554,6 +557,11 @@
       <div class="row show-when-mystery">
         <label for="mysteryEvent">Event</label>
         <select id="mysteryEvent"></select>
+      </div>
+
+      <div class="row show-when-static">
+        <label for="staticCategory">Category</label>
+        <select id="staticCategory"></select>
       </div>
 
       <div class="row">
@@ -1053,7 +1061,7 @@
       <!-- Legality Checker -->
       <div class="row" style="align-items: center; gap: 1rem; margin-bottom: 1rem;">
         <button id="generateBtn" type="button" data-disabled="true">Generate</button>
-        <div id="legalityStatus" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; border-radius: 4px; background: var(--bg);">
+        <div id="legalityStatus" style="display: none; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; border-radius: 4px; background: var(--bg);">
           <span id="legalityIcon" style="font-size: 1.2rem;">✓</span>
           <span id="legalityText" style="font-weight: 500; color: var(--success, #22c55e);">Legal</span>
           <span class="legality-help" title="Legality checker info">
