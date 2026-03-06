@@ -1951,8 +1951,8 @@ function boot(){
             const fatefulCheckbox = $('#fatefulEncounter');
             if (fatefulCheckbox) fatefulCheckbox.checked = true;
           } else {
-            $('#nickname').value = 'ãƒŸãƒ¥ã‚¦'; // Mew in Japanese
-            $('#otName').value = 'ãƒŸãƒ¥ã‚¦';   // OT also Mew in Japanese
+            $('#nickname').value = 'ミュウ'; // Mew in Japanese
+            $('#otName').value = 'ミュウ';   // OT also Mew in Japanese
             $('#language').value = '1';      // Japanese language
             const fatefulCheckbox = $('#fatefulEncounter');
             if (fatefulCheckbox) {
@@ -2804,7 +2804,7 @@ function boot(){
         try {
           const otEl = $('#otName');
           if (otEl) {
-            otEl.value = 'ãƒŸãƒ¥ã‚¦';
+            otEl.value = 'ミュウ';
             otEl.disabled = true;
             otEl.style.pointerEvents = 'none';
             otEl.style.opacity = '0.6';
@@ -2815,7 +2815,7 @@ function boot(){
         try {
           const nickEl = $('#nickname');
           if (nickEl) {
-            nickEl.value = 'ãƒŸãƒ¥ã‚¦';
+            nickEl.value = 'ミュウ';
             nickEl.disabled = true;
             nickEl.style.pointerEvents = 'none';
             nickEl.style.opacity = '0.6';
