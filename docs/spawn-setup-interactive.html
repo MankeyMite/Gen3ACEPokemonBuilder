@@ -72,6 +72,7 @@
         <select id="gameSelect" style="background:#ffffff;border:1px solid rgba(0,0,0,0.12);color:#000;padding:6px;border-radius:6px;min-width:140px">
           <option value="EM">Emerald</option>
           <option value="FRLG">FR / LG</option>
+          <option value="FRLGSW">FR/LG Switch</option>
         </select>
       </div>
       <details id="instructions" class="instructions">
@@ -112,7 +113,26 @@
               <li>Box 10 slot 22 is empty.</li>
             </ul>
 
-            <p>You may now select Console/mGBA or Old Emulator below and start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator". The Switch version for FR/LG is currently not supported, as it needs a new setup.</p>
+            <p>You may now select Console/mGBA or Old Emulator below and start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+          </div>
+
+          <div class="instr-FRLGSW" style="display:none">
+            <h2>How to Spawn Pokémon with the custom ACE Pokémon builder tool (using a Base64 writer)</h2>
+            <p>The custom ACE Pokémon builder tool will allow you to create any Pokémon with any data and spawn it inside your Pokémon game using the Base64 codes provided after clicking the Generate button. This feature is most useful for console users, as there are easier ways to copy Pokémon data on a computer with an emulator, such as copying the Hex data and pasting it into Pokeglitzer.</p>
+            <p>When generating a Pokémon with the tool, you will see 14 box codes. Typing these 14 box codes into your PC and executing it with your ace species and the BASE64 writer will spawn that exact Pokémon into your PC, box 14 slot 30. Here is how you create the BASE64 writer:</p>
+            <h2>Creating the BASE64 writer</h2>
+            <p class="section-gap">Make sure of the following before getting started:</p>
+
+            <ul>
+              <li>
+                You have created an ace species and placed it inside box 13, ready for the grab ACE execution method
+                (ARM species 0x0351 recommended on western language versions (the first one you make with mail glitch), japanese not yet supported for this guide!).
+              </li>
+              <li>Boxes 13–14 are empty, except your ace species in box 13 and a random pokemon to swap with to execute the codes</li>
+              <li>Box 10 slot 22 is empty.</li>
+            </ul>
+
+            <p>You may now start typing the first code.</p>
           </div>
         </div>
       </details>
@@ -185,13 +205,13 @@
         <div class="remember-list">
           <ul>
             <li>Save the game</li>
-            <li>Execute the code with your stable ace species with no trailing spaces. If you are using a stable or metastable THUMB species, you NEED a THUMB -> ARM bootstrap bad egg anywhere from box 12 slot 4.</li>
-            <li>Check the bad egg in box 10, slot 22. It should be in a Great Ball.</li>
+            <li id="code1ExecComment">Execute the code with your stable ace species with no trailing spaces. If you are using a stable or metastable THUMB species, you NEED a THUMB -> ARM bootstrap bad egg anywhere from box 12 slot 4.</li>
+            <li id="code1EggComment">Check the bad egg in box 10, slot 22. It should be in a Great Ball.</li>
           </ul>
         </div>
         <div class="remember-image">
-        <img src="../src/Images/bad egg base64 code 1_2.png" alt="Bad egg example 2" />
-        <img src="../src/Images/bad egg base64 code 1_1.png" alt="Bad egg example 1" />
+        <img id="code1BadEggImage2" src="../src/Images/bad egg base64 code 1_2.png" alt="Bad egg example 2" />
+        <img id="code1BadEggImage1" src="../src/Images/bad egg base64 code 1_1.png" alt="Bad egg example 1" />
           
         </div>
         </section>
@@ -223,7 +243,7 @@
           <div class="panel-tip">Codes in boxes 1-7 + 9-10 will be same as before
             <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
               <li>Save the game</li>
-              <li>Execute the code with your stable ace species with no trailing spaces.</li>
+              <li id="code2ExecComment">Execute the code with your stable ace species with no trailing spaces.</li>
               <li>After executing this code, no visible change will happen to the egg. Keep going with code 3!</li>
             </ul>
           </div>
@@ -256,7 +276,7 @@
           <div class="panel-tip">Codes in boxes 1-7 + 9-10 will be same as before
             <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
               <li>Save the game</li>
-              <li>Execute the code with your stable ace species with no trailing spaces.</li>
+              <li id="code3ExecComment">Execute the code with your stable ace species with no trailing spaces.</li>
               <li>After executing this code, no visible change will happen to the egg. Keep going with code 4!</li>
             </ul>
           </div>
@@ -289,11 +309,11 @@
           <div class="panel-tip">Codes in boxes 1-7 + 9-10 will be same as before
             <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
               <li>Save the game</li>
-              <li>Execute the code with your stable ace species with no trailing spaces.</li>
-              <li>After executing this code, the Bad Egg in box 10 should now be in a Nest Ball.</li>
+              <li id="code4ExecComment">Execute the code with your stable ace species with no trailing spaces.</li>
+              <li id="code4NestBallComment">After executing this code, the Bad Egg in box 10 should now be in a Nest Ball.</li>
             </ul>
           </div>
-          <div class="panel-image" style="margin-top:10px;">
+          <div id="code4NestBallImage" class="panel-image" style="margin-top:10px;">
             <img src="../src/Images/bad egg base64 code 1_3.png" alt="Bad egg example 3" style="max-width:48%;border-radius:8px;border:1px solid rgba(255,255,255,0.03);" />
           </div>
         </section>
@@ -325,7 +345,7 @@
           <div class="panel-tip">Codes in boxes 1-7 + 9-10 will be same as before
             <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
               <li>Save the game</li>
-              <li>Execute the code with your stable ace species with no trailing spaces.</li>
+              <li id="code5ExecComment">Execute the code with your stable ace species with no trailing spaces.</li>
               <li>After executing this code, the Bad Egg in box 10 should now have become WELDR, the BASE64 writer! (Don't open its summary, you will crash)</li>
               <li>Move WELDR to box 14 slot 28</li>
               <li id="sacrificialName">Catch any Pokemon and name it "J-FKVC"</li>
@@ -410,6 +430,54 @@
         code5: {8: 'Box  8:    v , 5 Q K'}
       };
 
+      // FR/LG Switch standalone mappings per code panel
+      const frlgSwitchMap = {
+        code1: {
+          1: 'Box  1:    B C U H _ F L N ',
+          2: 'Box  2:    I k o B 3 h F',
+          3: 'Box  3:    A A T . h r',
+          4: 'Box  4:    A h _ f n',
+          5: 'Box  5:    T . g b T . h b',
+          6: 'Box  6:    _ f H _ 1 / … ,',
+          7: 'Box  7:    F … P _ … … / F',
+          8: 'Box  8:    … 5 5 Q K',
+          9: 'Box  9:    F 2 L 2 _ F / 7',
+          10: 'Box 10:    _ i o H I . o r',
+          11: 'Box 11:    ? n F K T F F F',
+          12: 'Box 12:    U U F R R G O U',
+          13: 'Box 13:    T H S G Q U R L',
+          14: 'Box 14:    Q T R R U U F F'
+        },
+        code2: {
+          8:  'Box  8:    … H 5 Q K',
+          11: 'Box 11:    ? n R G J I F F',
+          12: 'Box 12:    H G G T M N F G',
+          13: 'Box 13:    I I T T H T F T',
+          14: 'Box 14:    S R Q Q I T F G'
+        },
+        code3: {
+          8:  'Box  8:    … W 5 Q K',
+          11: 'Box 11:    ? n S K N L H F',
+          12: 'Box 12:    J T I L G H S J',
+          13: 'Box 13:    Q U F G Q U G O',
+          14: 'Box 14:    F L I G F N H O'
+        },
+        code4: {
+          8:  'Box  8:    … l 5 Q K',
+          11: 'Box 11:    ? n F J S Q F N',
+          12: 'Box 12:    I O I T F F R T',
+          13: 'Box 13:    J F G L M F F G',
+          14: 'Box 14:    I H T Q T M'
+        },
+        code5: {
+          8:  'Box  8:    … ♂ 5 Q K',
+          11: 'Box 11:    ? n F F S F Q K',
+          12: 'Box 12:    H I P H I L P I',
+          13: 'Box 13:    F H T F G R U U',
+          14: 'Box 14:    H U T G'
+        }
+      };
+
       let selectedGame = 'EM'; // default: Emerald
       let selectedMode = null;
 
@@ -432,7 +500,7 @@
           const m = btn.dataset.mode;
           const instr = document.getElementById('instructions');
           // If the instructions haven't been acknowledged yet, ignore clicks.
-          if(!instructionsAcknowledged){
+          if(!instructionsAcknowledged || selectedGame === 'FRLGSW'){
             return;
           }
           // Instructions acknowledged: select the mode and close the details if open.
@@ -446,6 +514,7 @@
       if(gameSelect){
         gameSelect.addEventListener('change', ()=>{
           selectedGame = gameSelect.value || 'EM';
+          refreshModeUIForGame();
           // update visible panels to reflect game selection
           updateAllPanelsForGame();
           // update instructions content for selected game
@@ -453,6 +522,36 @@
           // re-run wrapping so styling updates
           if(typeof wrapCaseChars==='function') try{ wrapCaseChars(); }catch(e){}
         });
+      }
+
+      function refreshModeUIForGame(){
+        const modeContainer = document.querySelector('.mode-select');
+        const modeRequired = selectedGame !== 'FRLGSW';
+        if(modeContainer) modeContainer.style.display = modeRequired ? '' : 'none';
+
+        if(modeRequired){
+          if(!selectedMode){
+            tabs.forEach(x=>x.setAttribute('disabled','true'));
+            tabs.forEach(x=>x.classList.remove('active'));
+            panels.forEach(p=>p.style.display='none');
+          }
+          return;
+        }
+
+        tabs.forEach(x=>x.removeAttribute('disabled'));
+        const activeTab = document.querySelector('.tab.active');
+        if(activeTab){
+          panels.forEach(p=>p.style.display='none');
+          const activePanel = document.getElementById(activeTab.dataset.tab);
+          if(activePanel) activePanel.style.display = 'block';
+          return;
+        }
+        if(!activeTab){
+          const firstPanel = document.getElementById('code1');
+          if(firstPanel) firstPanel.style.display = 'block';
+          const firstTab = document.querySelector('.tab[data-tab="code1"]');
+          if(firstTab) firstTab.classList.add('active');
+        }
       }
 
       function updateAllPanelsForGame(){
@@ -478,10 +577,19 @@
                 return;
               }
             }
+            // FR/LG Switch uses its own standalone code mapping
+            if(selectedGame === 'FRLGSW'){
+              const codeKey = 'code'+i;
+              const mapForPanel = frlgSwitchMap[codeKey] || {};
+              if(mapForPanel[boxNum]){
+                el.textContent = mapForPanel[boxNum];
+                return;
+              }
+            }
             // Default: for Emerald (or when no FRLG mapping), restore original text from DOM dataset if present
             if(el.dataset.origText) el.textContent = el.dataset.origText;
             // If Emerald + a mode is selected, ensure Box 8 reflects the chosen mode (modern / old)
-            if(selectedGame !== 'FRLG' && selectedMode && boxNum === 8){
+            if(selectedGame === 'EM' && selectedMode && boxNum === 8){
               // use the box8Map for the appropriate mode and panel index (i-1)
               if(box8Map[selectedMode] && box8Map[selectedMode][i-1]){
                 el.textContent = 'Box  8:    ' + box8Map[selectedMode][i-1];
@@ -489,32 +597,127 @@
             }
           });
         }
+        updateCode1NotesForGame();
+        updateStepCommentsForGame();
         // Additionally swap code5 images when FR/LG selected
         const panel5 = document.getElementById('code5');
         if(panel5){
           panel5.querySelectorAll('img').forEach(img=>{
-            if(selectedGame === 'FRLG' && img.dataset.frlgSrc){ img.src = img.dataset.frlgSrc; }
+            if((selectedGame === 'FRLG' || selectedGame === 'FRLGSW') && img.dataset.frlgSrc){ img.src = img.dataset.frlgSrc; }
             else if(img.dataset.origSrc){ img.src = img.dataset.origSrc; }
           });
           // Update sacrificial Pokemon naming instruction depending on game
           const sac = panel5.querySelector('#sacrificialName');
           if(sac){
-            if(selectedGame === 'FRLG') sac.textContent = 'Catch any Pokemon and name it "J7VC"';
+            if(selectedGame === 'FRLG' || selectedGame === 'FRLGSW') sac.textContent = 'Catch any Pokemon and name it "J7VC"';
             else sac.textContent = 'Catch any Pokemon and name it "J-FKVC"';
           }
         }
       }
 
+      function updateCode1NotesForGame(){
+        const panel = document.getElementById('code1');
+        if(!panel) return;
+
+        const notes = panel.querySelectorAll('.notes-col .note');
+        const switchBlankBoxes = new Set([5, 7, 9]);
+
+        notes.forEach((note, idx)=>{
+          if(note.dataset.origText === undefined) note.dataset.origText = note.textContent;
+
+          const boxNum = idx + 1;
+          if(selectedGame === 'FRLGSW' && switchBlankBoxes.has(boxNum)){
+            note.textContent = '';
+            return;
+          }
+
+          note.textContent = note.dataset.origText;
+        });
+      }
+
+      function updateStepCommentsForGame(){
+        const switchTextById = {
+          code1ExecComment: 'Execute the code with your ace species.',
+          code1EggComment: "A bad egg will spawn in box 10 slot 22. Do NOT open it's summary. It will likely crash the game.",
+          code2ExecComment: 'Execute the code with your ace species.',
+          code3ExecComment: 'Execute the code with your ace species.',
+          code4ExecComment: 'Execute the code with your ace species.',
+          code5ExecComment: 'Execute the code with your ace species.'
+        };
+
+        Object.entries(switchTextById).forEach(([id, switchText])=>{
+          const el = document.getElementById(id);
+          if(!el) return;
+          if(el.dataset.origText === undefined) el.dataset.origText = el.textContent;
+
+          if(selectedGame === 'FRLGSW') el.textContent = switchText;
+          else el.textContent = el.dataset.origText;
+        });
+
+        // Hide Code 4 Nest Ball note + image only for FR/LG Switch.
+        const code4NestBallComment = document.getElementById('code4NestBallComment');
+        if(code4NestBallComment){
+          if(code4NestBallComment.dataset.origDisplay === undefined) code4NestBallComment.dataset.origDisplay = code4NestBallComment.style.display;
+          code4NestBallComment.style.display = selectedGame === 'FRLGSW' ? 'none' : code4NestBallComment.dataset.origDisplay;
+        }
+
+        const code4NestBallImage = document.getElementById('code4NestBallImage');
+        if(code4NestBallImage){
+          if(code4NestBallImage.dataset.origDisplay === undefined) code4NestBallImage.dataset.origDisplay = code4NestBallImage.style.display;
+          code4NestBallImage.style.display = selectedGame === 'FRLGSW' ? 'none' : code4NestBallImage.dataset.origDisplay;
+        }
+
+        const code1BadEggImage1 = document.getElementById('code1BadEggImage1');
+        if(code1BadEggImage1){
+          if(code1BadEggImage1.dataset.origDisplay === undefined) code1BadEggImage1.dataset.origDisplay = code1BadEggImage1.style.display;
+          code1BadEggImage1.style.display = selectedGame === 'FRLGSW' ? 'none' : code1BadEggImage1.dataset.origDisplay;
+        }
+
+        const code1BadEggImage2 = document.getElementById('code1BadEggImage2');
+        if(code1BadEggImage2){
+          if(code1BadEggImage2.dataset.origDisplay === undefined) code1BadEggImage2.dataset.origDisplay = code1BadEggImage2.style.display;
+          code1BadEggImage2.style.display = selectedGame === 'FRLGSW' ? 'none' : code1BadEggImage2.dataset.origDisplay;
+        }
+      }
+
+      function applySwitchCode1Visibility(){
+        const panel = document.getElementById('code1');
+        if(!panel) return;
+        const codes = panel.querySelectorAll('.codes-box .code-line');
+        const notes = panel.querySelectorAll('.notes-col .note');
+        const controls = panel.querySelectorAll('.controls-col .controls');
+        // FR/LG Switch now uses full per-panel mappings, so keep all code1 rows visible.
+        const allowedSwitchBoxes = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+
+        codes.forEach((row, idx)=>{
+          const textEl = row.querySelector('.code-text');
+          const m = textEl && textEl.textContent ? textEl.textContent.match(/^Box\s+(\d+):/) : null;
+          const boxNum = m ? Number(m[1]) : NaN;
+          const showRow = selectedGame !== 'FRLGSW' || allowedSwitchBoxes.has(boxNum);
+
+          row.style.display = showRow ? '' : 'none';
+          if(notes[idx]) notes[idx].style.display = showRow ? '' : 'none';
+          if(controls[idx]) controls[idx].style.display = showRow ? '' : 'none';
+        });
+      }
+
       function updateInstructionsForGame(){
         const instrEM = document.querySelector('.instr-EM');
         const instrFR = document.querySelector('.instr-FRLG');
-        if(!instrEM || !instrFR) return;
+        const instrFRSW = document.querySelector('.instr-FRLGSW');
+        if(!instrEM || !instrFR || !instrFRSW) return;
         if(selectedGame === 'FRLG'){
           instrEM.style.display = 'none';
           instrFR.style.display = '';
+          instrFRSW.style.display = 'none';
+        } else if(selectedGame === 'FRLGSW'){
+          instrEM.style.display = 'none';
+          instrFR.style.display = 'none';
+          instrFRSW.style.display = '';
         } else {
           instrEM.style.display = '';
           instrFR.style.display = 'none';
+          instrFRSW.style.display = 'none';
         }
       }
 
@@ -550,7 +753,7 @@
               // store original text if not stored
               if(!el.dataset.origText) el.dataset.origText = el.textContent;
               // If FRLG selected, prefer FRLG mappings (updateAllPanelsForGame will handle)
-              if(selectedGame === 'FRLG') return;
+              if(selectedGame === 'FRLG' || selectedGame === 'FRLGSW') return;
               el.textContent = 'Box  8:    ' + box8Map[mode][i-1];
             } else {
               if(!el.dataset.origText) el.dataset.origText = el.textContent;
@@ -562,10 +765,13 @@
       const tabs = document.querySelectorAll('.tab');
       // Preserve original code text for restoration when switching between games
       document.querySelectorAll('.code-text').forEach(el=>{ if(!el.dataset.origText) el.dataset.origText = el.textContent; });
-      if(!selectedMode){ tabs.forEach(x=>x.setAttribute('disabled','true')); }
       const panels = document.querySelectorAll('.code-panel');
+      if(gameSelect && gameSelect.value) selectedGame = gameSelect.value;
+      refreshModeUIForGame();
+      updateAllPanelsForGame();
+      updateInstructionsForGame();
       tabs.forEach(t=>t.addEventListener('click', ()=>{
-        if(!selectedMode) return; // don't switch tabs until a mode is chosen
+        if(!selectedMode && selectedGame !== 'FRLGSW') return; // don't switch tabs until a mode is chosen
         tabs.forEach(x=>x.classList.remove('active'));
         panels.forEach(p=>p.style.display='none');
         t.classList.add('active');
