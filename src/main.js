@@ -17,12 +17,16 @@ import { hasDualAbilities, getSpeciesAbilities } from './data/pokemonAbilities.g
 import { LEARNSETS } from './data/learnsets.gen3.js';
 import { WILD_ENCOUNTERS } from './data/wildEncounters.gen3.js';
 import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
+import { buildWildWithEvolutions, getWildAncestor } from './data/evolutions.gen3.js';
 import { PROFANITY_LIST } from './data/profanity.gen3.js';
 import { CXD_SHADOW_ENCOUNTERS, CXD_SHADOW_SPECIES, getShadowEncountersForSpecies, isValidGCTidSid } from './data/shadowEncounters.gen3.js';
 import { COLO_SHADOW_LOCKS, XD_SHADOW_LOCKS, COLO_NO_LOCK_SPECIES, XD_NO_LOCK_SPECIES } from './data/cxdLocks.gen3.js';
 import { getSpritePath, getUnownFormIndex, getUnownFormChar, getUnownFormSuffix, getUnownSpritePath, getOnlineSpriteUrl, getOnlineUnownSpriteUrl, UNOWN_FORMS, TANOBY_FORMS_BY_LOCATION, getTanobyFormsForLocation, getTanobyLocationsForForm } from './data/nationalDex.gen3.js';
 
 const $ = sel => document.querySelector(sel);
+
+// Set of species IDs that can appear in wild mode (wild + their evolutions)
+const wildPlusEvos = buildWildWithEvolutions(WILD_ENCOUNTERS);
 
 // Global variables for encounter mode and species filtering
 let speciesAutocomplete = null;
@@ -1024,7 +1028,9 @@ function rangesToLabel(ranges) {
 function updateWildEncounterFilters(speciesId) {
   if (currentEncounterMode !== 'wild') return;
 
-  const encounterData = WILD_ENCOUNTERS[speciesId];
+  // For evolved forms not directly in the wild, resolve to their wild ancestor
+  const wildId = WILD_ENCOUNTERS[speciesId] ? speciesId : getWildAncestor(speciesId, WILD_ENCOUNTERS);
+  const encounterData = wildId != null ? WILD_ENCOUNTERS[wildId] : null;
   const originGameSelect = $('#originGame');
   const metLevelInput =    $('#metLevel');
   if (!originGameSelect) return;
@@ -2416,7 +2422,8 @@ function boot(){
       const spId   = Number($('#species').value) || 0;
       const gameId = Number($('#originGame').value) || 0;
       const locId  = Number($('#metLocation').value) || 0;
-      const enc = WILD_ENCOUNTERS[spId];
+      const wId = WILD_ENCOUNTERS[spId] ? spId : getWildAncestor(spId, WILD_ENCOUNTERS);
+      const enc = wId != null ? WILD_ENCOUNTERS[wId] : null;
       if (enc && enc[gameId] && enc[gameId][locId]) {
         const ranges = enc[gameId][locId];
         let v = Number(metLevelInput.value) || 0;
@@ -2436,7 +2443,8 @@ function boot(){
         const spId = Number($('#species').value) || 0;
         const gameId = Number($('#originGame').value) || 0;
         const locId  = Number($('#metLocation').value) || 0;
-        const enc = WILD_ENCOUNTERS[spId];
+        const wId = WILD_ENCOUNTERS[spId] ? spId : getWildAncestor(spId, WILD_ENCOUNTERS);
+        const enc = wId != null ? WILD_ENCOUNTERS[wId] : null;
         if (enc && enc[gameId] && enc[gameId][locId]) {
           const ranges = enc[gameId][locId];
           const ml = $('#metLevel');
@@ -3465,9 +3473,9 @@ function boot(){
         break;
       }
       case 'wild':
-        // Only species with actual wild encounter data,
+        // Species with wild encounter data OR evolutions of wild species,
         // excluding placeholder/unknown species entries (names with '?')
-        filteredSpecies = SPECIES.filter(s => WILD_ENCOUNTERS[s[0]] && !String(s[1]||'').includes('?'));
+        filteredSpecies = SPECIES.filter(s => wildPlusEvos.has(s[0]) && !String(s[1]||'').includes('?'));
         break;
       case 'mystery':
         // Only show species available in the selected mystery event (if specified)
@@ -5570,6 +5578,10 @@ function initPidFinder() {
           unownForm: speciesId === 201 ? Number($('#unownForm')?.value ?? -1) : -1
         });
       } else {
+        // For evolved wild species, use the wild ancestor for encounter-slot validation
+        const slotSpecies = (currentEncounterMode === 'wild' && !WILD_ENCOUNTERS[speciesId])
+          ? (getWildAncestor(speciesId, WILD_ENCOUNTERS) ?? speciesId)
+          : speciesId;
         worker.postMessage({
           startSeed: start, endSeed: end,
           nature, ability,
@@ -5577,7 +5589,7 @@ function initPidFinder() {
           targetGender, tid, sid, wantShiny,
           minIVs, maxIVs, methods,
           maxResults: Math.ceil(250 / workerCount),
-          targetSpecies: speciesId,
+          targetSpecies: slotSpecies,
           slotTables,
           gameId,
           unownForm: speciesId === 201 ? Number($('#unownForm')?.value ?? -1) : -1
