@@ -218,6 +218,10 @@
     body.mode-simple.encounter-wild .show-when-wild-simple {
       display: flex;
     }
+    /* Show origin game / met location / met level fields in simple mode for Roamer */
+    body.mode-simple.encounter-roamer .show-when-wild-simple {
+      display: flex;
+    }
 
     /* Mystery-specific elements are hidden by default and shown when mystery mode active */
     .show-when-mystery { display: none; }
@@ -225,6 +229,9 @@
     /* Static encounter-specific elements (category dropdown) */
     .show-when-static { display: none; }
     body.encounter-static .show-when-static { display: flex; }
+    /* Roamer-specific elements */
+    .show-when-roamer { display: none; }
+    body.encounter-roamer .show-when-roamer { display: flex; }
     /* CXD Shadow-specific elements */
     .show-when-cxd { display: none; }
     body.encounter-cxd_shadow .show-when-cxd { display: flex; }
@@ -537,6 +544,7 @@
       <select id="encounterMode" style="padding: 0.35rem 0.5rem; border-radius: 6px; background: rgba(30,41,59,0.9); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.25); font-size: 0.9rem; cursor: pointer;">
         <option value="hatched" selected>Hatched</option>
         <option value="static">Static</option>
+        <option value="roamer">Roamer</option>
         <option value="wild">Wild</option>
         <option value="mystery">Mystery Gifts</option>
         <option value="cxd_shadow">XD / Colosseum</option>

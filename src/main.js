@@ -483,6 +483,40 @@ let mysteryPresetAppliedFor = 0;
 // Whether the user has modified fields (other than nickname) since the preset was applied
 let mysteryUserModifiedSincePreset = false;
 
+// ── Roamer encounter definitions ─────────────────────────────────
+// Maps each roamer species to its allowed games, level, and whether IVs are truncated.
+// Game IDs: 1=Sapphire, 2=Ruby, 3=Emerald, 4=FireRed, 5=LeafGreen
+const ROAMER_SPECIES = {
+  408: { name: 'Latios',  games: [2, 3], level: 40 },       // Ruby, Emerald
+  407: { name: 'Latias',  games: [1, 3], level: 40 },       // Sapphire, Emerald
+  243: { name: 'Raikou',  games: [4, 5], level: 50 },       // FRLG
+  244: { name: 'Entei',   games: [4, 5], level: 50 },       // FRLG
+  245: { name: 'Suicune', games: [4, 5], level: 50 },       // FRLG
+};
+// Roamer species that have the IV truncation bug (non-Emerald)
+// Emerald roamers do NOT truncate IVs.
+function roamerHasTruncatedIVs(speciesId, gameId) {
+  return !!(ROAMER_SPECIES[speciesId] && gameId !== 3);
+}
+// Maps game ID → which roamer species are available in that game
+const ROAMER_SPECIES_BY_GAME = {
+  1: [407],        // Sapphire: Latias
+  2: [408],        // Ruby: Latios
+  3: [407, 408],   // Emerald: Latias or Latios
+  4: [243, 244, 245], // FireRed: beasts
+  5: [243, 244, 245], // LeafGreen: beasts
+};
+// Maps species → which games allow that roamer
+const ROAMER_GAMES_FOR_SPECIES = {};
+for (const [sid, info] of Object.entries(ROAMER_SPECIES)) {
+  ROAMER_GAMES_FOR_SPECIES[Number(sid)] = info.games;
+}
+const ROAMER_SPECIES_SET = new Set(Object.keys(ROAMER_SPECIES).map(Number));
+// Roamer met location: 16 for RSE roamers, 101 for FRLG roamers
+function getRoamerMetLocation(speciesId) {
+  return [243, 244, 245].includes(speciesId) ? 101 : 16;
+}
+
 // Gender thresholds for different species (Gen 3)
 // Map species ID to gender threshold (0-255)
 // Female if (PID & 0xFF) < threshold, Male otherwise
@@ -1736,15 +1770,18 @@ function boot(){
       }
       // Latios (408) and Latias (407)
       else if ([407, 408].includes(speciesId)) {
-        if ([1, 2].includes(currentOriginGame)) {
-          // Ruby/Sapphire not yet implemented
-          return {
-            legal: false,
-            errors: ['Ruby or Sapphire legality not yet implemented for this legendary'],
-            unknown: true
-          };
-        } else if (currentOriginGame !== 3) {
-          errors.push('Latios and Latias must have Emerald as origin game');
+        if (currentEncounterMode === 'roamer') {
+          // Roamer mode: validate species↔game pairing
+          const allowedGames = ROAMER_GAMES_FOR_SPECIES[speciesId] || [];
+          if (!allowedGames.includes(currentOriginGame)) {
+            const gameName = speciesId === 408 ? 'Ruby or Emerald' : 'Sapphire or Emerald';
+            errors.push(`${speciesId === 408 ? 'Latios' : 'Latias'} roamer must have ${gameName} as origin game`);
+          }
+        } else {
+          // Static/event mode: Southern Island encounters require RSE
+          if (![1, 2, 3].includes(currentOriginGame)) {
+            errors.push('Latios and Latias must have Ruby, Sapphire, or Emerald as origin game');
+          }
         }
       }
       // Kyogre (404)
@@ -1784,10 +1821,16 @@ function boot(){
       
       // Check fateful encounter requirement for specific legendaries
       // Mew (151), Lugia (249), Ho-Oh (250), Deoxys (410), Latios (408), Latias (407)
+      // Roamers do NOT have fateful encounter
       const fatefulEncounterRequired = [151, 249, 250, 410, 408, 407];
       const fatefulCheckbox = $('#fatefulEncounter');
       
-      if (fatefulEncounterRequired.includes(speciesId)) {
+      if (currentEncounterMode === 'roamer') {
+        // Roamers must NOT have fateful encounter
+        if (fatefulCheckbox && fatefulCheckbox.checked) {
+          errors.push('Roaming legendaries do not have the fateful encounter flag');
+        }
+      } else if (fatefulEncounterRequired.includes(speciesId)) {
         // These Pokémon MUST have fateful encounter checked
         if (fatefulCheckbox && !fatefulCheckbox.checked) {
           errors.push('Fateful encounter must be checked for this legendary Pokémon');
@@ -1853,6 +1896,46 @@ function boot(){
           errors.push(`${ribbon.name} ribbon is illegal for this legendary Pokémon`);
         }
       });
+    } else if (mode === 'roamer') {
+      // ── Roamer legality checks ─────────────────────────────────
+      if (!ROAMER_SPECIES_SET.has(speciesId)) {
+        errors.push('This species is not a roaming legendary');
+      } else {
+        const allowedGames = ROAMER_GAMES_FOR_SPECIES[speciesId] || [];
+        const currentOriginGame = Number($('#originGame').value) || 0;
+        if (!allowedGames.includes(currentOriginGame)) {
+          errors.push('Selected origin game is not valid for this roaming species');
+        }
+        // Met level must match roamer's fixed level
+        const roamerLevel = ROAMER_SPECIES[speciesId]?.level || 0;
+        if (metLevel !== roamerLevel) {
+          errors.push(`Roamer met level must be ${roamerLevel}`);
+        }
+        // Check met location
+        const expectedLoc = getRoamerMetLocation(speciesId);
+        const currentMetLocation = Number($('#metLocation').value) || 0;
+        if (currentMetLocation !== expectedLoc) {
+          errors.push('Met location does not match this roaming species');
+        }
+        // Fateful encounter must be off for roamers
+        const fatefulCheckbox = $('#fatefulEncounter');
+        if (fatefulCheckbox && fatefulCheckbox.checked) {
+          errors.push('Roaming legendaries do not have the fateful encounter flag');
+        }
+        // IV truncation check: non-Emerald roamers must have truncated IVs
+        if (roamerHasTruncatedIVs(speciesId, currentOriginGame)) {
+          const atkIV = Number($('#ivAtk').value) || 0;
+          const defIV = Number($('#ivDef').value) || 0;
+          const speIV = Number($('#ivSpe').value) || 0;
+          const spaIV = Number($('#ivSpAtk').value) || 0;
+          const spdIV = Number($('#ivSpDef').value) || 0;
+          if (atkIV > 7) errors.push('Non-Emerald roamer ATK IV cannot exceed 7');
+          if (defIV !== 0) errors.push('Non-Emerald roamer DEF IV must be 0');
+          if (speIV !== 0) errors.push('Non-Emerald roamer Speed IV must be 0');
+          if (spaIV !== 0) errors.push('Non-Emerald roamer SpAtk IV must be 0');
+          if (spdIV !== 0) errors.push('Non-Emerald roamer SpDef IV must be 0');
+        }
+      }
     }
     
     return {
@@ -2130,6 +2213,13 @@ function boot(){
         if (sp) applyMysteryPresetForSpecies(sp);
       }
     } catch (e) {}
+    // Re-apply roamer preset when nature changes (PID depends on nature)
+    try {
+      if (!suppressPresetApply && !pidFinderResultActive && currentEncounterMode === 'roamer') {
+        const sp = Number($('#species').value) || 0;
+        if (sp) applyRoamerPreset(sp);
+      }
+    } catch (e) {}
   });
   $('#nature').addEventListener('focus', () => {
     $('#nature').classList.remove('field-error');
@@ -2242,6 +2332,20 @@ function boot(){
   // Update locations when origin game changes
   $('#originGame').addEventListener('change', (e) => {
     const newGame = e.target.value;
+
+    // In roamer mode, re-apply roamer preset for the new game
+    if (currentEncounterMode === 'roamer') {
+      const speciesId = Number($('#species').value) || 0;
+      if (speciesId && ROAMER_SPECIES[speciesId]) {
+        // Update location list for the new game
+        if (metLocationWrapper && metLocationWrapper.updateList) {
+          metLocationWrapper.updateList(getLocationsForGame(newGame));
+        }
+        if (!pidFinderResultActive) applyRoamerPreset(speciesId);
+      }
+      updateLegalityStatus();
+      return;
+    }
 
     // In wild mode, delegate to the encounter filter (handles locations + level)
     if (currentEncounterMode === 'wild') {
@@ -2439,6 +2543,8 @@ function boot(){
       unlockEl($('#originGame'));
       unlockEl($('#metLocation'));
       unlockEl($('#metLevel'));
+      // Unlock any greyed-out origin game options from roamer mode
+      try { unlockAllOriginGameOptions(); } catch (e) {}
       // Reset Make Shiny row visibility (let CSS handle it for non-CXD modes)
       const makeShinyRowEl = document.getElementById('makeShinyRow');
       if (makeShinyRowEl) makeShinyRowEl.style.display = '';
@@ -2448,6 +2554,7 @@ function boot(){
       // Add body classes for special encounter modes so CSS/JS can adjust visibility
       document.body.classList.toggle('encounter-wild', currentEncounterMode === 'wild');
       document.body.classList.toggle('encounter-static', currentEncounterMode === 'static');
+      document.body.classList.toggle('encounter-roamer', currentEncounterMode === 'roamer');
       document.body.classList.toggle('encounter-mystery', currentEncounterMode === 'mystery');
       document.body.classList.toggle('encounter-cxd_shadow', currentEncounterMode === 'cxd_shadow');
       
@@ -2528,7 +2635,8 @@ function boot(){
     if (!el) return;
     const map = {
       hatched: {label: 'Hatched', color: '#10b981', text: 'Pokémon that came from eggs, and not met in the wild. This mode is recommended for any Pokemon that can be obtained through breeding, as it allows full customization for IVs, shinyness, TID and SID.'},
-      static: {label: 'Static', color: '#f59e0b', text: 'All static encounters: starters, fossils, gifts, game corner, stationary, legends, events, and roamers. IVs are hand picked for best possible per nature for Method 1. Use the PID searcher for custom PID/shininess.'},
+      static: {label: 'Static', color: '#f59e0b', text: 'All static encounters: starters, fossils, gifts, game corner, stationary, legends, and events. IVs are hand picked for best possible per nature for Method 1. Use the PID searcher for custom PID/shininess.'},
+      roamer: {label: 'Roamer', color: '#e879f9', text: 'Roaming legendaries (Latios, Latias, Raikou, Entei, Suicune). Uses Method 1 PID generation. Non-Emerald roamers have the IV truncation bug (only HP and partial ATK IVs are kept; DEF/SPE/SPA/SPD are forced to 0).'},
       wild: {label: 'Wild', color: '#60a5fa', text: 'Wild encounters (in the overworld). Recommended only if you prefer it looking like it was RNG manipulated. Uses Method 1 encounter slots to aim for best IVs per nature for each species. Use the PID searcher for custom PID/shininess.'},
       mystery: {label: 'Mystery Gifts', color: '#ef476f', text: 'Mystery Gift events — Get Distribution Event Pokémon! These have strict rules, so you may only change a few fields. IVs are hand picked for the best possible for each nature.'},
       cxd_shadow: {label: 'XD / Colosseum', color: '#a78bfa', text: 'Shadow Pokémon from Pokémon XD: Gale of Darkness and Pokémon Colosseum. Choose a species and encounter location, then use the PID Finder with CXD method. TID and SID must be a valid GameCube RNG pair.'}
@@ -2747,7 +2855,7 @@ function boot(){
             ballEl.style.pointerEvents = 'none';
             ballEl.style.opacity = '0.6';
             ballEl.style.cursor = 'not-allowed';
-          } else if (currentEncounterMode === 'wild' || currentEncounterMode === 'static') {
+          } else if (currentEncounterMode === 'wild' || currentEncounterMode === 'static' || currentEncounterMode === 'roamer') {
             // Check if this static encounter has a fixed ball (starters, gifts, fossils, game corner)
             const speciesId = Number($('#species')?.value || 0);
             const currentGame = Number($('#originGame')?.value || 0);
@@ -3381,6 +3489,10 @@ function boot(){
         // Only show species with CXD shadow encounter data
         filteredSpecies = SPECIES.filter(s => CXD_SHADOW_SPECIES.has(s[0]));
         break;
+      case 'roamer':
+        // Only roamer species (Latios, Latias, Raikou, Entei, Suicune)
+        filteredSpecies = SPECIES.filter(s => ROAMER_SPECIES_SET.has(s[0]));
+        break;
       default:
         filteredSpecies = SPECIES;
     }
@@ -3456,6 +3568,16 @@ function boot(){
         genderSelect.style.opacity = '0.6';
         genderSelect.style.cursor = 'not-allowed';
       }
+    } else if (mode === 'roamer') {
+      // ── Roamer encounter mode ────────────────────────────────────
+      // Lock gender (roamers are all genderless)
+      if (genderSelect) {
+        genderSelect.style.pointerEvents = 'none';
+        genderSelect.style.opacity = '0.6';
+        genderSelect.style.cursor = 'not-allowed';
+      }
+      // Apply roamer-specific defaults
+      if (!pidFinderResultActive) applyRoamerPreset(speciesId);
     } else if (mode === 'hatched') {
       // Reset to hatched defaults when switching from legendaries
       const metLocationSelect = $('#metLocation');
@@ -3940,6 +4062,123 @@ function boot(){
   }
 
   /**
+   * Apply roamer encounter preset: sets origin game, met location, met level,
+   * IVs (truncated for non-Emerald), and PID using Method 1.
+   */
+  function applyRoamerPreset(speciesId) {
+    if (!ROAMER_SPECIES[speciesId]) return;
+    if (suppressPresetApply || pidFinderResultActive) return;
+
+    const info = ROAMER_SPECIES[speciesId];
+    const originGameSelect = $('#originGame');
+    const currentGame = Number(originGameSelect?.value || 0);
+
+    // If current game is not valid for this roamer, auto-select the first allowed game
+    let gameId = info.games.includes(currentGame) ? currentGame : info.games[0];
+
+    // Set origin game
+    if (originGameSelect) {
+      originGameSelect.value = String(gameId);
+      if (metLocationWrapper && metLocationWrapper.updateList) {
+        metLocationWrapper.updateList(getLocationsForGame(gameId));
+      }
+    }
+
+    // Set met location (Roaming uses Route 101 for FRLG beasts, Route 101 for RSE Lati@s)
+    const locId = getRoamerMetLocation(speciesId);
+    const locationSelect = $('#metLocation');
+    if (locationSelect) locationSelect.value = String(locId);
+
+    // Set met level and current level
+    const metLevelInput = $('#metLevel');
+    const levelInput = $('#level');
+    if (metLevelInput) metLevelInput.value = String(info.level);
+    if (levelInput) levelInput.value = String(info.level);
+    computeAndSetExpFromLevel();
+
+    // Lock origin game, met location, met level (like CXD mode)
+    if (!manualOverrideActive) {
+      const lockEl = (el) => { if (!el) return; el.disabled = true; el.style.pointerEvents = 'none'; el.style.opacity = '0.6'; el.style.cursor = 'not-allowed'; };
+      lockEl($('#metLocation'));
+      lockEl($('#metLevel'));
+    }
+
+    // Lock/grey games that are not allowed for this roamer species
+    updateRoamerGameLocking(speciesId);
+
+    // Set fateful encounter (roamers do NOT have fateful encounter)
+    const fatefulCheckbox = $('#fatefulEncounter');
+    if (fatefulCheckbox) {
+      fatefulCheckbox.checked = false;
+    }
+
+    // Set IVs based on whether this roamer has the truncation bug
+    const truncated = roamerHasTruncatedIVs(speciesId, gameId);
+    const natureIndex = Number($('#nature').value || 0);
+    const preset = getLegendaryPreset(natureIndex, gameId);
+    if (preset && preset.ivs) {
+      $('#ivHp').value = preset.ivs.hp;
+      $('#ivAtk').value = truncated ? (preset.ivs.atk & 7) : preset.ivs.atk;
+      $('#ivDef').value = truncated ? '0' : preset.ivs.def;
+      $('#ivSpAtk').value = truncated ? '0' : preset.ivs.spa;
+      $('#ivSpDef').value = truncated ? '0' : preset.ivs.spd;
+      $('#ivSpe').value = truncated ? '0' : preset.ivs.spe;
+    }
+
+    // Apply PID from legendary preset (Method 1)
+    if (preset) {
+      const pidInput = $('#pid');
+      if (pidInput) {
+        pidInput.value = '0x' + preset.pid.toString(16).toUpperCase().padStart(8, '0');
+      }
+    }
+
+    updateGenderFromPID();
+    $('#ability').value = '0';
+    checkShiny();
+    updateLegalityStatus();
+  }
+
+  /**
+   * Lock/grey-out origin game options that are not allowed for the selected roamer species.
+   * Called whenever the roamer species changes.
+   */
+  function updateRoamerGameLocking(speciesId) {
+    const originGameSelect = $('#originGame');
+    if (!originGameSelect) return;
+    const allowedGames = ROAMER_GAMES_FOR_SPECIES[speciesId] || [];
+    for (const opt of Array.from(originGameSelect.options)) {
+      const gid = Number(opt.value);
+      if (allowedGames.includes(gid)) {
+        opt.disabled = false;
+        opt.style.color = '';
+      } else {
+        opt.disabled = true;
+        opt.style.color = '#666';
+      }
+    }
+    // If current selection is not allowed, switch to first allowed
+    const curGame = Number(originGameSelect.value);
+    if (!allowedGames.includes(curGame) && allowedGames.length > 0) {
+      originGameSelect.value = String(allowedGames[0]);
+      // Re-apply preset with the corrected game
+      if (!pidFinderResultActive && !suppressPresetApply) applyRoamerPreset(speciesId);
+    }
+  }
+
+  /**
+   * Unlock all origin game options (called when leaving roamer mode).
+   */
+  function unlockAllOriginGameOptions() {
+    const originGameSelect = $('#originGame');
+    if (!originGameSelect) return;
+    for (const opt of Array.from(originGameSelect.options)) {
+      opt.disabled = false;
+      opt.style.color = '';
+    }
+  }
+
+  /**
    * Get current encounter mode
    */
   function getEncounterMode() {
@@ -4196,7 +4435,7 @@ function boot(){
       // For legendaries, wild, CXD shadow, and Box Event mystery gifts, adjust SID instead of PID
       const isBoxEvent = currentEncounterMode === 'mystery' && 
         String($('#mysteryEvent')?.value || '').toUpperCase() === 'BOX_EVENT';
-      if (currentEncounterMode === 'static' || currentEncounterMode === 'wild' || currentEncounterMode === 'cxd_shadow' || isBoxEvent) {
+      if (currentEncounterMode === 'static' || currentEncounterMode === 'wild' || currentEncounterMode === 'roamer' || currentEncounterMode === 'cxd_shadow' || isBoxEvent) {
         const pid = parsePidInput($('#pid').value);
         
         if (e.target.checked) {
@@ -4356,14 +4595,14 @@ function boot(){
         }
       }
 
-      // If we're in legendaries or wild mode, apply the per-nature legendary preset
+      // If we're in legendaries, wild, or roamer mode, apply the per-nature legendary preset
       // Also skip when pidFinderResultActive (PID Finder selected a result)
-      if (!suppressPresetApply && !pidFinderResultActive && (currentEncounterMode === 'static' || currentEncounterMode === 'wild')) {
+      if (!suppressPresetApply && !pidFinderResultActive && (currentEncounterMode === 'static' || currentEncounterMode === 'wild' || currentEncounterMode === 'roamer')) {
         const speciesId = Number($('#species').value) || 0;
         const targetNature = Number(natureEl.value || 0);
 
         // Determine originGame: legendaries use the static encounter's defaultOriginGame,
-        // wild uses the user's selected originGame (or default 2)
+        // wild/roamer uses the user's selected originGame (or default 2)
         let originGame = 2;
         if (currentEncounterMode === 'static') {
           const encounter = STATIC_ENCOUNTERS[speciesId];
@@ -4374,7 +4613,7 @@ function boot(){
             originGame = null;
           }
         } else {
-          // Wild mode: use the selected origin game if present
+          // Wild/roamer mode: use the selected origin game if present
           const og = Number($('#originGame')?.value);
           originGame = Number.isFinite(og) && og > 0 ? og : 2;
         }
@@ -4388,19 +4627,29 @@ function boot(){
             }
 
             if (preset.ivs) {
-              $('#ivHp').value = preset.ivs.hp;
-              $('#ivAtk').value = preset.ivs.atk;
-              $('#ivDef').value = preset.ivs.def;
-              $('#ivSpAtk').value = preset.ivs.spa;
-              $('#ivSpDef').value = preset.ivs.spd;
-              $('#ivSpe').value = preset.ivs.spe;
+              // For truncated roamers, override IVs with truncated values
+              if (currentEncounterMode === 'roamer' && roamerHasTruncatedIVs(speciesId, originGame)) {
+                $('#ivHp').value = preset.ivs.hp;
+                $('#ivAtk').value = preset.ivs.atk & 7;
+                $('#ivDef').value = '0';
+                $('#ivSpAtk').value = '0';
+                $('#ivSpDef').value = '0';
+                $('#ivSpe').value = '0';
+              } else {
+                $('#ivHp').value = preset.ivs.hp;
+                $('#ivAtk').value = preset.ivs.atk;
+                $('#ivDef').value = preset.ivs.def;
+                $('#ivSpAtk').value = preset.ivs.spa;
+                $('#ivSpDef').value = preset.ivs.spd;
+                $('#ivSpe').value = preset.ivs.spe;
+              }
             }
 
             // Update gender from PID
             updateGenderFromPID();
 
-            // For legendaries, force ability to 0; for wild, derive ability bit from PID
-            if (currentEncounterMode === 'static') {
+            // For legendaries/roamers, force ability to 0; for wild, derive ability bit from PID
+            if (currentEncounterMode === 'static' || currentEncounterMode === 'roamer') {
               $('#ability').value = '0';
             } else {
               $('#ability').value = String(preset.pid & 1);
@@ -4960,6 +5209,7 @@ function updateGenderFromPID() {
 let pfWorkers = [];
 let pfWorkerSnapshots = [];
 let pfAllResults = [];
+let pfIsRoamerTruncated = false;
 
 function initPidFinder() {
   const overlay  = document.getElementById('pidFinderOverlay');
@@ -5084,9 +5334,10 @@ function initPidFinder() {
       if (pfM1) { pfM1.checked = true;  pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, 'CXD'); }
       if (pfM2) { pfM2.checked = false; pfM2.parentElement.style.display = 'none'; }
       if (pfM4) { pfM4.checked = false; pfM4.parentElement.style.display = 'none'; }
-    } else if (currentEncounterMode === 'static') {
-      // Static (non-CXD) encounters use Method 1 only
-      if (pfM1) { pfM1.checked = true;  pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, 'Method 1'); }
+    } else if (currentEncounterMode === 'static' || currentEncounterMode === 'roamer') {
+      // Static and roamer encounters use Method 1 only
+      const label = currentEncounterMode === 'roamer' ? 'Method H-1-Roaming' : 'Method 1';
+      if (pfM1) { pfM1.checked = true;  pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, label); }
       if (pfM2) { pfM2.checked = false; pfM2.parentElement.style.display = 'none'; }
       if (pfM4) { pfM4.checked = false; pfM4.parentElement.style.display = 'none'; }
     } else {
@@ -5164,6 +5415,12 @@ function initPidFinder() {
     const clampMax = (id) => { const v = Number(document.getElementById(id).value); return Number.isFinite(v) ? Math.max(0, Math.min(31, v)) : 31; };
     const maxIVs = [clampMax('pfMaxHp'), clampMax('pfMaxAtk'), clampMax('pfMaxDef'),
                     clampMax('pfMaxSpA'), clampMax('pfMaxSpD'), clampMax('pfMaxSpe')];
+
+    // For roamer mode with IV truncation bug, the RNG still generates normal
+    // Method 1 IVs; the game then truncates the IV data in memory.
+    // We search with unconstrained IVs and post-process results below.
+    pfIsRoamerTruncated = currentEncounterMode === 'roamer' &&
+      roamerHasTruncatedIVs(speciesId, Number($('#originGame').value) || 3);
 
     const methods = [
       document.getElementById('pfMethod1').checked,
@@ -5265,10 +5522,10 @@ function initPidFinder() {
       };
 
       // Look up encounter slot tables for this game + location.
-      // Static (legendary) encounters do NOT use wild encounter slots,
+      // Static/roamer encounters do NOT use wild encounter slots,
       // so pass null to skip encounter-chain validation.
       const locationId = Number($('#metLocation').value) || 0;
-      const slotTables = currentEncounterMode === 'static'
+      const slotTables = (currentEncounterMode === 'static' || currentEncounterMode === 'roamer')
         ? null
         : (ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]) || null;
 
@@ -5332,6 +5589,26 @@ function initPidFinder() {
   /* â”€â”€ Display results table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   function displayResults() {
+    // For truncated roamers, post-process IVs: apply the roaming IV bug
+    // The RNG generates normal Method 1 IVs, but only HP (0-31) and ATK (0-7) survive
+    if (pfIsRoamerTruncated) {
+      for (const r of pfAllResults) {
+        r.ivs.atk = r.ivs.atk & 7;
+        r.ivs.def = 0;
+        r.ivs.spe = 0;
+        r.ivs.spa = 0;
+        r.ivs.spd = 0;
+      }
+      // De-duplicate: multiple RNG seeds can produce the same PID after truncation
+      const seen = new Set();
+      pfAllResults = pfAllResults.filter(r => {
+        const key = `${r.pid}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
     pfAllResults.sort((a, b) => {
       const tA = a.ivs.hp + a.ivs.atk + a.ivs.def + a.ivs.spa + a.ivs.spd + a.ivs.spe;
       const tB = b.ivs.hp + b.ivs.atk + b.ivs.def + b.ivs.spa + b.ivs.spd + b.ivs.spe;
@@ -5378,13 +5655,15 @@ function initPidFinder() {
       const abilitySlot = r.pid & 1;
       const abilityName = abilitySlot === 0 ? rAbility0Name : rAbility1Name;
 
-      // For static (legendary) encounters, show method without 'H' prefix
+      // For static encounters, show method without 'H' prefix; for roamer, show 'H-1-Roaming'
       // CXD results already have method='CXD' so no replacement needed
       const methodLabel = r.method === 'CXD'
         ? 'CXD'
-        : currentEncounterMode === 'static'
-          ? r.method.replace('H', '')
-          : r.method;
+        : currentEncounterMode === 'roamer'
+          ? r.method.replace(/^H-?(\d)/, 'H-$1-Roaming')
+          : currentEncounterMode === 'static'
+            ? r.method.replace('H', '')
+            : r.method;
 
       const tr = document.createElement('tr');
       tr.innerHTML =
@@ -5488,9 +5767,11 @@ function initPidFinder() {
 
     const statusMethod = r.method === 'CXD'
       ? 'CXD'
-      : currentEncounterMode === 'static'
-        ? r.method.replace('H', '')
-        : r.method;
+      : currentEncounterMode === 'roamer'
+        ? r.method.replace(/^H-?(\d)/, 'H-$1-Roaming')
+        : currentEncounterMode === 'static'
+          ? r.method.replace('H', '')
+          : r.method;
     if (statusSpan) statusSpan.textContent = `PID set (${statusMethod === 'CXD' ? 'CXD' : 'Method ' + statusMethod}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
     closeModal();
   }
@@ -5563,7 +5844,8 @@ function collect(){
     // correct correlated IVs in the DOM fields.
     ivs: (function(){
       try{
-        if(document.body.classList.contains('mode-simple') && !pidFinderResultActive){
+        if(document.body.classList.contains('mode-simple') && !pidFinderResultActive
+           && currentEncounterMode !== 'roamer' && currentEncounterMode !== 'static' && currentEncounterMode !== 'cxd_shadow'){
           const natureIndex = Number($('#nature').value || 0);
           const natureName = NATURES[natureIndex] || null;
           const gender = ($('#gender').value || 'male');

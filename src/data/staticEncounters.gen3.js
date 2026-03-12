@@ -40,7 +40,6 @@ export const STATIC_CATEGORIES = [
   { id: 'stationary',  label: 'Other Stationary' },
   { id: 'legends',     label: 'Legends' },
   { id: 'events',      label: 'Events' },
-  { id: 'roamers',     label: 'Roamers' },
 ];
 
 // ─── Encounter definitions ────────────────────────────────────────
@@ -185,20 +184,6 @@ export const STATIC_ENCOUNTER_LIST = [
   { category: 'events', species: 407, level: 50, games: [EME], location: 73, method: 1, fateful: true },       // Latias @ Southern Island (Emerald — Eon Ticket)
   { category: 'events', species: 408, level: 50, games: [EME], location: 73, method: 1, fateful: true },       // Latios @ Southern Island (Emerald — Eon Ticket)
 
-  // ══════════════════════════════════════════════════════════════════
-  //  ROAMERS
-  // ══════════════════════════════════════════════════════════════════
-
-  // RSE roamers
-  { category: 'roamers', species: 408, level: 40, games: [RUB], location: 16, method: 1, isRoaming: true, roamTruncIVs: true },  // Latios (Ruby)
-  { category: 'roamers', species: 407, level: 40, games: [SAP], location: 16, method: 1, isRoaming: true, roamTruncIVs: true },  // Latias (Sapphire)
-  { category: 'roamers', species: 407, level: 40, games: [EME], location: 16, method: 1, isRoaming: true },  // Latias (Emerald — no truncated IVs)
-  { category: 'roamers', species: 408, level: 40, games: [EME], location: 16, method: 1, isRoaming: true },  // Latios (Emerald — no truncated IVs)
-
-  // FRLG roamers (legendary beasts)
-  { category: 'roamers', species: 243, level: 50, games: [...FRLG], location: 101, method: 1, isRoaming: true, roamTruncIVs: true }, // Raikou
-  { category: 'roamers', species: 244, level: 50, games: [...FRLG], location: 101, method: 1, isRoaming: true, roamTruncIVs: true }, // Entei
-  { category: 'roamers', species: 245, level: 50, games: [...FRLG], location: 101, method: 1, isRoaming: true, roamTruncIVs: true }, // Suicune
 ];
 
 // ─── Derived lookups ──────────────────────────────────────────────
