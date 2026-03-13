@@ -351,13 +351,15 @@
               <li id="sacrificialName">Catch any Pokemon and name it "J-FKVC"</li>
               <li>Place this in box 14 slot 29.</li>
               <li>DONE!</li>
-              <li>You are now ready to use BASE64 codes! Go back to the ACE builder tool and have fun!</li>
+              <li>You are now ready to use BASE64 codes! Go back to the ACE builder tool and have fun! To spawn any Pokémon, type in any Base64 code made from my website, and execute ACE.
+                The Pokémon will appear in box 14 slot 30, so make sure to keep that slot empty for spawning Pokémon. If you want to spawn another Pokémon, simply replace the code in the PC with the new code and execute again, no need to redo the whole setup!
+              </li>
             </ul>
             <div class="panel-tip">IMPORTANT: If you want to execute regular codes in the future, make sure to move WELDR and the sacrificial Pokemon out of box 14 first!</div>
             <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
           </div>
             <div class="remember-image" style="margin-top:10px;">
-              <img src="../src/Images/WELDR base64 code.png" alt="WELDR base64 code" data-orig-src="../src/Images/WELDR base64 code.png" data-frlg-src="../src/Images/WELDR base64 code FRLG.png" />
+              <img src="../src/Images/WELDR base64 code.png" alt="WELDR base64 code" data-orig-src="../src/Images/WELDR base64 code.png" data-frlg-src="../src/Images/WELDR base64 code FRLG.png" data-frlg-sw-src="../src/Images/WELDR base64 code FRLG Switch.png" />
               <img src="../src/Images/Sacrificial Pokemon Base64.png" alt="Sacrificial Pokemon base64" data-orig-src="../src/Images/Sacrificial Pokemon Base64.png" data-frlg-src="../src/Images/Sacrificial Pokemon Base64-FRLG.png" />
             </div>
         </section>
@@ -495,6 +497,40 @@
         });
       }
 
+      function updateCode4NotesForGame(){
+        const panel = document.getElementById('code4');
+        if(!panel) return;
+
+        const notes = panel.querySelectorAll('.notes-col .note');
+        if(!notes || notes.length === 0) return;
+
+        // preserve original text/editable state
+        notes.forEach((note)=>{
+          if(note.dataset.origText === undefined) note.dataset.origText = note.textContent;
+          if(note.dataset.origEditable === undefined) note.dataset.origEditable = note.getAttribute('contenteditable') || 'true';
+        });
+
+        // Box 8 corresponds to the first note in this panel (index 0)
+        if(selectedGame === 'FRLGSW'){
+          const hint = 'lowercase L (l)';
+          if(notes[0]){
+            notes[0].textContent = hint;
+            notes[0].setAttribute('contenteditable','false');
+            notes[0].setAttribute('tabindex','-1');
+            notes[0].classList.add('locked');
+          }
+        } else {
+          // restore originals for non-FR/LG Switch games
+          notes.forEach((note)=>{
+            note.textContent = note.dataset.origText;
+            if(note.dataset.origEditable === 'true') note.setAttribute('contenteditable','true');
+            else note.setAttribute('contenteditable','false');
+            note.removeAttribute('tabindex');
+            note.classList.remove('locked');
+          });
+        }
+      }
+
       modeButtons.forEach(btn=>{
         btn.addEventListener('click', ()=>{
           const m = btn.dataset.mode;
@@ -598,13 +634,25 @@
           });
         }
         updateCode1NotesForGame();
+        updateCode4NotesForGame();
         updateStepCommentsForGame();
+        // Ensure notes locking state updates after any per-game note changes
+        if(typeof lockEmptyNotes==='function') try{ lockEmptyNotes(); }catch(e){}
         // Additionally swap code5 images when FR/LG selected
         const panel5 = document.getElementById('code5');
         if(panel5){
           panel5.querySelectorAll('img').forEach(img=>{
-            if((selectedGame === 'FRLG' || selectedGame === 'FRLGSW') && img.dataset.frlgSrc){ img.src = img.dataset.frlgSrc; }
-            else if(img.dataset.origSrc){ img.src = img.dataset.origSrc; }
+            // For FR/LG Switch, prefer a switch-specific image, then fall back to the FRLG image, then original
+            if(selectedGame === 'FRLGSW'){
+              if(img.dataset.frlgSwSrc) img.src = img.dataset.frlgSwSrc;
+              else if(img.dataset.frlgSrc) img.src = img.dataset.frlgSrc;
+              else if(img.dataset.origSrc) img.src = img.dataset.origSrc;
+            } else if(selectedGame === 'FRLG'){
+              if(img.dataset.frlgSrc) img.src = img.dataset.frlgSrc;
+              else if(img.dataset.origSrc) img.src = img.dataset.origSrc;
+            } else {
+              if(img.dataset.origSrc) img.src = img.dataset.origSrc;
+            }
           });
           // Update sacrificial Pokemon naming instruction depending on game
           const sac = panel5.querySelector('#sacrificialName');
