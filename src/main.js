@@ -19,6 +19,7 @@ import { WILD_ENCOUNTERS } from './data/wildEncounters.gen3.js';
 import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
 import { buildWildWithEvolutions, getWildAncestor } from './data/evolutions.gen3.js';
 import { PROFANITY_LIST } from './data/profanity.gen3.js';
+import { createProfanityFilter } from './lib/profanityFilter.js';
 import { CXD_SHADOW_ENCOUNTERS, CXD_SHADOW_SPECIES, getShadowEncountersForSpecies, isValidGCTidSid } from './data/shadowEncounters.gen3.js';
 import { COLO_SHADOW_LOCKS, XD_SHADOW_LOCKS, COLO_NO_LOCK_SPECIES, XD_NO_LOCK_SPECIES } from './data/cxdLocks.gen3.js';
 import { getSpritePath, getUnownFormIndex, getUnownFormChar, getUnownFormSuffix, getUnownSpritePath, getOnlineSpriteUrl, getOnlineUnownSpriteUrl, UNOWN_FORMS, TANOBY_FORMS_BY_LOCATION, getTanobyFormsForLocation, getTanobyLocationsForForm } from './data/nationalDex.gen3.js';
@@ -5953,12 +5954,10 @@ function collect(){
 }
 
 // â”€â”€ Profanity check for Base64 box names â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Build a single regex from the pattern list (patterns are already regex strings
-// from the Nintendo Switch filter, so they are joined directly without escaping).
-const _profanityRe = new RegExp(
-  PROFANITY_LIST.join('|'),
-  'i'
-);
+// Hybrid filter: boundary-only terms (short/ambiguous words only banned at word
+// boundaries) + strong substring terms (slurs banned even inside larger words).
+// See src/lib/profanityFilter.js for rule class documentation.
+const _profanityFilter = createProfanityFilter(PROFANITY_LIST);
 
 /**
  * Scan the Base64 box-name output for profanity.
@@ -5973,13 +5972,10 @@ function checkBase64Profanity(b64Text) {
     if (!m) continue;
     const boxNum = Number(m[1]);
     const boxName = m[2];
-    // Test the box name against the full profanity regex
-    const hit = boxName.match(new RegExp(
-      PROFANITY_LIST.join('|'),
-      'gi'
-    ));
-    if (hit) {
-      for (const word of hit) hits.push({ box: boxNum, word });
+    // Test the box name against the hybrid profanity filter
+    const result = _profanityFilter.checkDetailed(boxName);
+    if (result.blocked) {
+      for (const word of result.matches) hits.push({ box: boxNum, word });
     }
   }
   return hits;
