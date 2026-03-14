@@ -180,6 +180,8 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
               newLevel = Math.max(30, Number(newLevel));
             } else if (tU === 'WISHMKR_BEST' || tU === 'WISHMKR_SHINY') {
               newLevel = Math.max(5, Number(newLevel));
+            } else if (tU === 'CHANNEL_JIRACHI') {
+              newLevel = Math.max(5, Number(newLevel));
             }
           } catch (e) {}
           levelEl.value = String(newLevel);
@@ -394,7 +396,7 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
       // Force English-only languages for specific events where only English
       // game versions are supported in this dataset.
       try {
-        const englishOnly = ['POKEMON_ROCKS_METANG','WISHMKR_BEST','WISHMKR_SHINY','DOEL_DEOXYS'];
+        const englishOnly = ['POKEMON_ROCKS_METANG','WISHMKR_BEST','WISHMKR_SHINY','DOEL_DEOXYS','CHANNEL_JIRACHI'];
         if (englishOnly.includes(String(tag).toUpperCase())) {
           const langSel = $('#language');
           if (langSel && langSel.options) {
@@ -465,6 +467,70 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
                   }
                 }
               }
+            }
+          } catch (e) {}
+        }
+      } catch (e) {}
+      // ── CHANNEL_JIRACHI special handling ──────────────────────────
+      try {
+        if (String(tag).toUpperCase() === 'CHANNEL_JIRACHI') {
+          // Channel Jirachi uses XDRNG-based PID — not pre-computed.
+          // Disable the simple shiny checkbox (shiny only via Find Legal PID).
+          const shinyCheckbox = $('#shiny');
+          if (shinyCheckbox) {
+            shinyCheckbox.checked = false;
+            shinyCheckbox.disabled = true;
+          }
+
+          // SID is determined by the Channel RNG — clear it for now.
+          // The user will get it from Find Legal PID.
+          const sidEl = $('#sid');
+          if (sidEl) sidEl.value = '0';
+
+          // Force language to English (Channel Jirachi is English-only)
+          const langSel = $('#language');
+          if (langSel && langSel.options) {
+            for (const o of Array.from(langSel.options)) {
+              o.disabled = String(o.value) !== '2';
+            }
+            langSel.value = '2';
+            try { langSel.dispatchEvent(new Event('change')); } catch (e) {}
+          }
+
+          // set met location to Fateful entry if present
+          const sel = $('#metLocation');
+          if (sel) {
+            const originGameId = Number($('#originGame')?.value) || 1;
+            const candidates = getLocationsForGame(originGameId);
+            const found = candidates.find(loc => String(loc[1] || '').toLowerCase().includes('fateful'))
+                          || LOCATIONS.find(loc => String(loc[1] || '').toLowerCase().includes('fateful'));
+            if (found) sel.value = String(found[0]);
+          }
+          const f = $('#fatefulEncounter'); if (f) f.checked = false;
+
+          // Show PID Finder row and Make Shiny row for Channel Jirachi
+          const pfRow = document.getElementById('pidFinderRow');
+          if (pfRow) pfRow.style.display = 'flex';
+          // Hide simple shiny row (replaced by Make Shiny btn)
+          try {
+            const shinyExtRows = document.querySelectorAll('.shiny-external');
+            for (const r of shinyExtRows) r.style.display = 'none';
+          } catch (e) {}
+
+          // All natures should be available
+          const natSel = $('#nature');
+          if (natSel && natSel.options) {
+            for (const o of Array.from(natSel.options)) o.disabled = false;
+          }
+
+          // Moves: Wish, Confusion, Rest
+          try {
+            const channelMoves = [273, 93, 156];
+            for (let i = 0; i < 4; i++) {
+              const el = $(`#move${i+1}`);
+              if (!el) continue;
+              el.value = i < channelMoves.length ? String(channelMoves[i]) : '';
+              try { el.dispatchEvent(new Event('change')); } catch (e) {}
             }
           } catch (e) {}
         }
@@ -2091,7 +2157,7 @@ function boot(){
       // If we're in Mystery Gifts mode and an event is selected, apply any
       // per-species mystery preset (TID/SID/OT/PID/IVs) so the basics/stats
       // reflect the event immediately and are not overridden by other logic.
-      if (currentEncounterMode === 'mystery') {
+      if (!pidFinderResultActive && currentEncounterMode === 'mystery') {
         const tag = document.getElementById('mysteryEvent')?.value || '';
         if (tag) applyMysteryPresetForSpecies(speciesId);
       }
@@ -2215,7 +2281,7 @@ function boot(){
     // currently selected species so PID/IV from the JSON are used instead
     // of the simple-mode/randomized presets.
     try {
-      if (!suppressPresetApply && currentEncounterMode === 'mystery') {
+      if (!suppressPresetApply && !pidFinderResultActive && currentEncounterMode === 'mystery') {
         const sp = Number($('#species').value) || 0;
         if (sp) applyMysteryPresetForSpecies(sp);
       }
@@ -2736,6 +2802,11 @@ function boot(){
     for (const id of ['ivHp','ivAtk','ivDef','ivSpAtk','ivSpDef','ivSpe']) {
       unlock($('#' + id));
     }
+    // Also unlock Channel-specific fields if they were locked
+    unlock($('#item'));
+    unlock($('#otGender'));
+    unlock($('#originGame'));
+    try { updateTidSidLocking(); } catch (e) {}
     try { updateMetLevelLocking(); } catch (e) {}
   }
 
@@ -3167,6 +3238,8 @@ function boot(){
               o.textContent = "WISHMKR JIRACHI - BEST IV'S";
             } else if (String(t).toUpperCase() === 'WISHMKR_SHINY') {
               o.textContent = "WISHMKR JIRACHI - ALL SHINY PID'S";
+            } else if (String(t).toUpperCase() === 'CHANNEL_JIRACHI') {
+              o.textContent = "CHANNEL JIRACHI";
             } else {
               o.textContent = t.replace(/_/g,' ');
             }
@@ -3176,6 +3249,8 @@ function boot(){
           eventSel.addEventListener('change', () => {
             const tag = eventSel.value;
             console.log('Mystery event selected:', tag);
+            // Unlock any PID Finder result from the previous event
+            if (pidFinderResultActive) try { unlockPidFinderFields(); } catch (e) {}
             // Clear any previous event-specific UI state (ribbons, language disables)
             try { clearMysteryEventState(); } catch (e) {}
             // Apply event-level defaults
@@ -3252,6 +3327,19 @@ function boot(){
             o.disabled = false;
           }
         }
+
+        // Re-enable shiny checkbox (Channel Jirachi disables it)
+        const shinyEl = $('#shiny');
+        if (shinyEl) shinyEl.disabled = false;
+
+        // Remove Channel-specific inline display overrides
+        const pfRow = document.getElementById('pidFinderRow');
+        if (pfRow) pfRow.style.removeProperty('display');
+        try {
+          const shinyExtRows = document.querySelectorAll('.shiny-external');
+          for (const r of shinyExtRows) r.style.removeProperty('display');
+        } catch (_) {}
+
         // Clear any mystery-preset tracking
         mysteryPresetAppliedFor = 0;
         mysteryUserModifiedSincePreset = false;
@@ -5319,8 +5407,8 @@ function initPidFinder() {
     const pfTidEl   = document.getElementById('pfTid');
     const pfSidEl   = document.getElementById('pfSid');
     const pfShinyEl = document.getElementById('pfShiny');
-    if (pfTidEl) pfTidEl.value = String(Number($('#tid').value) || 0);
-    if (pfSidEl) pfSidEl.value = String(Number($('#sid').value) || 0);
+    if (pfTidEl) { pfTidEl.value = String(Number($('#tid').value) || 0); pfTidEl.disabled = false; }
+    if (pfSidEl) { pfSidEl.value = String(Number($('#sid').value) || 0); pfSidEl.disabled = false; }
     if (pfShinyEl) pfShinyEl.checked = !!$('#shiny')?.checked;
 
     /* â”€â”€ Adjust method checkboxes based on encounter mode â”€â”€ */
@@ -5338,7 +5426,20 @@ function initPidFinder() {
     }
 
     const currentGameId = Number($('#originGame').value) || 3;
-    if (currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'static' && currentGameId === 15)) {
+    const isChannelPF = currentEncounterMode === 'mystery' &&
+      String($('#mysteryEvent')?.value || '').toUpperCase() === 'CHANNEL_JIRACHI';
+
+    if (isChannelPF) {
+      // Channel Jirachi uses XDRNG Channel method only
+      if (pfM1) { pfM1.checked = true;  pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, 'Channel'); }
+      if (pfM2) { pfM2.checked = false; pfM2.parentElement.style.display = 'none'; }
+      if (pfM4) { pfM4.checked = false; pfM4.parentElement.style.display = 'none'; }
+      // Lock TID to 40122, SID to 0 (SID comes from result)
+      if (pfTidEl) { pfTidEl.value = '40122'; pfTidEl.disabled = true; }
+      if (pfSidEl) { pfSidEl.value = '0'; pfSidEl.disabled = true; }
+      // Gender: genderless (already handled above by threshold=-1)
+      // Ability: lock (single ability Serene Grace)
+    } else if (currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'static' && currentGameId === 15)) {
       // CXD shadow encounters use CXD PRNG only
       if (pfM1) { pfM1.checked = true;  pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, 'CXD'); }
       if (pfM2) { pfM2.checked = false; pfM2.parentElement.style.display = 'none'; }
@@ -5449,8 +5550,12 @@ function initPidFinder() {
 
     // Determine which worker to use
     const gameId     = Number($('#originGame').value) || 3;
-    const isCXD      = currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'static' && gameId === 15);
-    const workerPath = isCXD ? './src/lib/gen3/cxd-worker.js' : './src/lib/gen3/rng-worker.js';
+    const isChannelSearch = currentEncounterMode === 'mystery' &&
+      String($('#mysteryEvent')?.value || '').toUpperCase() === 'CHANNEL_JIRACHI';
+    const isCXD      = !isChannelSearch && (currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'static' && gameId === 15));
+    const workerPath = isChannelSearch
+      ? './src/lib/gen3/channel-worker.js'
+      : isCXD ? './src/lib/gen3/cxd-worker.js' : './src/lib/gen3/rng-worker.js';
 
     // Decide fast-path (IV recovery) vs brute-force (full seed scan).
     // IV recovery enumerates HP/ATK/DEF combos × 131 k inner checks instead
@@ -5459,7 +5564,7 @@ function initPidFinder() {
     const iv1Count = (maxIVs[0] - minIVs[0] + 1) *
                      (maxIVs[1] - minIVs[1] + 1) *
                      (maxIVs[2] - minIVs[2] + 1);
-    const useFastPath = iv1Count <= 4096;
+    const useFastPath = !isChannelSearch && iv1Count <= 4096;
 
     const cores = navigator.hardwareConcurrency || 4;
     const workerCount = useFastPath
@@ -5538,7 +5643,16 @@ function initPidFinder() {
         ? null
         : (ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]) || null;
 
-      if (isCXD) {
+      if (isChannelSearch) {
+        // Channel Jirachi worker: nature + shiny + IV filters, seed validation
+        worker.postMessage({
+          startSeed: start, endSeed: end,
+          nature, wantShiny,
+          tid: 40122,
+          minIVs, maxIVs,
+          maxResults: Math.ceil(250 / workerCount)
+        });
+      } else if (isCXD) {
         // CXD worker: core filters + anti-shiny rerolling + team-lock data.
         // Determine if the encounter is XD (for shiny value and lock lookup).
         const cxdEncounters = getShadowEncountersForSpecies(speciesId);
@@ -5654,6 +5768,23 @@ function initPidFinder() {
       }
     } catch (_) {}
 
+    // Detect Channel results to adjust table columns
+    const isChannelResults = capped.length > 0 && capped[0].method === 'Channel';
+
+    // Update table header for Channel vs normal
+    try {
+      const thead = resultsBody.closest('table')?.querySelector('thead tr');
+      if (thead) {
+        const ths = thead.querySelectorAll('th');
+        // Columns: PID(0) HP(1) Atk(2) Def(3) SpA(4) SpD(5) Spe(6) Total(7) HPType(8) Mth(9) Lv(10) Gender(11) Ability(12) btn(13)
+        if (ths.length >= 13) {
+          ths[10].textContent = isChannelResults ? 'SID' : 'Lv';
+          ths[11].textContent = isChannelResults ? 'Game' : 'Gender';
+          ths[12].textContent = isChannelResults ? 'Item' : 'Ability';
+        }
+      }
+    } catch (_) {}
+
     for (const r of capped) {
       const total = r.ivs.hp + r.ivs.atk + r.ivs.def + r.ivs.spa + r.ivs.spd + r.ivs.spe;
 
@@ -5679,6 +5810,22 @@ function initPidFinder() {
             : r.method;
 
       const tr = document.createElement('tr');
+      if (r.method === 'Channel') {
+        // Channel-specific columns: SID, Game version, Held item
+        const gameName = r.versionGameId === 1 ? 'Sapphire' : 'Ruby';
+        const itemName = r.heldItemId === 169 ? 'Ganlon Berry' : 'Salac Berry';
+        tr.innerHTML =
+          `<td class="pid-cell">0x${(r.pid >>> 0).toString(16).toUpperCase().padStart(8, '0')}</td>` +
+          ivTd(r.ivs.hp) + ivTd(r.ivs.atk) + ivTd(r.ivs.def) +
+          ivTd(r.ivs.spa) + ivTd(r.ivs.spd) + ivTd(r.ivs.spe) +
+          `<td>${total}</td>` +
+          `<td>${r.hpt}</td>` +
+          `<td>${methodLabel}</td>` +
+          `<td>${r.sid}</td>` +
+          `<td>${gameName}</td>` +
+          `<td>${itemName}</td>` +
+          `<td><button type="button" class="select-btn">Select</button></td>`;
+      } else {
       tr.innerHTML =
         `<td class="pid-cell">0x${(r.pid >>> 0).toString(16).toUpperCase().padStart(8, '0')}</td>` +
         ivTd(r.ivs.hp) + ivTd(r.ivs.atk) + ivTd(r.ivs.def) +
@@ -5690,6 +5837,7 @@ function initPidFinder() {
         `<td>${genderStr}</td>` +
         `<td>${abilityName}</td>` +
         `<td><button type="button" class="select-btn">Select</button></td>`;
+      }
       tr.querySelector('.select-btn').addEventListener('click', () => selectResult(r));
       resultsBody.appendChild(tr);
     }
@@ -5712,6 +5860,17 @@ function initPidFinder() {
     const pfSid = Number(document.getElementById('pfSid').value) & 0xFFFF;
     $('#tid').value = String(pfTid);
     $('#sid').value = String(pfSid);
+
+    // Channel Jirachi: apply seed-derived fields (SID, held item, origin game, OT gender)
+    if (r.method === 'Channel') {
+      $('#sid').value = String(r.sid);
+      const itemEl = $('#item');
+      if (itemEl) { itemEl.value = String(r.heldItemId); try { itemEl.dispatchEvent(new Event('change')); } catch (_) {} }
+      const gameEl = $('#originGame');
+      if (gameEl) { gameEl.value = String(r.versionGameId); try { gameEl.dispatchEvent(new Event('change')); } catch (_) {} }
+      const otGenderEl = $('#otGender');
+      if (otGenderEl) { otGenderEl.value = r.otGender === 1 ? 'female' : 'male'; }
+    }
 
     // Sync shiny checkbox from PID Finder modal to main form
     const pfShinyChecked = !!document.getElementById('pfShiny')?.checked;
@@ -5776,16 +5935,28 @@ function initPidFinder() {
       lockStyle($('#' + id));
     }
 
+    // Channel Jirachi: also lock seed-derived fields
+    if (r.method === 'Channel') {
+      lockStyle($('#sid'));
+      lockStyle($('#item'));
+      lockStyle($('#originGame'));
+      lockStyle($('#otGender'));
+    }
+
     checkShiny();
 
-    const statusMethod = r.method === 'CXD'
+    const statusMethod = r.method === 'Channel'
+      ? 'Channel'
+      : r.method === 'CXD'
       ? 'CXD'
       : currentEncounterMode === 'roamer'
         ? r.method.replace(/^H-?(\d)/, 'H-$1-Roaming')
         : currentEncounterMode === 'static'
           ? r.method.replace('H', '')
           : r.method;
-    if (statusSpan) statusSpan.textContent = `PID set (${statusMethod === 'CXD' ? 'CXD' : 'Method ' + statusMethod}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
+    if (statusSpan) statusSpan.textContent = r.method === 'Channel'
+      ? `PID set (Channel, SID ${r.sid})`
+      : `PID set (${statusMethod === 'CXD' ? 'CXD' : 'Method ' + statusMethod}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
     closeModal();
   }
 }

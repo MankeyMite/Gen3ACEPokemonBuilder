@@ -114,6 +114,19 @@
       "current_level": 5,
       "defaultFatefulEncounter": false,
       "species": [358, 288, 315, 172]
+    },
+    "CHANNEL_JIRACHI": {
+      "fixedTID": 40122,
+      "ot_name": "CHANNEL",
+      "shinyLocked": false,
+      "defaultOriginGame": 1,
+      "defaultMetLocation": "(Fateful Encounter)",
+      "defaultBall": "Poke Ball",
+      "defaultMetLevel": 0,
+      "current_level": 5,
+      "defaultFatefulEncounter": false,
+      "pidMethod": "Channel",
+      "species": [409]
     }
   },
   "pokemon": [
@@ -1979,6 +1992,12 @@
       "ivs_hex": "0x3FFF7FFE",
       "nature": "Quirky",
       "ivs": [30, 31, 31, 30, 31, 31]
+    },
+    {
+      "tag": "CHANNEL_JIRACHI",
+      "species": 409,
+      "nature": "Hardy",
+      "note": "Use Find Legal PID to search for valid Channel Jirachi PIDs"
     }
   ]
 }
