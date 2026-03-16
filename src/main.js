@@ -17,7 +17,7 @@ import { hasDualAbilities, getSpeciesAbilities } from './data/pokemonAbilities.g
 import { LEARNSETS } from './data/learnsets.gen3.js';
 import { WILD_ENCOUNTERS } from './data/wildEncounters.gen3.js';
 import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
-import { buildWildWithEvolutions, getWildAncestor } from './data/evolutions.gen3.js';
+import { buildWildWithEvolutions, getWildAncestor, PRE_EVOLUTIONS } from './data/evolutions.gen3.js';
 import { PROFANITY_LIST } from './data/profanity.gen3.js';
 import { createProfanityFilter } from './lib/profanityFilter.js';
 import { CXD_SHADOW_ENCOUNTERS, CXD_SHADOW_SPECIES, getShadowEncountersForSpecies, isValidGCTidSid } from './data/shadowEncounters.gen3.js';
@@ -1233,8 +1233,19 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
     if (data.t) for (const mid of data.t) idSet.add(mid);
     if (data.u) for (const mid of data.u) idSet.add(mid);
     // Egg moves — only in hatched mode
-    if (mode === 'hatched' && data.e) {
-      for (const mid of data.e) idSet.add(mid);
+    // Include egg moves from this species and all pre-evolutions in the chain
+    if (mode === 'hatched') {
+      if (data.e) {
+        for (const mid of data.e) idSet.add(mid);
+      }
+      let preId = PRE_EVOLUTIONS[speciesId];
+      while (preId != null) {
+        const preData = LEARNSETS[preId];
+        if (preData?.e) {
+          for (const mid of preData.e) idSet.add(mid);
+        }
+        preId = PRE_EVOLUTIONS[preId];
+      }
     }
 
     // Keep the empty/0 entry ("— None —") plus all legal moves
