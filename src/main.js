@@ -4602,7 +4602,13 @@ function boot(){
         
         // Update ability based on new PID
         const abilityFromPID = ($('#pid').value ? parsePidInput($('#pid').value) & 1 : 0);
-        $('#ability').value = String(abilityFromPID);
+        const specId = Number($('#species').value) || 0;
+        const specAbs = getSpeciesAbilities(specId);
+        if (abilityFromPID === 1 && specAbs && specAbs[0] === specAbs[1]) {
+          $('#ability').value = '0';
+        } else {
+          $('#ability').value = String(abilityFromPID);
+        }
       }
       
       // Update shiny indicator
@@ -4779,7 +4785,14 @@ function boot(){
             if (currentEncounterMode === 'static' || currentEncounterMode === 'roamer') {
               $('#ability').value = '0';
             } else {
-              $('#ability').value = String(preset.pid & 1);
+              // Only set ability to 1 if the species actually has two different abilities
+              const abilityBit = preset.pid & 1;
+              const specAbilities = getSpeciesAbilities(speciesId);
+              if (abilityBit === 1 && specAbilities && specAbilities[0] === specAbilities[1]) {
+                $('#ability').value = '0'; // single-ability species, slot 1 doesn't exist in dropdown
+              } else {
+                $('#ability').value = String(abilityBit);
+              }
             }
 
             updateLegalityStatus();
