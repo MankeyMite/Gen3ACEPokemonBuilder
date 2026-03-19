@@ -40,6 +40,9 @@ let MYSTERY_MOVESETS = {};
 // Move autocomplete wrappers (set after init)
 let moveAutocompletes = [null, null, null, null];
 
+// Callback populated by boot() for applying imported data with access to boot()-scoped helpers
+let _postImportUpdate = null;
+
 // Ensure a safe no-op exists early so callers from earlier code don't throw
 function updateMysterySpeciesOptions(/*tag*/) { return; }
 
@@ -1583,6 +1586,16 @@ function boot(){
     }
   }
 
+  // Expose post-import update callback so module-level import functions
+  // (onLoadFromHex, Smogon import) can access boot()-scoped helpers.
+  _postImportUpdate = function(speciesId) {
+    updateAbilitySelect(speciesId);
+    updateSpeciesSprite(speciesId);
+    updateUnownFormVisibility(speciesId);
+    handleEncounterModeChange(speciesId);
+    validateForm();
+  };
+
   /**
    * Check legality of current Pokémon data
    * Returns { legal: boolean, errors: string[], unknown: boolean }
@@ -2643,6 +2656,7 @@ function boot(){
       document.body.classList.toggle('encounter-roamer', currentEncounterMode === 'roamer');
       document.body.classList.toggle('encounter-mystery', currentEncounterMode === 'mystery');
       document.body.classList.toggle('encounter-cxd_shadow', currentEncounterMode === 'cxd_shadow');
+      document.body.classList.toggle('encounter-imported', currentEncounterMode === 'imported');
       
       // Filter species list based on encounter mode
       updateSpeciesListForMode();
@@ -2725,7 +2739,8 @@ function boot(){
       roamer: {label: 'Roamer', color: '#e879f9', text: 'Roaming legendaries (Latios, Latias, Raikou, Entei, Suicune). Uses Method 1 PID generation. Non-Emerald roamers have the IV truncation bug (only HP and partial ATK IVs are kept; DEF/SPE/SPA/SPD are forced to 0).'},
       wild: {label: 'Wild', color: '#60a5fa', text: 'Wild encounters (in the overworld). Recommended only if you prefer it looking like it was RNG manipulated. Uses Method 1 encounter slots to aim for best IVs per nature for each species. Use the PID searcher for custom PID/shininess.'},
       mystery: {label: 'Mystery Gifts', color: '#ef476f', text: 'Mystery Gift events — Get Distribution Event Pokémon! These have strict rules, so you may only change a few fields. IVs are hand picked for the best possible for each nature.'},
-      cxd_shadow: {label: 'XD / Colosseum', color: '#a78bfa', text: 'Shadow Pokémon from Pokémon XD: Gale of Darkness and Pokémon Colosseum. Choose a species and encounter location, then use the PID Finder with CXD method. TID and SID must be a valid GameCube RNG pair.'}
+      cxd_shadow: {label: 'XD / Colosseum', color: '#a78bfa', text: 'Shadow Pokémon from Pokémon XD: Gale of Darkness and Pokémon Colosseum. Choose a species and encounter location, then use the PID Finder with CXD method. TID and SID must be a valid GameCube RNG pair.'},
+      imported: {label: 'Imported', color: '#94a3b8', text: 'Pokémon imported from external data. All fields are unlocked via Manual Override. You can freely edit any field and generate the Pokémon.'}
     };
     const m = map[mode] || {label: '', color: '#94a3b8', text: ''};
     // Render pill + text so the description is clearly associated with the selected mode
@@ -3600,6 +3615,10 @@ function boot(){
       case 'roamer':
         // Only roamer species (Latios, Latias, Raikou, Entei, Suicune)
         filteredSpecies = SPECIES.filter(s => ROAMER_SPECIES_SET.has(s[0]));
+        break;
+      case 'imported':
+        // All valid species
+        filteredSpecies = SPECIES.filter(s => s[0] > 0 && !String(s[1]||'').includes('?'));
         break;
       default:
         filteredSpecies = SPECIES;
@@ -5015,7 +5034,7 @@ function boot(){
     copy($('#base64Output').value);
     showCopyConfirmation('copyBase64Check');
   });
-  $('#loadFromHexBtn').addEventListener('click', onLoadFromHex);
+  $('#loadFromHexBtn')?.addEventListener('click', onLoadFromHex);
   // Wire export/import buttons: keep .ek3 export, add .pk3 (decrypted) export,
   // and a unified Import Pokémon button that accepts .ek3 or .pk3 files.
   $('#exportEk3Btn')?.addEventListener('click', onExportPk3);
@@ -5041,7 +5060,66 @@ function boot(){
   $('#importPokemonBtn')?.addEventListener('click', ()=> { $('#pk3FileInput').click(); });
   $('#pk3FileInput').addEventListener('change', onImportPk3);
 
-  // â”€â”€ PID Finder wiring â”€â”€
+  // Import Modal wiring
+  $('#openImportBtn')?.addEventListener('click', openImportModal);
+  $('#importModalClose')?.addEventListener('click', closeImportModal);
+  document.getElementById('importOverlay')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeImportModal();
+  });
+  document.querySelectorAll('.import-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.import-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.import-tab-content').forEach(c => c.classList.remove('active'));
+      const target = document.querySelector(`[data-import-tab-content="${btn.dataset.importTab}"]`);
+      if (target) target.classList.add('active');
+      const errEl = document.getElementById('importError');
+      if (errEl) errEl.style.display = 'none';
+    });
+  });
+  $('#importSmogonBtn')?.addEventListener('click', () => {
+    const errEl = document.getElementById('importError');
+    const input = document.getElementById('importSmogonInput')?.value || '';
+    if (!input.trim()) {
+      if (errEl) { errEl.textContent = 'Please paste a Smogon/Showdown set first.'; errEl.style.display = 'block'; }
+      return;
+    }
+    try {
+      const parsed = parseSmogonSet(input);
+      if (!parsed) {
+        if (errEl) { errEl.textContent = 'Could not parse the set. Make sure the species name matches a Gen 3 Pokémon.'; errEl.style.display = 'block'; }
+        return;
+      }
+      applySmogonImport(parsed);
+      closeImportModal();
+    } catch (e) {
+      if (errEl) { errEl.textContent = 'Error: ' + e.message; errEl.style.display = 'block'; }
+    }
+  });
+  $('#importHexBtn')?.addEventListener('click', () => {
+    const errEl = document.getElementById('importError');
+    const input = document.getElementById('importHexInput')?.value || '';
+    if (!input.trim()) {
+      if (errEl) { errEl.textContent = 'Please paste hex data first.'; errEl.style.display = 'block'; }
+      return;
+    }
+    try {
+      onLoadFromHex(input);
+      closeImportModal();
+    } catch (e) {
+      if (errEl) { errEl.textContent = 'Error: ' + e.message; errEl.style.display = 'block'; }
+    }
+  });
+  $('#importFileBtn')?.addEventListener('click', () => {
+    $('#pk3FileInput').click();
+    const fileInput = document.getElementById('pk3FileInput');
+    const closeOnce = () => {
+      closeImportModal();
+      fileInput.removeEventListener('change', closeOnce);
+    };
+    fileInput.addEventListener('change', closeOnce);
+  });
+
   initPidFinder();
 }
 
@@ -6197,9 +6275,343 @@ function onGenerate(){
   updateProfanityWarning(b64);
 }
 
-function onLoadFromHex(){
+/**
+ * Switch the encounter mode dropdown to "imported" and apply its settings.
+ * This gives the user a clear "imported" label while behaving like hatched
+ * mode (all moves, all species visible, manual override enabled).
+ */
+function switchToImportedMode() {
+  const select = document.querySelector('#encounterMode');
+  if (!select) return;
+  // Add the imported option if it doesn't exist yet
+  if (!select.querySelector('option[value="imported"]')) {
+    const opt = document.createElement('option');
+    opt.value = 'imported';
+    opt.textContent = 'Imported';
+    select.appendChild(opt);
+  }
+  select.value = 'imported';
+  currentEncounterMode = 'imported';
+  // Apply body class
+  document.body.classList.remove('encounter-wild','encounter-static','encounter-roamer','encounter-mystery','encounter-cxd_shadow');
+  document.body.classList.add('encounter-imported');
+  // Show all species in the autocomplete (imported could be anything)
+  if (speciesAutocomplete) {
+    speciesAutocomplete.updateList(SPECIES.filter(s => s[0] > 0 && !String(s[1]||'').includes('?')));
+  }
+  // Update mode description
   try {
-    const hexInput = $('#hexOutput').value;
+    const el = document.getElementById('encounterModeDescription');
+    if (el) {
+      el.innerHTML = '';
+      const pill = document.createElement('span');
+      pill.className = 'mode-pill';
+      pill.style.background = '#94a3b8';
+      pill.textContent = 'Imported';
+      const txt = document.createElement('span');
+      txt.className = 'mode-desc-text';
+      txt.textContent = 'Pokémon imported from external data. All fields are unlocked via Manual Override. You can freely edit any field and generate the Pokémon.';
+      el.appendChild(pill);
+      el.appendChild(txt);
+    }
+  } catch (e) {}
+}
+
+/**
+ * Parse a Smogon/Showdown-format set into an object with the fields it defines.
+ * Returns null if the text doesn't look like a valid set.
+ */
+function parseSmogonSet(text) {
+  const lines = text.trim().split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length < 2) return null;
+
+  const result = {
+    species: null,
+    speciesId: null,
+    item: null,
+    itemId: null,
+    ability: null,
+    nature: null,
+    natureIndex: null,
+    level: null,
+    evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+    ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+    moves: [],
+    moveIds: [],
+    gender: null,
+    shiny: false,
+    happiness: null,
+  };
+
+  // Stat name mapping (case-insensitive)
+  const statMap = { hp: 'hp', atk: 'atk', attack: 'atk', def: 'def', defense: 'def',
+    spa: 'spa', spatk: 'spa', 'sp. atk': 'spa', 'sp.atk': 'spa', spd: 'spd',
+    spdef: 'spd', 'sp. def': 'spd', 'sp.def': 'spd', spe: 'spe', speed: 'spe' };
+
+  function parseStat(key) {
+    return statMap[key.toLowerCase().trim()] || null;
+  }
+
+  // Line 1: "Species @ Item" or "Species (M) @ Item" or just "Species"
+  const firstLine = lines[0];
+  let speciesStr, itemStr = null;
+  if (firstLine.includes('@')) {
+    const parts = firstLine.split('@');
+    speciesStr = parts[0].trim();
+    itemStr = parts.slice(1).join('@').trim();
+  } else {
+    speciesStr = firstLine.trim();
+  }
+  // Strip gender indicator from species: "Gardevoir (F)" → "Gardevoir"
+  const genderMatch = speciesStr.match(/^(.+?)\s*\(([MF])\)\s*$/);
+  if (genderMatch) {
+    speciesStr = genderMatch[1].trim();
+    result.gender = genderMatch[2].toLowerCase() === 'm' ? 'male' : 'female';
+  }
+  // Strip nickname: "Nickname (Species)" → "Species"
+  const nicknameMatch = speciesStr.match(/^(.+?)\s*\(([^()]+)\)\s*$/);
+  if (nicknameMatch) {
+    speciesStr = nicknameMatch[2].trim();
+  }
+
+  // Resolve species
+  result.species = speciesStr;
+  const specLower = speciesStr.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const specEntry = SPECIES.find(s => {
+    const sName = String(s[1] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return sName === specLower;
+  });
+  if (specEntry) result.speciesId = specEntry[0];
+
+  // Resolve item
+  if (itemStr) {
+    result.item = itemStr;
+    const itemLower = itemStr.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const itemEntry = ITEMS.find(i => {
+      const iName = String(i[1] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      return iName === itemLower;
+    });
+    if (itemEntry) result.itemId = itemEntry[0];
+  }
+
+  // Remaining lines
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Moves: lines starting with "- "
+    if (line.startsWith('-')) {
+      let moveName = line.replace(/^-\s*/, '').trim();
+      // Handle "Hidden Power [Type]" → "Hidden Power"
+      // In Gen 3, Hidden Power is move ID 237
+      if (/^hidden\s*power/i.test(moveName)) {
+        moveName = 'Hidden Power';
+      }
+      result.moves.push(moveName);
+      const moveLower = moveName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const moveEntry = MOVES.find(m => {
+        const mName = String(m[1] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return mName === moveLower;
+      });
+      result.moveIds.push(moveEntry ? moveEntry[0] : null);
+      continue;
+    }
+
+    // Ability
+    if (/^ability\s*:/i.test(line)) {
+      result.ability = line.replace(/^ability\s*:\s*/i, '').trim();
+      continue;
+    }
+
+    // Level
+    if (/^level\s*:/i.test(line)) {
+      result.level = parseInt(line.replace(/^level\s*:\s*/i, ''), 10) || null;
+      continue;
+    }
+
+    // Shiny
+    if (/^shiny\s*:\s*yes/i.test(line)) {
+      result.shiny = true;
+      continue;
+    }
+
+    // Happiness
+    if (/^happiness\s*:/i.test(line)) {
+      result.happiness = parseInt(line.replace(/^happiness\s*:\s*/i, ''), 10);
+      if (isNaN(result.happiness)) result.happiness = null;
+      continue;
+    }
+
+    // Nature: "Modest Nature"
+    if (/nature$/i.test(line)) {
+      const natureName = line.replace(/\s*nature\s*$/i, '').trim();
+      const natureIdx = NATURES.findIndex(n => n.toLowerCase() === natureName.toLowerCase());
+      if (natureIdx >= 0) {
+        result.nature = natureName;
+        result.natureIndex = natureIdx;
+      }
+      continue;
+    }
+
+    // EVs: "EVs: 252 HP / 252 SpA / 4 Spe"
+    if (/^evs\s*:/i.test(line)) {
+      const evStr = line.replace(/^evs\s*:\s*/i, '');
+      const parts = evStr.split('/');
+      for (const part of parts) {
+        const m = part.trim().match(/^(\d+)\s+(.+)$/);
+        if (m) {
+          const stat = parseStat(m[2]);
+          if (stat) result.evs[stat] = Math.min(255, parseInt(m[1], 10) || 0);
+        }
+      }
+      continue;
+    }
+
+    // IVs: "IVs: 0 Atk / 30 SpA"
+    if (/^ivs\s*:/i.test(line)) {
+      const ivStr = line.replace(/^ivs\s*:\s*/i, '');
+      const parts = ivStr.split('/');
+      for (const part of parts) {
+        const m = part.trim().match(/^(\d+)\s+(.+)$/);
+        if (m) {
+          const stat = parseStat(m[2]);
+          if (stat) result.ivs[stat] = Math.min(31, parseInt(m[1], 10) || 0);
+        }
+      }
+      continue;
+    }
+  }
+
+  // Must have at least a species to be valid
+  if (!result.speciesId) return null;
+  return result;
+}
+
+/**
+ * Apply a parsed Smogon set to the form fields.
+ * Only sets fields that the Smogon format provides; leaves others at defaults.
+ */
+function applySmogonImport(parsed) {
+  // Enable manual override
+  manualOverrideActive = true;
+  suppressPresetApply = true;
+  const overrideCb = document.querySelector('#manualOverride');
+  if (overrideCb) overrideCb.checked = true;
+
+  // Unlock fields
+  const fieldsToUnlock = ['#pid','#metLevel','#ball','#tid','#sid','#otName','#language','#nickname','#gender'];
+  fieldsToUnlock.forEach(sel => {
+    const el = $(sel);
+    if (el) { el.disabled = false; el.style.pointerEvents = ''; el.style.opacity = ''; el.style.cursor = ''; }
+  });
+
+  // Switch to imported mode FIRST so the species list includes all species
+  switchToImportedMode();
+
+  // Species
+  $('#species').value = String(parsed.speciesId);
+  const specEntry = SPECIES.find(s => s[0] === parsed.speciesId);
+  if (specEntry) {
+    $('#nickname').value = specEntry[1].toUpperCase();
+  }
+
+  // Item
+  if (parsed.itemId != null) {
+    $('#item').value = String(parsed.itemId);
+  }
+
+  // Nature
+  if (parsed.natureIndex != null) {
+    $('#nature').value = String(parsed.natureIndex);
+  }
+
+  // Level
+  if (parsed.level != null) {
+    $('#level').value = String(parsed.level);
+    // Trigger exp update
+    try {
+      const expGroup = EXP_GROUPS[parsed.speciesId] ?? GROUP.MEDIUM_FAST;
+      $('#expTotal').value = String(expForLevel(expGroup, parsed.level));
+    } catch (e) {}
+  }
+
+  // Ability
+  if (parsed.ability) {
+    const abilityLower = parsed.ability.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const abilities = getSpeciesAbilities(parsed.speciesId);
+    if (abilities) {
+      const [a0, a1] = abilities;
+      const a0Name = getAbilityName(a0).toLowerCase().replace(/[^a-z0-9]/g, '');
+      const a1Name = getAbilityName(a1).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (abilityLower === a1Name && a0 !== a1) {
+        $('#ability').value = '1';
+      } else {
+        $('#ability').value = '0';
+      }
+    }
+  }
+
+  // EVs
+  $('#evHp').value = String(parsed.evs.hp);
+  $('#evAtk').value = String(parsed.evs.atk);
+  $('#evDef').value = String(parsed.evs.def);
+  $('#evSpAtk').value = String(parsed.evs.spa);
+  $('#evSpDef').value = String(parsed.evs.spd);
+  $('#evSpe').value = String(parsed.evs.spe);
+
+  // IVs
+  $('#ivHp').value = String(parsed.ivs.hp);
+  $('#ivAtk').value = String(parsed.ivs.atk);
+  $('#ivDef').value = String(parsed.ivs.def);
+  $('#ivSpAtk').value = String(parsed.ivs.spa);
+  $('#ivSpDef').value = String(parsed.ivs.spd);
+  $('#ivSpe').value = String(parsed.ivs.spe);
+
+  // Moves — update learnset filter first, then set move values
+  updateMovesForSpecies(parsed.speciesId, { preserveValue: true });
+  for (let i = 0; i < 4; i++) {
+    const moveId = parsed.moveIds[i] ?? 0;
+    $(`#move${i+1}`).value = String(moveId);
+  }
+  refreshMoveExclusions();
+
+  // Gender
+  if (parsed.gender) {
+    $('#gender').value = parsed.gender;
+  }
+
+  // Happiness
+  if (parsed.happiness != null) {
+    $('#friendship').value = String(parsed.happiness);
+  }
+
+  // Update Hidden Power
+  try { updateHiddenPower(); } catch (e) {}
+
+  // Update species-specific UI
+  if (_postImportUpdate) _postImportUpdate(parsed.speciesId);
+
+  suppressPresetApply = false;
+}
+
+/**
+ * Open the import modal
+ */
+function openImportModal() {
+  const overlay = document.getElementById('importOverlay');
+  if (overlay) overlay.classList.add('open');
+}
+
+/**
+ * Close the import modal
+ */
+function closeImportModal() {
+  const overlay = document.getElementById('importOverlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function onLoadFromHex(hexString){
+  try {
+    const hexInput = hexString || $('#hexOutput').value;
     const data = parsePokemonBytes(hexInput);
     
     // Debug: log species ID and exp group
@@ -6211,6 +6623,10 @@ function onLoadFromHex(){
     suppressPresetApply = true;
     const overrideCb = document.querySelector('#manualOverride');
     if (overrideCb) overrideCb.checked = true;
+
+    // Switch to imported mode FIRST so the species list includes all species
+    // (otherwise legendaries or other filtered-out species won't display properly)
+    switchToImportedMode();
 
     // Temporarily unlock all disabled fields so .value assignments take effect
     const fieldsToUnlock = ['#pid','#metLevel','#ball','#tid','#sid','#otName','#language','#nickname','#gender'];
@@ -6355,12 +6771,19 @@ function onLoadFromHex(){
     try { updateGenderFromPID(); } catch(e) {}
     try { checkShiny(); } catch(e) {}
 
+    // Update species-specific UI (abilities, sprite, gender, form visibility)
+    const speciesId = Number(data.speciesId) || 0;
+    if (_postImportUpdate) _postImportUpdate(speciesId);
+
     // Re-enable preset application AFTER the final safety net so no listener
     // can overwrite imported IVs while suppressPresetApply is still false.
     suppressPresetApply = false;
     
-    alert('Pokémon data loaded successfully! Manual Override has been enabled so you can edit all fields freely.');
+    if (!hexString) {
+      alert('Pokémon data loaded successfully! Manual Override has been enabled so you can edit all fields freely.');
+    }
   } catch (e) {
+    if (hexString) throw e; // Re-throw when called from modal so it can show its own error
     alert('Error loading hex data: ' + e.message);
   }
 }
@@ -6460,6 +6883,9 @@ function onImportPk3(event) {
         }
       });
       
+      // Switch to imported mode FIRST so the species list includes all species
+      switchToImportedMode();
+
       // Populate all fields (same as onLoadFromHex)
       $('#species').value = String(data.speciesId);
       // Update ability select options based on species (do this here because

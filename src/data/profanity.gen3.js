@@ -4088,7 +4088,6 @@ export const PROFANITY_LIST = [
   "^parraxa$",
   "^parreca$",
   "^patareca$",
-  "^pau$",
   "^paxaxa$",
   "^paxona$",
   "^pd$",

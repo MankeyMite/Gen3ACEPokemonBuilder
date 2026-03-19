@@ -1,3 +1,11 @@
+Patch Notes - (V.0.2.9)
+- Repositioned the Import button to the top of the page
+- added smogon/showdown format as an import option
+- added .ek3/.pk3 file import option in the same import window.
+- fixed a bug where the "generate" button would not be clickable after import.
+- Fixed missing egg moves from evolutions.
+
+
 Patch Notes - (V.0.2.8)
 - Added Static mode for all static encounters in RSEFRLG
 - Removed the Legal/Illegal checker, to prevent users from generating illegal pokemon that was states as legal by the website. Will reimplement this later.

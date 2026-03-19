@@ -95,7 +95,6 @@
     }
     .mode-desc .mode-desc-text {
       display: block;
-      vertical-align: middle;
       flex: 1 1 auto;
       min-width: 0;
       word-break: break-word;
@@ -475,6 +474,36 @@
     textarea {
       resize: none;
     }
+
+    /* Import modal tab buttons */
+    .import-tab-btn {
+      padding: 0.35rem 1rem;
+      border-radius: 6px;
+      border: 1px solid rgba(56,189,248,0.15);
+      background: transparent;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .import-tab-btn.active {
+      background: rgba(56,189,248,0.2);
+      border-color: rgba(56,189,248,0.3);
+      color: #e2e8f0;
+    }
+    .import-tab-btn:hover:not(.active) {
+      background: rgba(56,189,248,0.1);
+      border-color: rgba(56,189,248,0.2);
+      color: #cbd5e1;
+    }
+    .import-tab-content { display: none; }
+    .import-tab-content.active { display: block; }
+
+    /* Import button hover effect */
+    #openImportBtn:hover {
+      background: linear-gradient(135deg, rgba(56,189,248,0.35), rgba(168,85,247,0.35));
+      border-color: rgba(56,189,248,0.6);
+    }
   </style>
 </head>
 <body>
@@ -520,7 +549,7 @@
   <header class="container">
     <h1>Gen 3 ACE Pokémon Builder</h1>
     <p class="muted" style="margin-top: -0.75rem; margin-bottom: 1rem;">
-      <span style="font-size: 0.85em; opacity: 0.8;">v0.2.8</span>
+      <span style="font-size: 0.85em; opacity: 0.8;">v0.2.9</span>
     </p>
     <p class="muted">Build custom Pokémon for Gen III games. Import from raw hex data, .pk3/ek3 files, or create your Pokémon from scratch. Export as BASE64 box codes, raw hex data, or a .pk3/ek3 file. New here? <a href="./docs/spawn-setup-interactive.html" target="_blank">How to spawn Pokemon in your game from this tool</a> — step-by-step setup. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
 
@@ -538,6 +567,13 @@
   </header>
 
   <main class="container layout-vertical">
+    <!-- Import Pokémon Button -->
+    <div style="margin-bottom: 0.75rem;">
+      <button id="openImportBtn" type="button" style="padding: 0.5rem 1.25rem; font-size: 0.95rem; border-radius: 8px; background: linear-gradient(135deg, rgba(56,189,248,0.25), rgba(168,85,247,0.25)); border: 1px solid rgba(56,189,248,0.4); color: #e2e8f0; cursor: pointer; font-weight: 500; transition: all 0.15s;">
+        📥 Import Pokémon
+      </button>
+    </div>
+
     <!-- Encounter Mode Selector -->
     <div class="mode-toggle" id="encounterModeToggle" style="margin-top: 0;">
       <label for="encounterMode" style="margin-right: 0.5rem; font-weight: 500; color: rgba(255,255,255,0.7);">Encounter Type:</label>
@@ -1111,22 +1147,75 @@
         <button id="exportEk3Btn" type="button" style="flex: 1;">Export .ek3</button>
         <button id="exportPk3Btn" type="button" style="flex: 1;">Export .pk3</button>
       </div>
-      <div class="row two" style="margin-top:0.5rem;">
-        <button id="importPokemonBtn" type="button" style="flex: 1;">Import Pokémon</button>
-        <button id="importPk3Btn" type="button" style="flex: 1; display:none;">Import .ek3/.pk3</button>
-      </div>
       <input type="file" id="pk3FileInput" accept=".ek3,.pk3" style="display: none;">
-
-      <div class="row">
-        <button id="loadFromHexBtn" type="button">Import Hex Code</button>
-        <span class="legality-help" title="Import Hex instructions" style="margin-left:0.6rem;">
-          ?
-          <span class="legality-help-tooltip">
-            Paste hex data into the Hex tab above, then click to import Pokémon for editing
-          </span>
-        </span>
-      </div>
     </section>
+
+    <!-- ── Import Pokémon Modal ────────────────────────── -->
+    <div id="importOverlay" class="pid-finder-overlay">
+      <div class="pid-finder-modal" style="max-width: 680px;">
+        <div class="pid-finder-header">
+          <h3>📥 Import Pokémon</h3>
+          <button id="importModalClose" class="pid-finder-close" type="button">&times;</button>
+        </div>
+        <div class="pid-finder-body">
+          <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 0; margin-bottom: 1rem;">
+            Paste your Pokémon data below and choose the import format.
+          </p>
+
+          <!-- Format tabs -->
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
+            <button type="button" class="import-tab-btn active" data-import-tab="smogon">Smogon / Showdown</button>
+            <button type="button" class="import-tab-btn" data-import-tab="hex">Hex</button>
+            <button type="button" class="import-tab-btn" data-import-tab="file">.ek3 / .pk3 File</button>
+          </div>
+
+          <!-- Smogon tab -->
+          <div class="import-tab-content active" data-import-tab-content="smogon">
+            <textarea id="importSmogonInput" rows="12" spellcheck="false" placeholder="Paste a Smogon/Showdown set here..." style="width: 100%; font-family: monospace; font-size: 0.85rem; background: rgba(15,23,42,0.8); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.2); border-radius: 8px; padding: 0.75rem; resize: vertical;"></textarea>
+            <details style="margin-top: 0.5rem;">
+              <summary style="font-size: 0.8rem; color: #94a3b8; cursor: pointer;">Example format</summary>
+              <pre style="font-size: 0.78rem; color: #64748b; background: rgba(15,23,42,0.5); padding: 0.5rem; border-radius: 6px; margin-top: 0.35rem; white-space: pre-wrap;">Tyranitar @ Leftovers
+Ability: Sand Stream
+EVs: 252 HP / 252 SpA / 4 Spe
+Modest Nature
+IVs: 2 Atk / 30 SpA
+- Pursuit
+- Crunch
+- Fire Blast
+- Hidden Power [Grass]</pre>
+            </details>
+            <button id="importSmogonBtn" type="button" style="margin-top: 0.75rem; width: 100%; padding: 0.6rem; font-size: 0.95rem; border-radius: 8px; background: rgba(56,189,248,0.3); border: 1px solid rgba(56,189,248,0.4); color: #e2e8f0; cursor: pointer; font-weight: 500;">Import</button>
+          </div>
+
+          <!-- Hex tab -->
+          <div class="import-tab-content" data-import-tab-content="hex">
+            <textarea id="importHexInput" rows="12" spellcheck="false" placeholder="Paste raw hex data (80 bytes / 160 hex characters)..." style="width: 100%; font-family: monospace; font-size: 0.85rem; background: rgba(15,23,42,0.8); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.2); border-radius: 8px; padding: 0.75rem; resize: vertical;"></textarea>
+            <details style="margin-top: 0.5rem;">
+              <summary style="font-size: 0.8rem; color: #94a3b8; cursor: pointer;">Example format</summary>
+              <pre style="font-size: 0.78rem; color: #64748b; background: rgba(15,23,42,0.5); padding: 0.5rem; border-radius: 6px; margin-top: 0.35rem; white-space: pre-wrap;">5A B3 96 8D 00 00 00 00 CA C5 CC C5 C2 C9 FF 00
+00 00 00 00 04 02 35 12 87 09 F0 00 53 01 00 00
+04 00 00 00 50 4C F8 A0 01 A6 00 00 00 00 00 00
+20 00 00 00 00 00 FF 00 00 00 00 00 00 00 95 00
+00 00 00 00 00 00 00 00 05 00 00 00 00 00 00 00</pre>
+            </details>
+            <button id="importHexBtn" type="button" style="margin-top: 0.75rem; width: 100%; padding: 0.6rem; font-size: 0.95rem; border-radius: 8px; background: rgba(56,189,248,0.3); border: 1px solid rgba(56,189,248,0.4); color: #e2e8f0; cursor: pointer; font-weight: 500;">Import</button>
+          </div>
+
+          <!-- File tab -->
+          <div class="import-tab-content" data-import-tab-content="file">
+            <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 0;">
+              Upload a <code>.ek3</code> (encrypted, 80 bytes) or <code>.pk3</code> (decrypted, 100 bytes) file exported from PKHeX or this tool.
+            </p>
+            <div style="display: flex; justify-content: center; padding: 2rem; border: 2px dashed rgba(56,189,248,0.25); border-radius: 8px; background: rgba(15,23,42,0.4);">
+              <button id="importFileBtn" type="button" style="padding: 0.6rem 1.5rem; font-size: 0.95rem; border-radius: 8px; background: rgba(56,189,248,0.3); border: 1px solid rgba(56,189,248,0.4); color: #e2e8f0; cursor: pointer; font-weight: 500;">Choose File</button>
+            </div>
+          </div>
+
+          <!-- Import error message -->
+          <div id="importError" style="display: none; margin-top: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 6px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; font-size: 0.85rem;"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- ── PID Finder Modal ─────────────────────────────── -->
     <div id="pidFinderOverlay" class="pid-finder-overlay">
