@@ -187,7 +187,7 @@ export const LOCATIONS = [
   [184, "Tanoby Chambers"],
   [185, "Three Isle Path"],
   [186, "Tanoby Key"],
-  [187, "Birth Island"],
+  [187, "Birth Island (FRLG)"],
   [188, "Monean Chamber"],
   [189, "Liptoo Chamber"],
   [190, "Weepth Chamber"],

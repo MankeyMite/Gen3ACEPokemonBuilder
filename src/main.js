@@ -15,6 +15,7 @@ import EXP_GROUPS from './data/expGroups.gen3.js';
 import { ABILITIES, getAbilityName } from './data/abilities.gen3.js';
 import { hasDualAbilities, getSpeciesAbilities } from './data/pokemonAbilities.gen3.js';
 import { LEARNSETS } from './data/learnsets.gen3.js';
+import { LEARNSETS_FRLG } from './data/learnsets.frlg.js';
 import { WILD_ENCOUNTERS } from './data/wildEncounters.gen3.js';
 import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
 import { buildWildWithEvolutions, getWildAncestor, PRE_EVOLUTIONS } from './data/evolutions.gen3.js';
@@ -1220,13 +1221,27 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
   } else if (data) {
     const mode = currentEncounterMode;
     const level = Number($('#level')?.value) || 100;
+    const originGame = Number($('#originGame')?.value) || 0;
 
     // Collect move IDs that are legal for the current mode + level
     const idSet = new Set();
 
+    // Determine the correct level-up moves based on origin game.
+    // FireRed (4) and LeafGreen (5) have different level-up learnsets from Emerald.
+    // Deoxys (410) always uses the merged FRLG entry which combines all three
+    // forms' moves (Normal + Attack + Defense), since it changes form on trade.
+    let levelUpMoves = data.l;
+    if (speciesId === 410 && LEARNSETS_FRLG[410]) {
+      levelUpMoves = LEARNSETS_FRLG[410];
+    } else if (originGame === 4 || originGame === 5) {
+      if (LEARNSETS_FRLG[speciesId]) {
+        levelUpMoves = LEARNSETS_FRLG[speciesId];
+      }
+    }
+
     // Level-up moves — in hatched mode allow all, otherwise cap by level
-    if (data.l) {
-      for (const [mid, learnLvl] of data.l) {
+    if (levelUpMoves) {
+      for (const [mid, learnLvl] of levelUpMoves) {
         if (mode === 'hatched' || learnLvl <= level) {
           idSet.add(mid);
         }
@@ -2440,6 +2455,9 @@ function boot(){
         }
         if (!pidFinderResultActive) applyRoamerPreset(speciesId);
       }
+      // Refresh move list — FRLG have different level-up learnsets
+      const sp = Number($('#species').value) || 0;
+      if (sp) updateMovesForSpecies(sp, { preserveValue: true });
       updateLegalityStatus();
       return;
     }
@@ -2448,6 +2466,8 @@ function boot(){
     if (currentEncounterMode === 'wild') {
       const speciesId = Number($('#species').value) || 0;
       updateWildEncounterFilters(speciesId);
+      // Refresh move list — FRLG have different level-up learnsets
+      if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
       try { updateBallLocking(); } catch (e) {}
       updateLegalityStatus();
       return;
@@ -2460,6 +2480,10 @@ function boot(){
       metLocationWrapper.updateList(filteredLocations);
     }
     
+    // Refresh move list — FRLG have different level-up learnsets from Emerald
+    const speciesId = Number($('#species').value) || 0;
+    if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
+
     // Update legality status when origin game changes
     updateLegalityStatus();
   });
