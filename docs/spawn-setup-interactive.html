@@ -208,6 +208,7 @@
             <li>Save the game</li>
             <li id="code1ExecComment">Execute the code with your stable ace species with no trailing spaces. If you are using a stable or metastable THUMB species, you NEED a THUMB -> ARM bootstrap bad egg anywhere from box 12 slot 4.</li>
             <li id="code1EggComment">Check the bad egg in box 10, slot 22. It should be in a Great Ball.</li>
+            <li id="code1NoTrailingSpacesComment" style="display:none">All other boxes should NOT be typed with spaces at the end; end the box name early instead.</li>
           </ul>
         </div>
         <div class="remember-image">
@@ -406,87 +407,129 @@
         old:    ['v 8 5 Q K','v K 5 Q K','v Z 5 Q K','v o 5 Q K','v , 5 Q K']
       };
 
-      // FR/LG and FR/LG Switch mappings (both use the same codes, 3 codes only)
+      // FR/LG and FR/LG Switch mappings split by input mode
       const frlgMap = {
-        code1: {
-          1: 'Box  1:    B C U n p 0 E H',
-          2: 'Box  2:    G D H W F f … …',
-          3: 'Box  3:    R V z _ h n',
-          4: 'Box  4:    P T S f ♀',
-          5: 'Box  5:    _ H B … E L Q ♂',
-          6: 'Box  6:    _ S I H I . I q',
-          7: 'Box  7:    ? H T S g ♀ _ _',
-          8: 'Box  8:    Y _ I k r',
-          9: 'Box  9:    I R H U K U G G',
-          10: 'Box 10:    D G A I I F K G',
-          11: 'Box 11:    I T P N I G L I',
-          12: 'Box 12:    F T K T I T F R',
-          13: 'Box 13:    C Q L T I G F K',
-          14: 'Box 14:    P L K F M T L L'
+        modern: {
+          code1: {
+            1: 'Box  1:    B C U n p 0 E H',
+            2: 'Box  2:    G D H W F f … …',
+            3: 'Box  3:    R V z _ h n',
+            4: 'Box  4:    P T S f ♀',
+            5: 'Box  5:    _ H B … E L Q ♂',
+            6: 'Box  6:    _ S I H I . I q',
+            7: 'Box  7:    ? H T S g ♀ _ _',
+            8: 'Box  8:    Y _ I k r',
+            9: 'Box  9:    I R H U K U G G',
+            10: 'Box 10:    D G A I I F K G',
+            11: 'Box 11:    I T P N I G L I',
+            12: 'Box 12:    F T K T I T F R',
+            13: 'Box 13:    C Q L T I G F K',
+            14: 'Box 14:    P L K F M T L L'
+          }
         },
-        code2: {
-          5: 'Box  5:    _ H B … c L Q ♂',
-          9:  'Box  9:    I H F J D U I G',
-          10: 'Box 10:    C U J O I L L G',
-          11: 'Box 11:    H N K O I J F Q',
-          12: 'Box 12:    H N L O L T I F',
-          13: 'Box 13:    D T M F J L P F',
-          14: 'Box 14:    H G L H G Q G M'
-        },
-        code3: {
-          5: 'Box  5:    _ H B … 6 L Q ♂',
-          9:  'Box  9:    H K G F I F H U',
-          10: 'Box 10:    H R E G B U G H',
-          11: 'Box 11:    E G D U E L D T',
-          12: 'Box 12:    D R H U I F I F',
-          13: 'Box 13:    E F D K K I C H',
-          14: 'Box 14:    K L C I I H G F'
+        old: {
+          code1: {
+            1: 'Box  1:    B C U n x 0 E H',
+            2: 'Box  2:    G D H W F f … …',
+            3: 'Box  3:    R V z _ h n',
+            4: 'Box  4:    P T S f ♀',
+            5: 'Box  5:    _ H B … G L Q ♂',
+            6: 'Box  6:    _ S I H I . I q',
+            7: 'Box  7:    ? H T S g ♀ _ _',
+            8: 'Box  8:    Y _ I k r',
+            9: 'Box  9:    I R H U K U G G',
+            10: 'Box 10:    D G A I I F K G',
+            11: 'Box 11:    I T P N I G L I',
+            12: 'Box 12:    F T K T I T F R',
+            13: 'Box 13:    C Q L T I G F K',
+            14: 'Box 14:    P L K F M T L L'
+          }
         }
       };
 
-      // FR/LG Switch uses the same codes as FR/LG GBA
-      const frlgSwitchMap = frlgMap;
-
-      // FRLG panel configurations for dynamically generating code2/code3 panels
+      // FRLG panel configurations for dynamically generating code2/code3 panels by mode
       const frlgPanelConfigs = {
-        code2: {
-          rows: [
-            {text: 'Box  5:    _ H B … c L Q ♂', note: ''},
-            {text: 'Box  <span class="char-red">9</span>:    I H F J D U I G', note: 'skip boxes 6-8!'},
-            {text: 'Box 10:    C U J <span class="char-red">O</span> I L L G', note: 'upper case O (O)'},
-            {text: 'Box 11:    H N K <span class="char-red">O</span> I J F Q', note: 'upper case O (O)'},
-            {text: 'Box 12:    H N L <span class="char-red">O</span> L T I F', note: 'upper case O (O)'},
-            {text: 'Box 13:    D T M F J L P F', note: ''},
-            {text: 'Box 14:    H G L H G Q G M', note: ''}
-          ],
-          tipPrefix: 'Codes in boxes 1-4 + 6-8 will be the same as before',
-          steps: [
-            'Save the game',
-            'Execute the code with your ace species.',
-            'After executing this code, no visible change will happen to the egg. Keep going with code 3!'
-          ]
+        modern: {
+          code2: {
+            rows: [
+              {text: 'Box  5:    _ H B … c L Q ♂', note: ''},
+              {text: 'Box  <span class="char-red">9</span>:    I H F J D U I G', note: 'skip boxes 6-8!'},
+              {text: 'Box 10:    C U J <span class="char-red">O</span> I L L G', note: 'upper case O (O)'},
+              {text: 'Box 11:    H N K <span class="char-red">O</span> I J F Q', note: 'upper case O (O)'},
+              {text: 'Box 12:    H N L <span class="char-red">O</span> L T I F', note: 'upper case O (O)'},
+              {text: 'Box 13:    D T M F J L P F', note: ''},
+              {text: 'Box 14:    H G L H G Q G M', note: ''}
+            ],
+            tipPrefix: 'Codes in boxes 1-4 + 6-8 will be the same as before',
+            steps: [
+              'Save the game',
+              'Execute the code with your ace species.',
+              'After executing this code, no visible change will happen to the egg. Keep going with code 3!'
+            ]
+          },
+          code3: {
+            rows: [
+              {text: 'Box  5:    _ H B … 6 L Q ♂', note: ''},
+              {text: 'Box  <span class="char-red">9</span>:    H K G F I F H U', note: 'skip boxes 6-8!'},
+              {text: 'Box 10:    H R E G B U G H', note: ''},
+              {text: 'Box 11:    E G D U E L D T', note: ''},
+              {text: 'Box 12:    D R H U I F I F', note: ''},
+              {text: 'Box 13:    E F D K K I C H', note: ''},
+              {text: 'Box 14:    K L C I I H G F', note: ''}
+            ],
+            tipPrefix: 'Codes in boxes 1-4 + 6-8 will be the same as before',
+            steps: [
+              'Save the game',
+              'Execute the code with your ace species.',
+              'A Metang called "WELDR" should have appeared in Box 10 Slot 22! If it stayed a bad egg, check your Code 3 for errors, otherwise you\'ll likely have to start from the beginning.',
+              'Move WELDR to box 14 slot 28',
+              'Catch any Pokemon and name it "J7VC"',
+              'Place this in box 14 slot 29.',
+              'DONE! Now go to the last tab for the test code to confirm WELDR is working.'
+            ],
+            showImages: true
+          }
         },
-        code3: {
-          rows: [
-            {text: 'Box  5:    _ H B … 6 L Q ♂', note: ''},
-            {text: 'Box  <span class="char-red">9</span>:    H K G F I F H U', note: 'skip boxes 6-8!'},
-            {text: 'Box 10:    H R E G B U G H', note: ''},
-            {text: 'Box 11:    E G D U E L D T', note: ''},
-            {text: 'Box 12:    D R H U I F I F', note: ''},
-            {text: 'Box 13:    E F D K K I C H', note: ''},
-            {text: 'Box 14:    K L C I I H G F', note: ''}
-          ],
-          tipPrefix: 'Codes in boxes 1-4 + 6-8 will be the same as before',
-          steps: [
-            'Save the game',
-            'Execute the code with your ace species.',
-            'A Metang called "WELDR" should have appeared in Box 10 Slot 22! If it stayed a bad egg, check your Code 3 for errors, otherwise you\'ll likely have to start from the beginning.',
-            'Move WELDR to box 14 slot 28',
-            'Catch any Pokemon and name it "J7VC"',
-            'Place this in box 14 slot 29.',
-            'DONE! Now go to the last tab for the test code to confirm WELDR is working.',
-          ],
-          showImages: true
+        old: {
+          code2: {
+            rows: [
+              {text: 'Box  5:    _ H B … e L Q ♂', note: ''},
+              {text: 'Box  <span class="char-red">9</span>:    I H F J D U I G', note: 'skip boxes 6-8!'},
+              {text: 'Box 10:    C U J <span class="char-red">O</span> I L L G', note: 'upper case O (O)'},
+              {text: 'Box 11:    H N K <span class="char-red">O</span> I J F Q', note: 'upper case O (O)'},
+              {text: 'Box 12:    H N L <span class="char-red">O</span> L T I F', note: 'upper case O (O)'},
+              {text: 'Box 13:    D T M F J L P F', note: ''},
+              {text: 'Box 14:    H G L H G Q G M', note: ''}
+            ],
+            tipPrefix: 'Codes in boxes 1-4 + 6-8 will be the same as before',
+            steps: [
+              'Save the game',
+              'Execute the code with your ace species.',
+              'After executing this code, no visible change will happen to the egg. Keep going with code 3!'
+            ]
+          },
+          code3: {
+            rows: [
+              {text: 'Box  5:    _ H B … 8 L Q ♂', note: ''},
+              {text: 'Box  <span class="char-red">9</span>:    H K G F I F H U', note: 'skip boxes 6-8!'},
+              {text: 'Box 10:    H R E G B U G H', note: ''},
+              {text: 'Box 11:    E G D U E L D T', note: ''},
+              {text: 'Box 12:    D R H U I F I F', note: ''},
+              {text: 'Box 13:    E F D K K I C H', note: ''},
+              {text: 'Box 14:    K L C I I H G F', note: ''}
+            ],
+            tipPrefix: 'Codes in boxes 1-4 + 6-8 will be the same as before',
+            steps: [
+              'Save the game',
+              'Execute the code with your ace species.',
+              'A Metang called "WELDR" should have appeared in Box 10 Slot 22! If it stayed a bad egg, check your Code 3 for errors, otherwise you\'ll likely have to start from the beginning.',
+              'Move WELDR to box 14 slot 28',
+              'Catch any Pokemon and name it "J7VC"',
+              'Place this in box 14 slot 29.',
+              'DONE! Now go to the last tab for the test code to confirm WELDR is working.'
+            ],
+            showImages: true
+          }
         }
       };
 
@@ -587,7 +630,7 @@
           const m = btn.dataset.mode;
           const instr = document.getElementById('instructions');
           // If the instructions haven't been acknowledged yet, ignore clicks.
-          if(!instructionsAcknowledged || selectedGame === 'FRLGSW' || selectedGame === 'FRLG'){
+          if(!instructionsAcknowledged){
             return;
           }
           // Instructions acknowledged: select the mode and close the details if open.
@@ -613,8 +656,7 @@
 
       function refreshModeUIForGame(){
         const modeContainer = document.querySelector('.mode-select');
-        const isFRLGGame = selectedGame === 'FRLG' || selectedGame === 'FRLGSW';
-        const modeRequired = !isFRLGGame;
+        const modeRequired = true;
         if(modeContainer) modeContainer.style.display = modeRequired ? '' : 'none';
 
         if(modeRequired){
@@ -673,11 +715,13 @@
 
         // --- Dynamic panels for FRLG code2/code3 ---
         if(isFRLG){
+          var frlgMode = selectedMode === 'old' ? 'old' : 'modern';
+          var panelConfigs = frlgPanelConfigs[frlgMode] || frlgPanelConfigs.modern;
           ['code2','code3'].forEach(function(id){
             var panel = document.getElementById(id);
             if(!panel) return;
             if(!panel.dataset.origHTML) panel.dataset.origHTML = panel.innerHTML;
-            var config = frlgPanelConfigs[id];
+            var config = panelConfigs[id];
             if(config){
               panel.innerHTML = buildFRLGPanelHTML(config);
               wirePanel(panel);
@@ -715,7 +759,8 @@
             if(!m) return;
             var boxNum = Number(m[1]);
             if(isFRLG){
-              var mapForPanel = frlgMap['code'+i] || {};
+              var mapMode = selectedMode === 'old' ? 'old' : 'modern';
+              var mapForPanel = (frlgMap[mapMode] && frlgMap[mapMode]['code'+i]) || {};
               if(mapForPanel[boxNum]){
                 el.textContent = mapForPanel[boxNum];
                 return;
@@ -755,7 +800,7 @@
 
         const notes = panel.querySelectorAll('.notes-col .note');
         const isFRLG = selectedGame === 'FRLG' || selectedGame === 'FRLGSW';
-        const frlgNotes = {1: 'Zero (0)', 7: 'Trailing spaces here!'};
+        const frlgNotes = {1: 'zero (0), not O', 7: 'required: two trailing spaces'};
 
         notes.forEach((note, idx)=>{
           if(note.dataset.origText === undefined) note.dataset.origText = note.textContent;
@@ -826,6 +871,11 @@
         const code1ChangeBoxComment = document.getElementById('code1ChangeBoxComment');
         if(code1ChangeBoxComment){
           code1ChangeBoxComment.style.display = isFRLG ? '' : 'none';
+        }
+
+        const code1NoTrailingSpacesComment = document.getElementById('code1NoTrailingSpacesComment');
+        if(code1NoTrailingSpacesComment){
+          code1NoTrailingSpacesComment.style.display = isFRLG ? '' : 'none';
         }
       }
 
@@ -920,7 +970,7 @@
       updateAllPanelsForGame();
       updateInstructionsForGame();
       tabs.forEach(t=>t.addEventListener('click', ()=>{
-        if(!selectedMode && selectedGame !== 'FRLGSW' && selectedGame !== 'FRLG') return; // don't switch tabs until a mode is chosen
+        if(!selectedMode) return; // don't switch tabs until a mode is chosen
         tabs.forEach(x=>x.classList.remove('active'));
         panels.forEach(p=>p.style.display='none');
         t.classList.add('active');
