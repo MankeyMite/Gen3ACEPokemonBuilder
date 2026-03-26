@@ -146,6 +146,7 @@
         <button class="tab" data-tab="code1">Code 1</button>
         <button class="tab" data-tab="code2">Code 2</button>
         <button class="tab" data-tab="code3">Code 3</button>
+        <button class="tab" data-tab="codeTest" style="display:none">Test code</button>
         <button class="tab" data-tab="code4">Code 4</button>
         <button class="tab" data-tab="code5">Code 5</button>
       </div>
@@ -279,6 +280,34 @@
               <li id="code3ExecComment">Execute the code with your stable ace species with no trailing spaces.</li>
               <li>After executing this code, no visible change will happen to the egg. Keep going with code 4!</li>
             </ul>
+          </div>
+        </section>
+
+        <section id="codeTest" class="code-panel" style="display:none">
+          <div class="panel-inner">
+            <div class="codes-box">
+              <div class="code-line"><span class="code-text">Box  1:    AQD?Pw_ _</span></div>
+            </div>
+            <div class="notes-col">
+              <div class="note" contenteditable="false" tabindex="-1">two spaces at the end!</div>
+            </div>
+            <div class="controls-col">
+              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
+            </div>
+          </div>
+          <div class="panel-tip">Execute this code to confirm WELDR is working:
+            <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
+              <li>Boxes 2-14 can be anything, they do not affect the test code.</li>
+              <li>Execute this test code with your ace species.</li>
+              <li>It should generate a Bulbasaur in box 14 slot 30. Once confirmed, either soft reset the game or release the bulbasaur. It might crash your game if you use it.</li>
+              <li>If you get a bad egg, it usually means the code is typed wrong. You can also check for ghost data in boxes 13 and 14 by entering deposit mode, and selecting a pokemon to deposit. The first box will be box 1, go left once to reach box 14. It should say 2/30. Now check Box 13, it should also say 2/30, but might say 3/30 if you have an invisible bad egg in slot 8, but that can be ignored. If you still get bad eggs, WELDR was probably typed incorrectly, and you should move WELDR and the J7VC Pokemon out and redo all the codes. After creating a new WELDR, you may delete the old one.</li>
+              <li>After successfully creating and removing the Bulbasaur, you are ready to use my Pokémon Builder website to spawn any Pokémon you want.</li>
+              <li>If you want to execute regular ACE codes in the future, you must move WELDR and the extra species (J7VC) to anywhere in box 1-12, and back if you want to use BASE64 codes again. </li>
+            </ul>
+          </div>
+          <div class="remember-image" style="margin-top:10px;">
+            <img id="frlgTestImage1" src="../src/Images/Test bulba code base64.png" alt="Test code placeholder image 1" />
+            <img id="frlgTestImage2" src="../src/Images/Test Bulba base64.png" alt="Test code placeholder image 2" />
           </div>
         </section>
 
@@ -423,7 +452,7 @@
         code2: {
           rows: [
             {text: 'Box  5:    _ H B … c L Q ♂', note: ''},
-            {text: 'Box  9:    I H F J D U I G', note: ''},
+            {text: 'Box  <span class="char-red">9</span>:    I H F J D U I G', note: 'skip boxes 6-8!'},
             {text: 'Box 10:    C U J <span class="char-red">O</span> I L L G', note: 'upper case O (O)'},
             {text: 'Box 11:    H N K <span class="char-red">O</span> I J F Q', note: 'upper case O (O)'},
             {text: 'Box 12:    H N L <span class="char-red">O</span> L T I F', note: 'upper case O (O)'},
@@ -440,7 +469,7 @@
         code3: {
           rows: [
             {text: 'Box  5:    _ H B … 6 L Q ♂', note: ''},
-            {text: 'Box  9:    H K G F I F H U', note: ''},
+            {text: 'Box  <span class="char-red">9</span>:    H K G F I F H U', note: 'skip boxes 6-8!'},
             {text: 'Box 10:    H R E G B U G H', note: ''},
             {text: 'Box 11:    E G D U E L D T', note: ''},
             {text: 'Box 12:    D R H U I F I F', note: ''},
@@ -455,12 +484,8 @@
             'Move WELDR to box 14 slot 28',
             'Catch any Pokemon and name it "J7VC"',
             'Place this in box 14 slot 29.',
-            'DONE!',
-            'Now type and execute the following test code to make sure WELDR is correctly generated:',
-            'box 1: [AQD?Pw__] (two spaces at the end). It should generate a Bulbasaur in box 14 slot 30.',
-            'You are now ready to use BASE64 codes! Go back to the ACE builder tool and have fun! To spawn any Pokémon, type in any Base64 code made from my website, and execute ACE. The Pokémon will appear in box 14 slot 30, so make sure to keep that slot empty for spawning Pokémon. If you want to spawn another Pokémon, simply replace the code in the PC with the new code and execute again, no need to redo the whole setup!'
+            'DONE! Now go to the last tab for the test code to confirm WELDR is working.',
           ],
-          finalWarning: 'IMPORTANT: If you want to execute regular codes in the future, make sure to move WELDR and the sacrificial Pokemon out of box 14 first!',
           showImages: true
         }
       };
@@ -620,10 +645,17 @@
       function updateAllPanelsForGame(){
         const isFRLG = selectedGame === 'FRLG' || selectedGame === 'FRLGSW';
 
-        // --- Tab visibility: hide code4/code5 tabs for FRLG ---
+        // --- Tab visibility: FRLG uses code1, code2, code3, and Test code tabs ---
         tabs.forEach(function(t){
           var tabId = t.dataset.tab;
-          if(isFRLG && (tabId === 'code4' || tabId === 'code5')){
+          var shouldHide = false;
+          if(isFRLG){
+            shouldHide = tabId === 'code4' || tabId === 'code5';
+          } else {
+            shouldHide = tabId === 'codeTest';
+          }
+
+          if(shouldHide){
             t.style.display = 'none';
             if(t.classList.contains('active')){
               t.classList.remove('active');
@@ -656,6 +688,8 @@
             var panel = document.getElementById(id);
             if(panel) panel.style.display = 'none';
           });
+          var codeTestPanel = document.getElementById('codeTest');
+          if(codeTestPanel && !document.querySelector('.tab[data-tab="codeTest"].active')) codeTestPanel.style.display = 'none';
         } else {
           // Restore original HTML for code2/code3 when switching back to EM
           ['code2','code3'].forEach(function(id){
@@ -665,6 +699,8 @@
             wirePanel(panel);
             delete panel.dataset.origHTML;
           });
+          var codeTestPanel = document.getElementById('codeTest');
+          if(codeTestPanel) codeTestPanel.style.display = 'none';
         }
 
         // --- Update code-text content from maps ---
