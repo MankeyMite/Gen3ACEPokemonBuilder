@@ -730,9 +730,14 @@ function decodeName(bytes) {
   
   let str = '';
   for (const b of bytes) {
-    if (b === 0xFF || b === 0x00) break;
-    // Try Japanese first (more comprehensive), then Western
-    str += JAPANESE_CHARS[b] || WESTERN_CHARS[b] || '?';
+    // 0xFF is the Gen3 terminator; do NOT treat 0x00 (space) as terminator.
+    if (b === 0xFF) break;
+    // Prefer Western mapping for overlapping bytes (ASCII-like characters),
+    // otherwise fall back to the Japanese table. Unknown bytes -> '?'.
+    const ch = (WESTERN_CHARS[b] !== undefined)
+      ? WESTERN_CHARS[b]
+      : (JAPANESE_CHARS[b] !== undefined ? JAPANESE_CHARS[b] : '?');
+    str += ch;
   }
   return str;
 }
