@@ -704,11 +704,11 @@
       <div class="row two">
         <div>
           <label for="tid">TID</label>
-          <input id="tid" type="number" min="0" max="65535" value="12345" />
+          <input id="tid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="12345" />
         </div>
         <div>
           <label for="sid">SID</label>
-          <input id="sid" type="number" min="0" max="65535" value="54321" />
+          <input id="sid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="54321" />
         </div>
       </div>
       <div id="gcTidSidWarning" class="profanity-warning" style="display:none;">
@@ -1246,11 +1246,11 @@ IVs: 2 Atk / 30 SpA
             </div>
             <div>
               <label for="pfTid" style="font-size:0.85rem;color:#94a3b8;">TID</label>
-              <input id="pfTid" type="number" min="0" max="65535" value="0" style="width:80px;">
+              <input id="pfTid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="0" style="width:80px;">
             </div>
             <div>
               <label for="pfSid" style="font-size:0.85rem;color:#94a3b8;">SID</label>
-              <input id="pfSid" type="number" min="0" max="65535" value="0" style="width:80px;">
+              <input id="pfSid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="0" style="width:80px;">
             </div>
             <div style="display:flex; align-items:flex-end; gap:0.35rem;">
               <label for="pfShiny" style="font-size:0.85rem;color:#94a3b8;">Shiny</label>

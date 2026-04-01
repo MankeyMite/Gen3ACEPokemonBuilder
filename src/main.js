@@ -5021,14 +5021,22 @@ function boot(){
     });
   });
 
-  // TID and SID: cap at 65535, and check GC RNG validity when in CXD shadow mode
+  // TID and SID: allow leading zeros (common user confusion from trainer card),
+  // but strip non-digit characters and cap the numeric value at 65535.
+  const clampIdField = (e) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    if (raw === '') { e.target.value = ''; return; }
+    const n = Number(raw);
+    // Only replace when the numeric value exceeds the cap
+    e.target.value = n > 65535 ? '65535' : raw;
+  };
   $('#tid').addEventListener('input', (e) => {
-    e.target.value = clampInt(e.target.value, 0, 65535);
+    clampIdField(e);
     try { updateGCTidSidWarning(); } catch (ex) {}
   });
 
   $('#sid').addEventListener('input', (e) => {
-    e.target.value = clampInt(e.target.value, 0, 65535);
+    clampIdField(e);
     try { updateGCTidSidWarning(); } catch (ex) {}
   });
 
@@ -5448,6 +5456,17 @@ function initPidFinder() {
   const statusSpan   = document.getElementById('pidFinderStatus');
 
   if (!btn || !overlay) return;
+
+  // Validate PID-finder TID/SID: strip non-digits, cap at 65535, preserve leading zeros
+  const pfClampId = (e) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    if (raw === '') { e.target.value = ''; return; }
+    e.target.value = Number(raw) > 65535 ? '65535' : raw;
+  };
+  const pfTidInput = document.getElementById('pfTid');
+  const pfSidInput = document.getElementById('pfSid');
+  if (pfTidInput) pfTidInput.addEventListener('input', pfClampId);
+  if (pfSidInput) pfSidInput.addEventListener('input', pfClampId);
 
   /* â”€â”€ Open / Close â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 

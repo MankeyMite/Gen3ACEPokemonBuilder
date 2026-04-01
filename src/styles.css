@@ -155,7 +155,8 @@ input:focus, select:focus, textarea:focus {
 
 /* TID / SID paired row */
 .row.two > div { flex: 0 0 auto; width: 160px; }
-.row.two > div input[type="number"] { width: 100%; }
+.row.two > div input[type="number"],
+.row.two > div input[type="text"] { width: 100%; }
 #output{width:100%;font-family:ui-monospace,Menlo,Consolas,monospace}
 #hexOutput{width:100%;font-family:ui-monospace,Menlo,Consolas,monospace;height:200px;resize:none}
 
