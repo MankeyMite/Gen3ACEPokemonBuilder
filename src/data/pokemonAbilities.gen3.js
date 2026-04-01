@@ -122,8 +122,8 @@ export const POKEMON_ABILITIES = {
   115: [48, 48], // Kangaskhan - Early Bird
   116: [33, 33], // Horsea - Swift Swim
   117: [38, 38], // Seadra - Poison Point
-  118: [33, 11], // Goldeen - Swift Swim / Water Veil
-  119: [33, 11], // Seaking - Swift Swim / Water Veil
+  118: [33, 41], // Goldeen - Swift Swim / Water Veil
+  119: [33, 41], // Seaking - Swift Swim / Water Veil
   120: [35, 30], // Staryu - Illuminate / Natural Cure
   121: [35, 30], // Starmie - Illuminate / Natural Cure
   122: [43, 43], // Mr. Mime - Soundproof
@@ -207,7 +207,7 @@ export const POKEMON_ABILITIES = {
   200: [26, 26], // Misdreavus - Levitate
   201: [26, 26], // Unown - Levitate
   202: [23, 23], // Wobbuffet - Shadow Tag
-  203: [48, 39], // Girafarig - Early Bird / Inner Focus
+  203: [39, 48], // Girafarig - Inner Focus / Early Bird
   204: [5, 5],   // Pineco - Sturdy
   205: [5, 5],   // Forretress - Sturdy
   206: [32, 50], // Dunsparce - Serene Grace / Run Away
