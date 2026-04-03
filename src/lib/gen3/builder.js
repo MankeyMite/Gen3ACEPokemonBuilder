@@ -2,6 +2,11 @@ import { GAEM_PERMUTATIONS } from './permutations.js';
 import { MOVES_MAP } from '../../data/moves.gen3.js';
 import { encodeName, encodeNickname, encodeOT } from './encoding.js';
 import { u32, writeU16LE, writeU32LE, readU32LE, packIVWord, checksum16, bytesToHex, bytesToFormattedHex } from './packers.js';
+import { createProfanityFilter } from '../profanityFilter.js';
+import { PROFANITY_LIST } from '../../data/profanity.gen3.js';
+
+// Shared profanity filter instance for Base64 box-name shifting
+const _b64ProfanityFilter = createProfanityFilter(PROFANITY_LIST);
 
 /**
  * Core Pokémon builder — SCAFFOLD VERSION
@@ -386,6 +391,65 @@ export function toBase64Emerald(bytes){
   // Ensure exactly 14 boxes (but DON'T pad box 14 with 'A' - leave it short to avoid overwriting box 1)
   while (boxes.length < 14) boxes.push('');
   
+  // ── Profanity shifting: push bad-word characters forward so they split ──
+  // If a bad word is found in boxes 1-13 and its last character is at
+  // position 4+ (1-indexed), truncate the box right before that last
+  // character and shift all remaining characters forward.  Box 14 absorbs
+  // the overflow.  Re-scan after each shift since new boxes may form new
+  // bad words.
+  const MAX_SHIFT_PASSES = 14; // safety limit
+  const shiftedBoxes = new Set();               // track which boxes were truncated
+  for (let pass = 0; pass < MAX_SHIFT_PASSES; pass++) {
+    let shifted = false;
+    for (let bi = 0; bi < 13; bi++) {           // boxes 1-13 (index 0-12)
+      const box = boxes[bi];
+      if (!box) continue;
+      const result = _b64ProfanityFilter.checkDetailed(box);
+      if (!result.blocked) continue;
+
+      // Find the earliest cut point among all matched terms
+      let earliestCut = null;                    // will be the index to cut AT
+      for (const term of result.matches) {
+        // Case-insensitive search for the term in the box string
+        const idx = box.toLowerCase().indexOf(term.toLowerCase());
+        if (idx === -1) continue;
+        const lastCharPos = idx + term.length - 1;   // 0-indexed position of last char
+        if (lastCharPos < 3) continue;                // position 4+ means index >= 3
+        // Cut point: right before the last character of the bad word.
+        // This removes just enough to break the word while keeping the
+        // box as long as possible (at least 3 characters).
+        const cutAt = lastCharPos;
+        if (earliestCut === null || cutAt < earliestCut) {
+          earliestCut = cutAt;
+        }
+      }
+
+      if (earliestCut === null) continue;
+
+      // Truncate this box and push the rest forward
+      const kept = box.slice(0, earliestCut);
+      const displaced = box.slice(earliestCut);
+      boxes[bi] = kept;
+      shiftedBoxes.add(bi);                     // mark this box as truncated
+
+      // Shift displaced characters into subsequent boxes
+      let overflow = displaced;
+      for (let j = bi + 1; j < 14 && overflow; j++) {
+        overflow = overflow + boxes[j];
+        boxes[j] = overflow.slice(0, 8);
+        overflow = overflow.slice(8);
+      }
+      // Any remaining overflow goes onto the end of box 14
+      if (overflow) {
+        boxes[13] = boxes[13] + overflow;
+      }
+
+      shifted = true;
+      break; // restart scan from the beginning after a shift
+    }
+    if (!shifted) break;
+  }
+  
   // Ambiguous character annotations
   const ambiNotes = {
     'O': 'uppercase O',
@@ -410,7 +474,8 @@ export function toBase64Emerald(bytes){
   boxes.forEach((box, i) => {
     const idx = i + 1;
     const space = idx < 10 ? '  ' : ' ';
-    output += `  Box ${idx}:${space}(${box})${annotate(box)}\n`;
+    const shiftNote = shiftedBoxes.has(i) ? ' ⚠️ no trailing spaces!' : '';
+    output += `  Box ${idx}:${space}(${box})${annotate(box)}${shiftNote}\n`;
   });
   
   return output.trimEnd();
