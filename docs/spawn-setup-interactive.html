@@ -972,8 +972,8 @@
       updateAllPanelsForGame();
       updateInstructionsForGame();
       tabs.forEach(t=>t.addEventListener('click', ()=>{
-        // Allow FR/LG Switch to use the default Console mapping without requiring a mode selection.
-        if(!selectedMode && selectedGame !== 'FRLGSW') return; // don't switch tabs until a mode is chosen for FR/LG
+        // Only require a mode selection when the selected game is FR/LG.
+        if(selectedGame === 'FRLG' && !selectedMode) return; // don't switch tabs until a mode is chosen for FR/LG
         tabs.forEach(x=>x.classList.remove('active'));
         panels.forEach(p=>p.style.display='none');
         t.classList.add('active');
