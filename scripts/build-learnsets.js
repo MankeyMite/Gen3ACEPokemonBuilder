@@ -15,7 +15,8 @@
  *   src/data/level_up_learnsets.h   — level-up moves
  *   src/data/egg_moves.h            — egg moves
  *   src/data/tmhm_learnsets.h       — TM/HM moves
- *   src/data/tutor_learnsets.h      — tutor moves
+ *   src/data/tutor_learnsets.h      — tutor moves (Emerald)
+ *   src/data/tutor_learnsets FRLG.h — tutor moves (FireRed/LeafGreen)
  *
  * Usage:  node scripts/build-learnsets.js
  */
@@ -164,7 +165,7 @@ function ensureEntry(speciesId) {
 
 // ── 3a. level_up_learnsets.h ──
 {
-  const src = fs.readFileSync(path.join(DATA, 'level_up_learnsets.h'), 'utf8');
+  const src = fs.readFileSync(path.join(DATA, 'level_up_learnsets emerald.h'), 'utf8');
   // Match each array block
   const blockRe = /static\s+const\s+u16\s+s(\w+)LevelUpLearnset\[\]\s*=\s*\{([^}]+)\}/g;
   let bm;
@@ -272,6 +273,44 @@ function ensureEntry(speciesId) {
       if (moveId) entry.tutor.add(moveId);
       else console.warn(`[tutor] Unknown move: ${moveConst} for ${tr[1]}`);
     }
+  }
+}
+
+// ── 3e. tutor_learnsets FRLG.h — merge FRLG tutor moves into the same set ──
+{
+  const frlgPath = path.join(DATA, 'tutor_learnsets FRLG.h');
+  if (fs.existsSync(frlgPath)) {
+    const src = fs.readFileSync(frlgPath, 'utf8');
+    // FRLG entries have NO wrapping parentheses:
+    //   [SPECIES_XXX] = TUTOR(MOVE_A)
+    //                 | TUTOR(MOVE_B),
+    // or simply:
+    //   [SPECIES_XXX] = 0,
+    // Match from [SPECIES_...] = up to the entry-ending comma.
+    const tutorRe = /\[SPECIES_([A-Z0-9_]+)\]\s*=\s*([\s\S]*?),/g;
+    let tr;
+    while ((tr = tutorRe.exec(src)) !== null) {
+      const speciesConst = 'SPECIES_' + tr[1];
+      const speciesId = speciesConstToId[speciesConst];
+      if (!speciesId) {
+        if (tr[1] !== 'NONE') console.warn(`[tutor-frlg] Unknown species: ${speciesConst}`);
+        continue;
+      }
+      // Skip entries that are just 0 — no tutor moves
+      if (/^\s*0\s*$/.test(tr[2])) continue;
+      const entry = ensureEntry(speciesId);
+      const moveRe = /TUTOR\(MOVE_([A-Z0-9_]+)\)/g;
+      let mm;
+      while ((mm = moveRe.exec(tr[2])) !== null) {
+        const moveConst = 'MOVE_' + mm[1];
+        const moveId = moveConstToId[moveConst];
+        if (moveId) entry.tutor.add(moveId);
+        else console.warn(`[tutor-frlg] Unknown move: ${moveConst} for ${tr[1]}`);
+      }
+    }
+    console.log('Merged FRLG tutor learnsets');
+  } else {
+    console.warn('tutor_learnsets FRLG.h not found — skipping FRLG tutors');
   }
 }
 
