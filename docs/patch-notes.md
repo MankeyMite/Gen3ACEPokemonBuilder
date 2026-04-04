@@ -1,3 +1,11 @@
+Patch Notes - (V.0.3.0)
+- Added new Base64 guide for all gen 3 games, including Ruby/Sapphire.
+- Added a profanity filter workaround, where the code generator scans for bad words, then splits them in two and shifts the code string forward.
+- Additional profanity filter workaround added that kicks in if the first workaround fails: swaps certian letters for symbols. 
+- Added tutor moves for FR/LG, and added special moves Blast Burn, Hydro Cannon and Frenzy Plant for Charizard, Blastoise and Venusaur. 
+- allows typing 0 in front of TID and SID to avoid confusion. (0 at the front is just a filler, but shows in-game).
+- Small fixes to ability id's.
+
 Patch Notes - (V.0.2.9)
 - Repositioned the Import button to the top of the page
 - added smogon/showdown format as an import option
