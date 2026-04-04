@@ -6323,12 +6323,24 @@ function onGenerate(){
   const cfg = collect();
   const result = buildPokemonBytes(cfg);
   const hex = toFormattedHex(result.bytes);
-  const b64 = toBase64Emerald(result.bytes);
+  const b64Result = toBase64Emerald(result.bytes);
   $('#hexOutput').value = hex;
-  $('#base64Output').value = b64;
+  $('#base64Output').value = b64Result.text;
 
   // Check for profanity in the generated box names
-  updateProfanityWarning(b64);
+  updateProfanityWarning(b64Result.text);
+
+  // Show substitution notice if characters were swapped to avoid censorship
+  const substBanner = document.getElementById('substitutionWarning');
+  if (substBanner) {
+    if (b64Result.substitutionUsed) {
+      substBanner.textContent = 'One or more characters have been converted to a symbol to avoid the profanity filter on Switch.';
+      substBanner.style.display = 'block';
+    } else {
+      substBanner.style.display = 'none';
+      substBanner.textContent = '';
+    }
+  }
 }
 
 /**
@@ -7193,7 +7205,7 @@ function onDownload(){
     input: cfg,
     meta: result.meta,
     hex: toHexString(result.bytes),
-    base64: toBase64Emerald(result.bytes)
+    base64: toBase64Emerald(result.bytes).text
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const a = document.createElement('a');

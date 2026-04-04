@@ -450,6 +450,102 @@ export function toBase64Emerald(bytes){
     if (!shifted) break;
   }
   
+  // ── Character substitution: replace letters with equivalent symbols ──
+  // If box shifting couldn't eliminate all profanity (e.g. bad words in the
+  // first 3 characters of a box, or in box 14), swap one letter per bad word
+  // with a symbol that the game's Base64 decoder treats as value + 64.
+  // The +64 overflows and requires carry-compensation on the previous digit
+  // depending on position within the 4-character Base64 group.
+  const SUBST_MAP = {
+    'A': '.', 'B': '-', 'D': '\u2026', 'E': '\u201C', 'F': '\u201D',
+    'G': '\u2018', 'H': '\u2019', 'I': '\u2642', 'J': '\u2640',
+    'L': ',', 'N': '/'
+  };
+  const B64_ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!?';
+  const B64_VAL = {};
+  for (let i = 0; i < B64_ALPHA.length; i++) B64_VAL[B64_ALPHA[i]] = i;
+
+  let substitutionUsed = false;
+  for (let sPass = 0; sPass < MAX_SHIFT_PASSES; sPass++) {
+    let anySubst = false;
+    for (let bi = 0; bi < 14; bi++) {
+      const box = boxes[bi];
+      if (!box) continue;
+      const res = _b64ProfanityFilter.checkDetailed(box);
+      if (!res.blocked) continue;
+
+      for (const term of res.matches) {
+        const idx = box.toLowerCase().indexOf(term.toLowerCase());
+        if (idx === -1) continue;
+
+        let substituted = false;
+        for (let ci = idx; ci < idx + term.length; ci++) {
+          const ch = box[ci];
+          if (!SUBST_MAP[ch]) continue;
+
+          // Position in the total Base64 stream
+          let streamPos = 0;
+          for (let k = 0; k < bi; k++) streamPos += boxes[k].length;
+          streamPos += ci;
+
+          const posInGroup = streamPos % 4;
+
+          if (posInGroup === 0) {
+            // First character of a 4-char group — free swap, no carry
+            boxes[bi] = box.slice(0, ci) + SUBST_MAP[ch] + box.slice(ci + 1);
+            substitutionUsed = true;
+            substituted = true;
+            break;
+          }
+
+          // Locate the previous character (may be in the prior box)
+          let prevBi = bi, prevCi = ci - 1;
+          if (prevCi < 0) {
+            prevBi = bi - 1;
+            while (prevBi >= 0 && boxes[prevBi].length === 0) prevBi--;
+            if (prevBi < 0) continue;
+            prevCi = boxes[prevBi].length - 1;
+          }
+
+          const prevCh = boxes[prevBi][prevCi];
+          const prevVal = B64_VAL[prevCh];
+          if (prevVal === undefined) continue; // already-substituted char
+
+          let newPrevVal;
+          if (posInGroup === 1) {
+            // Whole-digit decrement
+            newPrevVal = (prevVal - 1 + 64) % 64;
+          } else if (posInGroup === 2) {
+            // Decrement lower 4 bits, preserve upper 2 bits
+            newPrevVal = (prevVal & 0x30) | (((prevVal & 0x0F) - 1 + 16) % 16);
+          } else {
+            // posInGroup === 3 — decrement lower 2 bits, preserve upper 4 bits
+            newPrevVal = (prevVal & 0x3C) | (((prevVal & 0x03) - 1 + 4) % 4);
+          }
+
+          // Apply carry adjustment + symbol swap
+          if (prevBi === bi) {
+            // Both changes in the same box (prevCi is always ci - 1)
+            boxes[bi] = box.slice(0, prevCi) + B64_ALPHA[newPrevVal]
+                      + SUBST_MAP[ch] + box.slice(ci + 1);
+          } else {
+            const pb = boxes[prevBi];
+            boxes[prevBi] = pb.slice(0, prevCi) + B64_ALPHA[newPrevVal] + pb.slice(prevCi + 1);
+            boxes[bi] = box.slice(0, ci) + SUBST_MAP[ch] + box.slice(ci + 1);
+          }
+
+          substitutionUsed = true;
+          substituted = true;
+          break;
+        }
+
+        if (substituted) { anySubst = true; break; }
+      }
+      if (anySubst) break; // restart full scan
+    }
+    if (!anySubst) break;
+  }
+
   // Ambiguous character annotations
   const ambiNotes = {
     'O': 'uppercase O',
@@ -458,7 +554,11 @@ export function toBase64Emerald(bytes){
     '1': 'one (1)',
     'l': 'lowercase L',
     'I': 'uppercase i (I)',
-    'q': 'lowercase q'
+    'q': 'lowercase q',
+    '\u2018': "left \u2018",   // G substitution — curls: \u2018
+    '\u2019': "right \u2019",  // H substitution — curls: \u2019
+    '\u201C': "left \u201C",   // E substitution — curls: \u201C
+    '\u201D': "right \u201D",  // F substitution — curls: \u201D
   };
   
   function annotate(box) {
@@ -478,7 +578,7 @@ export function toBase64Emerald(bytes){
     output += `  Box ${idx}:${space}(${box})${annotate(box)}${shiftNote}\n`;
   });
   
-  return output.trimEnd();
+  return { text: output.trimEnd(), substitutionUsed };
 }
 
 // Expose a snapshot of the core source for the "Show source" panel
