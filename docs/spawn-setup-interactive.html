@@ -11,14 +11,14 @@
     .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.04));border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.03)}
     .tabs{display:flex;gap:8px;margin-bottom:12px}
     .mode-select{display:flex;gap:10px;margin:12px 0 18px}
-    .mode-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--fg);padding:8px 12px;border-radius:8px;cursor:pointer}
-    .mode-btn.requires-instructions{opacity:0.6}
-    .mode-btn.active{background:linear-gradient(90deg,var(--accent),#48d597);color:#02121a;font-weight:700}
+    .lang-select{display:flex;gap:10px;margin:0 0 18px}
+    .mode-btn,.lang-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--fg);padding:8px 12px;border-radius:8px;cursor:pointer}
+    .mode-btn.requires-instructions,.lang-btn.requires-instructions{opacity:0.6}
+    .mode-btn.active,.lang-btn.active{background:linear-gradient(90deg,var(--accent),#48d597);color:#02121a;font-weight:700}
     .tab{background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);padding:8px 12px;border-radius:8px;cursor:pointer}
     .tab.active{background:linear-gradient(90deg,var(--accent),#48d597);color:#02121a;font-weight:700;box-shadow:0 6px 18px rgba(74,158,255,0.12)}
     .tab[disabled]{opacity:0.5;pointer-events:none}
     pre{background:rgba(0,0,0,0.25);padding:12px;border-radius:8px;overflow:auto;color:var(--fg);font-family:ui-monospace,Menlo,Consolas,monospace;position:relative}
-    /* Layout: code | notes | controls (notes appear to the right of the vertical divider) */
     .line{display:grid;grid-template-columns:1fr 320px 120px;align-items:center;gap:12px;padding:6px 4px;border-radius:6px}
     .line:hover{background:rgba(255,255,255,0.02)}
     .text{white-space:pre-wrap}
@@ -27,20 +27,17 @@
     .controls{justify-self:end;display:flex;gap:6px}
     .controls button{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--fg);padding:4px 8px;border-radius:6px;cursor:pointer}
     .controls button.active{background:linear-gradient(90deg,var(--accent),#48d597);color:#02121a;border-color:rgba(74,158,255,0.12);font-weight:700;box-shadow:0 6px 12px rgba(74,158,255,0.06)}
-    /* Vertical divider placed left of the notes column; shifted left to avoid overlapping notes */
-    .code-panel pre::before{content:'';position:absolute;top:8px;bottom:8px;left:calc(100% - 650px - 12px);width:2px;background:linear-gradient(180deg,rgba(198,40,40,0.85),rgba(198,40,40,0.5));opacity:0.95;pointer-events:none;z-index:1}
     .char-red{color:#ff6b6b;font-weight:700}
     .char-lower{color:rgba(232,244,248,0.68)}
     .char-upper{color:var(--fg)}
-      .panel-inner{display:flex;gap:12px}
-      .codes-box{flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);padding:14px;border-radius:8px;display:flex;flex-direction:column;gap:8px}
-      .codes-box .code-line{height:44px;box-sizing:border-box;padding:8px 6px;font-family:ui-monospace,Menlo,Consolas,monospace;display:flex;align-items:center;white-space:nowrap;overflow:hidden}
-      .codes-box .code-line .code-text{display:inline-block}
-      .notes-col{width:320px;display:flex;flex-direction:column;gap:8px;padding:14px;box-sizing:border-box}
-      .notes-col .note{height:44px;box-sizing:border-box;padding:10px 8px;overflow:auto}
-      .controls-col{width:120px;display:flex;flex-direction:column;gap:8px;padding:14px;box-sizing:border-box;align-items:stretch}
-      .controls-col .controls{display:flex;gap:8px;justify-content:flex-end;align-items:center;height:44px;box-sizing:border-box}
-    
+    .panel-inner{display:flex;gap:12px}
+    .codes-box{flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);padding:14px;border-radius:8px;display:flex;flex-direction:column;gap:8px}
+    .codes-box .code-line{height:44px;box-sizing:border-box;padding:8px 6px;font-family:ui-monospace,Menlo,Consolas,monospace;display:flex;align-items:center;white-space:nowrap;overflow:hidden}
+    .codes-box .code-line .code-text{display:inline-block}
+    .notes-col{width:320px;display:flex;flex-direction:column;gap:8px;padding:14px;box-sizing:border-box}
+    .notes-col .note{height:44px;box-sizing:border-box;padding:10px 8px;overflow:auto}
+    .controls-col{width:120px;display:flex;flex-direction:column;gap:8px;padding:14px;box-sizing:border-box;align-items:stretch}
+    .controls-col .controls{display:flex;gap:8px;justify-content:flex-end;align-items:center;height:44px;box-sizing:border-box}
     .highlight{background:rgba(198,40,40,0.12);color:#ffdcdc}
     .done{opacity:0.5;text-decoration:line-through;color:var(--muted)}
     .kbd{background:rgba(255,255,255,0.04);padding:0 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.02);font-family:ui-monospace,Menlo,Consolas}
@@ -58,8 +55,6 @@
     .remember-list li{margin:6px 0}
     .remember-image{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px}
     .remember-image img{width:48%;max-width:48%;height:auto;border-radius:8px;border:1px solid rgba(255,255,255,0.03);}
-    .controls button{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--fg);padding:4px 8px;border-radius:6px;cursor:pointer}
-    /* spacing helper for the instructions section */
     details.instructions .instructions-inner p.section-gap{margin-top:1.25rem;margin-bottom:0.5rem}
   </style>
 </head>
@@ -73,6 +68,7 @@
           <option value="EM">Emerald</option>
           <option value="FRLG">FR / LG</option>
           <option value="FRLGSW">FR/LG Switch</option>
+          <option value="RS">Ruby / Sapphire</option>
         </select>
       </div>
       <details id="instructions" class="instructions">
@@ -134,6 +130,24 @@
 
             <p>You may now start typing the first code.</p>
           </div>
+
+          <div class="instr-RS" style="display:none">
+            <h2>How to Spawn Pokémon with the custom ACE Pokémon builder tool (using a Base64 writer)</h2>
+            <p>The custom ACE Pokémon builder tool will allow you to create any Pokémon with any data and spawn it inside your Pokémon game using the Base64 codes provided after clicking the Generate button. This feature is most useful for console users, as there are easier ways to copy Pokémon data on a computer with an emulator, such as copying the Hex data and pasting it into Pokeglitzer.</p>
+            <p>When generating a Pokémon with the tool, you will see 14 box codes. Typing these 14 box codes into your PC and executing it with your ace species and the BASE64 writer will spawn that exact Pokémon into your PC, box 14 slot 30. Here is how you create the BASE64 writer:</p>
+            <h2>Creating the BASE64 writer</h2>
+            <p class="section-gap">Make sure of the following before getting started:</p>
+
+            <ul>
+              <li>
+                You have created an ace species.
+                (Japanese versions not yet supported for this guide!).
+              </li>
+              <li>Box 10 slot 22 is empty.</li>
+            </ul>
+
+            <p>You may now select your emulator type and language below, then start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+          </div>
         </div>
       </details>
 
@@ -142,259 +156,23 @@
         <button class="mode-btn requires-instructions" data-mode="old">Old Emulator</button>
       </div>
 
+      <div class="lang-select" style="display:none">
+        <button class="lang-btn requires-instructions" data-lang="RS_EN">English</button>
+        <button class="lang-btn requires-instructions" data-lang="RS_NEL">Non-English</button>
+      </div>
+
       <div class="tabs" role="tablist">
         <button class="tab" data-tab="code1">Code 1</button>
         <button class="tab" data-tab="code2">Code 2</button>
         <button class="tab" data-tab="code3">Code 3</button>
-        <button class="tab" data-tab="codeTest" style="display:none">Test code</button>
-        <button class="tab" data-tab="code4">Code 4</button>
-        <button class="tab" data-tab="code5">Code 5</button>
+        <button class="tab" data-tab="codeTest">Test code</button>
       </div>
 
       <div id="codes">
-        <section id="code1" class="code-panel" style="display:none">
-            <div class="panel-inner">
-              <div class="codes-box">
-                <div class="code-line"><span class="code-text">Box  1:    B C U n _ F J u</span></div>
-                <div class="code-line"><span class="code-text">Box  2:    I k o B 3 h F</span></div>
-                <div class="code-line"><span class="code-text">Box  3:    A A T . h r</span></div>
-                <div class="code-line"><span class="code-text">Box  4:    A h _ f n</span></div>
-                <div class="code-line"><span class="code-text">Box  5:    _ F Z <span class="char-red">O</span> T . h r</span></div>
-                <div class="code-line"><span class="code-text">Box  6:    J J J _ 1 / …</span></div>
-                <div class="code-line"><span class="code-text">Box  7:    P q / _ … n</span></div>
-                <div class="code-line"><span class="code-text">Box  8:    v 6 5 Q K</span></div>
-                <div class="code-line"><span class="code-text">Box  9:    T . g L _ F Z <span class="char-red">O</span></span></div>
-                <div class="code-line"><span class="code-text">Box 10:    R j o D Y J m ?</span></div>
-                <div class="code-line"><span class="code-text">Box 11:    B n F K T F F F</span></div>
-                <div class="code-line"><span class="code-text">Box 12:    U U F R R G <span class="char-red">O</span> U</span></div>
-                <div class="code-line"><span class="code-text">Box 13:    T H S G Q U R L</span></div>
-                <div class="code-line"><span class="code-text">Box 14:    Q T R R U U F F</span></div>
-              </div>
-              <div class="notes-col">
-                <div class="note" contenteditable="true"></div>
-                <div class="note" contenteditable="true"></div>
-                <div class="note" contenteditable="true"></div>
-                <div class="note" contenteditable="true"></div>
-                <div class="note" contenteditable="false" tabindex="-1">upper case O (O)</div>
-                <div class="note" contenteditable="false" tabindex="-1">One (1)</div>
-                <div class="note" contenteditable="false" tabindex="-1">lowercase Q (q)</div>
-                <div class="note" contenteditable="true"></div>
-                <div class="note" contenteditable="false" tabindex="-1">upper case O (O)</div>
-                <div class="note" contenteditable="true"></div>
-                <div class="note" contenteditable="true"></div>
-                <div class="note" contenteditable="false" tabindex="-1">upper case O (O)</div>
-                <div class="note" contenteditable="true"></div>
-                <div class="note" contenteditable="true"></div>
-              </div>
-              <div class="controls-col">
-                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-                <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              </div>
-            </div>
-        <div class="remember-list">
-          <ul>
-            <li>Save the game</li>
-            <li id="code1ExecComment">Execute the code with your stable ace species with no trailing spaces. If you are using a stable or metastable THUMB species, you NEED a THUMB -> ARM bootstrap bad egg anywhere from box 12 slot 4.</li>
-            <li id="code1EggComment">Check the bad egg in box 10, slot 22. It should be in a Great Ball.</li>
-            <li id="code1NoTrailingSpacesComment" style="display:none">All other boxes should NOT be typed with spaces at the end; end the box name early instead.</li>
-          </ul>
-        </div>
-        <div class="remember-image">
-        <img id="code1BadEggImage2" src="../src/Images/bad egg base64 code 1_2.png" alt="Bad egg example 2" />
-        <img id="code1BadEggImage1" src="../src/Images/bad egg base64 code 1_1.png" alt="Bad egg example 1" />
-          
-        </div>
-        </section>
-
-        <section id="code2" class="code-panel" style="display:none">
-          <div class="panel-inner">
-            <div class="codes-box">
-              <div class="code-line"><span class="code-text">Box 8:    v I 5 Q K</span></div>
-              <div class="code-line"><span class="code-text">Box <span class="char-red">11</span>:    B n R G J I F F</span></div>
-              <div class="code-line"><span class="code-text">Box 12:    H G G T M N F G</span></div>
-              <div class="code-line"><span class="code-text">Box 13:    I I T T H T F T</span></div>
-              <div class="code-line"><span class="code-text">Box 14:    S R Q Q I T F G</span></div>
-            </div>
-            <div class="notes-col">
-              <div class="note" contenteditable="true"></div>
-              <div class="note" contenteditable="false" tabindex="-1">Skipping boxes 9 and 10!</div>
-              <div class="note" contenteditable="true"></div>
-              <div class="note" contenteditable="true"></div>
-              <div class="note" contenteditable="true"></div>
-            </div>
-            <div class="controls-col">
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-            </div>
-          </div>
-          <div class="panel-tip">Codes in boxes 1-7 + 9-10 will be same as before
-            <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
-              <li>Save the game</li>
-              <li id="code2ExecComment">Execute the code with your stable ace species with no trailing spaces.</li>
-              <li>After executing this code, no visible change will happen to the egg. Keep going with code 3!</li>
-            </ul>
-          </div>
-        </section>
-
-        <section id="code3" class="code-panel" style="display:none">
-          <div class="panel-inner">
-            <div class="codes-box">
-              <div class="code-line"><span class="code-text">Box  8:    v X 5 Q K</span></div>
-              <div class="code-line"><span class="code-text">Box <span class="char-red">11</span>:    B n S K N L H F</span></div>
-              <div class="code-line"><span class="code-text">Box 12:    J T I L G H S J</span></div>
-              <div class="code-line"><span class="code-text">Box 13:    Q U F G Q U G <span class="char-red">O</span></span></div>
-              <div class="code-line"><span class="code-text">Box 14:    F L I G F N H <span class="char-red">O</span></span></div>
-            </div>
-            <div class="notes-col">
-              <div class="note" contenteditable="true"></div>
-              <div class="note" contenteditable="false" tabindex="-1">Skipping boxes 9 and 10!</div>
-              <div class="note" contenteditable="true"></div>
-              <div class="note" contenteditable="false" tabindex="-1">upper case O (O)</div>
-              <div class="note" contenteditable="false" tabindex="-1">upper case O (O)</div>
-            </div>
-            <div class="controls-col">
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-            </div>
-          </div>
-          <div class="panel-tip">Codes in boxes 1-7 + 9-10 will be same as before
-            <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
-              <li>Save the game</li>
-              <li id="code3ExecComment">Execute the code with your stable ace species with no trailing spaces.</li>
-              <li>After executing this code, no visible change will happen to the egg. Keep going with code 4!</li>
-            </ul>
-          </div>
-        </section>
-
-        <section id="codeTest" class="code-panel" style="display:none">
-          <div class="panel-inner">
-            <div class="codes-box">
-              <div class="code-line"><span class="code-text">Box  1:    AQD?Pw_ _</span></div>
-            </div>
-            <div class="notes-col">
-              <div class="note" contenteditable="false" tabindex="-1">two spaces at the end!</div>
-            </div>
-            <div class="controls-col">
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-            </div>
-          </div>
-          <div class="panel-tip">Execute this code to confirm WELDR is working:
-            <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
-              <li>Boxes 2-14 can be anything, they do not affect the test code.</li>
-              <li>Execute this test code with your ace species.</li>
-              <li>It should generate a Bulbasaur in box 14 slot 30. Once confirmed, either soft reset the game or release the bulbasaur. It might crash your game if you use it.</li>
-              <li>If you get a bad egg, it usually means the code is typed wrong. You can also check for ghost data in boxes 13 and 14 by entering deposit mode, and selecting a pokemon to deposit. The first box will be box 1, go left once to reach box 14. It should say 2/30. Now check Box 13, it should also say 2/30, but might say 3/30 if you have an invisible bad egg in slot 8, but that can be ignored. If you still get bad eggs, WELDR was probably typed incorrectly, and you should move WELDR and the J7VC Pokemon out and redo all the codes. After creating a new WELDR, you may delete the old one.</li>
-              <li>After successfully creating and removing the Bulbasaur, you are ready to use my Pokémon Builder website to spawn any Pokémon you want.</li>
-              <li>If you want to execute regular ACE codes in the future, you must move WELDR and the extra species (J7VC) to anywhere in box 1-12, and back if you want to use BASE64 codes again. </li>
-            </ul>
-          </div>
-          <div class="remember-image" style="margin-top:10px;">
-            <img id="frlgTestImage1" src="../src/Images/Test bulba code base64.png" alt="Test code placeholder image 1" />
-            <img id="frlgTestImage2" src="../src/Images/Test Bulba base64.png" alt="Test code placeholder image 2" />
-          </div>
-        </section>
-
-        <section id="code4" class="code-panel" style="display:none">
-          <div class="panel-inner">
-            <div class="codes-box">
-              <div class="code-line"><span class="code-text">Box  8:    v m 5 Q K</span></div>
-              <div class="code-line"><span class="code-text">Box <span class="char-red">11</span>:    B n F J S Q F N</span></div>
-              <div class="code-line"><span class="code-text">Box 12:    I <span class="char-red">O</span> I T F F R T</span></div>
-              <div class="code-line"><span class="code-text">Box 13:    J F G L M F F G</span></div>
-              <div class="code-line"><span class="code-text">Box 14:    I H T Q T M</span></div>
-            </div>
-            <div class="notes-col">
-              <div class="note" contenteditable="true"></div>
-              <div class="note" contenteditable="false" tabindex="-1">Skipping boxes 9 and 10!</div>
-              <div class="note" contenteditable="false" tabindex="-1">upper case O (O)</div>
-              <div class="note" contenteditable="true"></div>
-              <div class="note" contenteditable="true"></div>
-            </div>
-            <div class="controls-col">
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-            </div>
-          </div>
-          <div class="panel-tip">Codes in boxes 1-7 + 9-10 will be same as before
-            <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
-              <li>Save the game</li>
-              <li id="code4ExecComment">Execute the code with your stable ace species with no trailing spaces.</li>
-              <li id="code4NestBallComment">After executing this code, the Bad Egg in box 10 should now be in a Nest Ball.</li>
-            </ul>
-          </div>
-          <div id="code4NestBallImage" class="panel-image" style="margin-top:10px;">
-            <img src="../src/Images/bad egg base64 code 1_3.png" alt="Bad egg example 3" style="max-width:48%;border-radius:8px;border:1px solid rgba(255,255,255,0.03);" />
-          </div>
-        </section>
-
-        <section id="code5" class="code-panel" style="display:none">
-          <div class="panel-inner">
-            <div class="codes-box">
-              <div class="code-line"><span class="code-text">Box  8:    v ♀ 5 Q K</span></div>
-              <div class="code-line"><span class="code-text">Box <span class="char-red">11</span>:    B n F F S F Q K</span></div>
-              <div class="code-line"><span class="code-text">Box 12:    H I P H I L P I</span></div>
-              <div class="code-line"><span class="code-text">Box 13:    F H T F G R U U</span></div>
-              <div class="code-line"><span class="code-text">Box 14:    H U T G</span></div>
-            </div>
-            <div class="notes-col">
-              <div class="note" contenteditable="true"></div>
-              <div class="note" contenteditable="false" tabindex="-1">Skipping boxes 9 and 10!</div>
-              <div class="note" contenteditable="true"></div>
-              <div class="note" contenteditable="true"></div>
-              <div class="note" contenteditable="true"></div>
-            </div>
-            <div class="controls-col">
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-              <div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>
-            </div>
-          </div>
-          <div class="panel-tip">Codes in boxes 1-7 + 9-10 will be same as before
-            <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
-              <li>Save the game</li>
-              <li id="code5ExecComment">Execute the code with your stable ace species with no trailing spaces.</li>
-              <li>After executing this code, the Bad Egg in box 10 should now have become WELDR, the BASE64 writer! (Don't open its summary, you will crash)</li>
-              <li>Move WELDR to box 14 slot 28</li>
-              <li id="sacrificialName">Catch any Pokemon and name it "J-FKVC"</li>
-              <li>Place this in box 14 slot 29.</li>
-              <li>DONE!</li>
-              <li>Now type and execute the following test code to make sure WELDR is correctly generated:</li>
-              <li>box 1: [AQD?Pw__] (two spaces at the end). It should generate a Bulbasaur in box 14 slot 30.</li>
-              <li>You are now ready to use BASE64 codes! Go back to the ACE builder tool and have fun! To spawn any Pokémon, type in any Base64 code made from my website, and execute ACE.
-                The Pokémon will appear in box 14 slot 30, so make sure to keep that slot empty for spawning Pokémon. If you want to spawn another Pokémon, simply replace the code in the PC with the new code and execute again, no need to redo the whole setup!
-              </li>
-            </ul>
-            <div class="panel-tip">IMPORTANT: If you want to execute regular codes in the future, make sure to move WELDR and the sacrificial Pokemon out of box 14 first!</div>
-            <ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">
-          </div>
-            <div class="remember-image" style="margin-top:10px;">
-              <img src="../src/Images/WELDR base64 code.png" alt="WELDR base64 code" data-orig-src="../src/Images/WELDR base64 code.png" data-frlg-src="../src/Images/WELDR base64 code FRLG.png" data-frlg-sw-src="../src/Images/WELDR base64 code FRLG Switch.png" />
-              <img src="../src/Images/Sacrificial Pokemon Base64.png" alt="Sacrificial Pokemon base64" data-orig-src="../src/Images/Sacrificial Pokemon Base64.png" data-frlg-src="../src/Images/Sacrificial Pokemon Base64-FRLG.png" />
-            </div>
-        </section>
+        <section id="code1" class="code-panel" style="display:none"></section>
+        <section id="code2" class="code-panel" style="display:none"></section>
+        <section id="code3" class="code-panel" style="display:none"></section>
+        <section id="codeTest" class="code-panel" style="display:none"></section>
       </div>
 
     </div>
@@ -402,656 +180,384 @@
 
   <script>
     (function(){
-      const box8Map = {
-        modern: ['v 6 5 Q K','v I 5 Q K','v X 5 Q K','v m 5 Q K','v ♀ 5 Q K'],
-        old:    ['v 8 5 Q K','v K 5 Q K','v Z 5 Q K','v o 5 Q K','v , 5 Q K']
+      /* ============================================================
+         DATA – unified codes for all games
+         ============================================================ */
+
+      // Code 1: 14 box rows (base text, shared across all modes/games)
+      var code1Base = [
+        {box: 1,  text: 'B C U n p 0 E H'},
+        {box: 2,  text: 'G D H W F f … …'},
+        {box: 3,  text: 'R V z _ h n'},
+        {box: 4,  text: 'P T S f ♀'},
+        {box: 5,  text: '_ H B … E L Q ♂'},
+        {box: 6,  text: 'R T I D Y J m ?'},
+        {box: 7,  text: '? H T S g ♀ _ _'},
+        {box: 8,  text: 'Y _ I k r'},
+        {box: 9,  text: 'I R H U K U G G'},
+        {box: 10, text: 'D G A I I F K G'},
+        {box: 11, text: 'I T P N I G L I'},
+        {box: 12, text: 'F T K T I T F R'},
+        {box: 13, text: 'C Q L T I G F K'},
+        {box: 14, text: 'P L K F M T L L'}
+      ];
+
+      // Box 1 override by emulator mode
+      // RS always uses the 'old' variant (x) regardless of emulator
+      var code1Box1 = {
+        modern: 'B C U n p 0 E H',
+        old:    'B C U n x 0 E H'
       };
 
-      // FR/LG and FR/LG Switch mappings split by input mode
-      const frlgMap = {
-        modern: {
-          code1: {
-            1: 'Box  1:    B C U n p 0 E H',
-            2: 'Box  2:    G D H W F f … …',
-            3: 'Box  3:    R V z _ h n',
-            4: 'Box  4:    P T S f ♀',
-            5: 'Box  5:    _ H B … E L Q ♂',
-            6: 'Box  6:    _ S I H I . I q',
-            7: 'Box  7:    ? H T S g ♀ _ _',
-            8: 'Box  8:    Y _ I k r',
-            9: 'Box  9:    I R H U K U G G',
-            10: 'Box 10:    D G A I I F K G',
-            11: 'Box 11:    I T P N I G L I',
-            12: 'Box 12:    F T K T I T F R',
-            13: 'Box 13:    C Q L T I G F K',
-            14: 'Box 14:    P L K F M T L L'
-          }
-        },
-        old: {
-          code1: {
-            1: 'Box  1:    B C U n x 0 E H',
-            2: 'Box  2:    G D H W F f … …',
-            3: 'Box  3:    R V z _ h n',
-            4: 'Box  4:    P T S f ♀',
-            5: 'Box  5:    _ H B … G L Q ♂',
-            6: 'Box  6:    _ S I H I . I q',
-            7: 'Box  7:    ? H T S g ♀ _ _',
-            8: 'Box  8:    Y _ I k r',
-            9: 'Box  9:    I R H U K U G G',
-            10: 'Box 10:    D G A I I F K G',
-            11: 'Box 11:    I T P N I G L I',
-            12: 'Box 12:    F T K T I T F R',
-            13: 'Box 13:    C Q L T I G F K',
-            14: 'Box 14:    P L K F M T L L'
-          }
-        }
+      // Box 5 override by emulator mode (code 1)
+      // RS always uses the 'old' variant (G) regardless of emulator
+      var code1Box5 = {
+        modern: '_ H B … E L Q ♂',
+        old:    '_ H B … G L Q ♂'
       };
 
-      // FRLG panel configurations for dynamically generating code2/code3 panels by mode
-      const frlgPanelConfigs = {
-        modern: {
-          code2: {
-            rows: [
-              {text: 'Box  5:    _ H B … c L Q ♂', note: ''},
-              {text: 'Box  <span class="char-red">9</span>:    I H F J D U I G', note: 'skip boxes 6-8!'},
-              {text: 'Box 10:    C U J <span class="char-red">O</span> I L L G', note: 'upper case O (O)'},
-              {text: 'Box 11:    H N K <span class="char-red">O</span> I J F Q', note: 'upper case O (O)'},
-              {text: 'Box 12:    H N L <span class="char-red">O</span> L T I F', note: 'upper case O (O)'},
-              {text: 'Box 13:    D T M F J L P F', note: ''},
-              {text: 'Box 14:    H G L H G Q G M', note: ''}
-            ],
-            tipPrefix: 'Codes in boxes 1-4 + 6-8 will be the same as before',
-            steps: [
-              'Save the game',
-              'Execute the code with your ace species.',
-              'After executing this code, no visible change will happen to the egg. Keep going with code 3!'
-            ]
-          },
-          code3: {
-            rows: [
-              {text: 'Box  5:    _ H B … 6 L Q ♂', note: ''},
-              {text: 'Box  <span class="char-red">9</span>:    H K G F I F H U', note: 'skip boxes 6-8!'},
-              {text: 'Box 10:    H R E G B U G H', note: ''},
-              {text: 'Box 11:    E G D U E L D T', note: ''},
-              {text: 'Box 12:    D R H U I F I F', note: ''},
-              {text: 'Box 13:    E F D K K I C H', note: ''},
-              {text: 'Box 14:    K L C I I H G F', note: ''}
-            ],
-            tipPrefix: 'Codes in boxes 1-4 + 6-8 will be the same as before',
-            steps: [
-              'Save the game',
-              'Execute the code with your ace species.',
-              'A Metang called "WELDR" should have appeared in Box 10 Slot 22! If it stayed a bad egg, check your Code 3 for errors, otherwise you\'ll likely have to start from the beginning.',
-              'Move WELDR to box 14 slot 28',
-              'Catch any Pokemon and name it "J7VC"',
-              'Place this in box 14 slot 29.',
-              'DONE! Now go to the last tab for the test code to confirm WELDR is working.'
-            ],
-            showImages: true
-          }
-        },
-        old: {
-          code2: {
-            rows: [
-              {text: 'Box  5:    _ H B … e L Q ♂', note: ''},
-              {text: 'Box  <span class="char-red">9</span>:    I H F J D U I G', note: 'skip boxes 6-8!'},
-              {text: 'Box 10:    C U J <span class="char-red">O</span> I L L G', note: 'upper case O (O)'},
-              {text: 'Box 11:    H N K <span class="char-red">O</span> I J F Q', note: 'upper case O (O)'},
-              {text: 'Box 12:    H N L <span class="char-red">O</span> L T I F', note: 'upper case O (O)'},
-              {text: 'Box 13:    D T M F J L P F', note: ''},
-              {text: 'Box 14:    H G L H G Q G M', note: ''}
-            ],
-            tipPrefix: 'Codes in boxes 1-4 + 6-8 will be the same as before',
-            steps: [
-              'Save the game',
-              'Execute the code with your ace species.',
-              'After executing this code, no visible change will happen to the egg. Keep going with code 3!'
-            ]
-          },
-          code3: {
-            rows: [
-              {text: 'Box  5:    _ H B … 8 L Q ♂', note: ''},
-              {text: 'Box  <span class="char-red">9</span>:    H K G F I F H U', note: 'skip boxes 6-8!'},
-              {text: 'Box 10:    H R E G B U G H', note: ''},
-              {text: 'Box 11:    E G D U E L D T', note: ''},
-              {text: 'Box 12:    D R H U I F I F', note: ''},
-              {text: 'Box 13:    E F D K K I C H', note: ''},
-              {text: 'Box 14:    K L C I I H G F', note: ''}
-            ],
-            tipPrefix: 'Codes in boxes 1-4 + 6-8 will be the same as before',
-            steps: [
-              'Save the game',
-              'Execute the code with your ace species.',
-              'A Metang called "WELDR" should have appeared in Box 10 Slot 22! If it stayed a bad egg, check your Code 3 for errors, otherwise you\'ll likely have to start from the beginning.',
-              'Move WELDR to box 14 slot 28',
-              'Catch any Pokemon and name it "J7VC"',
-              'Place this in box 14 slot 29.',
-              'DONE! Now go to the last tab for the test code to confirm WELDR is working.'
-            ],
-            showImages: true
-          }
-        }
+      // Box 6 override by game key
+      var code1Box6 = {
+        EM:     'R T I D Y J m ?',
+        FRLG:   '_ S I H I . I q',
+        FRLGSW: '_ S I H I . I q',
+        RS_EN:  '_ o o D I F I U',
+        RS_NEL: '_ o o H I . I g'
       };
 
-      function buildFRLGPanelHTML(config){
+      // Notes per box number (code 1)
+      var code1Notes = {
+        1: 'zero (0), not O',
+        7: 'required: two trailing spaces'
+      };
+
+      // Code 2: only box 5 + boxes 9-14 change
+      var code2Rows = [
+        {box: 5,  text: '_ H B … c L Q ♂'},
+        {box: 9,  text: 'I H F J D U I G', note: 'skip boxes 6-8!', highlightBoxNum: true},
+        {box: 10, text: 'C U J <span class="char-red">O</span> I L L G', note: 'upper case O (O)'},
+        {box: 11, text: 'H N K <span class="char-red">O</span> I J F Q', note: 'upper case O (O)'},
+        {box: 12, text: 'H N L <span class="char-red">O</span> L T I F', note: 'upper case O (O)'},
+        {box: 13, text: 'D T M F J L P F'},
+        {box: 14, text: 'H G L H G Q G M'}
+      ];
+
+      var code2Box5 = {
+        modern: '_ H B … c L Q ♂',
+        old:    '_ H B … e L Q ♂'
+      };
+
+      // Code 3: only box 5 + boxes 9-14 change
+      var code3Rows = [
+        {box: 5,  text: '_ H B … 6 L Q ♂'},
+        {box: 9,  text: 'H K G F I F H U', note: 'skip boxes 6-8!', highlightBoxNum: true},
+        {box: 10, text: 'H R E G B U G H'},
+        {box: 11, text: 'E G D U E L D T'},
+        {box: 12, text: 'D R H U I F I F'},
+        {box: 13, text: 'E F D K K I C H'},
+        {box: 14, text: 'K L C I I H G F'}
+      ];
+
+      var code3Box5 = {
+        modern: '_ H B … 6 L Q ♂',
+        old:    '_ H B … 8 L Q ♂'
+      };
+
+      // Nickname per game for the sacrificial pokemon
+      var nicknameByGame = {
+        EM:     'J - F K V C',
+        FRLG:   'J 7 V C',
+        FRLGSW: 'J 7 V C',
+        RS_EN:  '♀ 7 V C',
+        RS_NEL: '♀ 7 V C'
+      };
+
+      /* ============================================================
+         STATE
+         ============================================================ */
+      var selectedGame = 'EM';
+      var selectedMode = null;  // 'modern' or 'old'
+      var selectedLang = null;  // 'RS_EN' or 'RS_NEL' (only used for RS)
+      var instructionsAcknowledged = false;
+
+      /* ============================================================
+         DOM REFERENCES
+         ============================================================ */
+      var modeButtons = document.querySelectorAll('.mode-btn');
+      var langButtons = document.querySelectorAll('.lang-btn');
+      var tabs = document.querySelectorAll('.tab');
+      var panels = document.querySelectorAll('.code-panel');
+      var gameSelect = document.getElementById('gameSelect');
+      var instrEl = document.getElementById('instructions');
+      var modeContainer = document.querySelector('.mode-select');
+      var langContainer = document.querySelector('.lang-select');
+
+      /* ============================================================
+         HELPERS
+         ============================================================ */
+
+      // Emulator mode: 'modern' or 'old'
+      function effectiveMode(){
+        if(selectedGame === 'FRLGSW') return 'modern';
+        return selectedMode || 'modern';
+      }
+
+      // Game key for Box 6 / nickname lookups
+      function effectiveGameKey(){
+        if(selectedGame === 'RS') return selectedLang || 'RS_EN';
+        return selectedGame;
+      }
+
+      // Whether all required selections are made
+      function isReady(){
+        if(selectedGame === 'FRLGSW') return true;
+        if(selectedGame === 'RS') return !!selectedMode && !!selectedLang;
+        return !!selectedMode;
+      }
+
+      function fmtBox(n){
+        return n < 10 ? 'Box  ' + n + ':    ' : 'Box ' + n + ':    ';
+      }
+
+      function fmtBoxRed(n){
+        return n < 10
+          ? 'Box  <span class="char-red">' + n + '</span>:    '
+          : 'Box <span class="char-red">' + n + '</span>:    ';
+      }
+
+      function getCode1Rows(){
+        var mode = effectiveMode();
+        // RS always uses the 'old' variant for Box 1 and Box 5
+        var code1Mode = (selectedGame === 'RS') ? 'old' : mode;
+        var gameKey = effectiveGameKey();
+        return code1Base.map(function(r){
+          var text = r.text;
+          if(r.box === 1 && code1Box1[code1Mode]) text = code1Box1[code1Mode];
+          if(r.box === 5 && code1Box5[code1Mode]) text = code1Box5[code1Mode];
+          if(r.box === 6 && code1Box6[gameKey]) text = code1Box6[gameKey];
+          var note = code1Notes[r.box] || '';
+          return {box: r.box, text: text, note: note};
+        });
+      }
+
+      function getCode2Rows(){
+        var mode = effectiveMode();
+        return code2Rows.map(function(r){
+          var text = r.text;
+          if(r.box === 5 && code2Box5[mode]) text = code2Box5[mode];
+          return {box: r.box, text: text, note: r.note || '', hasHTML: r.text.indexOf('<') >= 0, highlightBoxNum: !!r.highlightBoxNum};
+        });
+      }
+
+      function getCode3Rows(){
+        var mode = effectiveMode();
+        return code3Rows.map(function(r){
+          var text = r.text;
+          if(r.box === 5 && code3Box5[mode]) text = code3Box5[mode];
+          return {box: r.box, text: text, note: r.note || '', hasHTML: r.text.indexOf('<') >= 0, highlightBoxNum: !!r.highlightBoxNum};
+        });
+      }
+
+      /* ============================================================
+         PANEL BUILDERS
+         ============================================================ */
+
+      function buildPanelHTML(rows, useHTML){
         var html = '<div class="panel-inner"><div class="codes-box">';
-        config.rows.forEach(function(r){
-          html += '<div class="code-line"><span class="code-text">' + r.text + '</span></div>';
+        rows.forEach(function(r){
+          var lineHTML;
+          if(r.highlightBoxNum){
+            lineHTML = fmtBoxRed(r.box) + ((useHTML && r.hasHTML) ? r.text : escHTML(r.text));
+          } else if(useHTML && r.hasHTML){
+            lineHTML = fmtBox(r.box) + r.text;
+          } else {
+            lineHTML = escHTML(fmtBox(r.box) + r.text);
+          }
+          html += '<div class="code-line"><span class="code-text">' + lineHTML + '</span></div>';
         });
         html += '</div><div class="notes-col">';
-        config.rows.forEach(function(r){
+        rows.forEach(function(r){
           if(r.note){
-            html += '<div class="note" contenteditable="false" tabindex="-1">' + r.note + '</div>';
+            html += '<div class="note" contenteditable="false" tabindex="-1">' + escHTML(r.note) + '</div>';
           } else {
             html += '<div class="note locked" contenteditable="false" tabindex="-1"></div>';
           }
         });
         html += '</div><div class="controls-col">';
-        config.rows.forEach(function(){
+        rows.forEach(function(){
           html += '<div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>';
         });
         html += '</div></div>';
-        html += '<div class="panel-tip">' + config.tipPrefix;
-        if(config.steps){
-          html += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
-          config.steps.forEach(function(s){ html += '<li>' + s + '</li>'; });
-          html += '</ul>';
-        }
-        html += '</div>';
-        if(config.finalWarning){
-          html += '<div class="panel-tip">' + config.finalWarning + '</div>';
-        }
-        if(config.showImages){
-          html += '<div class="remember-image" style="margin-top:10px;">';
-          if(selectedGame === 'FRLGSW'){
-            html += '<img src="../src/Images/WELDR base64 code FRLG Switch.png" alt="WELDR base64 code" />';
-          } else {
-            html += '<img src="../src/Images/WELDR base64 code FRLG.png" alt="WELDR base64 code" />';
-          }
-          html += '<img src="../src/Images/Sacrificial Pokemon Base64-FRLG.png" alt="Sacrificial Pokemon base64" />';
-          html += '</div>';
-        }
         return html;
       }
 
-      let selectedGame = 'EM'; // default: Emerald
-      let selectedMode = null;
-
-      const modeButtons = document.querySelectorAll('.mode-btn');
-      // Track whether the instructions have been acknowledged (opened) at least once.
-      let instructionsAcknowledged = false;
-      const instrEl = document.getElementById('instructions');
-      if(instrEl){
-        instrEl.addEventListener('toggle', function onInstrToggle(){
-          if(instrEl.open){
-            instructionsAcknowledged = true;
-            modeButtons.forEach(b=>b.classList.remove('requires-instructions'));
-            instrEl.removeEventListener('toggle', onInstrToggle);
-          }
-        });
+      function escHTML(s){
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       }
 
-      function updateCode4NotesForGame(){
-        const panel = document.getElementById('code4');
-        if(!panel) return;
+      function renderAllPanels(){
+        if(!isReady()) return;
+        var gameKey = effectiveGameKey();
+        var nickname = nicknameByGame[gameKey] || nicknameByGame.EM;
 
-        const notes = panel.querySelectorAll('.notes-col .note');
-        if(!notes || notes.length === 0) return;
+        // --- Code 1 ---
+        var p1 = document.getElementById('code1');
+        var rows1 = getCode1Rows();
+        var html1 = buildPanelHTML(rows1, false);
+        html1 += '<div class="remember-list"><ul>';
+        html1 += '<li>All other boxes should NOT be typed with spaces at the end; end the box name early instead.</li>';
+        html1 += '<li>Save the game</li>';
+        if(selectedGame === 'EM'){
+          html1 += '<li>Execute the code with your stable ace species with no trailing spaces. If you are using a stable or metastable THUMB species, you NEED a THUMB -&gt; ARM bootstrap bad egg anywhere from box 12 slot 4.</li>';
+        } else {
+          html1 += '<li>Execute the code with your ace species.</li>';
+        }
+        html1 += '<li>After this code, a bad egg should have appeared in Box 10 Slot 22. Don\'t look at its summary!</li>';
+        html1 += '</ul></div>';
+        if(selectedGame === 'EM'){
+          html1 += '<div class="remember-image">';
+          html1 += '<img src="../src/Images/bad egg base64 code 1_2.png" alt="Bad egg example 2" />';
+          html1 += '<img src="../src/Images/bad egg base64 code 1_1.png" alt="Bad egg example 1" />';
+          html1 += '</div>';
+        }
+        p1.innerHTML = html1;
+        wirePanel(p1);
 
-        // preserve original text/editable state
-        notes.forEach((note)=>{
-          if(note.dataset.origText === undefined) note.dataset.origText = note.textContent;
-          if(note.dataset.origEditable === undefined) note.dataset.origEditable = note.getAttribute('contenteditable') || 'true';
-        });
+        // --- Code 2 ---
+        var p2 = document.getElementById('code2');
+        var rows2 = getCode2Rows();
+        var html2 = buildPanelHTML(rows2, true);
+        html2 += '<div class="panel-tip">Codes in boxes 1-4 + 6-8 will be the same as before';
+        html2 += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
+        html2 += '<li>Save the game</li>';
+        if(selectedGame === 'EM'){
+          html2 += '<li>Execute the code with your stable ace species with no trailing spaces.</li>';
+        } else {
+          html2 += '<li>Execute the code with your ace species.</li>';
+        }
+        html2 += '<li>After executing this code, no visible change will happen to the egg. Keep going with code 3!</li>';
+        html2 += '</ul></div>';
+        p2.innerHTML = html2;
+        wirePanel(p2);
 
-        // Box 8 corresponds to the first note in this panel (index 0)
+        // --- Code 3 ---
+        var p3 = document.getElementById('code3');
+        var rows3 = getCode3Rows();
+        var html3 = buildPanelHTML(rows3, true);
+        html3 += '<div class="panel-tip">Codes in boxes 1-4 + 6-8 will be the same as before';
+        html3 += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
+        html3 += '<li>Save the game</li>';
+        if(selectedGame === 'EM'){
+          html3 += '<li>Execute the code with your stable ace species with no trailing spaces.</li>';
+        } else {
+          html3 += '<li>Execute the code with your ace species.</li>';
+        }
+        html3 += '<li>A Metang called "WELDR" should have appeared in Box 10 Slot 22! If it stayed a bad egg, check your Code 3 for errors, otherwise you\'ll likely have to start from the beginning.</li>';
+        html3 += '<li>Move WELDR to box 14 slot 28</li>';
+        html3 += '<li>Catch any Pokemon and name it "' + escHTML(nickname) + '"</li>';
+        html3 += '<li>Place this in box 14 slot 29.</li>';
+        html3 += '<li>DONE! Now go to the Test code tab to confirm WELDR is working.</li>';
+        html3 += '</ul></div>';
+        html3 += '<div class="panel-tip">IMPORTANT: If you want to execute regular ACE codes in the future, make sure to move WELDR and the sacrificial Pokemon out of box 14 first!</div>';
+        // images
+        html3 += '<div class="remember-image" style="margin-top:10px;">';
         if(selectedGame === 'FRLGSW'){
-          const hint = 'lowercase L (l)';
-          if(notes[0]){
-            notes[0].textContent = hint;
-            notes[0].setAttribute('contenteditable','false');
-            notes[0].setAttribute('tabindex','-1');
-            notes[0].classList.add('locked');
-          }
+          html3 += '<img src="../src/Images/WELDR base64 code FRLG Switch.png" alt="WELDR base64 code" />';
+        } else if(selectedGame === 'FRLG'){
+          html3 += '<img src="../src/Images/WELDR base64 code FRLG.png" alt="WELDR base64 code" />';
+        } else if(selectedGame === 'RS'){
+          html3 += '<img src="../src/Images/WELDR base64 code RS.png" alt="WELDR base64 code" />';
         } else {
-          // restore originals for non-FR/LG Switch games
-          notes.forEach((note)=>{
-            note.textContent = note.dataset.origText;
-            if(note.dataset.origEditable === 'true') note.setAttribute('contenteditable','true');
-            else note.setAttribute('contenteditable','false');
-            note.removeAttribute('tabindex');
-            note.classList.remove('locked');
-          });
+          html3 += '<img src="../src/Images/WELDR base64 code.png" alt="WELDR base64 code" />';
         }
-      }
-
-      modeButtons.forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-          const m = btn.dataset.mode;
-          const instr = document.getElementById('instructions');
-          // If the instructions haven't been acknowledged yet, ignore clicks.
-          if(!instructionsAcknowledged){
-            return;
-          }
-          // Instructions acknowledged: select the mode and close the details if open.
-          setMode(m);
-          if(instr) instr.open = false;
-        });
-      });
-
-      // Game selector wiring
-      const gameSelect = document.getElementById('gameSelect');
-      if(gameSelect){
-        gameSelect.addEventListener('change', ()=>{
-          selectedGame = gameSelect.value || 'EM';
-          refreshModeUIForGame();
-          // update visible panels to reflect game selection
-          updateAllPanelsForGame();
-          // update instructions content for selected game
-          updateInstructionsForGame();
-          // re-run wrapping so styling updates
-          if(typeof wrapCaseChars==='function') try{ wrapCaseChars(); }catch(e){}
-        });
-      }
-
-      function refreshModeUIForGame(){
-        const modeContainer = document.querySelector('.mode-select');
-        // Only require an explicit mode selection for classic FR/LG (console vs old emulator).
-        // FR/LG Switch uses the built-in Switch emulator and should default to the Console/mGBA mapping.
-        const modeRequired = (selectedGame === 'FRLG');
-        if(modeContainer) modeContainer.style.display = modeRequired ? '' : 'none';
-
-        if(modeRequired){
-          if(!selectedMode){
-            tabs.forEach(x=>x.setAttribute('disabled','true'));
-            tabs.forEach(x=>x.classList.remove('active'));
-            panels.forEach(p=>p.style.display='none');
-          }
-          return;
-        }
-
-        tabs.forEach(x=>x.removeAttribute('disabled'));
-        const activeTab = document.querySelector('.tab.active');
-        if(activeTab){
-          panels.forEach(p=>p.style.display='none');
-          const activePanel = document.getElementById(activeTab.dataset.tab);
-          if(activePanel) activePanel.style.display = 'block';
-          return;
-        }
-        if(!activeTab){
-          const firstPanel = document.getElementById('code1');
-          if(firstPanel) firstPanel.style.display = 'block';
-          const firstTab = document.querySelector('.tab[data-tab="code1"]');
-          if(firstTab) firstTab.classList.add('active');
-        }
-      }
-
-      function updateAllPanelsForGame(){
-        const isFRLG = selectedGame === 'FRLG' || selectedGame === 'FRLGSW';
-
-        // --- Tab visibility: FRLG uses code1, code2, code3, and Test code tabs ---
-        tabs.forEach(function(t){
-          var tabId = t.dataset.tab;
-          var shouldHide = false;
-          if(isFRLG){
-            shouldHide = tabId === 'code4' || tabId === 'code5';
-          } else {
-            shouldHide = tabId === 'codeTest';
-          }
-
-          if(shouldHide){
-            t.style.display = 'none';
-            if(t.classList.contains('active')){
-              t.classList.remove('active');
-              var hiddenPanel = document.getElementById(tabId);
-              if(hiddenPanel) hiddenPanel.style.display = 'none';
-              var t1 = document.querySelector('.tab[data-tab="code1"]');
-              if(t1) t1.classList.add('active');
-              var p1 = document.getElementById('code1');
-              if(p1) p1.style.display = 'block';
-            }
-          } else {
-            t.style.display = '';
-          }
-        });
-
-        // --- Dynamic panels for FRLG code2/code3 ---
-        if(isFRLG){
-          var frlgMode = selectedMode === 'old' ? 'old' : 'modern';
-          var panelConfigs = frlgPanelConfigs[frlgMode] || frlgPanelConfigs.modern;
-          ['code2','code3'].forEach(function(id){
-            var panel = document.getElementById(id);
-            if(!panel) return;
-            if(!panel.dataset.origHTML) panel.dataset.origHTML = panel.innerHTML;
-            var config = panelConfigs[id];
-            if(config){
-              panel.innerHTML = buildFRLGPanelHTML(config);
-              wirePanel(panel);
-            }
-          });
-          // Ensure code4/code5 panels are hidden
-          ['code4','code5'].forEach(function(id){
-            var panel = document.getElementById(id);
-            if(panel) panel.style.display = 'none';
-          });
-          var codeTestPanel = document.getElementById('codeTest');
-          if(codeTestPanel && !document.querySelector('.tab[data-tab="codeTest"].active')) codeTestPanel.style.display = 'none';
+        if(selectedGame === 'FRLG' || selectedGame === 'FRLGSW'){
+          html3 += '<img src="../src/Images/Sacrificial Pokemon Base64-FRLG.png" alt="Sacrificial Pokemon base64" />';
+        } else if(selectedGame === 'RS'){
+          html3 += '<img src="../src/Images/Sacrificial Pokemon Base64 RS.png" alt="Sacrificial Pokemon base64" />';
         } else {
-          // Restore original HTML for code2/code3 when switching back to EM
-          ['code2','code3'].forEach(function(id){
-            var panel = document.getElementById(id);
-            if(!panel || !panel.dataset.origHTML) return;
-            panel.innerHTML = panel.dataset.origHTML;
-            wirePanel(panel);
-            delete panel.dataset.origHTML;
-          });
-          var codeTestPanel = document.getElementById('codeTest');
-          if(codeTestPanel) codeTestPanel.style.display = 'none';
+          html3 += '<img src="../src/Images/Sacrificial Pokemon Base64.png" alt="Sacrificial Pokemon base64" />';
         }
+        html3 += '</div>';
+        p3.innerHTML = html3;
+        wirePanel(p3);
 
-        // --- Update code-text content from maps ---
-        for(var i=1;i<=5;i++){
-          var panel = document.getElementById('code'+i);
-          if(!panel) continue;
-          // For FRLG, code2/code3 are dynamically generated and code4/5 hidden; only code1 needs map updates
-          if(isFRLG && i > 1) continue;
-          var texts = panel.querySelectorAll('.code-text');
-          texts.forEach(function(el){
-            var m = el.textContent.match(/^Box\s+(\d+):/);
-            if(!m) return;
-            var boxNum = Number(m[1]);
-            if(isFRLG){
-              var mapMode = selectedMode === 'old' ? 'old' : 'modern';
-              var mapForPanel = (frlgMap[mapMode] && frlgMap[mapMode]['code'+i]) || {};
-              if(mapForPanel[boxNum]){
-                el.textContent = mapForPanel[boxNum];
-                return;
-              }
-            }
-            // Default: for Emerald (or when no FRLG mapping), restore original text from DOM dataset if present
-            if(el.dataset.origText) el.textContent = el.dataset.origText;
-            // If Emerald + a mode is selected, ensure Box 8 reflects the chosen mode (modern / old)
-            if(selectedGame === 'EM' && selectedMode && boxNum === 8){
-              if(box8Map[selectedMode] && box8Map[selectedMode][i-1]){
-                el.textContent = 'Box  8:    ' + box8Map[selectedMode][i-1];
-              }
-            }
-          });
-        }
-        updateCode1NotesForGame();
-        updateCode4NotesForGame();
-        updateStepCommentsForGame();
-        // Ensure notes locking state updates after any per-game note changes
-        if(typeof lockEmptyNotes==='function') try{ lockEmptyNotes(); }catch(e){}
-        // Additionally swap code5 images when Emerald selected (code5 hidden for FRLG)
-        if(!isFRLG){
-          var panel5 = document.getElementById('code5');
-          if(panel5){
-            panel5.querySelectorAll('img').forEach(function(img){
-              if(img.dataset.origSrc) img.src = img.dataset.origSrc;
-            });
-            var sac = panel5.querySelector('#sacrificialName');
-            if(sac) sac.textContent = 'Catch any Pokemon and name it "J-FKVC"';
-          }
-        }
+        // --- Test code ---
+        var pT = document.getElementById('codeTest');
+        var htmlT = '<div class="panel-inner"><div class="codes-box">';
+        htmlT += '<div class="code-line"><span class="code-text">Box  1:    A Q D ? P w _ _</span></div>';
+        htmlT += '</div><div class="notes-col">';
+        htmlT += '<div class="note" contenteditable="false" tabindex="-1">two spaces at the end!</div>';
+        htmlT += '</div><div class="controls-col">';
+        htmlT += '<div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>';
+        htmlT += '</div></div>';
+        htmlT += '<div class="panel-tip">Execute this code to confirm WELDR is working:';
+        htmlT += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
+        htmlT += '<li>Boxes 2-14 can be anything, they do not affect the test code.</li>';
+        htmlT += '<li>Execute this test code with your ace species.</li>';
+        htmlT += '<li>It should generate a Bulbasaur in box 14 slot 30. Once confirmed, either soft reset the game or release the bulbasaur. It might crash your game if you use it.</li>';
+        htmlT += '<li>If you get a bad egg, it usually means the code is typed wrong. You can also check for ghost data in boxes 13 and 14 by entering deposit mode, and selecting a pokemon to deposit. The first box will be box 1, go left once to reach box 14. It should say 2/30. Now check Box 13, it should also say 2/30, but might say 3/30 if you have an invisible bad egg in slot 8, but that can be ignored. If you still get bad eggs, WELDR was probably typed incorrectly, and you should move WELDR and the sacrificial Pokemon out and redo all the codes. After creating a new WELDR, you may delete the old one.</li>';
+        htmlT += '<li>After successfully creating and removing the Bulbasaur, you are ready to use my Pokémon Builder website to spawn any Pokémon you want.</li>';
+        htmlT += '<li>If you want to execute regular ACE codes in the future, you must move WELDR and the extra species out of box 14, and back if you want to use BASE64 codes again.</li>';
+        htmlT += '</ul></div>';
+        htmlT += '<div class="remember-image" style="margin-top:10px;">';
+        htmlT += '<img src="../src/Images/Test bulba code base64.png" alt="Test code placeholder image 1" />';
+        htmlT += '<img src="../src/Images/Test Bulba base64.png" alt="Test code placeholder image 2" />';
+        htmlT += '</div>';
+        pT.innerHTML = htmlT;
+        wirePanel(pT);
+
+        // Apply character wrapping
+        wrapCaseChars();
       }
 
-      function updateCode1NotesForGame(){
-        const panel = document.getElementById('code1');
-        if(!panel) return;
-
-        const notes = panel.querySelectorAll('.notes-col .note');
-        const isFRLG = selectedGame === 'FRLG' || selectedGame === 'FRLGSW';
-        const frlgNotes = {1: 'zero (0), not O', 7: 'required: two trailing spaces'};
-
-        notes.forEach((note, idx)=>{
-          if(note.dataset.origText === undefined) note.dataset.origText = note.textContent;
-
-          const boxNum = idx + 1;
-          if(isFRLG){
-            if(frlgNotes[boxNum]){
-              note.textContent = frlgNotes[boxNum];
-              note.setAttribute('contenteditable','false');
-              note.setAttribute('tabindex','-1');
-              note.classList.remove('locked');
-            } else {
-              note.textContent = '';
-            }
-            return;
-          }
-
-          note.textContent = note.dataset.origText;
-        });
-      }
-
-      function updateStepCommentsForGame(){
-        const isFRLG = selectedGame === 'FRLG' || selectedGame === 'FRLGSW';
-        const frlgTextById = {
-          code1ExecComment: 'Execute the code with your ace species.',
-          code1EggComment: 'After this code, a bad egg should have appeared in Box 10 Slot 22. Don\'t look at its summary!',
-          code2ExecComment: 'Execute the code with your ace species.',
-          code3ExecComment: 'Execute the code with your ace species.',
-          code4ExecComment: 'Execute the code with your ace species.',
-          code5ExecComment: 'Execute the code with your ace species.'
-        };
-
-        Object.entries(frlgTextById).forEach(([id, frlgText])=>{
-          const el = document.getElementById(id);
-          if(!el) return;
-          if(el.dataset.origText === undefined) el.dataset.origText = el.textContent;
-
-          if(isFRLG) el.textContent = frlgText;
-          else el.textContent = el.dataset.origText;
-        });
-
-        // Hide Code 4 Nest Ball note + image for FR/LG and FR/LG Switch.
-        const code4NestBallComment = document.getElementById('code4NestBallComment');
-        if(code4NestBallComment){
-          if(code4NestBallComment.dataset.origDisplay === undefined) code4NestBallComment.dataset.origDisplay = code4NestBallComment.style.display;
-          code4NestBallComment.style.display = isFRLG ? 'none' : code4NestBallComment.dataset.origDisplay;
-        }
-
-        const code4NestBallImage = document.getElementById('code4NestBallImage');
-        if(code4NestBallImage){
-          if(code4NestBallImage.dataset.origDisplay === undefined) code4NestBallImage.dataset.origDisplay = code4NestBallImage.style.display;
-          code4NestBallImage.style.display = isFRLG ? 'none' : code4NestBallImage.dataset.origDisplay;
-        }
-
-        const code1BadEggImage1 = document.getElementById('code1BadEggImage1');
-        if(code1BadEggImage1){
-          if(code1BadEggImage1.dataset.origDisplay === undefined) code1BadEggImage1.dataset.origDisplay = code1BadEggImage1.style.display;
-          code1BadEggImage1.style.display = isFRLG ? 'none' : code1BadEggImage1.dataset.origDisplay;
-        }
-
-        const code1BadEggImage2 = document.getElementById('code1BadEggImage2');
-        if(code1BadEggImage2){
-          if(code1BadEggImage2.dataset.origDisplay === undefined) code1BadEggImage2.dataset.origDisplay = code1BadEggImage2.style.display;
-          code1BadEggImage2.style.display = isFRLG ? 'none' : code1BadEggImage2.dataset.origDisplay;
-        }
-
-        // Show/hide FRLG-specific "change box names" comment
-        const code1ChangeBoxComment = document.getElementById('code1ChangeBoxComment');
-        if(code1ChangeBoxComment){
-          code1ChangeBoxComment.style.display = isFRLG ? '' : 'none';
-        }
-
-        const code1NoTrailingSpacesComment = document.getElementById('code1NoTrailingSpacesComment');
-        if(code1NoTrailingSpacesComment){
-          code1NoTrailingSpacesComment.style.display = isFRLG ? '' : 'none';
-        }
-      }
-
-      function applySwitchCode1Visibility(){
-        const panel = document.getElementById('code1');
-        if(!panel) return;
-        const codes = panel.querySelectorAll('.codes-box .code-line');
-        const notes = panel.querySelectorAll('.notes-col .note');
-        const controls = panel.querySelectorAll('.controls-col .controls');
-        // FR/LG Switch now uses full per-panel mappings, so keep all code1 rows visible.
-        const allowedSwitchBoxes = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
-
-        codes.forEach((row, idx)=>{
-          const textEl = row.querySelector('.code-text');
-          const m = textEl && textEl.textContent ? textEl.textContent.match(/^Box\s+(\d+):/) : null;
-          const boxNum = m ? Number(m[1]) : NaN;
-          const showRow = selectedGame !== 'FRLGSW' || allowedSwitchBoxes.has(boxNum);
-
-          row.style.display = showRow ? '' : 'none';
-          if(notes[idx]) notes[idx].style.display = showRow ? '' : 'none';
-          if(controls[idx]) controls[idx].style.display = showRow ? '' : 'none';
-        });
-      }
-
-      function updateInstructionsForGame(){
-        const instrEM = document.querySelector('.instr-EM');
-        const instrFR = document.querySelector('.instr-FRLG');
-        const instrFRSW = document.querySelector('.instr-FRLGSW');
-        if(!instrEM || !instrFR || !instrFRSW) return;
-        if(selectedGame === 'FRLG'){
-          instrEM.style.display = 'none';
-          instrFR.style.display = '';
-          instrFRSW.style.display = 'none';
-        } else if(selectedGame === 'FRLGSW'){
-          instrEM.style.display = 'none';
-          instrFR.style.display = 'none';
-          instrFRSW.style.display = '';
-        } else {
-          instrEM.style.display = '';
-          instrFR.style.display = 'none';
-          instrFRSW.style.display = 'none';
-        }
-      }
-
-      function setMode(m){
-        selectedMode = m;
-        // hide the initial instructions when a mode is chosen
-        const instr = document.getElementById('instructions'); if(instr) instr.open = false;
-        modeButtons.forEach(b=>b.classList.toggle('active', b.dataset.mode===m));
-        // enable tabs and show first panel
-        tabs.forEach(x=>x.removeAttribute('disabled'));
-        updateBox8ForMode(m);
-        // update panels (including images) for current game selection
-        updateAllPanelsForGame();
-        updateInstructionsForGame();
-        // re-run character-wrapping after replacing Box 8 text so lowercase letters get styled
-        if(typeof wrapCaseChars==='function') try{ wrapCaseChars(); }catch(e){}
-        // show first tab panel
-        tabs.forEach(x=>x.classList.remove('active'));
-        panels.forEach(p=>p.style.display='none');
-        const first = document.getElementById('code1');
-        if(first) first.style.display='block';
-        const t0 = document.querySelector('.tab[data-tab="code1"]');
-        if(t0) t0.classList.add('active');
-      }
-
-      function updateBox8ForMode(mode){
-        for(let i=1;i<=5;i++){
-          const panel = document.getElementById('code'+i);
-          if(!panel) continue;
-          const texts = panel.querySelectorAll('.code-text');
-          texts.forEach(el=>{
-            if(/^Box\s+8:/.test(el.textContent)){
-              // store original text if not stored
-              if(!el.dataset.origText) el.dataset.origText = el.textContent;
-              // If FRLG selected, prefer FRLG mappings (updateAllPanelsForGame will handle)
-              if(selectedGame === 'FRLG' || selectedGame === 'FRLGSW') return;
-              el.textContent = 'Box  8:    ' + box8Map[mode][i-1];
-            } else {
-              if(!el.dataset.origText) el.dataset.origText = el.textContent;
-            }
-          });
-        }
-      }
-
-      const tabs = document.querySelectorAll('.tab');
-      // Preserve original code text for restoration when switching between games
-      document.querySelectorAll('.code-text').forEach(el=>{ if(!el.dataset.origText) el.dataset.origText = el.textContent; });
-      const panels = document.querySelectorAll('.code-panel');
-      if(gameSelect && gameSelect.value) selectedGame = gameSelect.value;
-      refreshModeUIForGame();
-      updateAllPanelsForGame();
-      updateInstructionsForGame();
-      tabs.forEach(t=>t.addEventListener('click', ()=>{
-        // Only require a mode selection when the selected game is FR/LG.
-        if(selectedGame === 'FRLG' && !selectedMode) return; // don't switch tabs until a mode is chosen for FR/LG
-        tabs.forEach(x=>x.classList.remove('active'));
-        panels.forEach(p=>p.style.display='none');
-        t.classList.add('active');
-        document.getElementById(t.dataset.tab).style.display='block';
-      }));
-
-      // If a mode was previously selected, apply it now
-      if(selectedMode){
-        setMode(selectedMode);
-      }
-
-      // line controls: toggle highlight / done and editable notes
+      /* ============================================================
+         WIRING – highlight / done buttons + notes
+         ============================================================ */
       function wirePanel(panel){
-        const codes = panel.querySelectorAll('.codes-box .code-line');
-        const notes = panel.querySelectorAll('.notes-col .note');
-        const controls = panel.querySelectorAll('.controls-col .controls');
-        controls.forEach((ctrl, i)=>{
-          const btns = ctrl.querySelectorAll('button');
-          btns.forEach(btn=>btn.addEventListener('click', ()=>{
-            const action = btn.dataset.action;
-            const codeEl = codes[i];
-            if(!codeEl) return;
-            if(action==='toggle'){
-              codeEl.classList.toggle('highlight');
-              btn.classList.toggle('active');
-            } else if(action==='done'){
-              codeEl.classList.toggle('done');
-              btn.classList.toggle('active');
-            }
-            saveState();
-          }));
-        });
-        // save notes on input
-        notes.forEach((n,i)=>{
-          n.addEventListener('input', saveState);
-          n.addEventListener('blur', saveState);
-        });
-      }
-      document.querySelectorAll('.code-panel').forEach(panel=>wirePanel(panel));
-
-      function saveState(){ /* persistence disabled: no-op */ }
-      function loadState(){ /* persistence disabled: no-op */ }
-
-      // Lock any empty helper notes so they cannot be edited or focused
-      function lockEmptyNotes(){
-        document.querySelectorAll('.notes-col .note').forEach(n=>{
-          if(!n.textContent || !n.textContent.trim()){
-            n.setAttribute('contenteditable','false');
-            n.setAttribute('tabindex','-1');
-            n.classList.add('locked');
-          } else {
-            n.classList.remove('locked');
-          }
+        var codes = panel.querySelectorAll('.codes-box .code-line');
+        var controls = panel.querySelectorAll('.controls-col .controls');
+        controls.forEach(function(ctrl, i){
+          var btns = ctrl.querySelectorAll('button');
+          btns.forEach(function(btn){
+            btn.addEventListener('click', function(){
+              var action = btn.dataset.action;
+              var codeEl = codes[i];
+              if(!codeEl) return;
+              if(action==='toggle'){
+                codeEl.classList.toggle('highlight');
+                btn.classList.toggle('active');
+              } else if(action==='done'){
+                codeEl.classList.toggle('done');
+                btn.classList.toggle('active');
+              }
+            });
+          });
         });
       }
 
-      // run once on init
-      lockEmptyNotes();
-      // wrap letters so lowercase can be styled slightly desaturated
+      /* ============================================================
+         CHARACTER WRAPPING – lowercase dimmed
+         ============================================================ */
       function wrapCaseChars(){
-        document.querySelectorAll('.code-text').forEach(el=>{
-          const children = Array.from(el.childNodes);
-          children.forEach(node=>{
-            if(node.nodeType !== 3) return; // leave existing elements (e.g. .char-red) alone
-            const text = node.nodeValue;
+        document.querySelectorAll('.code-text').forEach(function(el){
+          var children = Array.from(el.childNodes);
+          children.forEach(function(node){
+            if(node.nodeType !== 3) return;
+            var text = node.nodeValue;
             if(!text) return;
-            const frag = document.createDocumentFragment();
-            for(const ch of text){
+            var frag = document.createDocumentFragment();
+            for(var ci = 0; ci < text.length; ci++){
+              var ch = text[ci];
               if(/[a-z]/.test(ch)){
-                const s = document.createElement('span');
+                var s = document.createElement('span');
                 s.className = 'char-lower';
                 s.textContent = ch;
                 frag.appendChild(s);
               } else if(/[A-Z]/.test(ch)){
-                const s = document.createElement('span');
-                s.className = 'char-upper';
-                s.textContent = ch;
-                frag.appendChild(s);
+                var s2 = document.createElement('span');
+                s2.className = 'char-upper';
+                s2.textContent = ch;
+                frag.appendChild(s2);
               } else {
                 frag.appendChild(document.createTextNode(ch));
               }
@@ -1060,9 +566,150 @@
           });
         });
       }
-      wrapCaseChars();
-      // ensure instructions reflect default game on load
-      if(typeof updateInstructionsForGame==='function') try{ updateInstructionsForGame(); }catch(e){}
+
+      /* ============================================================
+         MODE BUTTONS + GAME SELECT
+         ============================================================ */
+
+      // Instructions acknowledgement gate
+      if(instrEl){
+        instrEl.addEventListener('toggle', function onInstrToggle(){
+          if(instrEl.open){
+            instructionsAcknowledged = true;
+            modeButtons.forEach(function(b){ b.classList.remove('requires-instructions'); });
+            langButtons.forEach(function(b){ b.classList.remove('requires-instructions'); });
+            instrEl.removeEventListener('toggle', onInstrToggle);
+          }
+        });
+      }
+
+      function refreshModeUI(){
+        var isRS = selectedGame === 'RS';
+        var isFRLGSW = selectedGame === 'FRLGSW';
+
+        // FR/LG Switch: hide both selects, always ready
+        if(isFRLGSW){
+          if(modeContainer) modeContainer.style.display = 'none';
+          if(langContainer) langContainer.style.display = 'none';
+          tabs.forEach(function(t){ t.removeAttribute('disabled'); });
+          ensureActiveTab();
+          return;
+        }
+
+        // All other games: show Console/mGBA | Old Emulator
+        if(modeContainer) modeContainer.style.display = '';
+        // RS also shows English | Non-English
+        if(langContainer) langContainer.style.display = isRS ? '' : 'none';
+
+        // Update button active states
+        modeButtons.forEach(function(b){ b.classList.toggle('active', !!selectedMode && b.dataset.mode === selectedMode); });
+        langButtons.forEach(function(b){ b.classList.toggle('active', !!selectedLang && b.dataset.lang === selectedLang); });
+
+        if(!isReady()){
+          tabs.forEach(function(t){ t.setAttribute('disabled','true'); });
+          tabs.forEach(function(t){ t.classList.remove('active'); });
+          panels.forEach(function(p){ p.style.display='none'; });
+        } else {
+          tabs.forEach(function(t){ t.removeAttribute('disabled'); });
+        }
+      }
+
+      function ensureActiveTab(){
+        var activeTab = document.querySelector('.tab.active');
+        if(!activeTab){
+          var t0 = document.querySelector('.tab[data-tab="code1"]');
+          if(t0) t0.classList.add('active');
+          var p0 = document.getElementById('code1');
+          if(p0) p0.style.display = 'block';
+        } else {
+          panels.forEach(function(p){ p.style.display = 'none'; });
+          var ap = document.getElementById(activeTab.dataset.tab);
+          if(ap) ap.style.display = 'block';
+        }
+      }
+
+      function activateAndRender(){
+        if(!isReady()) return;
+        if(instrEl) instrEl.open = false;
+        renderAllPanels();
+        tabs.forEach(function(t){ t.removeAttribute('disabled'); });
+        ensureActiveTab();
+      }
+
+      function updateInstructionsForGame(){
+        var instrEM = document.querySelector('.instr-EM');
+        var instrFR = document.querySelector('.instr-FRLG');
+        var instrFRSW = document.querySelector('.instr-FRLGSW');
+        var instrRS = document.querySelector('.instr-RS');
+        if(!instrEM) return;
+        instrEM.style.display = 'none';
+        if(instrFR) instrFR.style.display = 'none';
+        if(instrFRSW) instrFRSW.style.display = 'none';
+        if(instrRS) instrRS.style.display = 'none';
+        if(selectedGame === 'FRLG' && instrFR) instrFR.style.display = '';
+        else if(selectedGame === 'FRLGSW' && instrFRSW) instrFRSW.style.display = '';
+        else if(selectedGame === 'RS' && instrRS) instrRS.style.display = '';
+        else instrEM.style.display = '';
+      }
+
+      // Mode button click handler (Console/mGBA or Old Emulator)
+      modeButtons.forEach(function(btn){
+        btn.addEventListener('click', function(){
+          if(!instructionsAcknowledged) return;
+          selectedMode = btn.dataset.mode;
+          modeButtons.forEach(function(b){ b.classList.toggle('active', b.dataset.mode === selectedMode); });
+          refreshModeUI();
+          activateAndRender();
+        });
+      });
+
+      // Language button click handler (English or Non-English, RS only)
+      langButtons.forEach(function(btn){
+        btn.addEventListener('click', function(){
+          if(!instructionsAcknowledged) return;
+          selectedLang = btn.dataset.lang;
+          langButtons.forEach(function(b){ b.classList.toggle('active', b.dataset.lang === selectedLang); });
+          refreshModeUI();
+          activateAndRender();
+        });
+      });
+
+      // Game selector
+      if(gameSelect){
+        gameSelect.addEventListener('change', function(){
+          selectedGame = gameSelect.value || 'EM';
+          selectedMode = null;
+          selectedLang = null;
+          modeButtons.forEach(function(b){ b.classList.remove('active'); });
+          langButtons.forEach(function(b){ b.classList.remove('active'); });
+          updateInstructionsForGame();
+          refreshModeUI();
+          // FR/LG Switch doesn't need mode selection — render immediately
+          if(selectedGame === 'FRLGSW'){
+            selectedMode = 'modern';
+            renderAllPanels();
+            ensureActiveTab();
+          }
+        });
+      }
+
+      // Tab click handler
+      tabs.forEach(function(t){
+        t.addEventListener('click', function(){
+          if(!isReady()) return;
+          tabs.forEach(function(x){ x.classList.remove('active'); });
+          panels.forEach(function(p){ p.style.display = 'none'; });
+          t.classList.add('active');
+          var target = document.getElementById(t.dataset.tab);
+          if(target) target.style.display = 'block';
+        });
+      });
+
+      /* ============================================================
+         INIT
+         ============================================================ */
+      updateInstructionsForGame();
+      refreshModeUI();
     })();
   </script>
 </body>
