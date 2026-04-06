@@ -248,7 +248,6 @@ function checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXo
   }
   const xv = ((pid >>> 16) ^ (pid & 0xFFFF)) ^ trainerXor;
   if (wantShiny && xv >= 8) return false;
-  if (!wantShiny && xv < 8) return false;
   // Unown form filter
   if (unownForm >= 0) {
     const form = (((pid & 0x3000000) >> 18) |
@@ -508,7 +507,6 @@ function bruteForceSearch(params, isStopped) {
     }
     const xv = ((pid >>> 16) ^ (pid & 0xFFFF)) ^ trainerXor;
     if (wantShiny  && xv >= 8) continue;
-    if (!wantShiny && xv <  8) continue;
 
     // Unown form filter
     if (unownForm >= 0) {

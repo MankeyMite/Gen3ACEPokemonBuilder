@@ -723,7 +723,7 @@
 
       <div class="row wild-or-legend" id="pidFinderRow">
         <label>PID &amp; IVs</label>
-        <button id="pidFinderBtn" type="button" class="pid-finder-btn">&#x1F50D; Find Legal PID</button>
+        <button id="pidFinderBtn" type="button" class="pid-finder-btn">&#x1F50D; Find Legal Encounter</button>
         <span id="pidFinderStatus" class="pid-finder-status"></span>
       </div>
 
@@ -1254,8 +1254,34 @@ IVs: 2 Atk / 30 SpA
               <input id="pfSid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="0" style="width:80px;">
             </div>
             <div style="display:flex; align-items:flex-end; gap:0.35rem;">
-              <label for="pfShiny" style="font-size:0.85rem;color:#94a3b8;">Shiny</label>
+              <label for="pfShiny" style="font-size:0.85rem;color:#94a3b8;">Shiny Only</label>
               <input id="pfShiny" type="checkbox" style="margin:0 0 2px 0;">
+            </div>
+            <div>
+              <label for="pfHpType" style="font-size:0.85rem;color:#94a3b8;">HP Type</label>
+              <select id="pfHpType" style="width:auto; min-width:110px;">
+                <option value="any">Any</option>
+                <option value="Fighting">Fighting</option>
+                <option value="Flying">Flying</option>
+                <option value="Poison">Poison</option>
+                <option value="Ground">Ground</option>
+                <option value="Rock">Rock</option>
+                <option value="Bug">Bug</option>
+                <option value="Ghost">Ghost</option>
+                <option value="Steel">Steel</option>
+                <option value="Fire">Fire</option>
+                <option value="Water">Water</option>
+                <option value="Grass">Grass</option>
+                <option value="Electric">Electric</option>
+                <option value="Psychic">Psychic</option>
+                <option value="Ice">Ice</option>
+                <option value="Dragon">Dragon</option>
+                <option value="Dark">Dark</option>
+              </select>
+            </div>
+            <div>
+              <label for="pfHpPower" style="font-size:0.85rem;color:#94a3b8;">Minimum Base Power</label>
+              <input id="pfHpPower" type="number" min="30" max="70" value="30" style="width:60px;">
             </div>
           </div>
 
@@ -1308,6 +1334,7 @@ IVs: 2 Atk / 30 SpA
                     <th>HP</th><th>Atk</th><th>Def</th><th>SpA</th><th>SpD</th><th>Spe</th>
                     <th>Total</th>
                     <th>HP Type</th>
+                    <th>Power</th>
                     <th>Mth</th>
                     <th>Lv</th>
                     <th>Gender</th>

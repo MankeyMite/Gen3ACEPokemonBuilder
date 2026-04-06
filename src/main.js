@@ -5467,6 +5467,12 @@ function initPidFinder() {
   const pfSidInput = document.getElementById('pfSid');
   if (pfTidInput) pfTidInput.addEventListener('input', pfClampId);
   if (pfSidInput) pfSidInput.addEventListener('input', pfClampId);
+  // Live re-filter when HP type / HP power filters change
+  const pfHpTypeSelect = document.getElementById('pfHpType');
+  const pfHpPowerInput = document.getElementById('pfHpPower');
+  const refilter = () => { if (pfAllResults.length > 0) displayResults(); };
+  if (pfHpTypeSelect) pfHpTypeSelect.addEventListener('change', refilter);
+  if (pfHpPowerInput) pfHpPowerInput.addEventListener('input', refilter);
 
   /* â”€â”€ Open / Close â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
@@ -5888,18 +5894,38 @@ function initPidFinder() {
       return (a.method < b.method) ? -1 : (a.method > b.method) ? 1 : 0;
     });
 
+    // Recalculate hidden power for truncated roamers (IVs changed above)
+    if (pfIsRoamerTruncated) {
+      for (const r of pfAllResults) {
+        r.hpt = calculateHiddenPower(r.ivs).type;
+        r.hpp = calculateHiddenPower(r.ivs).power;
+      }
+    }
+
+    // Apply HP type and HP power filters
+    const filterHpType  = document.getElementById('pfHpType')?.value || 'any';
+    const filterHpPower = Number(document.getElementById('pfHpPower')?.value) || 30;
+    let filtered = pfAllResults;
+    if (filterHpType !== 'any') {
+      filtered = filtered.filter(r => r.hpt === filterHpType);
+    }
+    if (filterHpPower > 30) {
+      filtered = filtered.filter(r => r.hpp >= filterHpPower);
+    }
+
     // Determine if encounter-chain validation was active
     const gameId     = Number($('#originGame').value) || 3;
     const locationId = Number($('#metLocation').value) || 0;
     const hadValidation = !!(ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]);
 
-    const capped = pfAllResults.slice(0, 25);
+    const capped = filtered.slice(0, 25);
 
     resultCount.textContent = pfAllResults.length === 0
       ? 'No results found. Try lowering minimum IVs.' + (hadValidation ? ' (encounter-chain validated)' : '')
-      : `${pfAllResults.length} result${pfAllResults.length !== 1 ? 's' : ''} found`
+      : `${filtered.length} result${filtered.length !== 1 ? 's' : ''} shown`
+        + (filtered.length < pfAllResults.length ? ` (${pfAllResults.length} total)` : '')
         + (hadValidation ? ' \u2714 encounter-valid' : '')
-        + (pfAllResults.length > 25 ? ' (showing top 25 by IV total)' : '');
+        + (filtered.length > 25 ? ' (showing top 25 by IV total)' : '');
 
     resultsBody.innerHTML = '';
     const speciesId = Number($('#species').value) || 0;
@@ -5921,11 +5947,11 @@ function initPidFinder() {
       const thead = resultsBody.closest('table')?.querySelector('thead tr');
       if (thead) {
         const ths = thead.querySelectorAll('th');
-        // Columns: PID(0) HP(1) Atk(2) Def(3) SpA(4) SpD(5) Spe(6) Total(7) HPType(8) Mth(9) Lv(10) Gender(11) Ability(12) btn(13)
-        if (ths.length >= 13) {
-          ths[10].textContent = isChannelResults ? 'SID' : 'Lv';
-          ths[11].textContent = isChannelResults ? 'Game' : 'Gender';
-          ths[12].textContent = isChannelResults ? 'Item' : 'Ability';
+        // Columns: PID(0) HP(1) Atk(2) Def(3) SpA(4) SpD(5) Spe(6) Total(7) HPType(8) HPPwr(9) Mth(10) Lv(11) Gender(12) Ability(13) btn(14)
+        if (ths.length >= 14) {
+          ths[11].textContent = isChannelResults ? 'SID' : 'Lv';
+          ths[12].textContent = isChannelResults ? 'Game' : 'Gender';
+          ths[13].textContent = isChannelResults ? 'Item' : 'Ability';
         }
       }
     } catch (_) {}
@@ -5965,6 +5991,7 @@ function initPidFinder() {
           ivTd(r.ivs.spa) + ivTd(r.ivs.spd) + ivTd(r.ivs.spe) +
           `<td>${total}</td>` +
           `<td>${r.hpt}</td>` +
+          `<td>${r.hpp}</td>` +
           `<td>${methodLabel}</td>` +
           `<td>${r.sid}</td>` +
           `<td>${gameName}</td>` +
@@ -5977,6 +6004,7 @@ function initPidFinder() {
         ivTd(r.ivs.spa) + ivTd(r.ivs.spd) + ivTd(r.ivs.spe) +
         `<td>${total}</td>` +
         `<td>${r.hpt}</td>` +
+        `<td>${r.hpp}</td>` +
         `<td>${methodLabel}</td>` +
         `<td>${r.metLevels ? r.metLevels.join('/') : '\u2014'}</td>` +
         `<td>${genderStr}</td>` +
@@ -6017,10 +6045,13 @@ function initPidFinder() {
       if (otGenderEl) { otGenderEl.value = r.otGender === 1 ? 'female' : 'male'; }
     }
 
-    // Sync shiny checkbox from PID Finder modal to main form
-    const pfShinyChecked = !!document.getElementById('pfShiny')?.checked;
+    // Determine actual shiny status from PID and TID/SID
+    const pidHigh = (r.pid >>> 16) & 0xFFFF;
+    const pidLow = r.pid & 0xFFFF;
+    const xor = (pidHigh ^ pidLow) ^ (pfTid ^ pfSid);
+    const isActuallyShiny = xor < 8;
     const mainShiny = $('#shiny');
-    if (mainShiny) mainShiny.checked = pfShinyChecked;
+    if (mainShiny) mainShiny.checked = isActuallyShiny;
 
     const pidHex = '0x' + (r.pid >>> 0).toString(16).toUpperCase().padStart(8, '0');
     const pidEl  = $('#pid');

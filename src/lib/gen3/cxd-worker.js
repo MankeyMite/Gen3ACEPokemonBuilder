@@ -118,7 +118,6 @@ function checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXo
   }
   const xv = ((pid >>> 16) ^ (pid & 0xFFFF)) ^ trainerXor;
   if (wantShiny  && xv >= 8) return false;
-  if (!wantShiny && xv <  8) return false;
   return true;
 }
 
@@ -502,7 +501,6 @@ function bruteForceSearch(params, isStopped) {
     }
     const xv = ((pid >>> 16) ^ (pid & 0xFFFF)) ^ trainerXor;
     if (wantShiny  && xv >= 8) continue;
-    if (!wantShiny && xv <  8) continue;
 
     /* Team-lock validation */
     if (doLockCheck && !validateTeamLocks(seed >>> 0, teamLocks, tsvVal)) continue;

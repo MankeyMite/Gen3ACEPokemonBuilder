@@ -215,7 +215,6 @@ function bruteForceSearch(params, isStopped) {
     const xv = ((pid >>> 16) ^ (pid & 0xFFFF)) ^ (TID ^ sid);
     const isShiny = xv < 8;
     if (wantShiny && !isShiny) continue;
-    if (!wantShiny && isShiny) continue;
 
     // Channel seed validity check (most expensive, do last)
     if (!isPossible(pivotSeed)) continue;
