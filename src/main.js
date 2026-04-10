@@ -24,6 +24,7 @@ import { createProfanityFilter } from './lib/profanityFilter.js';
 import { CXD_SHADOW_ENCOUNTERS, CXD_SHADOW_SPECIES, getShadowEncountersForSpecies, isValidGCTidSid } from './data/shadowEncounters.gen3.js';
 import { COLO_SHADOW_LOCKS, XD_SHADOW_LOCKS, COLO_NO_LOCK_SPECIES, XD_NO_LOCK_SPECIES } from './data/cxdLocks.gen3.js';
 import { getSpritePath, getUnownFormIndex, getUnownFormChar, getUnownFormSuffix, getUnownSpritePath, getOnlineSpriteUrl, getOnlineUnownSpriteUrl, UNOWN_FORMS, TANOBY_FORMS_BY_LOCATION, getTanobyFormsForLocation, getTanobyLocationsForForm } from './data/nationalDex.gen3.js';
+import { GENDER_THRESHOLDS, getGenderThreshold } from './data/genderThresholds.gen3.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -592,85 +593,8 @@ function getRoamerMetLocation(speciesId) {
   return [243, 244, 245].includes(speciesId) ? 101 : 16;
 }
 
-// Gender thresholds for different species (Gen 3)
-// Map species ID to gender threshold (0-255)
-// Female if (PID & 0xFF) < threshold, Male otherwise
-// Genderless = -1, Always Female = 255, Always Male = 0
-const GENDER_THRESHOLDS = {
-  // Starters (87.5% male, threshold 31)
-  1: 31, 2: 31, 3: 31,     // Bulbasaur line
-  4: 31, 5: 31, 6: 31,     // Charmander line
-  7: 31, 8: 31, 9: 31,     // Squirtle line
-  152: 31, 153: 31, 154: 31, // Chikorita line
-  155: 31, 156: 31, 157: 31, // Cyndaquil line
-  158: 31, 159: 31, 160: 31, // Totodile line
-  252: 31, 253: 31, 254: 31, // Treecko line
-  255: 31, 256: 31, 257: 31, // Torchic line
-  258: 31, 259: 31, 260: 31, // Mudkip line
-  
-  // Fossils (87.5% male, threshold 31)
-  138: 31, 139: 31, // Omanyte line
-  140: 31, 141: 31, // Kabuto line
-  142: 31,          // Aerodactyl
-  345: 31, 346: 31, // Lileep line
-  347: 31, 348: 31, // Anorith line
-  
-  // Eevee line (87.5% male, threshold 31)
-  133: 31, 134: 31, 135: 31, 136: 31, 196: 31, 197: 31,
-  
-  // 75% male species (threshold 63)
-  66: 63, 67: 63, 68: 63,    // Machop line
-  104: 63, 105: 63,          // Cubone line
-  111: 63, 112: 63, 464: 63, // Rhyhorn line
-  246: 63, 247: 63, 248: 63, // Larvitar line
-  
-  // 75% female species (threshold 191)
-  35: 191, 36: 191, 173: 191, // Clefairy line
-  39: 191, 40: 191, 174: 191, // Jigglypuff line
-  183: 191, 184: 191,         // Marill line
-  298: 191,                   // Azurill
-  300: 191, 301: 191,         // Skitty line
-  
-  // Female-only species (threshold 255)
-  29: 255, 30: 255, 31: 255,  // Nidoranâ™€ line
-  113: 255, 242: 255, 440: 255, // Chansey line
-  238: 255, 124: 255,          // Smoochum, Jynx
-  387: 255,                    // Illumise
-  
-  // Male-only species (threshold 0)
-  32: 0, 33: 0, 34: 0,    // Nidoranâ™‚ line
-  106: 0, 107: 0, 236: 0, 237: 0, // Hitmons
-  128: 0,                  // Tauros
-  386: 0,                  // Volbeat
-  
-  // Genderless (threshold -1)
-  81: -1, 82: -1, 462: -1,   // Magnemite line
-  100: -1, 101: -1,          // Voltorb line
-  120: -1, 121: -1,          // Staryu line
-  132: -1,                   // Ditto
-  137: -1, 233: -1, 474: -1, // Porygon line
-  201: -1,                   // Unown
-  144: -1, 145: -1, 146: -1, // Legendary birds
-  150: -1, 151: -1,          // Mewtwo, Mew
-  243: -1, 244: -1, 245: -1, // Legendary beasts
-  249: -1, 250: -1,          // Lugia, Ho-Oh
-  251: -1,                   // Celebi
-  398: -1,                   // Beldum
-  399: -1, 400: -1,          // Metang, Metagross
-  401: -1, 402: -1, 403: -1, // Regis
-  407: -1, 408: -1,          // Lati@s
-  404: -1, 405: -1, 406: -1, // Weather trio
-  409: -1, 410: -1,          // Jirachi, Deoxys
-  
-  // Most others default to 50/50 (threshold 127) if not specified
-};
-
-function getGenderThreshold(speciesId) {
-  if (speciesId in GENDER_THRESHOLDS) {
-    return GENDER_THRESHOLDS[speciesId];
-  }
-  return 127; // Default 50/50
-}
+// Gender thresholds are now imported from ./data/genderThresholds.gen3.js
+// (keyed by internal species ID, derived from species names)
 
 // Calculate Hidden Power type and power from IVs
 function calculateHiddenPower(ivs) {
