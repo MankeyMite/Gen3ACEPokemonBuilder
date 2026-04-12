@@ -64,7 +64,7 @@
       <h1>BASE64 writer 3.0 setup (by Mettrich)</h1>
       <div style="margin:12px 0;display:flex;align-items:center;gap:12px">
         <label style="color:var(--fg);font-weight:700">Game:</label>
-        <select id="gameSelect" style="background:#ffffff;border:1px solid rgba(0,0,0,0.12);color:#000;padding:6px;border-radius:6px;min-width:140px">
+        <select id="gameSelect" autocomplete="off" style="background:#ffffff;border:1px solid rgba(0,0,0,0.12);color:#000;padding:6px;border-radius:6px;min-width:140px">
           <option value="EM">Emerald</option>
           <option value="FRLG">FR / LG</option>
           <option value="FRLGSW">FR/LG Switch</option>
@@ -708,6 +708,14 @@
       /* ============================================================
          INIT
          ============================================================ */
+      // Sync JS state with the actual <select> value in case the browser
+      // restored a previous form value on refresh (common on mobile).
+      if(gameSelect){
+        var restored = gameSelect.value;
+        if(restored && restored !== selectedGame){
+          selectedGame = restored;
+        }
+      }
       updateInstructionsForGame();
       refreshModeUI();
     })();
