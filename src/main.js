@@ -548,6 +548,9 @@ let currentEncounterMode = 'hatched';
 let pidFinderLockedMetLevel = false;
 // When true, a PID Finder result is applied — protects PID/IVs/nature from preset overwrites
 let pidFinderResultActive = false;
+// TID/SID that were used when the PID Finder result was selected (for change detection)
+let pidFinderOriginalTid = 0;
+let pidFinderOriginalSid = 0;
 // When true, the Manual Override checkbox is active — all field locks are bypassed
 let manualOverrideActive = false;
 // When true, skip applying simple-mode PID presets (used during imports)
@@ -2596,8 +2599,6 @@ function boot(){
       const makeShinyRowEl = document.getElementById('makeShinyRow');
       if (makeShinyRowEl) makeShinyRowEl.style.display = '';
       currentEncounterMode = e.target.value;
-      // For CXD mode, hide Make Shiny by default (shown per-encounter if Colosseum)
-      if (currentEncounterMode === 'cxd_shadow' && makeShinyRowEl) makeShinyRowEl.style.display = 'none';
       // Add body classes for special encounter modes so CSS/JS can adjust visibility
       document.body.classList.toggle('encounter-wild', currentEncounterMode === 'wild');
       document.body.classList.toggle('encounter-static', currentEncounterMode === 'static');
@@ -3803,6 +3804,19 @@ function boot(){
    * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
   /**
+   * Return the currently selected CXD shadow encounter object, or null.
+   */
+  function getSelectedCXDEncounter() {
+    if (currentEncounterMode !== 'cxd_shadow') return null;
+    const sel = document.getElementById('shadowEncounter');
+    if (!sel) return null;
+    const speciesId = Number($('#species').value) || 0;
+    const encounters = getShadowEncountersForSpecies(speciesId);
+    const idx = Number(sel.value) || 0;
+    return encounters[idx] || null;
+  }
+
+  /**
    * Populate the #shadowEncounter dropdown with all encounters for the given
    * species, and auto-apply the first one.
    */
@@ -3877,9 +3891,10 @@ function boot(){
     // Show all moves in dropdown for this species so shadow moves are available
     updateMovesForSpecies(enc.species, { preserveValue: true });
 
-    // Fateful encounter — all shadow Pokémon from Colosseum/XD are fateful
+    // Fateful encounter — only XD shadow Pokémon have the fateful flag.
+    // Colosseum shadow Pokémon do NOT have fateful encounter set.
     const fatefulCheckbox = $('#fatefulEncounter');
-    if (fatefulCheckbox) fatefulCheckbox.checked = true;
+    if (fatefulCheckbox) fatefulCheckbox.checked = (enc.game === 'xd');
 
     // National Ribbon — required for Colosseum/XD Pokémon to pass legality
     const nationalRibbonCb = $('#ribbonNational');
@@ -3907,18 +3922,38 @@ function boot(){
    */
   function updateMakeShinyVisibility(enc) {
     const row = document.getElementById('makeShinyRow');
+    const shinyLockedLabel = document.getElementById('xdShinyLocked');
+    const makeShinyBtnLocal = document.getElementById('makeShinyBtn');
+    const shinyIndicatorBtnLocal = document.getElementById('shinyIndicatorBtn');
+    const makeShinyStatusLocal = document.getElementById('makeShinyStatus');
     if (!row) return;
     if (currentEncounterMode !== 'cxd_shadow') {
       // Non-CXD modes: let CSS handle visibility (wild-or-legend class)
       row.style.display = '';
+      if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
+      if (makeShinyBtnLocal) makeShinyBtnLocal.style.display = '';
+      if (shinyIndicatorBtnLocal) shinyIndicatorBtnLocal.style.display = '';
+      if (makeShinyStatusLocal) makeShinyStatusLocal.style.display = '';
       return;
     }
-    // CXD mode: show only for Colosseum encounters
-    if (enc && enc.game === 'colo') {
-      row.style.display = '';
+    // CXD mode: always show the row, but toggle between Make Shiny button (Colo) and locked label (XD)
+    row.style.display = '';
+    const isXD = !enc || enc.game === 'xd';
+    if (isXD) {
+      // XD: show shiny-locked label, hide Make Shiny button and status
+      if (makeShinyBtnLocal) makeShinyBtnLocal.style.display = 'none';
+      if (shinyIndicatorBtnLocal) shinyIndicatorBtnLocal.style.display = 'none';
+      if (makeShinyStatusLocal) makeShinyStatusLocal.style.display = 'none';
+      if (shinyLockedLabel) shinyLockedLabel.style.display = '';
     } else {
-      row.style.display = 'none';
+      // Colosseum: show Make Shiny button, hide locked label
+      if (makeShinyBtnLocal) makeShinyBtnLocal.style.display = '';
+      if (shinyIndicatorBtnLocal) shinyIndicatorBtnLocal.style.display = '';
+      if (makeShinyStatusLocal) makeShinyStatusLocal.style.display = '';
+      if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
     }
+    // Also update the shiny checkbox state for the encounter
+    try { updateShinyCheckboxState(); } catch (e) {}
   }
 
   // Wire up the shadow encounter dropdown change handler
@@ -3951,6 +3986,64 @@ function boot(){
     const sid = Number($('#sid').value) & 0xFFFF;
     const valid = isValidGCTidSid(tid, sid);
     warningEl.style.display = valid ? 'none' : '';
+  }
+
+  /**
+   * Show warning when PID Finder result is active but TID/SID has been changed
+   * to a combination that doesn't match the CXD PID (i.e. Make Shiny adjusted
+   * SID to an impossible GC value, or user manually edited TID/SID).
+   * Only shown when in cxd_shadow mode.
+   */
+  function updatePidTidSidWarning() {
+    const warningEl = document.getElementById('pidTidSidWarning');
+    if (!warningEl) return;
+    if (currentEncounterMode !== 'cxd_shadow') {
+      warningEl.style.display = 'none';
+      return;
+    }
+
+    const enc = getSelectedCXDEncounter();
+    const tid = Number($('#tid').value) & 0xFFFF;
+    const sid = Number($('#sid').value) & 0xFFFF;
+    const pidStr = $('#pid')?.value || '';
+    const pid = parsePidInput(pidStr);
+
+    // Nothing to validate if there's no PID set
+    if (!pidStr || pid === 0) {
+      warningEl.style.display = 'none';
+      return;
+    }
+
+    // Check 1 (XD only): Is the PID shiny for the current TID/SID?
+    // XD shadows use anti-shiny rerolling against the player's TSV — a PID
+    // that is shiny for the player's TID/SID would have been skipped.
+    // Colosseum uses the NPC trainer's TID/SID for rerolling, so player-shiny
+    // Colosseum shadows are perfectly valid.
+    if (enc && enc.game === 'xd') {
+      const pidHigh = (pid >>> 16) & 0xFFFF;
+      const pidLow = pid & 0xFFFF;
+      const xor = (pidHigh ^ pidLow) ^ (tid ^ sid);
+      if (xor < 8) {
+        warningEl.innerHTML = '\u26A0\uFE0F This PID is <b>shiny</b> for the current TID/SID, ' +
+          'which is <b>impossible</b> for XD shadow Pok\u00E9mon (anti-shiny rerolling ' +
+          'would have skipped this PID). Change TID/SID or re-run the PID Finder.';
+        warningEl.style.display = '';
+        return;
+      }
+    }
+
+    // Check 2 (XD & Colosseum): If a PID Finder result is active and TID or
+    // SID was changed, warn that the PID was found for a different TID/SID.
+    if (pidFinderResultActive &&
+        (tid !== pidFinderOriginalTid || sid !== pidFinderOriginalSid)) {
+      warningEl.innerHTML = '\u26A0\uFE0F The TID/SID has been changed after PID selection. ' +
+        'The current TID/SID may not be possible with the current PID. ' +
+        'Input your TID and SID and select a PID again to ensure legality.';
+      warningEl.style.display = '';
+      return;
+    }
+
+    warningEl.style.display = 'none';
   }
 
   /**
@@ -4357,9 +4450,11 @@ function boot(){
       const expEl = $('#expTotal'); if (expEl) expEl.value = String(expForLevel(GROUP.MEDIUM_FAST, 100));
       const fateful = $('#fatefulEncounter'); if (fateful) fateful.checked = false;
 
-      // Clear GC TID/SID warning and shadow encounter dropdown
+      // Clear GC TID/SID warning, PID/TID/SID warning and shadow encounter dropdown
       const gcWarn = document.getElementById('gcTidSidWarning');
       if (gcWarn) gcWarn.style.display = 'none';
+      const pidWarn = document.getElementById('pidTidSidWarning');
+      if (pidWarn) pidWarn.style.display = 'none';
       const shadowEnc = document.getElementById('shadowEncounter');
       if (shadowEnc) { shadowEnc.innerHTML = ''; }
 
@@ -4483,10 +4578,19 @@ function boot(){
             return;
           }
         }
-        // CXD shadow mode: shiny locked in-game, but user can still force-shiny by SID
+        // CXD shadow mode: XD shadows are shiny-locked (disable checkbox),
+        // Colosseum shadows can be shiny (adjust SID).
         if (currentEncounterMode === 'cxd_shadow') {
+          const enc = getSelectedCXDEncounter();
+          if (enc && enc.game === 'xd') {
+            shinyCheckboxLocal.checked = false;
+            shinyCheckboxLocal.disabled = true;
+            shinyCheckboxLocal.title = 'XD shadow Pokémon are shiny locked — shininess is not possible';
+            return;
+          }
+          // Colosseum shadow: allow shiny toggle (adjusts SID)
           shinyCheckboxLocal.disabled = false;
-          shinyCheckboxLocal.title = 'Shiny locked in-game — checking this adjusts your SID';
+          shinyCheckboxLocal.title = 'Colosseum shadow — checking this adjusts your SID';
           return;
         }
         // Default: ensure enabled, clear tooltip
@@ -4501,6 +4605,15 @@ function boot(){
     
     // When shiny checkbox is clicked
     shinyCheckbox.addEventListener('change', (e) => {
+      // Block shiny toggle for XD shadow encounters (shiny locked)
+      if (currentEncounterMode === 'cxd_shadow') {
+        const enc = getSelectedCXDEncounter();
+        if (enc && enc.game === 'xd') {
+          e.target.checked = false;
+          return;
+        }
+      }
+
       const tid = Number($('#tid').value) & 0xFFFF;
       const natureIndex = Number($('#nature').value);
       const gender = $('#gender').value;
@@ -4561,6 +4674,8 @@ function boot(){
       
       // Update shiny indicator
       checkShiny();
+      try { updateGCTidSidWarning(); } catch (e) {}
+      try { updatePidTidSidWarning(); } catch (e) {}
       
       // Update previous values so changes are detected
       if (typeof previousNature !== 'undefined') previousNature = String(natureIndex);
@@ -4576,6 +4691,7 @@ function boot(){
       updateGenderFromPID();
       checkShiny();
       updateMakeShinyButton();
+      try { updatePidTidSidWarning(); } catch (e) {}
     });
   }
 
@@ -4638,6 +4754,7 @@ function boot(){
       checkShiny();
       updateMakeShinyButton();
       try { updateGCTidSidWarning(); } catch (e) {}
+      try { updatePidTidSidWarning(); } catch (e) {}
     });
 
     // Keep button state in sync when TID/SID change
@@ -4957,11 +5074,13 @@ function boot(){
   $('#tid').addEventListener('input', (e) => {
     clampIdField(e);
     try { updateGCTidSidWarning(); } catch (ex) {}
+    try { updatePidTidSidWarning(); } catch (ex) {}
   });
 
   $('#sid').addEventListener('input', (e) => {
     clampIdField(e);
     try { updateGCTidSidWarning(); } catch (ex) {}
+    try { updatePidTidSidWarning(); } catch (ex) {}
   });
 
   // Friendship: cap at 0-255
@@ -5614,6 +5733,21 @@ function initPidFinder() {
     ];
     if (!methods[0] && !methods[1] && !methods[2]) { alert('Select at least one method.'); return; }
 
+    // For CXD mode, warn the user if TID/SID is not a valid GameCube RNG pair.
+    // An invalid TID/SID will produce no results (or only results that are
+    // illegal in practice), so alert the user before wasting search time.
+    const isCXDPreSearch = currentEncounterMode === 'cxd_shadow' ||
+      (currentEncounterMode === 'static' && (Number($('#originGame').value) || 3) === 15);
+    if (isCXDPreSearch && !isValidGCTidSid(tid, sid)) {
+      const proceed = confirm(
+        'Warning: This TID/SID combination is not possible in Colosseum/XD.\n\n' +
+        'The game generates TID and SID as consecutive GC RNG outputs — ' +
+        'only certain pairs are valid. Any results found will be illegal.\n\n' +
+        'Do you want to search anyway?'
+      );
+      if (!proceed) return;
+    }
+
     // Reset UI
     resultsBody.innerHTML = '';
     resultCount.textContent = '';
@@ -5729,31 +5863,29 @@ function initPidFinder() {
         });
       } else if (isCXD) {
         // CXD worker: core filters + anti-shiny rerolling + team-lock data.
-        // Determine if the encounter is XD (for shiny value and lock lookup).
+        // Use the SELECTED encounter to determine game-specific behaviour.
         const cxdEncounters = getShadowEncountersForSpecies(speciesId);
-        const hasXD   = cxdEncounters.some(e => e.game === 'xd');
-        const hasColo = cxdEncounters.some(e => e.game === 'colo');
+        const selEnc = document.getElementById('shadowEncounter');
+        const selIdx = selEnc ? (Number(selEnc.value) || 0) : 0;
+        const selectedEnc = cxdEncounters[selIdx] || null;
+        const isXD = selectedEnc && selectedEnc.game === 'xd';
 
-        // Gather lock patterns for this species.
-        // If ANY encounter variant for this species has no locks, skip
-        // lock validation entirely (the lock-free encounter is always valid).
+        // Gather lock patterns for the selected encounter's game only.
         let teamLocks = null;
-        const xdNoLock   = XD_NO_LOCK_SPECIES.has(speciesId);
-        const coloNoLock = COLO_NO_LOCK_SPECIES.has(speciesId);
-        if (!(hasXD && xdNoLock) && !(hasColo && coloNoLock)) {
-          // Combine all lock patterns from both games
-          const patterns = [];
-          if (hasXD && XD_SHADOW_LOCKS[speciesId])
-            patterns.push(...XD_SHADOW_LOCKS[speciesId]);
-          if (hasColo && COLO_SHADOW_LOCKS[speciesId])
-            patterns.push(...COLO_SHADOW_LOCKS[speciesId]);
-          if (patterns.length > 0) teamLocks = patterns;
+        if (isXD) {
+          if (!XD_NO_LOCK_SPECIES.has(speciesId) && XD_SHADOW_LOCKS[speciesId])
+            teamLocks = XD_SHADOW_LOCKS[speciesId];
+        } else {
+          if (!COLO_NO_LOCK_SPECIES.has(speciesId) && COLO_SHADOW_LOCKS[speciesId])
+            teamLocks = COLO_SHADOW_LOCKS[speciesId];
         }
 
-        // TSV: for XD shadows, use (TID^SID)>>3.
-        // For Colo-only species, use 0xFFFFFFFF (no XD shiny rejection).
-        const isTSVNeeded = hasXD;
-        const tsvVal = isTSVNeeded ? ((tid ^ sid) >>> 3) : 0xFFFFFFFF;
+        // XD: anti-shiny rerolling uses the player's TSV — shadows can
+        //     NEVER be shiny. Pass noShiny=true and the player's TSV.
+        // Colosseum: anti-shiny rerolling uses the NPC trainer's TSV —
+        //     shadows CAN be shiny for the player. Pass noShiny=false
+        //     and NOT_FORCED so the worker doesn't reject player-shiny PIDs.
+        const tsvVal = isXD ? ((tid ^ sid) >>> 3) : 0xFFFFFFFF;
 
         worker.postMessage({
           startSeed: start, endSeed: end,
@@ -5762,7 +5894,7 @@ function initPidFinder() {
           targetGender, tid, sid, wantShiny,
           minIVs, maxIVs,
           maxResults: Math.ceil(250 / workerCount),
-          noShiny: true,   // CXD shadows always anti-shiny
+          noShiny: isXD,   // Only XD anti-shiny rerolls against the player
           teamLocks,
           tsv: tsvVal,
           unownForm: speciesId === 201 ? Number($('#unownForm')?.value ?? -1) : -1
@@ -5958,6 +6090,10 @@ function initPidFinder() {
     $('#tid').value = String(pfTid);
     $('#sid').value = String(pfSid);
 
+    // Store the TID/SID used for this PID result so we can detect changes later
+    pidFinderOriginalTid = pfTid;
+    pidFinderOriginalSid = pfSid;
+
     // Channel Jirachi: apply seed-derived fields (SID, held item, origin game, OT gender)
     if (r.method === 'Channel') {
       $('#sid').value = String(r.sid);
@@ -6044,6 +6180,9 @@ function initPidFinder() {
     }
 
     checkShiny();
+    try { updateGCTidSidWarning(); } catch (e) {}
+    try { updatePidTidSidWarning(); } catch (e) {}
+    try { updateMakeShinyButton(); } catch (e) {}
 
     const statusMethod = r.method === 'Channel'
       ? 'Channel'
