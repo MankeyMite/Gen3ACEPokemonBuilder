@@ -4793,22 +4793,44 @@ function boot(){
         }
       }
 
-      // If we're in legendaries, wild, or roamer mode, apply the per-nature legendary preset
+      // If we're in static, wild, or roamer mode, apply per-nature PID/IV presets
       // Also skip when pidFinderResultActive (PID Finder selected a result)
       if (!suppressPresetApply && !pidFinderResultActive && (currentEncounterMode === 'static' || currentEncounterMode === 'wild' || currentEncounterMode === 'roamer')) {
         const speciesId = Number($('#species').value) || 0;
         const targetNature = Number(natureEl.value || 0);
 
-        // Determine originGame: legendaries use the static encounter's defaultOriginGame,
-        // wild/roamer uses the user's selected originGame (or default 2)
+        // Determine origin game.
+        // Static mode uses the selected origin game when available (fallback to encounter default),
+        // wild/roamer use the selected origin game (fallback to 2).
         let originGame = 2;
         if (currentEncounterMode === 'static') {
           const encounter = STATIC_ENCOUNTERS[speciesId];
-          originGame = encounter?.defaultOriginGame || 2;
-          // Only apply for actual legendary species in legendaries mode
-          if (!isLegendary(speciesId)) {
-            // skip applying preset
+          // Fixed-event statics must keep their predetermined PID/IVs.
+          if (encounter?.fixedEvent && encounter.fixedPID !== undefined) {
+            const fixedPid = encounter.fixedPID >>> 0;
+            const pidEl = document.querySelector('#pid');
+            if (pidEl) {
+              pidEl.value = '0x' + fixedPid.toString(16).toUpperCase().padStart(8, '0');
+            }
+            const fixedNature = fixedPid % 25;
+            if (natureEl.value !== String(fixedNature)) {
+              natureEl.value = String(fixedNature);
+            }
+            if (encounter.fixedIVs) {
+              $('#ivHp').value = encounter.fixedIVs.hp;
+              $('#ivAtk').value = encounter.fixedIVs.atk;
+              $('#ivDef').value = encounter.fixedIVs.def;
+              $('#ivSpAtk').value = encounter.fixedIVs.spa;
+              $('#ivSpDef').value = encounter.fixedIVs.spd;
+              $('#ivSpe').value = encounter.fixedIVs.spe;
+            }
+            updateGenderFromPID();
+            $('#ability').value = '0';
+            updateLegalityStatus();
             originGame = null;
+          } else {
+            const og = Number($('#originGame')?.value);
+            originGame = Number.isFinite(og) && og > 0 ? og : (encounter?.defaultOriginGame || 2);
           }
         } else {
           // Wild/roamer mode: use the selected origin game if present
