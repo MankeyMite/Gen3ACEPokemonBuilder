@@ -2630,6 +2630,7 @@ function boot(){
       try { updateMetLevelLocking(); } catch (e) {}
       try { updateBallLocking(); } catch (e) {}
       try { updateLevelLocking(); } catch (e) {}
+      try { updateIvLocking(); } catch (e) {}
       try { enforceJapaneseOption(); } catch (e) {}
       try { lockLanguageForMewLegend(); } catch (e) {}
       try { enforceMewLegendMinLevel(); } catch (e) {}
@@ -2650,6 +2651,7 @@ function boot(){
       try { updateBallLocking(); } catch (e) {}
       try { updateLevelLocking(); } catch (e) {}
       try { updatePidLocking(); } catch (e) {}
+      try { updateIvLocking(); } catch (e) {}
       try { updateTidSidLocking(); } catch (e) {}
       try { lockLanguageForMewLegend(); } catch (e) {}
       try { enforceJapaneseOption(); } catch (e) {}
@@ -2710,6 +2712,7 @@ function boot(){
   try { updateMetLevelLocking(); } catch (e) {}
   try { updateBallLocking(); } catch (e) {}
   try { updateLevelLocking(); } catch (e) {}
+  try { updateIvLocking(); } catch (e) {}
   try { updateFatefulLocking(); } catch (e) {}
 
   // Lock or unlock TID/SID inputs depending on selected mystery event.
@@ -2757,6 +2760,21 @@ function boot(){
     } catch (e) {}
   }
 
+  // Lock IVs outside hatched mode unless Manual Override is enabled.
+  function updateIvLocking() {
+    try {
+      const shouldLock = !manualOverrideActive && currentEncounterMode !== 'hatched';
+      for (const sel of ivIds) {
+        const ivEl = $(sel);
+        if (!ivEl) continue;
+        ivEl.disabled = Boolean(shouldLock);
+        ivEl.style.pointerEvents = shouldLock ? 'none' : '';
+        ivEl.style.opacity = shouldLock ? '0.6' : '';
+        ivEl.style.cursor = shouldLock ? 'not-allowed' : '';
+      }
+    } catch (e) {}
+  }
+
   /**
    * Unlock all fields that were locked by the PID Finder result.
    * Called when species or encounter mode changes, invalidating the previous result.
@@ -2783,6 +2801,7 @@ function boot(){
     unlock($('#originGame'));
     try { updateTidSidLocking(); } catch (e) {}
     try { updateMetLevelLocking(); } catch (e) {}
+    try { updateIvLocking(); } catch (e) {}
   }
 
   // By default, Japanese (language id '1') is not selectable in the UI because
@@ -6192,6 +6211,7 @@ function initPidFinder() {
     for (const id of ['ivHp','ivAtk','ivDef','ivSpAtk','ivSpDef','ivSpe']) {
       lockStyle($('#' + id));
     }
+    try { updateIvLocking(); } catch (e) {}
 
     // Channel Jirachi: also lock seed-derived fields
     if (r.method === 'Channel') {
