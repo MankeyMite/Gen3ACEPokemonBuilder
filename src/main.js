@@ -555,6 +555,10 @@ let pidFinderOriginalSid = 0;
 let manualOverrideActive = false;
 // Per-encounter-mode field snapshots to prevent cross-mode value bleed.
 const encounterModeStateCache = {};
+// Raw imported bytes for exact round-trip output in imported mode.
+let importedRoundTripBytes = null;
+let importedRoundTripDirty = true;
+let suppressImportedDirtyTracking = false;
 // When true, skip applying simple-mode PID presets (used during imports)
 let suppressPresetApply = false;
 // When true, suppress marking user-change events while programmatically applying presets
@@ -4641,6 +4645,7 @@ function boot(){
   // Reset all mode-specific state to defaults to avoid carryover between modes
   function resetAllModeState() {
     try {
+      clearImportedRoundTripState();
       // First-time mode visit defaults: clear values so nothing bleeds across modes.
       const defaults = {};
 
@@ -5450,6 +5455,28 @@ function boot(){
     };
     fileInput.addEventListener('change', closeOnce);
   });
+
+  // Any user edit in imported mode marks the imported round-trip snapshot as dirty.
+  const markImportedDirty = (event) => {
+    if (suppressImportedDirtyTracking) return;
+    if (currentEncounterMode !== 'imported') return;
+    if (!importedRoundTripBytes) return;
+
+    const target = event?.target;
+    if (!target || typeof target.closest !== 'function') return;
+
+    const id = target.id || '';
+    if (id === 'manualOverride' || id === 'encounterMode' || id === 'generateBtn' || id === 'copyHexBtn' || id === 'copyBase64Btn') {
+      return;
+    }
+
+    const inDataCards = Boolean(target.closest('#basicsCard') || target.closest('#statsCard'));
+    if (!inDataCards) return;
+
+    importedRoundTripDirty = true;
+  };
+  document.addEventListener('input', markImportedDirty, true);
+  document.addEventListener('change', markImportedDirty, true);
 
   initPidFinder();
 }
@@ -6445,8 +6472,9 @@ function initPidFinder() {
 }
 
 function collect(){
+  const isImportedMode = currentEncounterMode === 'imported';
   const ivClamp = s => Math.max(0, Math.min(31, Number(s)));
-  const evClamp = s => Math.max(0, Math.min(252, Number(s)));
+  const evClamp = s => Math.max(0, Math.min(isImportedMode ? 255 : 252, Number(s)));
   const level = s => Math.max(1, Math.min(100, Number(s)));
   const moves = [$('#move1').value, $('#move2').value, $('#move3').value, $('#move4').value].filter(x=>x!=='');
 
@@ -6470,7 +6498,7 @@ function collect(){
 
   // Normalize EVs so total <= 510 (reduce in order: spe, spd, spa, def, atk, hp)
   const total = Object.values(evs).reduce((a,b)=>a+b,0);
-  if (total > 510) {
+  if (!isImportedMode && total > 510) {
     let over = total - 510;
     const order = ['spe','spd','spa','def','atk','hp'];
     for (const k of order) {
@@ -6493,7 +6521,7 @@ function collect(){
     pid: parsePidInput($('#pid').value) & 0xFFFFFFFF,
     ballId: Number($('#ball').value || 0),
     metLocationId: Number($('#metLocation').value || 0),
-    metLevel: Math.max(0, Math.min(100, Number($('#metLevel').value || 0))),
+    metLevel: Math.max(0, Math.min(isImportedMode ? 127 : 100, Number($('#metLevel').value || 0))),
     originGame: Number($('#originGame').value || 3),
     otGender: $('#otGender').value === 'female' ? 1 : 0,
     otName: $('#otName').value || 'BRENDAN',
@@ -6676,10 +6704,60 @@ function clearGeneratedOutputs() {
   if (copyB64) copyB64.classList.remove('show');
 }
 
+function clearImportedRoundTripState() {
+  importedRoundTripBytes = null;
+  importedRoundTripDirty = true;
+}
+
+function setImportedRoundTripFromHex(hexInput) {
+  const pairs = String(hexInput || '').match(/[0-9a-fA-F]{2}/g) || [];
+  if (pairs.length < 80) {
+    clearImportedRoundTripState();
+    return;
+  }
+  const bytes = new Uint8Array(80);
+  for (let i = 0; i < 80; i++) {
+    bytes[i] = parseInt(pairs[i], 16);
+  }
+  importedRoundTripBytes = bytes;
+  importedRoundTripDirty = false;
+}
+
+function setImportedRoundTripFromBytes(bytes) {
+  if (!(bytes instanceof Uint8Array) || bytes.length !== 80) {
+    clearImportedRoundTripState();
+    return;
+  }
+  importedRoundTripBytes = new Uint8Array(bytes);
+  importedRoundTripDirty = false;
+}
+
 function onGenerate(){
   // Check if button is disabled and show validation errors
   if ($('#generateBtn').getAttribute('data-disabled') === 'true') {
     highlightMissingFields();
+    return;
+  }
+
+  // Exact round-trip path for raw imported data.
+  // If the imported record was not edited, keep output bytes identical.
+  if (currentEncounterMode === 'imported' && importedRoundTripBytes && !importedRoundTripDirty) {
+    const hex = toFormattedHex(importedRoundTripBytes);
+    const b64Result = toBase64Emerald(importedRoundTripBytes);
+    $('#hexOutput').value = hex;
+    $('#base64Output').value = b64Result.text;
+    updateProfanityWarning(b64Result.text);
+
+    const substBanner = document.getElementById('substitutionWarning');
+    if (substBanner) {
+      if (b64Result.substitutionUsed) {
+        substBanner.textContent = 'One or more characters have been converted to a symbol to avoid the profanity filter on Switch.';
+        substBanner.style.display = 'block';
+      } else {
+        substBanner.style.display = 'none';
+        substBanner.textContent = '';
+      }
+    }
     return;
   }
   
@@ -6923,6 +7001,7 @@ function parseSmogonSet(text) {
  * Only sets fields that the Smogon format provides; leaves others at defaults.
  */
 function applySmogonImport(parsed) {
+  clearImportedRoundTripState();
   // Enable manual override
   manualOverrideActive = true;
   suppressPresetApply = true;
@@ -7043,8 +7122,10 @@ function closeImportModal() {
 
 function onLoadFromHex(hexString){
   try {
+    suppressImportedDirtyTracking = true;
     const hexInput = hexString || $('#hexOutput').value;
     const data = parsePokemonBytes(hexInput);
+    setImportedRoundTripFromHex(hexInput);
     
     // Debug: log species ID and exp group
     const expGroup = EXP_GROUPS[data.speciesId] ?? GROUP.MEDIUM_FAST;
@@ -7217,6 +7298,8 @@ function onLoadFromHex(hexString){
   } catch (e) {
     if (hexString) throw e; // Re-throw when called from modal so it can show its own error
     alert('Error loading hex data: ' + e.message);
+  } finally {
+    suppressImportedDirtyTracking = false;
   }
 }
 
@@ -7272,6 +7355,7 @@ function onImportPk3(event) {
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
+      suppressImportedDirtyTracking = true;
       const arrayBuffer = e.target.result;
       let bytes = new Uint8Array(arrayBuffer);
       
@@ -7286,6 +7370,8 @@ function onImportPk3(event) {
         alert(`Invalid .ek3 file size: ${bytes.length} bytes (expected 80 or 100 bytes)`);
         return;
       }
+
+      setImportedRoundTripFromBytes(bytes);
       
       // Parse the bytes and load into form fields (without updating outputs yet)
       const data = parsePokemonBytes(Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(''));
@@ -7552,6 +7638,8 @@ function onImportPk3(event) {
       alert('Pokémon imported successfully! "Unlock all fields for editing" has been enabled so you can edit all fields freely.');
     } catch (err) {
       alert('Error importing .ek3 file: ' + err.message);
+    } finally {
+      suppressImportedDirtyTracking = false;
     }
   };
   
