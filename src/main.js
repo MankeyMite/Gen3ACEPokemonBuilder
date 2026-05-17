@@ -2683,6 +2683,14 @@ function boot(){
       // Reset Make Shiny row visibility (let CSS handle it for non-CXD modes)
       const makeShinyRowEl = document.getElementById('makeShinyRow');
       if (makeShinyRowEl) makeShinyRowEl.style.display = '';
+      const shinyLockedLabelEl = document.getElementById('xdShinyLocked');
+      if (shinyLockedLabelEl) shinyLockedLabelEl.style.display = 'none';
+      const makeShinyBtnEl = document.getElementById('makeShinyBtn');
+      if (makeShinyBtnEl) makeShinyBtnEl.style.display = '';
+      const shinyIndicatorBtnEl = document.getElementById('shinyIndicatorBtn');
+      if (shinyIndicatorBtnEl) shinyIndicatorBtnEl.style.display = '';
+      const makeShinyStatusEl = document.getElementById('makeShinyStatus');
+      if (makeShinyStatusEl) makeShinyStatusEl.style.display = '';
       currentEncounterMode = nextMode;
       try { clearGeneratedOutputs(); } catch (e) {}
       // Add body classes for special encounter modes so CSS/JS can adjust visibility
@@ -4682,6 +4690,14 @@ function boot(){
       if (pidWarn) pidWarn.style.display = 'none';
       const shadowEnc = document.getElementById('shadowEncounter');
       if (shadowEnc) { shadowEnc.innerHTML = ''; }
+      const shinyLockedLabel = document.getElementById('xdShinyLocked');
+      if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
+      const makeShinyBtn = document.getElementById('makeShinyBtn');
+      if (makeShinyBtn) makeShinyBtn.style.display = '';
+      const shinyIndicatorBtn = document.getElementById('shinyIndicatorBtn');
+      if (shinyIndicatorBtn) shinyIndicatorBtn.style.display = '';
+      const makeShinyStatus = document.getElementById('makeShinyStatus');
+      if (makeShinyStatus) makeShinyStatus.style.display = '';
     } catch (e) {}
   }
 
@@ -4813,6 +4829,8 @@ function boot(){
         // Default: ensure enabled, clear tooltip
         shinyCheckboxLocal.disabled = false;
         shinyCheckboxLocal.title = '';
+        const shinyLockedLabel = document.getElementById('xdShinyLocked');
+        if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
       } catch (e) {}
     }
     
@@ -6802,6 +6820,14 @@ function switchToImportedMode() {
   select.value = 'imported';
   currentEncounterMode = 'imported';
   try { clearGeneratedOutputs(); } catch (e) {}
+  const shinyLockedLabel = document.getElementById('xdShinyLocked');
+  if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
+  const makeShinyBtn = document.getElementById('makeShinyBtn');
+  if (makeShinyBtn) makeShinyBtn.style.display = '';
+  const shinyIndicatorBtn = document.getElementById('shinyIndicatorBtn');
+  if (shinyIndicatorBtn) shinyIndicatorBtn.style.display = '';
+  const makeShinyStatus = document.getElementById('makeShinyStatus');
+  if (makeShinyStatus) makeShinyStatus.style.display = '';
   // Apply body class
   document.body.classList.remove('encounter-wild','encounter-static','encounter-roamer','encounter-mystery','encounter-cxd_shadow');
   document.body.classList.add('encounter-imported');
