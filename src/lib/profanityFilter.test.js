@@ -41,6 +41,7 @@ function section(name) {
 const TEST_PATTERNS = [
   '^ass$',        // exact → boundary-only
   '^sa$',         // exact → boundary-only
+  '.*wix.*',      // substring len 3 -> boundary (digit-bridged regression case)
   '.*fag.*',      // substring, len 3, but manually overridden to strong
   '.*shit.*',     // substring, len 4 → strong
   '.*fuck.*',     // substring, len 4 → strong
@@ -72,7 +73,11 @@ assert(
 );
 assert(
   JSON.stringify(splitIntoLetterTokens(normalizeInput('12ass34'))) === '["ass"]',
-  'digits isolate the letter run'
+  'digits are ignored inside the letter run'
+);
+assert(
+  JSON.stringify(splitIntoLetterTokens(normalizeInput('wi8x'))) === '["wix"]',
+  'digits are ignored so wi8x tokenizes as wix'
 );
 assert(
   JSON.stringify(splitIntoLetterTokens(normalizeInput('xassx'))) === '["xassx"]',
@@ -107,6 +112,7 @@ assert(containsBoundaryTerm(normalizeInput('assx'), 'ass') === false, '"assx" do
 assert(containsBoundaryTerm(normalizeInput('mass'), 'ass') === false, '"mass" does NOT match');
 assert(containsBoundaryTerm(normalizeInput('class'), 'ass') === false, '"class" does NOT match');
 assert(containsBoundaryTerm(normalizeInput('xassx'), 'ass') === false, '"xassx" does NOT match');
+assert(containsBoundaryTerm(normalizeInput('wi8x'), 'wix') === true, '"wi8x" matches boundary term "wix"');
 
 assert(containsBoundaryTerm(normalizeInput('sa'), 'sa') === true, '"sa" matches boundary term "sa"');
 assert(containsBoundaryTerm(normalizeInput('xsa'), 'sa') === false, '"xsa" does NOT match');
@@ -173,6 +179,7 @@ assert(filter.check('12ass34') === true, '"12ass34" = banned');
 assert(filter.check('a s s') === true, '"a s s" = banned');
 assert(filter.check('a-s-s') === true, '"a-s-s" = banned');
 assert(filter.check('a.s.s') === true, '"a.s.s" = banned');
+assert(filter.check('wi8x') === true, '"wi8x" = banned');
 
 // ═══════════════════════════════════════════════════════════════════════
 // Full filter integration — "fag" (strong substring)

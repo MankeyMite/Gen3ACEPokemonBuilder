@@ -8,6 +8,37 @@ import { PROFANITY_LIST } from '../../data/profanity.gen3.js';
 // Shared profanity filter instance for Base64 box-name shifting
 const _b64ProfanityFilter = createProfanityFilter(PROFANITY_LIST);
 
+const BOX_LETTER_RE = /[a-z\u00C0-\u024F\u0400-\u04FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/i;
+
+function isBoxLetter(ch) {
+  return BOX_LETTER_RE.test(ch);
+}
+
+// Find a profanity term within a box while ignoring non-letter characters
+// between letters, and return the original character indices of matched letters.
+function findTermLetterPositionsInBox(boxText, term) {
+  const box = String(boxText || '').toLowerCase();
+  const needle = String(term || '').toLowerCase();
+  if (!box || !needle) return null;
+
+  for (let start = 0; start < box.length; start++) {
+    if (!isBoxLetter(box[start])) continue;
+
+    let ti = 0;
+    const positions = [];
+    for (let bi = start; bi < box.length; bi++) {
+      const ch = box[bi];
+      if (!isBoxLetter(ch)) continue;
+      if (ch !== needle[ti]) break;
+      positions.push(bi);
+      ti++;
+      if (ti === needle.length) return positions;
+    }
+  }
+
+  return null;
+}
+
 /**
  * Core Pokémon builder — SCAFFOLD VERSION
  * This builds the minimal byte layout and stubs the exact word assignments.
@@ -407,28 +438,45 @@ export function toBase64Emerald(bytes){
       const result = _b64ProfanityFilter.checkDetailed(box);
       if (!result.blocked) continue;
 
-      // Find the earliest cut point among all matched terms
-      let earliestCut = null;                    // will be the index to cut AT
+      // Collect all viable cut points from matched terms. We will choose the
+      // latest one that still fits downstream box capacity so we avoid cutting
+      // earlier than necessary.
+      const cutCandidates = [];
       for (const term of result.matches) {
-        // Case-insensitive search for the term in the box string
-        const idx = box.toLowerCase().indexOf(term.toLowerCase());
-        if (idx === -1) continue;
-        const lastCharPos = idx + term.length - 1;   // 0-indexed position of last char
+        const positions = findTermLetterPositionsInBox(box, term);
+        if (!positions) continue;
+        const lastCharPos = positions[positions.length - 1]; // original box index of last letter
         if (lastCharPos < 3) continue;                // position 4+ means index >= 3
         // Cut point: right before the last character of the bad word.
         // This removes just enough to break the word while keeping the
         // box as long as possible (at least 3 characters).
-        const cutAt = lastCharPos;
-        if (earliestCut === null || cutAt < earliestCut) {
-          earliestCut = cutAt;
+        cutCandidates.push(lastCharPos);
+      }
+
+      if (!cutCandidates.length) continue;
+
+      // Remaining capacity in boxes after this one (respect 8-char box limit).
+      let downstreamCapacity = 0;
+      for (let j = bi + 1; j < 14; j++) {
+        downstreamCapacity += Math.max(0, 8 - boxes[j].length);
+      }
+
+      // Prefer the latest cut (max keep, min displacement) that still fits.
+      cutCandidates.sort((a, b) => b - a);
+      let chosenCut = null;
+      for (const cutAt of cutCandidates) {
+        const displacedLen = box.length - cutAt;
+        if (displacedLen <= downstreamCapacity) {
+          chosenCut = cutAt;
+          break;
         }
       }
 
-      if (earliestCut === null) continue;
+      if (chosenCut === null) continue;
 
       // Truncate this box and push the rest forward
-      const kept = box.slice(0, earliestCut);
-      const displaced = box.slice(earliestCut);
+      const kept = box.slice(0, chosenCut);
+      const displaced = box.slice(chosenCut);
       boxes[bi] = kept;
       shiftedBoxes.add(bi);                     // mark this box as truncated
 
@@ -439,7 +487,8 @@ export function toBase64Emerald(bytes){
         boxes[j] = overflow.slice(0, 8);
         overflow = overflow.slice(8);
       }
-      // Any remaining overflow goes onto the end of box 14
+      // Safety: chosenCut guarantees no overflow should remain here.
+      // Keep this as a defensive fallback in case of unexpected state.
       if (overflow) {
         boxes[13] = boxes[13] + overflow;
       }
@@ -475,11 +524,11 @@ export function toBase64Emerald(bytes){
       if (!res.blocked) continue;
 
       for (const term of res.matches) {
-        const idx = box.toLowerCase().indexOf(term.toLowerCase());
-        if (idx === -1) continue;
+        const positions = findTermLetterPositionsInBox(box, term);
+        if (!positions) continue;
 
         let substituted = false;
-        for (let ci = idx; ci < idx + term.length; ci++) {
+        for (const ci of positions) {
           const ch = box[ci];
           if (!SUBST_MAP[ch]) continue;
 

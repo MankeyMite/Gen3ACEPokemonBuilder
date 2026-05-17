@@ -2011,6 +2011,7 @@ export const PROFANITY_LIST = [
   ".*whoremaster.*",
   ".*whoremonger.*",
   ".*wichs.*",
+  ".*wichsen.*",
   ".*wiicom\\.com.*",
   ".*willcom\\.com.*",
   ".*williamfyfe.*",

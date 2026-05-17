@@ -28,7 +28,8 @@
  *   - Letters (a-z, plus Unicode letters) and digits (0-9) are preserved.
  *   - Separators (spaces, hyphens, periods, commas, !, ?, quotes, ellipsis,
  *     ♂, ♀) are treated as boundaries and removed before token analysis.
- *   - Digits are NOT converted to letters (no leetspeak substitution).
+ *   - Digits are ignored for matching (treated like nothing), so letters
+ *     on either side are evaluated as one run.
  *
  * Migration from PKHeX:
  *   The original PKHeX badwords_switch.txt patterns are preserved in
@@ -122,6 +123,7 @@ export function normalizeInput(str) {
  * Examples:
  *   "ass"      → ["ass"]
  *   "12ass34"  → ["ass"]         (digits are boundaries)
+ *   "wi8x"     → ["wix"]         (digits are ignored)
  *   "xassx"    → ["xassx"]      (all letters = one token)
  *   "a\x00s\x00s" → ["a","s","s"]  (separators split tokens)
  *
@@ -129,8 +131,10 @@ export function normalizeInput(str) {
  * @returns {string[]} array of letter-only tokens (lowercase)
  */
 export function splitIntoLetterTokens(normalized) {
+  // Ignore digits so letter runs remain contiguous (e.g. "wi8x" -> "wix").
+  const digitsRemoved = normalized.replace(/[0-9]+/g, '');
   // Match runs of Unicode letters
-  const tokens = normalized.match(/[a-z\u00C0-\u024F\u0400-\u04FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]+/gi);
+  const tokens = digitsRemoved.match(/[a-z\u00C0-\u024F\u0400-\u04FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]+/gi);
   return tokens ? tokens.map(t => t.toLowerCase()) : [];
 }
 
