@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Patch Notes - Gen 3 ACE Pokemon Builder</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111a2b;
+      --line: rgba(125, 211, 252, 0.2);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #7dd3fc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at 20% 0%, #13233f, var(--bg) 48%);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .wrap {
+      width: min(920px, 100% - 2rem);
+      margin: 2rem auto;
+      background: rgba(17, 26, 43, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1.25rem 1.25rem 1.5rem;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+    }
+
+    h1 {
+      margin: 0 0 0.25rem;
+      font-size: clamp(1.35rem, 1.5vw + 0.9rem, 2rem);
+      color: var(--accent);
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 1rem;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .toolbar a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px dotted currentColor;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .content {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 10px;
+      padding: 1rem;
+      background: rgba(11, 18, 32, 0.65);
+    }
+
+    .content h2 {
+      margin: 1.15rem 0 0.35rem;
+      color: #bae6fd;
+      font-size: 1.1rem;
+      border-bottom: 1px solid rgba(125, 211, 252, 0.25);
+      padding-bottom: 0.2rem;
+    }
+
+    .content h2:first-child {
+      margin-top: 0;
+    }
+
+    .content p {
+      margin: 0.45rem 0;
+    }
+
+    .content ul {
+      margin: 0.35rem 0 0.65rem 1.2rem;
+      padding: 0;
+    }
+
+    .content li {
+      margin: 0.2rem 0;
+    }
+
+    .fallback {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Patch Notes</h1>
+    <div class="sub">Latest updates for Gen 3 ACE Pokemon Builder</div>
+
+    <div class="toolbar">
+      <a href="../index.html">Back to Builder</a>
+      <span class="status" id="statusText">Loading patch notes...</span>
+    </div>
+
+    <section class="content" id="patchContent"></section>
+  </main>
+
+  <script>
+    const statusText = document.getElementById('statusText');
+    const patchContent = document.getElementById('patchContent');
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function markdownToHtml(mdText) {
+      const lines = String(mdText || '').replace(/\r\n/g, '\n').split('\n');
+      const out = [];
+      let inList = false;
+
+      const closeList = () => {
+        if (inList) {
+          out.push('</ul>');
+          inList = false;
+        }
+      };
+
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+
+        if (!line) {
+          closeList();
+          continue;
+        }
+
+        if (/^#+\s+/.test(line)) {
+          closeList();
+          const lvl = Math.min(6, (line.match(/^#+/)[0] || '').length);
+          const body = escapeHtml(line.replace(/^#+\s+/, ''));
+          out.push('<h' + lvl + '>' + body + '</h' + lvl + '>');
+          continue;
+        }
+
+        if (/^Patch Notes\s*[-\u2014]/i.test(line)) {
+          closeList();
+          out.push('<h2>' + escapeHtml(line) + '</h2>');
+          continue;
+        }
+
+        if (/^-\s+/.test(line)) {
+          if (!inList) {
+            out.push('<ul>');
+            inList = true;
+          }
+          out.push('<li>' + escapeHtml(line.replace(/^-\s+/, '')) + '</li>');
+          continue;
+        }
+
+        closeList();
+        out.push('<p>' + escapeHtml(line) + '</p>');
+      }
+
+      closeList();
+      return out.join('\n');
+    }
+
+    async function loadPatchNotes() {
+      try {
+        const response = await fetch('./patch-notes.md', { cache: 'no-store' });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const text = await response.text();
+        patchContent.innerHTML = markdownToHtml(text);
+        statusText.textContent = 'Showing latest patch-notes.md';
+      } catch (error) {
+        statusText.textContent = 'Could not load patch-notes.md';
+        patchContent.innerHTML = '<div class="fallback">' +
+          'Failed to load patch notes automatically.\n\n' +
+          'Open this file directly:\n' +
+          './patch-notes.md' +
+          '</div>';
+      }
+    }
+
+    loadPatchNotes();
+  </script>
+</body>
+</html>

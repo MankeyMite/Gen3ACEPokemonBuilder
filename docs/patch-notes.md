@@ -1,3 +1,20 @@
+Patch Notes - (V.0.3.2)
+- Added Base64 as an import function.
+- Made hidden power type editable in hatched mode, changed "manual override" to "Unlock all fields for editing", and added an explanation.
+- Reworked encounter-mode change flow: save current mode state, load saved state when returning to a mode.
+- Improved profanity filter workaround for the switch, ignoring numbers and symbols to catch bad words more easily.
+- Added the patch notes log to the site.
+- Fixed the import hex data function so that illegally imported data would still result in a 1:1 conversion when generating the code, as long as the fields remain unedited.
+- Fixed a bug where the xd/colosseum shiny lock warning would remain after switching to another encounter type.
+
+Patch Notes - (V.0.3.1)
+- Added Hidden Power filter to the "find legal PID" button and changed the name to "find legal encounter"
+- locked IV fields from non-hatched modes for a lower risk of creating illegal Pokemon.
+- Fixed the Hatched mode generating the wrong gender because of old system using NatDex numbers instead of Index numbers when determining species.
+- Fixed a browser auto-restore bug on the base64 guide.
+- Fixed Colosseum Pokemon having the "fateful encounter" checked, added warning for changing TID/SID after PID selection.
+- fixed a bug where non-legendaries in static mode did not update nature PID.
+
 Patch Notes - (V.0.3.0)
 - Added new Base64 guide for all gen 3 games, including Ruby/Sapphire.
 - Added a profanity filter workaround, where the code generator scans for bad words, then splits them in two and shifts the code string forward.
@@ -7,15 +24,15 @@ Patch Notes - (V.0.3.0)
 - Small fixes to ability id's.
 
 Patch Notes - (V.0.2.9)
-- Repositioned the Import button to the top of the page
-- added smogon/showdown format as an import option
+- Repositioned the Import button to the top of the page.
+- added smogon/showdown format as an import option.
 - added .ek3/.pk3 file import option in the same import window.
 - fixed a bug where the "generate" button would not be clickable after import.
 - Fixed missing egg moves from evolutions.
 
 
 Patch Notes - (V.0.2.8)
-- Added Static mode for all static encounters in RSEFRLG
+- Added Static mode for all static encounters in RSEFRLG.
 - Removed the Legal/Illegal checker, to prevent users from generating illegal pokemon that was states as legal by the website. Will reimplement this later.
 
 
