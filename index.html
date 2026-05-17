@@ -1189,6 +1189,7 @@
           <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
             <button type="button" class="import-tab-btn active" data-import-tab="smogon">Smogon / Showdown</button>
             <button type="button" class="import-tab-btn" data-import-tab="hex">Hex</button>
+            <button type="button" class="import-tab-btn" data-import-tab="base64">Base64</button>
             <button type="button" class="import-tab-btn" data-import-tab="file">.ek3 / .pk3 File</button>
           </div>
 
@@ -1222,6 +1223,24 @@ IVs: 2 Atk / 30 SpA
 00 00 00 00 00 00 00 00 05 00 00 00 00 00 00 00</pre>
             </details>
             <button id="importHexBtn" type="button" style="margin-top: 0.75rem; width: 100%; padding: 0.6rem; font-size: 0.95rem; border-radius: 8px; background: rgba(56,189,248,0.3); border: 1px solid rgba(56,189,248,0.4); color: #e2e8f0; cursor: pointer; font-weight: 500;">Import</button>
+          </div>
+
+          <!-- Base64 tab -->
+          <div class="import-tab-content" data-import-tab-content="base64">
+            <textarea id="importBase64Input" rows="12" spellcheck="false" placeholder="Paste Base64 data (raw or Box 1-14 format)..." style="width: 100%; font-family: monospace; font-size: 0.85rem; background: rgba(15,23,42,0.8); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.2); border-radius: 8px; padding: 0.75rem; resize: vertical;"></textarea>
+            <details style="margin-top: 0.5rem;">
+              <summary style="font-size: 0.8rem; color: #94a3b8; cursor: pointer;">Supported input</summary>
+              <pre style="font-size: 0.78rem; color: #64748b; background: rgba(15,23,42,0.5); padding: 0.5rem; border-radius: 6px; margin-top: 0.35rem; white-space: pre-wrap;">You can paste either:
+- Raw Base64 stream
+- Box output from this tool:
+  Box 1: (XXXXXXXX)
+  ...
+  Box 14: (XXX)
+
+Question marks and exclamation marks are converted back to / and +.
+Trailing = padding is restored automatically.</pre>
+            </details>
+            <button id="importBase64Btn" type="button" style="margin-top: 0.75rem; width: 100%; padding: 0.6rem; font-size: 0.95rem; border-radius: 8px; background: rgba(56,189,248,0.3); border: 1px solid rgba(56,189,248,0.4); color: #e2e8f0; cursor: pointer; font-weight: 500;">Import</button>
           </div>
 
           <!-- File tab -->

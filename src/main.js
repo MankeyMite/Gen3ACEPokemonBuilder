@@ -9,7 +9,7 @@ import { LOCATIONS } from './data/locations.gen3.js';
 import { PID_PRESETS } from './data/pid_presets.gen3.js';
 import { STATIC_ENCOUNTERS, isLegendary, isBreedable, isGiftPokemon, STATIC_CATEGORIES, STATIC_ENCOUNTER_LIST, STATIC_SPECIES_SET, getEncountersByCategory, getSpeciesForCategory, getEncountersForSpeciesGame, getEncounterForSpecies } from './data/staticEncounters.gen3.js';
 import { getLegendaryPreset, isColosseumXDLegendary } from './data/legendaryPresets.gen3.js';
-import { buildPokemonBytes, toHexString, toFormattedHex, toBase64Emerald, coreSource, parsePokemonBytes, buildDecryptedPokemonFile } from './lib/gen3/builder.js';
+import { buildPokemonBytes, toHexString, toFormattedHex, toBase64Emerald, coreSource, parsePokemonBytes, parseBase64Emerald, buildDecryptedPokemonFile } from './lib/gen3/builder.js';
 import { GROUP, expForLevel, levelForExp } from './lib/exp.js';
 import EXP_GROUPS from './data/expGroups.gen3.js';
 import { ABILITIES, getAbilityName } from './data/abilities.gen3.js';
@@ -5459,6 +5459,21 @@ function boot(){
     }
     try {
       onLoadFromHex(input);
+      closeImportModal();
+    } catch (e) {
+      if (errEl) { errEl.textContent = 'Error: ' + e.message; errEl.style.display = 'block'; }
+    }
+  });
+  $('#importBase64Btn')?.addEventListener('click', () => {
+    const errEl = document.getElementById('importError');
+    const input = document.getElementById('importBase64Input')?.value || '';
+    if (!input.trim()) {
+      if (errEl) { errEl.textContent = 'Please paste Base64 data first.'; errEl.style.display = 'block'; }
+      return;
+    }
+    try {
+      const parsed = parseBase64Emerald(input);
+      onLoadFromHex(parsed.hex);
       closeImportModal();
     } catch (e) {
       if (errEl) { errEl.textContent = 'Error: ' + e.message; errEl.style.display = 'block'; }
