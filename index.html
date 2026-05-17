@@ -585,10 +585,6 @@
         <option value="mystery">Mystery Gifts</option>
         <option value="cxd_shadow">XD / Colosseum</option>
       </select>
-      <label class="override-toggle" style="margin-left: 1rem; display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: rgba(255,255,255,0.6); cursor: pointer;" title="Unlock all fields for manual editing. Useful for importing Pokémon or advanced customization.">
-        <input type="checkbox" id="manualOverride" style="accent-color: #f59e0b;" />
-        <span>Manual Override</span>
-      </label>
     </div>
 
       <!-- Encounter mode description shown below the selector -->
@@ -596,7 +592,13 @@
 
     <!-- BASICS CARD -->
     <section class="card" id="basicsCard">
-      <h2>Basics</h2>
+      <div style="display: grid; grid-template-columns: 140px 1fr; column-gap: 0.75rem; align-items: center; margin: 0.25rem 0 1rem 0;">
+        <h2 style="margin: 0;">Basics</h2>
+        <label class="override-toggle" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: rgba(255,255,255,0.6); cursor: pointer;" title="Unlock all fields for editing. Useful for importing Pokémon or advanced customization.">
+          <input type="checkbox" id="manualOverride" style="accent-color: #f59e0b;" />
+          <span>Unlock all fields for editing</span>
+        </label>
+      </div>
 
       <div class="row show-when-mystery">
         <label for="mysteryEvent">Event</label>
@@ -830,7 +832,25 @@
       <div class="row" data-advanced-only>
         <label>Hidden Power</label>
         <div style="display: flex; gap: 1rem; align-items: center;">
-          <span id="hiddenPowerType" style="font-weight: bold; color: var(--accent);">Dark</span>
+          <span id="hiddenPowerTypeText" style="font-weight: bold; color: var(--accent);">Dark</span>
+          <select id="hiddenPowerTypeSelect" aria-label="Select Hidden Power type" style="display: none;">
+            <option value="Fighting">Fighting</option>
+            <option value="Flying">Flying</option>
+            <option value="Poison">Poison</option>
+            <option value="Ground">Ground</option>
+            <option value="Rock">Rock</option>
+            <option value="Bug">Bug</option>
+            <option value="Ghost">Ghost</option>
+            <option value="Steel">Steel</option>
+            <option value="Fire">Fire</option>
+            <option value="Water">Water</option>
+            <option value="Grass">Grass</option>
+            <option value="Electric">Electric</option>
+            <option value="Psychic">Psychic</option>
+            <option value="Ice">Ice</option>
+            <option value="Dragon">Dragon</option>
+            <option value="Dark">Dark</option>
+          </select>
           <span id="hiddenPowerPower" style="color: var(--muted);">Power: 70</span>
         </div>
       </div>

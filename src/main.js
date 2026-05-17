@@ -599,15 +599,15 @@ function getRoamerMetLocation(speciesId) {
 // Gender thresholds are now imported from ./data/genderThresholds.gen3.js
 // (keyed by internal species ID, derived from species names)
 
+const HIDDEN_POWER_TYPES = [
+  'Fighting', 'Flying', 'Poison', 'Ground',
+  'Rock', 'Bug', 'Ghost', 'Steel',
+  'Fire', 'Water', 'Grass', 'Electric',
+  'Psychic', 'Ice', 'Dragon', 'Dark'
+];
+
 // Calculate Hidden Power type and power from IVs
 function calculateHiddenPower(ivs) {
-  const types = [
-    'Fighting', 'Flying', 'Poison', 'Ground', 
-    'Rock', 'Bug', 'Ghost', 'Steel',
-    'Fire', 'Water', 'Grass', 'Electric', 
-    'Psychic', 'Ice', 'Dragon', 'Dark'
-  ];
-  
   // Type is determined by the lowest bit of each IV (odd=1, even=0)
   // Order: HP, ATK, DEF, SPE, SPA, SPD
   const a = ivs.hp & 1;
@@ -618,7 +618,7 @@ function calculateHiddenPower(ivs) {
   const f = ivs.spd & 1;
   
   const typeIndex = Math.floor(((a + 2*b + 4*c + 8*d + 16*e + 32*f) * 15) / 63);
-  const type = types[typeIndex];
+  const type = HIDDEN_POWER_TYPES[typeIndex];
   
   // Power is determined by the second-lowest bit of each IV (bit 1)
   // Order: HP, ATK, DEF, SPE, SPA, SPD
@@ -632,6 +632,63 @@ function calculateHiddenPower(ivs) {
   const power = Math.floor(((u + 2*v + 4*w + 8*x + 16*y + 32*z) * 40) / 63) + 30;
   
   return { type, power };
+}
+
+function getHiddenPower70IVSpread(typeName) {
+  const idx = HIDDEN_POWER_TYPES.indexOf(String(typeName || ''));
+  if (idx < 0) return null;
+
+  // For target type t: t <= (S*15/63) < t+1, where S is the weighted parity sum.
+  // For 70 BP in Gen 3, each IV's second bit must be 1, so each stat is 30 or 31.
+  const minS = Math.ceil((idx * 63) / 15);
+  const maxS = Math.ceil(((idx + 1) * 63) / 15) - 1;
+
+  let bestS = minS;
+  let bestScore = -1;
+  for (let s = minS; s <= maxS; s++) {
+    let bitCount = 0;
+    for (let b = 0; b < 6; b++) {
+      if ((s >> b) & 1) bitCount++;
+    }
+    // Prefer more 31s (better total IVs), then larger parity sum for consistency.
+    const score = bitCount * 100 + s;
+    if (score > bestScore) {
+      bestScore = score;
+      bestS = s;
+    }
+  }
+
+  const toIv = (weight) => ((bestS & weight) !== 0 ? 31 : 30);
+  return {
+    hp: toIv(1),
+    atk: toIv(2),
+    def: toIv(4),
+    spe: toIv(8),
+    spa: toIv(16),
+    spd: toIv(32)
+  };
+}
+
+function applyHiddenPowerType70(typeName) {
+  if (currentEncounterMode !== 'hatched') return;
+  const spread = getHiddenPower70IVSpread(typeName);
+  if (!spread) return;
+
+  const setIv = (sel, val) => {
+    const el = $(sel);
+    if (!el) return;
+    el.value = String(val);
+    try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+    try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+  };
+
+  setIv('#ivHp', spread.hp);
+  setIv('#ivAtk', spread.atk);
+  setIv('#ivDef', spread.def);
+  setIv('#ivSpAtk', spread.spa);
+  setIv('#ivSpDef', spread.spd);
+  setIv('#ivSpe', spread.spe);
+  try { updateHiddenPower(); } catch (e) {}
 }
 
 // Parse PID input accepting hex (with or without 0x) or decimal. Returns unsigned 32-bit number.
@@ -1239,10 +1296,23 @@ function updateHiddenPower() {
   };
   
   const hp = calculateHiddenPower(ivs);
-  const typeEl = $('#hiddenPowerType');
+  const typeTextEl = $('#hiddenPowerTypeText');
+  const typeSelectEl = $('#hiddenPowerTypeSelect');
   const powerEl = $('#hiddenPowerPower');
+  const canChooseType = currentEncounterMode === 'hatched';
   
-  if (typeEl) typeEl.textContent = hp.type;
+  if (typeTextEl) {
+    typeTextEl.textContent = hp.type;
+    typeTextEl.style.display = canChooseType ? 'none' : '';
+  }
+  if (typeSelectEl) {
+    typeSelectEl.value = hp.type;
+    typeSelectEl.style.display = canChooseType ? '' : 'none';
+    typeSelectEl.disabled = !canChooseType;
+    typeSelectEl.title = canChooseType
+      ? 'Choose Hidden Power type (auto-sets 70 BP IV spread).'
+      : 'Hidden Power type selection is only available in hatched mode.';
+  }
   if (powerEl) powerEl.textContent = `Power: ${hp.power}`;
 }
 
@@ -2631,6 +2701,7 @@ function boot(){
       try { updateBallLocking(); } catch (e) {}
       try { updateLevelLocking(); } catch (e) {}
       try { updateIvLocking(); } catch (e) {}
+      try { updateHiddenPower(); } catch (e) {}
       try { enforceJapaneseOption(); } catch (e) {}
       try { lockLanguageForMewLegend(); } catch (e) {}
       try { enforceMewLegendMinLevel(); } catch (e) {}
@@ -2643,6 +2714,15 @@ function boot(){
   const overrideCheckbox = document.querySelector('#manualOverride');
   if (overrideCheckbox) {
     overrideCheckbox.addEventListener('change', (e) => {
+      if (e.target.checked && !manualOverrideActive) {
+        const proceed = window.confirm(
+          "Manually editing locked fields may result in illegally made Pokemon that may not be transferable to other generations or Pokemon Home.\n\nIf you proceed, it is recommended to export the Pokemon via .ek3 and import it in PkHex to check its legality afterwards.\n\nPress OK to proceed, or Cancel to go back."
+        );
+        if (!proceed) {
+          e.target.checked = false;
+          return;
+        }
+      }
       manualOverrideActive = e.target.checked;
       // Clear PID Finder locks when override is toggled
       if (pidFinderResultActive) unlockPidFinderFields();
@@ -2691,7 +2771,7 @@ function boot(){
       wild: {label: 'Wild', color: '#60a5fa', text: 'Wild encounters (in the overworld). Recommended only if you prefer it looking like it was RNG manipulated. Uses Method 1 encounter slots to aim for best IVs per nature for each species. Use the PID searcher for custom PID/shininess.'},
       mystery: {label: 'Mystery Gifts', color: '#ef476f', text: 'Mystery Gift events — Get Distribution Event Pokémon! These have strict rules, so you may only change a few fields. IVs are hand picked for the best possible for each nature.'},
       cxd_shadow: {label: 'XD / Colosseum', color: '#a78bfa', text: 'Shadow Pokémon from Pokémon XD: Gale of Darkness and Pokémon Colosseum. Choose a species and encounter location, then use the PID Finder with CXD method. TID and SID must be a valid GameCube RNG pair.'},
-      imported: {label: 'Imported', color: '#94a3b8', text: 'Pokémon imported from external data. All fields are unlocked via Manual Override. You can freely edit any field and generate the Pokémon.'}
+      imported: {label: 'Imported', color: '#94a3b8', text: 'Pokémon imported from external data. All fields are unlocked via "Unlock all fields for editing". You can freely edit any field and generate the Pokémon.'}
     };
     const m = map[mode] || {label: '', color: '#94a3b8', text: ''};
     // Render pill + text so the description is clearly associated with the selected mode
@@ -5073,6 +5153,15 @@ function boot(){
   // Initialize Hidden Power display
   updateHiddenPower();
 
+  // In hatched mode, selecting Hidden Power type auto-applies a 70 BP IV spread.
+  const hiddenPowerTypeSelect = $('#hiddenPowerTypeSelect');
+  if (hiddenPowerTypeSelect) {
+    hiddenPowerTypeSelect.addEventListener('change', (e) => {
+      const typeName = String(e.target?.value || '');
+      applyHiddenPowerType70(typeName);
+    });
+  }
+
   // Contest stats: cap each at 255
   const contestIds = ['#contestCool', '#contestBeauty', '#contestCute', '#contestSmart', '#contestTough', '#contestSheen'];
   contestIds.forEach(sel => {
@@ -6514,7 +6603,7 @@ function switchToImportedMode() {
       pill.textContent = 'Imported';
       const txt = document.createElement('span');
       txt.className = 'mode-desc-text';
-      txt.textContent = 'Pokémon imported from external data. All fields are unlocked via Manual Override. You can freely edit any field and generate the Pokémon.';
+      txt.textContent = 'Pokémon imported from external data. All fields are unlocked via "Unlock all fields for editing". You can freely edit any field and generate the Pokémon.';
       el.appendChild(pill);
       el.appendChild(txt);
     }
@@ -6984,7 +7073,7 @@ function onLoadFromHex(hexString){
     suppressPresetApply = false;
     
     if (!hexString) {
-      alert('Pokémon data loaded successfully! Manual Override has been enabled so you can edit all fields freely.');
+      alert('Pokémon data loaded successfully! "Unlock all fields for editing" has been enabled so you can edit all fields freely.');
     }
   } catch (e) {
     if (hexString) throw e; // Re-throw when called from modal so it can show its own error
@@ -7321,7 +7410,7 @@ function onImportPk3(event) {
       // overwrite the imported IVs while suppressPresetApply is still false.
       suppressPresetApply = false;
 
-      alert('Pokémon imported successfully! Manual Override has been enabled so you can edit all fields freely.');
+      alert('Pokémon imported successfully! "Unlock all fields for editing" has been enabled so you can edit all fields freely.');
     } catch (err) {
       alert('Error importing .ek3 file: ' + err.message);
     }
