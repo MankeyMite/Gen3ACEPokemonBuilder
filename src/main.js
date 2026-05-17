@@ -553,6 +553,8 @@ let pidFinderOriginalTid = 0;
 let pidFinderOriginalSid = 0;
 // When true, the Manual Override checkbox is active — all field locks are bypassed
 let manualOverrideActive = false;
+// Per-encounter-mode field snapshots to prevent cross-mode value bleed.
+const encounterModeStateCache = {};
 // When true, skip applying simple-mode PID presets (used during imports)
 let suppressPresetApply = false;
 // When true, suppress marking user-change events while programmatically applying presets
@@ -2639,8 +2641,17 @@ function boot(){
   const encounterModeSelect = document.querySelector('#encounterMode');
   if (encounterModeSelect) {
     encounterModeSelect.addEventListener('change', (e) => {
-      // Reset mode-specific state to avoid carryover between modes
-      try { resetAllModeState(); } catch (ee) {}
+      const previousMode = currentEncounterMode;
+      const nextMode = String(e.target.value || 'hatched');
+      // Save current mode edits before switching away
+      try {
+        encounterModeStateCache[previousMode] = captureCurrentEncounterModeState();
+      } catch (ee) {}
+      const savedNextModeState = encounterModeStateCache[nextMode] || null;
+      // For first-time mode visits, hard reset to a clean slate
+      if (!savedNextModeState) {
+        try { resetAllModeState(); } catch (ee) {}
+      }
       // Restore Origin Game dropdown options when leaving wild mode
       try { resetOriginGameOptions(); } catch (ee) {}
       // Restore full location list for the current origin game
@@ -2668,7 +2679,8 @@ function boot(){
       // Reset Make Shiny row visibility (let CSS handle it for non-CXD modes)
       const makeShinyRowEl = document.getElementById('makeShinyRow');
       if (makeShinyRowEl) makeShinyRowEl.style.display = '';
-      currentEncounterMode = e.target.value;
+      currentEncounterMode = nextMode;
+      try { clearGeneratedOutputs(); } catch (e) {}
       // Add body classes for special encounter modes so CSS/JS can adjust visibility
       document.body.classList.toggle('encounter-wild', currentEncounterMode === 'wild');
       document.body.classList.toggle('encounter-static', currentEncounterMode === 'static');
@@ -2684,13 +2696,33 @@ function boot(){
         const genderEl = document.querySelector('#gender');
         if (genderEl && !manualOverrideActive) genderEl.disabled = (currentEncounterMode === 'mystery');
       } catch (e) {}
+
+      // Restore saved edits for this mode (if any), else keep the clean reset.
+      if (savedNextModeState) {
+        try { applyEncounterModeState(savedNextModeState); } catch (e) {}
+      } else {
+        try { resetAllModeState(); } catch (e) {}
+      }
       
       // When changing encounter mode, update the Pokémon if needed
       const speciesId = Number($('#species').value) || 0;
+      try { updateAbilitySelect(speciesId); } catch (e) {}
+      try { updateUnownFormVisibility(speciesId); } catch (e) {}
+      try { updateSpeciesSprite(speciesId); } catch (e) {}
       handleEncounterModeChange(speciesId);
+
+      // Second pass restore so mode presets/handlers don't overwrite saved edits.
+      if (savedNextModeState) {
+        try { applyEncounterModeState(savedNextModeState); } catch (e) {}
+      }
+
+      const finalSpeciesId = Number($('#species').value) || 0;
+      try { updateAbilitySelect(finalSpeciesId); } catch (e) {}
+      try { updateUnownFormVisibility(finalSpeciesId); } catch (e) {}
+      try { updateSpeciesSprite(finalSpeciesId); } catch (e) {}
       // Re-apply move filtering for the current species
-      if (speciesId) {
-        updateMovesForSpecies(speciesId, {
+      if (finalSpeciesId) {
+        updateMovesForSpecies(finalSpeciesId, {
           preserveValue: currentEncounterMode === 'mystery'
         });
       }
@@ -4524,30 +4556,119 @@ function boot(){
     if (expEl) expEl.value = String(exp);
   }
 
+  const ENCOUNTER_MODE_CHECKBOX_IDS = new Set([
+    'shiny', 'isEgg', 'fatefulEncounter',
+    'markCircle', 'markTriangle', 'markSquare', 'markHeart',
+    'ribbonChampion', 'ribbonWinning', 'ribbonVictory', 'ribbonArtist', 'ribbonEffort',
+    'ribbonBattleChampion', 'ribbonRegionalChampion', 'ribbonNationalChampion',
+    'ribbonCountry', 'ribbonNational', 'ribbonEarth', 'ribbonWorld'
+  ]);
+
+  const ENCOUNTER_MODE_FIELD_IDS = [
+    'mysteryEvent', 'staticCategory', 'species', 'shadowEncounter', 'unownForm',
+    'nickname', 'level', 'expTotal', 'pid', 'nature', 'ability', 'gender',
+    'item', 'ball', 'originGame', 'metLocation', 'metLevel',
+    'tid', 'sid', 'shiny', 'otName', 'otGender', 'language', 'isEgg',
+    'ivHp', 'ivAtk', 'ivDef', 'ivSpAtk', 'ivSpDef', 'ivSpe',
+    'evHp', 'evAtk', 'evDef', 'evSpAtk', 'evSpDef', 'evSpe',
+    'move1', 'move2', 'move3', 'move4', 'pp1', 'pp2', 'pp3', 'pp4',
+    'friendship', 'fatefulEncounter',
+    'contestCool', 'contestBeauty', 'contestCute', 'contestSmart', 'contestTough', 'contestSheen',
+    'markCircle', 'markTriangle', 'markSquare', 'markHeart',
+    'ribbonCool', 'ribbonBeauty', 'ribbonCute', 'ribbonSmart', 'ribbonTough',
+    'ribbonChampion', 'ribbonWinning', 'ribbonVictory', 'ribbonArtist', 'ribbonEffort',
+    'ribbonBattleChampion', 'ribbonRegionalChampion', 'ribbonNationalChampion',
+    'ribbonCountry', 'ribbonNational', 'ribbonEarth', 'ribbonWorld',
+    'hiddenPowerTypeSelect'
+  ];
+
+  function readEncounterModeField(id) {
+    const el = document.getElementById(id);
+    if (!el) return undefined;
+    if (ENCOUNTER_MODE_CHECKBOX_IDS.has(id)) return Boolean(el.checked);
+    if ('value' in el) return String(el.value ?? '');
+    return undefined;
+  }
+
+  function writeEncounterModeField(id, value) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (ENCOUNTER_MODE_CHECKBOX_IDS.has(id)) {
+      el.checked = Boolean(value);
+      return;
+    }
+    if ('value' in el) {
+      el.value = value == null ? '' : String(value);
+    }
+  }
+
+  function captureCurrentEncounterModeState() {
+    const fields = {};
+    for (const id of ENCOUNTER_MODE_FIELD_IDS) {
+      const v = readEncounterModeField(id);
+      if (v !== undefined) fields[id] = v;
+    }
+    return {
+      manualOverrideActive: Boolean(manualOverrideActive),
+      fields
+    };
+  }
+
+  function applyEncounterModeState(state) {
+    if (!state) return;
+    const fields = state.fields || {};
+    const overrideCb = document.getElementById('manualOverride');
+    manualOverrideActive = Boolean(state.manualOverrideActive);
+    if (overrideCb) overrideCb.checked = manualOverrideActive;
+
+    for (const id of ENCOUNTER_MODE_FIELD_IDS) {
+      if (Object.prototype.hasOwnProperty.call(fields, id)) {
+        writeEncounterModeField(id, fields[id]);
+      }
+    }
+
+    try {
+      const gameId = Number($('#originGame')?.value || 3);
+      if (metLocationWrapper && metLocationWrapper.updateList) {
+        metLocationWrapper.updateList(getLocationsForGame(gameId));
+      }
+      if (Object.prototype.hasOwnProperty.call(fields, 'metLocation')) {
+        writeEncounterModeField('metLocation', fields.metLocation);
+      }
+    } catch (e) {}
+  }
+
   // Reset all mode-specific state to defaults to avoid carryover between modes
   function resetAllModeState() {
     try {
-      const me = document.getElementById('mysteryEvent');
-      if (me) {
-        me.value = '';
-        try { me.dispatchEvent(new Event('change')); } catch (e) {}
+      // First-time mode visit defaults: clear values so nothing bleeds across modes.
+      const defaults = {};
+
+      for (const id of ENCOUNTER_MODE_FIELD_IDS) {
+        if (Object.prototype.hasOwnProperty.call(defaults, id)) {
+          writeEncounterModeField(id, defaults[id]);
+        } else if (ENCOUNTER_MODE_CHECKBOX_IDS.has(id)) {
+          writeEncounterModeField(id, false);
+        } else {
+          writeEncounterModeField(id, '');
+        }
       }
 
-      // Re-enable all language options and reset to English
+      // Reset manual override for a fresh mode unless that mode has its own saved state.
+      manualOverrideActive = false;
+      const overrideCb = document.getElementById('manualOverride');
+      if (overrideCb) overrideCb.checked = false;
+
+      // Re-enable all language options
       const langSel = $('#language');
       if (langSel && langSel.options) {
         for (const o of Array.from(langSel.options)) o.disabled = false;
-        langSel.value = '2';
-        try { langSel.dispatchEvent(new Event('change')); } catch (e) {}
       }
 
-      // Reset origin/met/fateful/level/exp to sensible defaults
-      const originGameSelect = $('#originGame'); if (originGameSelect) originGameSelect.value = '3';
-      const metLocationSelect = $('#metLocation'); if (metLocationSelect) metLocationSelect.value = '9';
-      const metLevelInput = $('#metLevel'); if (metLevelInput) metLevelInput.value = '0';
-      const levelInput = $('#level'); if (levelInput) levelInput.value = '100';
-      const expEl = $('#expTotal'); if (expEl) expEl.value = String(expForLevel(GROUP.MEDIUM_FAST, 100));
-      const fateful = $('#fatefulEncounter'); if (fateful) fateful.checked = false;
+      // Clear sprite and form visibility for stale species
+      try { updateSpeciesSprite(0); } catch (e) {}
+      try { updateUnownFormVisibility(0); } catch (e) {}
+      try { clearGeneratedOutputs(); } catch (e) {}
 
       // Clear GC TID/SID warning, PID/TID/SID warning and shadow encounter dropdown
       const gcWarn = document.getElementById('gcTidSidWarning');
@@ -4556,14 +4677,6 @@ function boot(){
       if (pidWarn) pidWarn.style.display = 'none';
       const shadowEnc = document.getElementById('shadowEncounter');
       if (shadowEnc) { shadowEnc.innerHTML = ''; }
-
-      // Reset basic trainer info and PID/IVs to neutral values
-      const tid = $('#tid'); if (tid) tid.value = '';
-      const sid = $('#sid'); if (sid) sid.value = '';
-      const otName = $('#otName'); if (otName) otName.value = '';
-      const otGender = $('#otGender'); if (otGender) otGender.value = 'male';
-      const pid = $('#pid'); if (pid) pid.value = '';
-      ['#ivHp','#ivAtk','#ivDef','#ivSpAtk','#ivSpDef','#ivSpe'].forEach(id => { const el = $(id); if (el) el.value = '31'; });
     } catch (e) {}
   }
 
@@ -6538,6 +6651,31 @@ function updateProfanityWarning(b64Text) {
   banner.style.display = 'block';
 }
 
+function clearGeneratedOutputs() {
+  const hexOut = document.getElementById('hexOutput');
+  if (hexOut) hexOut.value = '';
+
+  const b64Out = document.getElementById('base64Output');
+  if (b64Out) b64Out.value = '';
+
+  const profanityBanner = document.getElementById('profanityWarning');
+  if (profanityBanner) {
+    profanityBanner.style.display = 'none';
+    profanityBanner.textContent = '';
+  }
+
+  const substitutionBanner = document.getElementById('substitutionWarning');
+  if (substitutionBanner) {
+    substitutionBanner.style.display = 'none';
+    substitutionBanner.textContent = '';
+  }
+
+  const copyHex = document.getElementById('copyHexCheck');
+  if (copyHex) copyHex.classList.remove('show');
+  const copyB64 = document.getElementById('copyBase64Check');
+  if (copyB64) copyB64.classList.remove('show');
+}
+
 function onGenerate(){
   // Check if button is disabled and show validation errors
   if ($('#generateBtn').getAttribute('data-disabled') === 'true') {
@@ -6585,6 +6723,7 @@ function switchToImportedMode() {
   }
   select.value = 'imported';
   currentEncounterMode = 'imported';
+  try { clearGeneratedOutputs(); } catch (e) {}
   // Apply body class
   document.body.classList.remove('encounter-wild','encounter-static','encounter-roamer','encounter-mystery','encounter-cxd_shadow');
   document.body.classList.add('encounter-imported');
