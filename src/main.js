@@ -9,7 +9,7 @@ import { LOCATIONS } from './data/locations.gen3.js';
 import { PID_PRESETS } from './data/pid_presets.gen3.js';
 import { STATIC_ENCOUNTERS, isLegendary, isBreedable, isGiftPokemon, STATIC_CATEGORIES, STATIC_ENCOUNTER_LIST, STATIC_SPECIES_SET, getEncountersByCategory, getSpeciesForCategory, getEncountersForSpeciesGame, getEncounterForSpecies } from './data/staticEncounters.gen3.js';
 import { getLegendaryPreset, isColosseumXDLegendary } from './data/legendaryPresets.gen3.js';
-import { buildPokemonBytes, toHexString, toFormattedHex, toBase64Emerald, coreSource, parsePokemonBytes, parseBase64Emerald, buildDecryptedPokemonFile } from './lib/gen3/builder.js';
+import { buildPokemonBytes, toHexString, toFormattedHex, toBase64Emerald, coreSource, parsePokemonBytes, parseBase64Emerald, buildDecryptedPokemonFile, convertPk3CanonicalToEk3Raw } from './lib/gen3/builder.js';
 import { GROUP, expForLevel, levelForExp } from './lib/exp.js';
 import EXP_GROUPS from './data/expGroups.gen3.js';
 import { ABILITIES, getAbilityName } from './data/abilities.gen3.js';
@@ -7385,10 +7385,18 @@ function onExportPk3() {
   }
 }
 
-// Import Pokémon data from .ek3 file
+// Import Pokémon data from .ek3/.pk3 file
 function onImportPk3(event) {
   const file = event.target.files[0];
   if (!file) return;
+
+  const fileName = String(file.name || '').toLowerCase();
+  const ext = fileName.endsWith('.pk3') ? 'pk3' : (fileName.endsWith('.ek3') ? 'ek3' : '');
+  if (!ext) {
+    alert('Invalid file type. Please import a .pk3 or .ek3 file.');
+    event.target.value = '';
+    return;
+  }
   
   // Reset the file input so the same file can be imported again
   event.target.value = '';
@@ -7398,26 +7406,31 @@ function onImportPk3(event) {
     try {
       suppressImportedDirtyTracking = true;
       const arrayBuffer = e.target.result;
-      let bytes = new Uint8Array(arrayBuffer);
-      
-      // Handle both encrypted (80 bytes) and decrypted (100 bytes) formats
-      if (bytes.length === 100) {
-        // PKHeX decrypted format: first 80 bytes are what we need
-        bytes = bytes.slice(0, 80);
-      } else if (bytes.length === 80) {
-        // Standard encrypted format
-        // bytes is already correct
+      const bytes = new Uint8Array(arrayBuffer);
+
+      let rawBytes;
+      if (ext === 'pk3') {
+        if (bytes.length < 80) {
+          alert(`Invalid .pk3 file size: ${bytes.length} bytes (expected at least 80 bytes)`);
+          return;
+        }
+        // .pk3 is canonical decrypted data; convert to encrypted/raw ek3 bytes.
+        rawBytes = convertPk3CanonicalToEk3Raw(bytes);
       } else {
-        alert(`Invalid .ek3 file size: ${bytes.length} bytes (expected 80 or 100 bytes)`);
-        return;
+        // .ek3 is encrypted/raw box data and should be exactly 80 bytes.
+        if (bytes.length !== 80) {
+          alert(`Invalid .ek3 file size: ${bytes.length} bytes (expected 80 bytes)`);
+          return;
+        }
+        rawBytes = bytes.slice(0, 80);
       }
 
-      setImportedRoundTripFromBytes(bytes);
+      setImportedRoundTripFromBytes(rawBytes);
       
       // Parse the bytes and load into form fields (without updating outputs yet)
-      const data = parsePokemonBytes(Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(''));
+      const data = parsePokemonBytes(Array.from(rawBytes).map(b => b.toString(16).padStart(2, '0')).join(''));
       // Diagnostic: log whether XOR-decryption was used and PID read from header
-      console.log('Imported .pk3/.ek3 — PID:', data.pid, 'usedXor:', data.usedXor);
+      console.log(`Imported .${ext} — PID:`, data.pid, 'usedXor:', data.usedXor);
       
       // Debug: log species ID and exp group
       const expGroup = EXP_GROUPS[data.speciesId] ?? GROUP.MEDIUM_FAST;
@@ -7685,7 +7698,7 @@ function onImportPk3(event) {
   };
   
   reader.onerror = function() {
-    alert('Failed to read .ek3 file');
+    alert('Failed to read .pk3/.ek3 file');
   };
   
   reader.readAsArrayBuffer(file);

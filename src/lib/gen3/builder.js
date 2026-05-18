@@ -362,6 +362,45 @@ export function buildDecryptedPokemonFile(cfg){
   return out;
 }
 
+// Convert canonical decrypted .pk3 bytes to encrypted raw 80-byte box layout.
+// Preserves header bytes exactly and only rewrites 0x20-0x4F as permuted+xored data.
+export function convertPk3CanonicalToEk3Raw(inputBytes) {
+  const src = inputBytes instanceof Uint8Array ? inputBytes : new Uint8Array(inputBytes || []);
+  if (src.length < 80) throw new Error('Expected at least 80 bytes for .pk3 import');
+
+  const pk3 = src.slice(0, 80);
+  const out = new Uint8Array(pk3);
+
+  const pid = readU32LE(pk3, 0);
+  const otid = readU32LE(pk3, 4);
+  const key = (pid ^ otid) >>> 0;
+
+  // .pk3 is canonical decrypted GAEM order in 0x20-0x4F.
+  const canonical = {
+    G: pk3.slice(0x20, 0x2C),
+    A: pk3.slice(0x2C, 0x38),
+    E: pk3.slice(0x38, 0x44),
+    M: pk3.slice(0x44, 0x50),
+  };
+
+  // Reorder into PID-dependent in-save permutation.
+  const order = GAEM_PERMUTATIONS[pid % 24];
+  const permutedPlain = new Uint8Array(48);
+  let off = 0;
+  for (const tag of order) {
+    permutedPlain.set(canonical[tag], off);
+    off += 12;
+  }
+
+  // Encrypt 48-byte body in place at 0x20-0x4F.
+  for (let i = 0; i < 48; i += 4) {
+    const plain = readU32LE(permutedPlain, i);
+    writeU32LE(out, 0x20 + i, (plain ^ key) >>> 0);
+  }
+
+  return out;
+}
+
 // --- Utilities & stubs ---
 
 // very simple PID picker that respects natureIndex (pid % 25 == nature)
