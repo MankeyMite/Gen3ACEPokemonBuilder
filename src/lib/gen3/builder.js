@@ -401,6 +401,47 @@ export function convertPk3CanonicalToEk3Raw(inputBytes) {
   return out;
 }
 
+// Convert encrypted/raw 80-byte .ek3 bytes to canonical decrypted .pk3 bytes.
+// Output defaults to 100 bytes (PKHeX-style), preserving the first 0x20 header bytes.
+export function convertEk3RawToPk3Canonical(inputBytes, outputLength = 100) {
+  const src = inputBytes instanceof Uint8Array ? inputBytes : new Uint8Array(inputBytes || []);
+  if (src.length < 80) throw new Error('Expected at least 80 bytes for .ek3 conversion');
+
+  const raw = src.slice(0, 80);
+  const outLen = Math.max(80, Number(outputLength) || 100);
+  const out = new Uint8Array(outLen);
+  out.set(raw, 0);
+
+  const pid = readU32LE(raw, 0);
+  const otid = readU32LE(raw, 4);
+  const key = (pid ^ otid) >>> 0;
+
+  // Decrypt PID-permuted 48-byte body from raw 0x20-0x4F.
+  const permutedPlain = new Uint8Array(48);
+  for (let i = 0; i < 48; i += 4) {
+    const enc = readU32LE(raw, 0x20 + i);
+    writeU32LE(permutedPlain, i, (enc ^ key) >>> 0);
+  }
+
+  // Reorder from PID permutation into canonical GAEM order for .pk3.
+  const order = GAEM_PERMUTATIONS[pid % 24];
+  const map = {};
+  let off = 0;
+  for (const tag of order) {
+    map[tag] = permutedPlain.slice(off, off + 12);
+    off += 12;
+  }
+
+  const canonical = new Uint8Array(48);
+  canonical.set(map.G || new Uint8Array(12), 0);
+  canonical.set(map.A || new Uint8Array(12), 12);
+  canonical.set(map.E || new Uint8Array(12), 24);
+  canonical.set(map.M || new Uint8Array(12), 36);
+  out.set(canonical, 0x20);
+
+  return out;
+}
+
 // --- Utilities & stubs ---
 
 // very simple PID picker that respects natureIndex (pid % 25 == nature)
