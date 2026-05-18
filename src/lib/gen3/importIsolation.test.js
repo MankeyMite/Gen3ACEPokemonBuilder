@@ -38,6 +38,19 @@ section('pristine imported output bypass helper');
   assert(out.base64Text === toBase64Emerald(rawBytes).text, 'base64 output should match exact imported bytes');
 }
 
+section('edited import falls back to rebuild path helper');
+{
+  const out = tryBuildPristineImportedOutputs({
+    currentEncounterMode: 'imported',
+    importedRoundTripBytes: rawBytes,
+    importedRoundTripDirty: true,
+    toFormattedHexFn: toFormattedHex,
+    toBase64Fn: toBase64Emerald,
+  });
+
+  assert(out === null, 'dirty imported state should not use byte-preserved passthrough helper');
+}
+
 section('synthetic events do not dirty imports');
 {
   const shouldDirty = shouldMarkImportedDirtyFromEvent({

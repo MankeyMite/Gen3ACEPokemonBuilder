@@ -2835,7 +2835,7 @@ function boot(){
       wild: {label: 'Wild', color: '#60a5fa', text: 'Wild encounters (in the overworld). Recommended only if you prefer it looking like it was RNG manipulated. Uses Method 1 encounter slots to aim for best IVs per nature for each species. Use the PID searcher for custom PID/shininess.'},
       mystery: {label: 'Mystery Gifts', color: '#ef476f', text: 'Mystery Gift events — Get Distribution Event Pokémon! These have strict rules, so you may only change a few fields. IVs are hand picked for the best possible for each nature.'},
       cxd_shadow: {label: 'XD / Colosseum', color: '#a78bfa', text: 'Shadow Pokémon from Pokémon XD: Gale of Darkness and Pokémon Colosseum. Choose a species and encounter location, then use the PID Finder with CXD method. TID and SID must be a valid GameCube RNG pair.'},
-      imported: {label: 'Imported', color: '#94a3b8', text: 'Pokémon imported from external data. All fields are unlocked via "Unlock all fields for editing". You can freely edit any field and generate the Pokémon.'}
+      imported: {label: 'Imported', color: '#94a3b8', text: 'Pokémon imported from external data. Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from UI fields. This matters for glitched bytes the UI cannot safely represent.'}
     };
     const m = map[mode] || {label: '', color: '#94a3b8', text: ''};
     // Render pill + text so the description is clearly associated with the selected mode
@@ -6826,6 +6826,9 @@ function isPristineImportedRoundTrip() {
 }
 
 function onGenerate(){
+  // Rule of thumb:
+  // - Unedited import => byte-preserved output
+  // - Edited import   => rebuild from current UI fields
   const pristineOutput = tryBuildPristineImportedOutputs({
     currentEncounterMode,
     importedRoundTripBytes,
@@ -6959,7 +6962,7 @@ function switchToImportedMode() {
       pill.textContent = 'Imported';
       const txt = document.createElement('span');
       txt.className = 'mode-desc-text';
-      txt.textContent = 'Pokémon imported from external data. All fields are unlocked via "Unlock all fields for editing". You can freely edit any field and generate the Pokémon.';
+      txt.textContent = 'Pokémon imported from external data. Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from UI fields. This matters for glitched bytes the UI cannot safely represent.';
       el.appendChild(pill);
       el.appendChild(txt);
     }
@@ -7442,7 +7445,7 @@ function onLoadFromHex(hexString){
     suppressPresetApply = false;
     
     if (!hexString) {
-      alert('Pokémon data loaded successfully! "Unlock all fields for editing" has been enabled so you can edit all fields freely.');
+      alert('Pokémon data loaded successfully! Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from current UI fields.');
     }
   } catch (e) {
     if (hexString) throw e; // Re-throw when called from modal so it can show its own error
@@ -7738,7 +7741,7 @@ function onImportPk3(event) {
       // Keep manualOverrideActive = true so user can freely edit imported values.
       suppressPresetApply = false;
 
-      alert('Pokémon imported successfully! "Unlock all fields for editing" has been enabled so you can edit all fields freely.');
+      alert('Pokémon imported successfully! Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from current UI fields.');
     } catch (err) {
       alert('Error importing .ek3/.pk3 file: ' + err.message);
     } finally {
