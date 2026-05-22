@@ -1,5 +1,6 @@
 Patch Notes - (V.0.3.3)
 - Removed simple and advanced mode to simplify the page. They are now instead merged together with an improved flow.
+- Added Ageto Celebi to Mystery Gifts
 - added a strict rule for import, where unedited imports = byte-preserved output. Edited import = rebuild from UI fields
 - fixed a bug where pk3 files were not converted correctly to raw encrypted data, causing the tool to rebuild the Pokemon, giving slightly different code.
 
