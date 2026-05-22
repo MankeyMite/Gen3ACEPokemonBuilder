@@ -89,13 +89,11 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
       if (evt.fixedTID !== undefined) $('#tid').value = String(evt.fixedTID);
       if (evt.fixedSID !== undefined) $('#sid').value = String(evt.fixedSID);
 
-      // OT name: prefer English language mapping (id "2") if available,
-      // set the UI language to English so the OT mapping behaves predictably.
-      const preferredLangId = '2';
+      // OT name: prefer event default language when provided (fallback English).
+      const preferredLangId = String(evt.defaultLanguage !== undefined ? evt.defaultLanguage : 2);
       try {
         const langEl = $('#language');
         if (langEl) {
-          // Set language to English for event defaults (user can change it afterwards)
           langEl.value = preferredLangId;
           langEl.dispatchEvent(new Event('change'));
         }
@@ -107,6 +105,11 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
         $('#otName').value = evt.ot_names[String($('#language')?.value || preferredLangId)];
       } else if (evt.ot_name) {
         $('#otName').value = evt.ot_name;
+      }
+
+      // Event nickname default (if provided)
+      if (evt.nickname !== undefined) {
+        const nick = $('#nickname'); if (nick) nick.value = String(evt.nickname);
       }
 
       // OT gender if provided
@@ -176,6 +179,8 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
             if (tU === '10ANNI') {
               newLevel = Math.max(70, Number(newLevel));
             } else if (tU === 'AURA_MEW') {
+              newLevel = Math.max(10, Number(newLevel));
+            } else if (tU === 'AGETO_CELEBI') {
               newLevel = Math.max(10, Number(newLevel));
             } else if (tU === 'BOX_EVENT') {
               newLevel = Math.max(5, Number(newLevel));
@@ -2178,7 +2183,17 @@ function boot(){
           // Special handling for Celebi (species ID 251)
           else if (speciesId === 251) {
             const currentTag = document.getElementById('mysteryEvent')?.value || '';
-            if (currentEncounterMode === 'mystery' && String(currentTag).toUpperCase() === 'JOURNEY_ACROSS_AMERICA') {
+            const currentEvent = (currentEncounterMode === 'mystery' && MYSTERY_EVENTS && MYSTERY_EVENTS[currentTag])
+              ? MYSTERY_EVENTS[currentTag]
+              : null;
+            if (currentEncounterMode === 'mystery' && currentEvent && currentEvent.nickname) {
+              $('#nickname').value = String(currentEvent.nickname);
+              if (currentEvent.defaultLanguage !== undefined) {
+                $('#language').value = String(currentEvent.defaultLanguage);
+              } else {
+                $('#language').value = '1';
+              }
+            } else if (currentEncounterMode === 'mystery' && String(currentTag).toUpperCase() === 'JOURNEY_ACROSS_AMERICA') {
               $('#nickname').value = 'CELEBI';
               $('#language').value = '2'; // English
             } else {
@@ -3268,6 +3283,7 @@ function boot(){
               'doeldeoxys': 'DOEL_DEOXYS',
               'pokemonrocksamerica2005': 'POKEMON_ROCKS_METANG',
               'partyofthedecade': 'PARTY_OF_THE_DECADE',
+              'agetocelebi': 'AGETO_CELEBI',
               'clubnintendojirachigiveaway': 'WISHMKR_BEST',
               'wishmkrjirachibestivs': 'WISHMKR_BEST',
               'wishmkrjirachiallshinypids': 'WISHMKR_SHINY'
@@ -3389,6 +3405,8 @@ function boot(){
             // rename for legacy 10ANNI tag.
             if (String(t).toUpperCase() === '10ANNI') {
               o.textContent = 'TOP 10 DISTRIBUTION POKÉMON';
+            } else if (String(t).toUpperCase() === 'AGETO_CELEBI') {
+              o.textContent = 'AGETO CELEBI';
             } else if (String(t).toUpperCase() === 'WISHMKR_BEST') {
               o.textContent = "WISHMKR JIRACHI - BEST IV'S";
             } else if (String(t).toUpperCase() === 'WISHMKR_SHINY') {
@@ -3534,36 +3552,71 @@ function boot(){
         });
         if (foundKey) tag = foundKey;
       }
-      if (!tag || !MYSTERY_GIFTS[tag]) { suppressUserChangeMark = false; return; }
+      const selectedEvent = (MYSTERY_EVENTS && MYSTERY_EVENTS[rawTag]) ? MYSTERY_EVENTS[rawTag] : null;
+      const isAgetoCelebi = String(rawTag).toUpperCase() === 'AGETO_CELEBI';
+      const presetTag = (!MYSTERY_GIFTS[tag] && selectedEvent && selectedEvent.presetTag && MYSTERY_GIFTS[selectedEvent.presetTag])
+        ? selectedEvent.presetTag
+        : tag;
       const natureIndex = Number($('#nature').value || 0);
       const natureName = NATURES[natureIndex] || '';
 
+      // AGETO CELEBI: use CXD nature PID table from the imported preset data.
+      let candidates = [];
+      if (isAgetoCelebi) {
+        try {
+          const preset = getLegendaryPreset(natureIndex, 15);
+          if (preset && preset.pid !== undefined && preset.ivs) {
+            candidates.push({
+              nature: natureName,
+              pid: '0x' + ((Number(preset.pid) >>> 0).toString(16).toUpperCase().padStart(8, '0')),
+              // Order: [hp, atk, def, speed, sp.atk, sp.def]
+              ivs: [
+                Number(preset.ivs.hp) || 0,
+                Number(preset.ivs.atk) || 0,
+                Number(preset.ivs.def) || 0,
+                Number(preset.ivs.spe) || 0,
+                Number(preset.ivs.spa) || 0,
+                Number(preset.ivs.spd) || 0
+              ],
+              fixedTID: selectedEvent?.fixedTID,
+              fixedSID: selectedEvent?.fixedSID,
+              ot_name: selectedEvent?.ot_name,
+              ot_gender: selectedEvent?.ot_gender
+            });
+          }
+        } catch (e) {}
+      }
+
       // Diagnostics: log available entries and currently selected nature
-      try {
-        const candidateNatures = (MYSTERY_GIFTS[tag] || []).map(e => String(e.nature || ''));
-        console.log('applyMysteryPresetForSpecies', { tag, speciesId, natureIndex, natureName, candidateNatures });
-      } catch (e) {}
+      if (!candidates.length) {
+        if (!presetTag || !MYSTERY_GIFTS[presetTag]) { suppressUserChangeMark = false; return; }
+        try {
+          const candidateNatures = (MYSTERY_GIFTS[presetTag] || []).map(e => String(e.nature || ''));
+          console.log('applyMysteryPresetForSpecies', { tag, presetTag, speciesId, natureIndex, natureName, candidateNatures });
+        } catch (e) {}
+      }
 
       // Build candidate list. Prefer exact-per-tag list, but if missing,
       // scan all per-pokemon entries for matching entry.tag values (handles
       // mismatches like DEOXYS_DOEL vs DOEL_DEOXYS).
-      let candidates = [];
-      if (MYSTERY_GIFTS[tag] && MYSTERY_GIFTS[tag].length) {
-        candidates = MYSTERY_GIFTS[tag];
-      } else {
-        try {
-          const rawLower = String(rawTag).toLowerCase();
-          const rev = String(rawTag).split(/[_\- ]+/).filter(Boolean).reverse().join('_').toLowerCase();
-          for (const k of Object.keys(MYSTERY_GIFTS)) {
-            for (const e of (MYSTERY_GIFTS[k] || [])) {
-              const etag = String(e.tag || '').toLowerCase();
-              if (!etag) continue;
-              if (etag === rawLower || etag === rev || etag.includes(rawLower) || rawLower.includes(etag)) {
-                candidates.push(e);
+      if (!candidates.length) {
+        if (MYSTERY_GIFTS[presetTag] && MYSTERY_GIFTS[presetTag].length) {
+          candidates = MYSTERY_GIFTS[presetTag];
+        } else {
+          try {
+            const rawLower = String(rawTag).toLowerCase();
+            const rev = String(rawTag).split(/[_\- ]+/).filter(Boolean).reverse().join('_').toLowerCase();
+            for (const k of Object.keys(MYSTERY_GIFTS)) {
+              for (const e of (MYSTERY_GIFTS[k] || [])) {
+                const etag = String(e.tag || '').toLowerCase();
+                if (!etag) continue;
+                if (etag === rawLower || etag === rev || etag.includes(rawLower) || rawLower.includes(etag)) {
+                  candidates.push(e);
+                }
               }
             }
-          }
-        } catch (e) {}
+          } catch (e) {}
+        }
       }
       console.log('Mystery preset candidates count for', rawTag, candidates.length);
       const targetCanon = String(natureName || '').toLowerCase().replace(/[^a-z]/g, '');
@@ -4573,6 +4626,7 @@ function boot(){
           const tag = String(document.getElementById('mysteryEvent')?.value || '').toUpperCase();
           if (tag === '10ANNI' && val < 70) val = 70;
           else if (tag === 'AURA_MEW' && val < 10) val = 10;
+          else if (tag === 'AGETO_CELEBI' && val < 10) val = 10;
           else if (tag === 'BOX_EVENT' && val < 5) val = 5;
           else if (tag === 'DOEL_DEOXYS' && val < 70) val = 70;
           else if (tag === 'JOURNEY_ACROSS_AMERICA' && val < 70) val = 70;
@@ -5081,7 +5135,7 @@ function boot(){
       if (!suppressPresetApply && currentEncounterMode === 'mystery') {
         const speciesId = Number($('#species').value) || 0;
         const tag = document.getElementById('mysteryEvent')?.value || '';
-        if (tag && MYSTERY_GIFTS[tag]) {
+        if (tag) {
           applyMysteryPresetForSpecies(speciesId);
           return; // do not fall-through to other preset logic
         }
