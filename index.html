@@ -115,6 +115,21 @@
       word-break: break-word;
     }
 
+    .form-section-title {
+      margin: 1.25rem 0 0.5rem 0;
+      padding-top: 0.8rem;
+      border-top: 1px solid rgba(56, 189, 248, 0.18);
+      color: #c6e3ff;
+      font-size: 1rem;
+      letter-spacing: 0.02em;
+    }
+
+    .form-section-title:first-of-type {
+      margin-top: 0.25rem;
+      padding-top: 0;
+      border-top: none;
+    }
+
     /* Disabled generate button */
     #generateBtn[data-disabled="true"] {
       opacity: 0.5;
@@ -223,19 +238,7 @@
       margin: 0 auto;
     }
 
-    /* Hide advanced-only fields in simple mode */
-    body.mode-simple [data-advanced-only] {
-      display: none;
-    }
-
-    /* Show specific advanced fields in simple mode when Wild encounter selected */
-    body.mode-simple.encounter-wild .show-when-wild-simple {
-      display: flex;
-    }
-    /* Show origin game / met location / met level fields in simple mode for Roamer */
-    body.mode-simple.encounter-roamer .show-when-wild-simple {
-      display: flex;
-    }
+    /* Simple/advanced mode toggle was removed; all form fields stay visible. */
 
     /* Mystery-specific elements are hidden by default and shown when mystery mode active */
     .show-when-mystery { display: none; }
@@ -568,17 +571,6 @@
     </p>
     <p class="muted">Build custom Pokémon for Gen III games. Import from raw hex data, .pk3/ek3 files, or create your Pokémon from scratch. Export as BASE64 box codes, raw hex data, or a .pk3/ek3 file. New here? <a href="./docs/spawn-setup-interactive.html" target="_blank">How to spawn Pokemon in your game from this tool</a> — step-by-step setup. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
 
-    <!-- Simple vs Advanced mode toggle -->
-    <div class="mode-toggle" id="modeToggle">
-      <label>
-        <input type="radio" name="mode" id="modeSimple" value="simple" checked />
-        Simple mode
-      </label>
-      <label>
-        <input type="radio" name="mode" id="modeAdvanced" value="advanced" />
-        Advanced mode
-      </label>
-    </div>
   </header>
 
   <main class="container layout-vertical">
@@ -602,18 +594,25 @@
       </select>
     </div>
 
+    <p class="muted" style="margin: 0.4rem 0 0.15rem 0; max-width: 900px; font-size: 0.92rem;">
+      Select where this Pokémon should come from.<br />
+      This affects legality, available Pokémon, and encounter data.
+    </p>
+
       <!-- Encounter mode description shown below the selector -->
       <div id="encounterModeDescription" class="mode-desc" aria-live="polite"></div>
 
-    <!-- BASICS CARD -->
+    <!-- BUILDER FORM CARD -->
     <section class="card" id="basicsCard">
       <div style="display: grid; grid-template-columns: 140px 1fr; column-gap: 0.75rem; align-items: center; margin: 0.25rem 0 1rem 0;">
-        <h2 style="margin: 0;">Basics</h2>
+        <h2 style="margin: 0;">Pokémon Builder</h2>
         <label class="override-toggle" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: rgba(255,255,255,0.6); cursor: pointer;" title="Unlock all fields for editing. Useful for importing Pokémon or advanced customization.">
           <input type="checkbox" id="manualOverride" style="accent-color: #f59e0b;" />
           <span>Unlock all fields for editing</span>
         </label>
       </div>
+
+      <h3 class="form-section-title">Basic setup</h3>
 
       <div class="row show-when-mystery">
         <label for="mysteryEvent">Event</label>
@@ -651,15 +650,9 @@
         <input id="level" type="number" min="1" max="100" value="100" />
       </div>
 
-      <div class="row" data-advanced-only>
+      <div class="row">
         <label for="expTotal">Total EXP</label>
         <input id="expTotal" type="number" min="0" max="9999999" value="0" />
-      </div>
-
-      <div class="row" data-advanced-only>
-        <label for="pid">PID (hex)</label>
-        <input id="pid" type="text" placeholder="0x12345678" value="0x0" />
-        <span id="shinyIndicator" class="shiny-indicator" title="This Pokémon is shiny!">✨</span>
       </div>
 
       <div class="row">
@@ -688,220 +681,6 @@
         <select id="item"></select>
       </div>
 
-      <div class="row" data-advanced-only>
-        <label for="ball-input">Ball</label>
-        <select id="ball"></select>
-      </div>
-
-      <div class="row show-when-wild-simple" data-advanced-only>
-        <label for="originGame">Origin Game</label>
-        <select id="originGame">
-          <option value="1">Sapphire</option>
-          <option value="2">Ruby</option>
-          <option value="3" selected>Emerald</option>
-          <option value="4">FireRed</option>
-          <option value="5">LeafGreen</option>
-          <option value="15">Colosseum/XD</option>
-        </select>
-      </div>
-
-      <div class="row show-when-wild-simple" data-advanced-only>
-        <label for="metLocation-input">Met Location</label>
-        <select id="metLocation"></select>
-      </div>
-
-      <div class="row show-when-wild-simple" data-advanced-only>
-        <label for="metLevel">
-          Met Level
-          <span class="tooltip-icon" title="Level 0 for hatched Pokémon">?</span>
-        </label>
-        <input id="metLevel" type="number" min="0" max="100" value="0" />
-      </div>
-
-      <div class="row two">
-        <div>
-          <label for="tid">TID</label>
-          <input id="tid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="12345" />
-        </div>
-        <div>
-          <label for="sid">SID</label>
-          <input id="sid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="54321" />
-        </div>
-      </div>
-      <div id="gcTidSidWarning" class="profanity-warning" style="display:none;">
-        &#x26A0;&#xFE0F; This TID/SID combination is <b>not possible</b> in Colosseum/XD. The game generates TID and SID as consecutive GC&nbsp;RNG outputs &mdash; only certain pairs are valid.
-      </div>
-      <div id="pidTidSidWarning" class="profanity-warning" style="display:none;"></div>
-
-      <div class="row shiny-external">
-        <label for="shiny">Shiny</label>
-        <input id="shiny" type="checkbox" />
-        <span id="shinyIndicatorSimple" class="shiny-indicator" title="This Pokémon is shiny!" style="margin-left: 0.5rem;">✨</span>
-      </div>
-
-      <div class="row wild-or-legend" id="pidFinderRow">
-        <label>PID &amp; IVs</label>
-        <button id="pidFinderBtn" type="button" class="pid-finder-btn">&#x1F50D; Find Legal Encounter</button>
-        <span id="pidFinderStatus" class="pid-finder-status"></span>
-      </div>
-
-      <div class="row wild-or-legend" id="makeShinyRow">
-        <label>Shiny</label>
-        <button id="makeShinyBtn" type="button" class="make-shiny-btn">&#x2728; Make Shiny</button>
-        <span id="shinyIndicatorBtn" class="shiny-indicator" title="This Pokémon is shiny!" style="margin-left: 0.5rem;">✨</span>
-        <span id="makeShinyStatus" class="make-shiny-status"></span>
-        <span id="xdShinyLocked" class="profanity-warning" style="display:none; margin-left:0.5rem; font-size:0.85rem;">&#x1F512; Shiny locked (XD shadows cannot be shiny)</span>
-      </div>
-
-      <div class="row">
-        <label for="otName">OT Name</label>
-        <input id="otName" type="text" maxlength="7" autocomplete="off" />
-      </div>
-
-      <div class="row" data-advanced-only>
-        <label for="otGender">OT Gender</label>
-        <select id="otGender">
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-        </select>
-      </div>
-
-      <div class="row">
-        <label for="language">Language</label>
-        <select id="language"></select>
-      </div>
-
-      <div class="row" data-advanced-only>
-        <label for="isEgg">Is Egg</label>
-        <input id="isEgg" type="checkbox" />
-      </div>
-
-      <!-- Extra Bytes (Advanced only) -->
-      <div class="row two" data-advanced-only>
-        <!-- Extra Bytes control removed -->
-      </div>
-
-      <!-- Markings (Advanced only) -->
-      <div class="row" data-advanced-only>
-        <label>Markings</label>
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
-          <input id="markCircle" type="checkbox" class="marking-checkbox" />
-          <span class="marking-symbol" data-marking="markCircle">●</span>
-          
-          <input id="markTriangle" type="checkbox" class="marking-checkbox" />
-          <span class="marking-symbol" data-marking="markTriangle">▲</span>
-          
-          <input id="markSquare" type="checkbox" class="marking-checkbox" />
-          <span class="marking-symbol" data-marking="markSquare">■</span>
-          
-          <input id="markHeart" type="checkbox" class="marking-checkbox" />
-          <span class="marking-symbol" data-marking="markHeart">♥</span>
-        </div>
-      </div>
-
-      <!-- Fateful Encounter (Advanced only) -->
-      <div class="row" data-advanced-only>
-        <label for="fatefulEncounter">Fateful Encounter</label>
-        <input id="fatefulEncounter" type="checkbox" disabled />
-      </div>
-    </section>
-
-    <!-- Mystery Gifts card removed; event selector is in Basics -->
-
-    <!-- STATS / ADVANCED CARD -->
-    <section class="card" id="statsCard">
-      <h2>Stats</h2>
-
-      <!-- IVs -->
-      <div class="row iv-row" data-advanced-only>
-        <label>IVs</label>
-        <div class="grid iv-grid">
-          <div>
-            <label for="ivHp">HP IV</label>
-            <input id="ivHp" type="number" min="0" max="31" value="31" />
-          </div>
-          <div>
-            <label for="ivAtk">Atk IV</label>
-            <input id="ivAtk" type="number" min="0" max="31" value="31" />
-          </div>
-          <div>
-            <label for="ivDef">Def IV</label>
-            <input id="ivDef" type="number" min="0" max="31" value="31" />
-          </div>
-          <div>
-            <label for="ivSpAtk">SpA IV</label>
-            <input id="ivSpAtk" type="number" min="0" max="31" value="31" />
-          </div>
-          <div>
-            <label for="ivSpDef">SpD IV</label>
-            <input id="ivSpDef" type="number" min="0" max="31" value="31" />
-          </div>
-          <div>
-            <label for="ivSpe">Spe IV</label>
-            <input id="ivSpe" type="number" min="0" max="31" value="31" />
-          </div>
-        </div>
-      </div>
-
-      <!-- Hidden Power Info -->
-      <div class="row" data-advanced-only>
-        <label>Hidden Power</label>
-        <div style="display: flex; gap: 1rem; align-items: center;">
-          <span id="hiddenPowerTypeText" style="font-weight: bold; color: var(--accent);">Dark</span>
-          <select id="hiddenPowerTypeSelect" aria-label="Select Hidden Power type" style="display: none;">
-            <option value="Fighting">Fighting</option>
-            <option value="Flying">Flying</option>
-            <option value="Poison">Poison</option>
-            <option value="Ground">Ground</option>
-            <option value="Rock">Rock</option>
-            <option value="Bug">Bug</option>
-            <option value="Ghost">Ghost</option>
-            <option value="Steel">Steel</option>
-            <option value="Fire">Fire</option>
-            <option value="Water">Water</option>
-            <option value="Grass">Grass</option>
-            <option value="Electric">Electric</option>
-            <option value="Psychic">Psychic</option>
-            <option value="Ice">Ice</option>
-            <option value="Dragon">Dragon</option>
-            <option value="Dark">Dark</option>
-          </select>
-          <span id="hiddenPowerPower" style="color: var(--muted);">Power: 70</span>
-        </div>
-      </div>
-
-      <!-- EVs -->
-      <div class="row ev-row">
-        <label>EVs</label>
-        <div class="grid ev-grid">
-          <div>
-            <label for="evHp">HP EV</label>
-            <input id="evHp" type="number" min="0" max="255" value="0" />
-          </div>
-          <div>
-            <label for="evAtk">Atk EV</label>
-            <input id="evAtk" type="number" min="0" max="255" value="0" />
-          </div>
-          <div>
-            <label for="evDef">Def EV</label>
-            <input id="evDef" type="number" min="0" max="255" value="0" />
-          </div>
-          <div>
-            <label for="evSpAtk">SpA EV</label>
-            <input id="evSpAtk" type="number" min="0" max="255" value="0" />
-          </div>
-          <div>
-            <label for="evSpDef">SpD EV</label>
-            <input id="evSpDef" type="number" min="0" max="255" value="0" />
-          </div>
-          <div>
-            <label for="evSpe">Spe EV</label>
-            <input id="evSpe" type="number" min="0" max="255" value="0" />
-          </div>
-        </div>
-      </div>
-
-      <!-- Moves -->
       <div class="row">
         <label>Moves</label>
         <div class="column move-list">
@@ -938,7 +717,7 @@
               <select id="pp3">
                 <option value="0">0</option>
                 <option value="1">1</option>
-                <option value="2">2</option> 
+                <option value="2">2</option>
                 <option value="3" selected>3</option>
               </select>
             </div>
@@ -959,16 +738,224 @@
         </div>
       </div>
 
-      <!-- Friendship -->
+      <h3 class="form-section-title">Stats</h3>
+
+      <div class="row ev-row">
+        <label>EVs</label>
+        <div class="grid ev-grid">
+          <div>
+            <label for="evHp">HP EV</label>
+            <input id="evHp" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evAtk">Atk EV</label>
+            <input id="evAtk" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evDef">Def EV</label>
+            <input id="evDef" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evSpAtk">SpA EV</label>
+            <input id="evSpAtk" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evSpDef">SpD EV</label>
+            <input id="evSpDef" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evSpe">Spe EV</label>
+            <input id="evSpe" type="number" min="0" max="255" value="0" />
+          </div>
+        </div>
+      </div>
+
+      <div class="row iv-row">
+        <label>IVs</label>
+        <div class="grid iv-grid">
+          <div>
+            <label for="ivHp">HP IV</label>
+            <input id="ivHp" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivAtk">Atk IV</label>
+            <input id="ivAtk" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivDef">Def IV</label>
+            <input id="ivDef" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivSpAtk">SpA IV</label>
+            <input id="ivSpAtk" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivSpDef">SpD IV</label>
+            <input id="ivSpDef" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivSpe">Spe IV</label>
+            <input id="ivSpe" type="number" min="0" max="31" value="31" />
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>Hidden Power</label>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <span id="hiddenPowerTypeText" style="font-weight: bold; color: var(--accent);">Dark</span>
+          <select id="hiddenPowerTypeSelect" aria-label="Select Hidden Power type" style="display: none;">
+            <option value="Fighting">Fighting</option>
+            <option value="Flying">Flying</option>
+            <option value="Poison">Poison</option>
+            <option value="Ground">Ground</option>
+            <option value="Rock">Rock</option>
+            <option value="Bug">Bug</option>
+            <option value="Ghost">Ghost</option>
+            <option value="Steel">Steel</option>
+            <option value="Fire">Fire</option>
+            <option value="Water">Water</option>
+            <option value="Grass">Grass</option>
+            <option value="Electric">Electric</option>
+            <option value="Psychic">Psychic</option>
+            <option value="Ice">Ice</option>
+            <option value="Dragon">Dragon</option>
+            <option value="Dark">Dark</option>
+          </select>
+          <span id="hiddenPowerPower" style="color: var(--muted);">Power: 70</span>
+        </div>
+      </div>
+
+      <h3 class="form-section-title">Trainer details</h3>
+
+      <div class="row two">
+        <div>
+          <label for="tid">TID</label>
+          <input id="tid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="12345" />
+        </div>
+        <div>
+          <label for="sid">SID</label>
+          <input id="sid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="54321" />
+        </div>
+      </div>
+      <div id="gcTidSidWarning" class="profanity-warning" style="display:none;">
+        &#x26A0;&#xFE0F; This TID/SID combination is <b>not possible</b> in Colosseum/XD. The game generates TID and SID as consecutive GC&nbsp;RNG outputs &mdash; only certain pairs are valid.
+      </div>
+      <div id="pidTidSidWarning" class="profanity-warning" style="display:none;"></div>
+
+      <div class="row">
+        <label for="otName">OT Name</label>
+        <input id="otName" type="text" maxlength="7" autocomplete="off" />
+      </div>
+
+      <div class="row">
+        <label for="language">Language</label>
+        <select id="language"></select>
+      </div>
+
+      <div class="row">
+        <label for="otGender">OT Gender</label>
+        <select id="otGender">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+
+      <h3 class="form-section-title">Encounter details</h3>
+
+      <div class="row wild-or-legend" id="pidFinderRow">
+        <label>PID &amp; IV legality tools</label>
+        <button id="pidFinderBtn" type="button" class="pid-finder-btn">&#x1F50D; Find Legal Encounter</button>
+        <span id="pidFinderStatus" class="pid-finder-status"></span>
+      </div>
+
+      <div class="row wild-or-legend" id="makeShinyRow">
+        <label>Shiny</label>
+        <button id="makeShinyBtn" type="button" class="make-shiny-btn">&#x2728; Make Shiny</button>
+        <span id="shinyIndicatorBtn" class="shiny-indicator" title="This Pokémon is shiny!" style="margin-left: 0.5rem;">✨</span>
+        <span id="makeShinyStatus" class="make-shiny-status"></span>
+        <span id="xdShinyLocked" class="profanity-warning" style="display:none; margin-left:0.5rem; font-size:0.85rem;">&#x1F512; Shiny locked (XD shadows cannot be shiny)</span>
+      </div>
+
+      <div class="row shiny-external">
+        <label for="shiny">Shiny</label>
+        <input id="shiny" type="checkbox" />
+        <span id="shinyIndicatorSimple" class="shiny-indicator" title="This Pokémon is shiny!" style="margin-left: 0.5rem;">✨</span>
+      </div>
+
+      <div class="row">
+        <label for="pid">PID (hex)</label>
+        <input id="pid" type="text" placeholder="0x12345678" value="0x0" />
+        <span id="shinyIndicator" class="shiny-indicator" title="This Pokémon is shiny!">✨</span>
+      </div>
+
+      <div class="row">
+        <label for="originGame">Origin Game</label>
+        <select id="originGame">
+          <option value="1">Sapphire</option>
+          <option value="2">Ruby</option>
+          <option value="3" selected>Emerald</option>
+          <option value="4">FireRed</option>
+          <option value="5">LeafGreen</option>
+          <option value="15">Colosseum/XD</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label for="metLocation-input">Met Location</label>
+        <select id="metLocation"></select>
+      </div>
+
+      <div class="row">
+        <label for="metLevel">
+          Met Level
+          <span class="tooltip-icon" title="Level 0 for hatched Pokémon">?</span>
+        </label>
+        <input id="metLevel" type="number" min="0" max="100" value="0" />
+      </div>
+
+      <div class="row">
+        <label for="ball-input">Ball</label>
+        <select id="ball"></select>
+      </div>
+
+      <div class="row">
+        <label for="fatefulEncounter">Fateful Encounter</label>
+        <input id="fatefulEncounter" type="checkbox" disabled />
+      </div>
+
+      <div class="row">
+        <label for="isEgg">Is Egg</label>
+        <input id="isEgg" type="checkbox" />
+      </div>
+
+      <h3 class="form-section-title">Extra data</h3>
+
       <div class="row">
         <label for="friendship">Friendship</label>
         <input id="friendship" type="number" min="0" max="255" value="70" />
       </div>
 
-      <!-- Contest Stats (Advanced only) -->
-      <details class="contest-stats-section" data-advanced-only>
+      <div class="row">
+        <label>Markings</label>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <input id="markCircle" type="checkbox" class="marking-checkbox" />
+          <span class="marking-symbol" data-marking="markCircle">●</span>
+
+          <input id="markTriangle" type="checkbox" class="marking-checkbox" />
+          <span class="marking-symbol" data-marking="markTriangle">▲</span>
+
+          <input id="markSquare" type="checkbox" class="marking-checkbox" />
+          <span class="marking-symbol" data-marking="markSquare">■</span>
+
+          <input id="markHeart" type="checkbox" class="marking-checkbox" />
+          <span class="marking-symbol" data-marking="markHeart">♥</span>
+        </div>
+      </div>
+
+      <details class="contest-stats-section">
         <summary style="cursor: pointer; font-weight: bold; margin: 1rem 0 0.5rem 0;">Contest Stats</summary>
-        
+
         <div style="padding-left: 1rem;">
           <div class="row">
             <label for="contestCool">Coolness</label>
@@ -1002,15 +989,13 @@
         </div>
       </details>
 
-      <!-- Ribbons (Advanced only) -->
-      <details class="ribbons-section" data-advanced-only>
+      <details class="ribbons-section">
         <summary style="cursor: pointer; font-weight: bold; margin: 1rem 0 0.5rem 0;">Ribbons</summary>
-        
+
         <div style="padding-left: 1rem;">
-          <!-- Contest Ribbons -->
           <div style="margin-bottom: 1rem;">
             <h4 style="margin: 0.5rem 0; font-size: 0.9rem; color: var(--muted);">Contest Ribbons</h4>
-            
+
             <div class="row">
               <label for="ribbonCool">Cool Ribbon</label>
               <select id="ribbonCool">
@@ -1067,10 +1052,9 @@
             </div>
           </div>
 
-          <!-- Other Ribbons -->
           <div style="margin-bottom: 1rem;">
             <h4 style="margin: 0.5rem 0; font-size: 0.9rem; color: var(--muted);">Battle/Event Ribbons</h4>
-            
+
             <div class="row">
               <label for="ribbonArtist">Artist</label>
               <input id="ribbonArtist" type="checkbox" />

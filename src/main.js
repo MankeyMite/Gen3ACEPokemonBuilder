@@ -2648,17 +2648,7 @@ function boot(){
     });
   });
 
-  // Setup mode toggle
-  document.querySelectorAll('input[name="mode"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      document.body.classList.remove('mode-simple', 'mode-advanced');
-      document.body.classList.add(`mode-${e.target.value}`);
-      try { updatePidLocking(); } catch (e) {}
-    });
-  });
-  
-  // Set initial mode
-  document.body.classList.add('mode-simple');
+  // Simple/advanced mode selector removed: keep PID lock state refreshed.
   try { updatePidLocking(); } catch (e) {}
 
   // Setup encounter mode dropdown (was radio buttons)
@@ -2748,6 +2738,17 @@ function boot(){
         try { applyEncounterModeState(savedNextModeState); } catch (e) {}
       }
 
+      // Default language should be English for non-mystery encounter types.
+      // Keep mystery/imported behavior untouched.
+      try {
+        if (currentEncounterMode !== 'mystery' && currentEncounterMode !== 'imported') {
+          const langEl = $('#language');
+          if (langEl && !String(langEl.value || '').trim()) {
+            langEl.value = '2';
+          }
+        }
+      } catch (e) {}
+
       const finalSpeciesId = Number($('#species').value) || 0;
       try { updateAbilitySelect(finalSpeciesId); } catch (e) {}
       try { updateUnownFormVisibility(finalSpeciesId); } catch (e) {}
@@ -2771,6 +2772,7 @@ function boot(){
       try { enforceMewLegendMinLevel(); } catch (e) {}
       try { updateFatefulLocking(); } catch (e) {}
       try { updateShinyCheckboxState(); } catch (e) {}
+      try { updatePidLocking(); } catch (e) {}
     });
   }
 
@@ -2892,13 +2894,12 @@ function boot(){
     } catch (e) {}
   }
 
-  // Lock PID input in advanced mode to prevent manual edits; it will still
-  // be updated programmatically based on nature/gender/ability.
+  // Keep PID locked by default in all modes unless Manual Override is enabled.
   function updatePidLocking() {
     try {
       const pidEl = $('#pid');
       if (!pidEl) return;
-      const shouldLock = !manualOverrideActive && document.body.classList.contains('mode-advanced');
+      const shouldLock = !manualOverrideActive;
       pidEl.disabled = Boolean(shouldLock);
       pidEl.style.pointerEvents = shouldLock ? 'none' : '';
       pidEl.style.opacity = shouldLock ? '0.6' : '';
@@ -2928,6 +2929,8 @@ function boot(){
   function unlockPidFinderFields() {
     pidFinderResultActive = false;
     pidFinderLockedMetLevel = false;
+    const pidFinderStatusEl = document.getElementById('pidFinderStatus');
+    if (pidFinderStatusEl) pidFinderStatusEl.textContent = '';
     const unlock = (el) => {
       if (!el) return;
       el.disabled = false;
@@ -2938,6 +2941,7 @@ function boot(){
     unlock($('#nature'));
     unlock($('#gender'));
     unlock($('#ability'));
+    unlock($('#pid'));
     for (const id of ['ivHp','ivAtk','ivDef','ivSpAtk','ivSpDef','ivSpe']) {
       unlock($('#' + id));
     }
@@ -2945,6 +2949,7 @@ function boot(){
     unlock($('#item'));
     unlock($('#otGender'));
     unlock($('#originGame'));
+    try { updatePidLocking(); } catch (e) {}
     try { updateTidSidLocking(); } catch (e) {}
     try { updateMetLevelLocking(); } catch (e) {}
     try { updateIvLocking(); } catch (e) {}
@@ -3046,10 +3051,17 @@ function boot(){
         try {
           const ballEl = $('#ball');
           if (!ballEl) return;
+          const applyDefaultPokeBallIfEmpty = () => {
+            const current = String(ballEl.value ?? '').trim();
+            if (!current) {
+              try { ballEl.value = '4'; } catch (e) {}
+            }
+          };
 
           if (manualOverrideActive) {
             // Override: full ball list, unlocked
             if (ballEl.updateList) ballEl.updateList(BALLS);
+            applyDefaultPokeBallIfEmpty();
             ballEl.disabled = false;
             ballEl.style.pointerEvents = '';
             ballEl.style.opacity = '';
@@ -3093,7 +3105,7 @@ function boot(){
               // Wild/Static NOT at Safari Zone, no fixed ball: remove Safari Ball from options
               const filteredBalls = BALLS.filter(b => b[0] !== 5);
               if (ballEl.updateList) ballEl.updateList(filteredBalls);
-              if (Number(ballEl.value) === 5) {
+              if (!String(ballEl.value ?? '').trim() || Number(ballEl.value) === 5) {
                 try { ballEl.value = '4'; } catch (e) {}
               }
               ballEl.disabled = false;
@@ -3104,6 +3116,7 @@ function boot(){
           } else {
             // Other modes: full ball list, unlocked
             if (ballEl.updateList) ballEl.updateList(BALLS);
+            applyDefaultPokeBallIfEmpty();
             ballEl.disabled = false;
             ballEl.style.pointerEvents = '';
             ballEl.style.opacity = '';
@@ -3799,6 +3812,16 @@ function boot(){
         genderSelect.appendChild(optF);
         genderSelect.disabled = false;
       }
+      // Keep lock visuals in sync with actual disabled state.
+      if (genderSelect.disabled) {
+        genderSelect.style.pointerEvents = 'none';
+        genderSelect.style.opacity = '0.6';
+        genderSelect.style.cursor = 'not-allowed';
+      } else {
+        genderSelect.style.pointerEvents = '';
+        genderSelect.style.opacity = '';
+        genderSelect.style.cursor = '';
+      }
       // If we're in mystery mode, lock the gender control so users cannot change it
       if (!manualOverrideActive && currentEncounterMode === 'mystery' && genderSelect) {
         genderSelect.style.pointerEvents = 'none';
@@ -3809,14 +3832,9 @@ function boot(){
     try { updateTidSidLocking(); } catch (e) {}
     }
     if (mode === 'static' && STATIC_ENCOUNTERS[speciesId]) {
-      // For legendary encounters, apply preset data (skip when PID Finder is active)
+      // Static mode should only lock gender when the species itself is fixed/genderless.
+      // (Handled above by species gender-threshold options.)
       if (!pidFinderResultActive) applyStaticEncounterPreset(speciesId);
-      // Make gender read-only for legendaries (can still update from PID, but user can't manually change)
-      if (genderSelect && !pidFinderResultActive) {
-        genderSelect.style.pointerEvents = 'none';
-        genderSelect.style.opacity = '0.6';
-        genderSelect.style.cursor = 'not-allowed';
-      }
     } else if (mode === 'roamer') {
       // ── Roamer encounter mode ────────────────────────────────────
       // Lock gender (roamers are all genderless)
@@ -4728,6 +4746,7 @@ function boot(){
       if (shinyIndicatorBtn) shinyIndicatorBtn.style.display = '';
       const makeShinyStatus = document.getElementById('makeShinyStatus');
       if (makeShinyStatus) makeShinyStatus.style.display = '';
+      try { updatePidLocking(); } catch (e) {}
     } catch (e) {}
   }
 
@@ -6525,10 +6544,12 @@ function initPidFinder() {
     };
     lockStyle($('#nature'));
     lockStyle($('#gender'));
+    lockStyle($('#pid'));
     lockStyle(abilitySel);
     for (const id of ['ivHp','ivAtk','ivDef','ivSpAtk','ivSpDef','ivSpe']) {
       lockStyle($('#' + id));
     }
+    try { updatePidLocking(); } catch (e) {}
     try { updateIvLocking(); } catch (e) {}
 
     // Channel Jirachi: also lock seed-derived fields
@@ -6608,7 +6629,7 @@ function collect(){
     tid: Number($('#tid').value) & 0xFFFF,
     sid: Number($('#sid').value) & 0xFFFF,
     pid: parsePidInput($('#pid').value) & 0xFFFFFFFF,
-    ballId: Number($('#ball').value || 0),
+    ballId: Number($('#ball').value || 4),
     metLocationId: Number($('#metLocation').value || 0),
     metLevel: Math.max(0, Math.min(isImportedMode ? 127 : 100, Number($('#metLevel').value || 0))),
     originGame: Number($('#originGame').value || 3),
