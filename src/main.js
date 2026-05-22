@@ -283,6 +283,22 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
         }
       } catch (e) {}
 
+      // BOX_EVENT and POKEMON_ROCKS_METANG should always default met location
+      // to a Fateful Encounter entry.
+      try {
+        const tU = String(tag).toUpperCase();
+        if (tU === 'BOX_EVENT' || tU === 'POKEMON_ROCKS_METANG') {
+          const sel = $('#metLocation');
+          if (sel) {
+            const originGameId = Number($('#originGame')?.value) || evt.defaultOriginGame || 2;
+            const candidates = getLocationsForGame(originGameId);
+            const found = candidates.find(loc => String(loc[1] || '').toLowerCase().includes('fateful'))
+                          || LOCATIONS.find(loc => String(loc[1] || '').toLowerCase().includes('fateful'));
+            if (found) sel.value = String(found[0]);
+          }
+        }
+      } catch (e) {}
+
       // PARTY_OF_THE_DECADE: restrict language selection to English only
       try {
         if (String(tag).toUpperCase() === 'PARTY_OF_THE_DECADE') {
@@ -549,6 +565,7 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
           } catch (e) {}
         }
       } catch (e) {}
+      try { updatePidFinderVisibility(); } catch (e) {}
       try { checkShiny(); } catch (e) {}
       try { updateLegalityStatus(); } catch (e) {}
     }
@@ -576,6 +593,152 @@ let suppressUserChangeMark = false;
 let mysteryPresetAppliedFor = 0;
 // Whether the user has modified fields (other than nickname) since the preset was applied
 let mysteryUserModifiedSincePreset = false;
+
+function getSelectedMysteryEvent() {
+  const rawTag = String(document.getElementById('mysteryEvent')?.value || '').toUpperCase();
+  const tag = rawTag === 'WISHMKR_SHINY' ? 'WISHMKR_BEST' : rawTag;
+  return {
+    tag,
+    event: MYSTERY_EVENTS[tag] || null,
+  };
+}
+
+function getMysteryPidMethod() {
+  if (currentEncounterMode !== 'mystery') return '';
+
+  const { tag, event } = getSelectedMysteryEvent();
+  const explicit = String(event?.pidMethod || '').trim();
+  if (explicit) return explicit.toUpperCase();
+
+  if (tag === 'CHANNEL_JIRACHI') return 'CHANNEL';
+  if (tag === 'AGETO_CELEBI') return 'CXD';
+
+  if (tag === 'WISHMKR_BEST' || tag === 'WISHMKR_SHINY') return 'BACD_R';
+
+  if (
+    tag === '10ANNI' ||
+    tag === 'AURA_MEW' ||
+    tag === 'DOEL_DEOXYS' ||
+    tag === 'JOURNEY_ACROSS_AMERICA' ||
+    tag === 'PARTY_OF_THE_DECADE' ||
+    tag === 'POKEMON_ROCKS_METANG'
+  ) {
+    return 'BACD_R_A';
+  }
+
+  return '';
+}
+
+function isMysteryBACDMethod(method) {
+  return (
+    method === 'BACD' ||
+    method === 'BACD_R' ||
+    method === 'BACD_R_A' ||
+    method === 'BACD_A'
+  );
+}
+
+function normalizeOtGenderValue(value) {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (normalized === 'female' || normalized === 'f' || normalized === '1') return 'female';
+  if (normalized === 'male' || normalized === 'm' || normalized === '0') return 'male';
+  return '';
+}
+
+function parseSeedLike(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return null;
+    return value >>> 0;
+  }
+
+  const str = String(value).trim();
+  if (!str) return null;
+  const parsed = str.toLowerCase().startsWith('0x')
+    ? Number.parseInt(str.slice(2), 16)
+    : Number(str);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed >>> 0;
+}
+
+function nextGen3LCRNG(seed) {
+  return (Math.imul(seed >>> 0, 0x41C64E6D) + 0x6073) >>> 0;
+}
+
+function getRandS7OtGenderFromOriginSeed(originSeed) {
+  let s = originSeed >>> 0;
+  for (let i = 0; i < 5; i++) s = nextGen3LCRNG(s);
+  const rand16 = s >>> 16;
+  const female = ((((rand16 >>> 7) & 1) ^ 1) === 1);
+  return female ? 'female' : 'male';
+}
+
+function resolveMysteryBacdOtGender(result) {
+  if (currentEncounterMode !== 'mystery') return '';
+  if (!isMysteryBACDMethod(String(result?.method || '').toUpperCase())) return '';
+
+  const { tag, event } = getSelectedMysteryEvent();
+
+  // Event-level fixed OT gender always takes precedence when present.
+  const fixedEventGender = normalizeOtGenderValue(event?.ot_gender);
+  if (fixedEventGender) return fixedEventGender;
+
+  const entries = Array.isArray(MYSTERY_GIFTS[tag]) ? MYSTERY_GIFTS[tag] : [];
+  const resultPid = parseSeedLike(result?.pid);
+  const resultSeed = parseSeedLike(result?.originSeed ?? result?.seed);
+
+  // Prefer exact match against known event rows when available.
+  const matched = entries.find((entry) => {
+    const entryPid = parseSeedLike(entry?.pid);
+    if (entryPid !== null && resultPid !== null && entryPid === resultPid) return true;
+    const entrySeed = parseSeedLike(entry?.seed);
+    if (entrySeed !== null && resultSeed !== null && entrySeed === resultSeed) return true;
+    return false;
+  });
+  const matchedGender = normalizeOtGenderValue(matched?.ot_gender);
+  if (matchedGender) return matchedGender;
+
+  // If all known rows for a tag agree on one OT gender, keep it fixed.
+  const uniqueGenders = [...new Set(entries
+    .map(entry => normalizeOtGenderValue(entry?.ot_gender))
+    .filter(Boolean))];
+  if (uniqueGenders.length === 1) return uniqueGenders[0];
+
+  // BACD_R_A / BACD_A OT gender correlation uses the RandS7 derivation.
+  const method = String(result?.method || '').toUpperCase();
+  if (tag === 'POKEMON_ROCKS_METANG') return 'male';
+
+  const usesRandS7 = (
+    tag === '10ANNI' ||
+    tag === 'AURA_MEW' ||
+    tag === 'DOEL_DEOXYS' ||
+    tag === 'JOURNEY_ACROSS_AMERICA' ||
+    tag === 'PARTY_OF_THE_DECADE'
+  );
+
+  if ((method === 'BACD_R_A' || method === 'BACD_A') && usesRandS7 && resultSeed !== null) {
+    return getRandS7OtGenderFromOriginSeed(resultSeed);
+  }
+
+  return '';
+}
+
+function updatePidFinderVisibility() {
+  const row = document.getElementById('pidFinderRow');
+  if (!row) return;
+
+  const mysteryMethod = getMysteryPidMethod();
+  const shouldShow =
+    currentEncounterMode === 'wild' ||
+    currentEncounterMode === 'static' ||
+    currentEncounterMode === 'roamer' ||
+    currentEncounterMode === 'cxd_shadow' ||
+    mysteryMethod === 'CHANNEL' ||
+    mysteryMethod === 'CXD' ||
+    isMysteryBACDMethod(mysteryMethod);
+
+  row.style.display = shouldShow ? 'flex' : '';
+}
 
 // ── Roamer encounter definitions ─────────────────────────────────
 // Maps each roamer species to its allowed games, level, and whether IVs are truncated.
@@ -2788,6 +2951,7 @@ function boot(){
       try { updateFatefulLocking(); } catch (e) {}
       try { updateShinyCheckboxState(); } catch (e) {}
       try { updatePidLocking(); } catch (e) {}
+      try { updatePidFinderVisibility(); } catch (e) {}
     });
   }
 
@@ -2877,6 +3041,7 @@ function boot(){
   try { updateLevelLocking(); } catch (e) {}
   try { updateIvLocking(); } catch (e) {}
   try { updateFatefulLocking(); } catch (e) {}
+  try { updatePidFinderVisibility(); } catch (e) {}
 
   // Lock or unlock TID/SID inputs depending on selected mystery event.
   // If in `mystery` mode and a non-BOX_EVENT tag is selected, these should
@@ -3286,7 +3451,7 @@ function boot(){
               'agetocelebi': 'AGETO_CELEBI',
               'clubnintendojirachigiveaway': 'WISHMKR_BEST',
               'wishmkrjirachibestivs': 'WISHMKR_BEST',
-              'wishmkrjirachiallshinypids': 'WISHMKR_SHINY'
+              'wishmkrjirachiallshinypids': 'WISHMKR_BEST'
             };
             for (const displayName of Object.keys(movesData || {})) {
               const movesForEvent = movesData[displayName];
@@ -3397,7 +3562,9 @@ function boot(){
           eventSel.appendChild(placeholderOpt);
 
           const keys = Object.keys(MYSTERY_EVENTS).length ? Object.keys(MYSTERY_EVENTS) : Object.keys(MYSTERY_GIFTS);
-          const tags = keys.sort();
+          const tags = keys
+            .filter(t => String(t).toUpperCase() !== 'WISHMKR_SHINY')
+            .sort();
           for (const t of tags) {
             const o = document.createElement('option');
             o.value = t;
@@ -3408,9 +3575,7 @@ function boot(){
             } else if (String(t).toUpperCase() === 'AGETO_CELEBI') {
               o.textContent = 'AGETO CELEBI';
             } else if (String(t).toUpperCase() === 'WISHMKR_BEST') {
-              o.textContent = "WISHMKR JIRACHI - BEST IV'S";
-            } else if (String(t).toUpperCase() === 'WISHMKR_SHINY') {
-              o.textContent = "WISHMKR JIRACHI - ALL SHINY PID'S";
+              o.textContent = 'WISHMKR JIRACHI';
             } else if (String(t).toUpperCase() === 'CHANNEL_JIRACHI') {
               o.textContent = "CHANNEL JIRACHI";
             } else {
@@ -3428,6 +3593,7 @@ function boot(){
             try { clearMysteryEventState(); } catch (e) {}
             // Apply event-level defaults
             applyEventDefaults(tag);
+            try { updatePidFinderVisibility(); } catch (e) {}
             try { updateMetLevelLocking(); } catch (e) {}
 
             // Update available species/options for this event
@@ -3521,6 +3687,7 @@ function boot(){
       try { enforceJapaneseOption(); } catch (e) {}
       try { updateIsEggVisibility(); } catch (e) {}
       try { updateMetLevelLocking(); } catch (e) {}
+      try { updatePidFinderVisibility(); } catch (e) {}
 
     }
 
@@ -5131,8 +5298,9 @@ function boot(){
         shinyCheckbox.checked = false;
       }
       
-      // If we're in mystery mode, apply per-event presets first
-      if (!suppressPresetApply && currentEncounterMode === 'mystery') {
+      // If we're in mystery mode, apply per-event presets first.
+      // Skip while a PID Finder selection is active so selected PID/IVs remain authoritative.
+      if (!suppressPresetApply && !pidFinderResultActive && currentEncounterMode === 'mystery') {
         const speciesId = Number($('#species').value) || 0;
         const tag = document.getElementById('mysteryEvent')?.value || '';
         if (tag) {
@@ -6035,7 +6203,10 @@ function initPidFinder() {
     const pfShinyEl = document.getElementById('pfShiny');
     if (pfTidEl) { pfTidEl.value = String(Number($('#tid').value) || 0); pfTidEl.disabled = false; }
     if (pfSidEl) { pfSidEl.value = String(Number($('#sid').value) || 0); pfSidEl.disabled = false; }
-    if (pfShinyEl) pfShinyEl.checked = !!$('#shiny')?.checked;
+    if (pfShinyEl) {
+      pfShinyEl.checked = !!$('#shiny')?.checked;
+      pfShinyEl.disabled = false;
+    }
 
     /* â”€â”€ Adjust method checkboxes based on encounter mode â”€â”€ */
     const pfM1  = document.getElementById('pfMethod1');
@@ -6052,8 +6223,10 @@ function initPidFinder() {
     }
 
     const currentGameId = Number($('#originGame').value) || 3;
-    const isChannelPF = currentEncounterMode === 'mystery' &&
-      String($('#mysteryEvent')?.value || '').toUpperCase() === 'CHANNEL_JIRACHI';
+    const mysteryMethod = getMysteryPidMethod();
+    const isChannelPF = mysteryMethod === 'CHANNEL';
+    const isBACDPF = isMysteryBACDMethod(mysteryMethod);
+    const isMysteryCXD = currentEncounterMode === 'mystery' && mysteryMethod === 'CXD';
 
     if (isChannelPF) {
       // Channel Jirachi uses XDRNG Channel method only
@@ -6065,11 +6238,64 @@ function initPidFinder() {
       if (pfSidEl) { pfSidEl.value = '0'; pfSidEl.disabled = true; }
       // Gender: genderless (already handled above by threshold=-1)
       // Ability: lock (single ability Serene Grace)
-    } else if (currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'static' && currentGameId === 15)) {
+    } else if (isBACDPF) {
+      if (pfM1) {
+        pfM1.checked = true;
+        pfM1.parentElement.style.display = '';
+        relabelCheckbox(pfM1, mysteryMethod);
+      }
+      if (pfM2) {
+        pfM2.checked = false;
+        pfM2.parentElement.style.display = 'none';
+      }
+      if (pfM4) {
+        pfM4.checked = false;
+        pfM4.parentElement.style.display = 'none';
+      }
+
+      const { event } = getSelectedMysteryEvent();
+      if (pfTidEl && event?.fixedTID !== undefined) {
+        pfTidEl.value = String(event.fixedTID);
+        pfTidEl.disabled = true;
+      }
+      if (pfSidEl && event?.fixedSID !== undefined) {
+        pfSidEl.value = String(event.fixedSID);
+        pfSidEl.disabled = true;
+      }
+      if (pfShinyEl && event?.shinyLocked) {
+        pfShinyEl.checked = false;
+        pfShinyEl.disabled = true;
+      }
+
+      // BACD mystery distributions are often very sparse per nature.
+      // Default to broad filters so valid shiny/event rows are not hidden.
+      if (pfAbilitySel && !pfAbilitySel.disabled && pfAbilitySel.querySelector('option[value="-1"]')) {
+        pfAbilitySel.value = '-1';
+      }
+      if (pfGenderSel && !pfGenderSel.disabled && pfGenderSel.querySelector('option[value="any"]')) {
+        pfGenderSel.value = 'any';
+      }
+
+    } else if (isMysteryCXD || currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'static' && currentGameId === 15)) {
       // CXD shadow encounters use CXD PRNG only
       if (pfM1) { pfM1.checked = true;  pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, 'CXD'); }
       if (pfM2) { pfM2.checked = false; pfM2.parentElement.style.display = 'none'; }
       if (pfM4) { pfM4.checked = false; pfM4.parentElement.style.display = 'none'; }
+      if (currentEncounterMode === 'mystery') {
+        const { event } = getSelectedMysteryEvent();
+        if (pfTidEl && event?.fixedTID !== undefined) {
+          pfTidEl.value = String(event.fixedTID);
+          pfTidEl.disabled = true;
+        }
+        if (pfSidEl && event?.fixedSID !== undefined) {
+          pfSidEl.value = String(event.fixedSID);
+          pfSidEl.disabled = true;
+        }
+        if (pfShinyEl && event?.shinyLocked) {
+          pfShinyEl.checked = false;
+          pfShinyEl.disabled = true;
+        }
+      }
     } else if (currentEncounterMode === 'static' || currentEncounterMode === 'roamer') {
       // Static and roamer encounters use Method 1 only
       const label = currentEncounterMode === 'roamer' ? 'Method H-1-Roaming' : 'Method 1';
@@ -6191,12 +6417,20 @@ function initPidFinder() {
 
     // Determine which worker to use
     const gameId     = Number($('#originGame').value) || 3;
-    const isChannelSearch = currentEncounterMode === 'mystery' &&
-      String($('#mysteryEvent')?.value || '').toUpperCase() === 'CHANNEL_JIRACHI';
-    const isCXD      = !isChannelSearch && (currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'static' && gameId === 15));
+    const mysteryMethod = getMysteryPidMethod();
+
+    const isChannelSearch = currentEncounterMode === 'mystery' && mysteryMethod === 'CHANNEL';
+    const isBACDSearch = currentEncounterMode === 'mystery' && isMysteryBACDMethod(mysteryMethod);
+    const isCXD = !isChannelSearch && !isBACDSearch && (
+      currentEncounterMode === 'cxd_shadow' ||
+      (currentEncounterMode === 'static' && gameId === 15) ||
+      (currentEncounterMode === 'mystery' && mysteryMethod === 'CXD')
+    );
     const workerPath = isChannelSearch
       ? './src/lib/gen3/channel-worker.js'
-      : isCXD ? './src/lib/gen3/cxd-worker.js' : './src/lib/gen3/rng-worker.js';
+      : isBACDSearch
+        ? './src/lib/gen3/bacd-worker.js'
+        : isCXD ? './src/lib/gen3/cxd-worker.js' : './src/lib/gen3/rng-worker.js';
 
     // Decide fast-path (IV recovery) vs brute-force (full seed scan).
     // IV recovery enumerates HP/ATK/DEF combos × 131 k inner checks instead
@@ -6205,13 +6439,15 @@ function initPidFinder() {
     const iv1Count = (maxIVs[0] - minIVs[0] + 1) *
                      (maxIVs[1] - minIVs[1] + 1) *
                      (maxIVs[2] - minIVs[2] + 1);
-    const useFastPath = !isChannelSearch && iv1Count <= 4096;
+    const useFastPath = !isChannelSearch && !isBACDSearch && iv1Count <= 4096;
 
     const cores = navigator.hardwareConcurrency || 4;
-    const workerCount = useFastPath
+    const workerCount = isBACDSearch
       ? 1
-      : Math.max(1, Math.min(Math.floor(cores / 2), 4));
-    const totalSeeds  = 0x100000000; // 2^32
+      : useFastPath
+        ? 1
+        : Math.max(1, Math.min(Math.floor(cores / 2), 4));
+    const totalSeeds  = isBACDSearch ? 0x10000 : 0x100000000;
     const chunkSize   = Math.ceil(totalSeeds / workerCount);
     let finishedWorkers = 0;
     const progressArr   = new Array(workerCount).fill(0);
@@ -6284,7 +6520,26 @@ function initPidFinder() {
         ? null
         : (ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]) || null;
 
-      if (isChannelSearch) {
+      if (isBACDSearch) {
+        const { event } = getSelectedMysteryEvent();
+
+        worker.postMessage({
+          startSeed: start,
+          endSeed: end,
+          method: mysteryMethod,
+          nature,
+          ability,
+          genderThreshold: genderThreshold === -1 ? -1 : genderThreshold,
+          targetGender,
+          tid,
+          sid,
+          wantShiny,
+          noShiny: !!event?.shinyLocked,
+          minIVs,
+          maxIVs,
+          maxResults: Math.ceil(250 / workerCount)
+        });
+      } else if (isChannelSearch) {
         // Channel Jirachi worker: nature + shiny + IV filters, seed validation
         worker.postMessage({
           startSeed: start, endSeed: end,
@@ -6317,6 +6572,8 @@ function initPidFinder() {
         // Colosseum: anti-shiny rerolling uses the NPC trainer's TSV —
         //     shadows CAN be shiny for the player. Pass noShiny=false
         //     and NOT_FORCED so the worker doesn't reject player-shiny PIDs.
+        const mysteryEvent = currentEncounterMode === 'mystery' ? getSelectedMysteryEvent().event : null;
+        const forceNoShiny = currentEncounterMode === 'mystery' && !!mysteryEvent?.shinyLocked;
         const tsvVal = isXD ? ((tid ^ sid) >>> 3) : 0xFFFFFFFF;
 
         worker.postMessage({
@@ -6326,7 +6583,7 @@ function initPidFinder() {
           targetGender, tid, sid, wantShiny,
           minIVs, maxIVs,
           maxResults: Math.ceil(250 / workerCount),
-          noShiny: isXD,   // Only XD anti-shiny rerolls against the player
+          noShiny: isXD || forceNoShiny,
           teamLocks,
           tsv: tsvVal,
           unownForm: speciesId === 201 ? Number($('#unownForm')?.value ?? -1) : -1
@@ -6526,6 +6783,8 @@ function initPidFinder() {
     pidFinderOriginalTid = pfTid;
     pidFinderOriginalSid = pfSid;
 
+    const isBACDResult = isMysteryBACDMethod(String(r.method || '').toUpperCase());
+
     // Channel Jirachi: apply seed-derived fields (SID, held item, origin game, OT gender)
     if (r.method === 'Channel') {
       $('#sid').value = String(r.sid);
@@ -6535,6 +6794,12 @@ function initPidFinder() {
       if (gameEl) { gameEl.value = String(r.versionGameId); try { gameEl.dispatchEvent(new Event('change')); } catch (_) {} }
       const otGenderEl = $('#otGender');
       if (otGenderEl) { otGenderEl.value = r.otGender === 1 ? 'female' : 'male'; }
+    } else if (isBACDResult && currentEncounterMode === 'mystery') {
+      const otGenderEl = $('#otGender');
+      const otGender = resolveMysteryBacdOtGender(r);
+      if (otGenderEl && otGender) {
+        otGenderEl.value = otGender;
+      }
     }
 
     // Determine actual shiny status from PID and TID/SID
@@ -6550,6 +6815,16 @@ function initPidFinder() {
     if (pidEl) {
       pidEl.value = pidHex;
       pidEl.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    // Nature is PID-derived in Gen 3; always sync it from the selected result.
+    const natureEl = $('#nature');
+    if (natureEl) {
+      natureEl.value = String((r.pid >>> 0) % 25);
+      const prevSuppressPresetApply = suppressPresetApply;
+      suppressPresetApply = true;
+      try { natureEl.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
+      suppressPresetApply = prevSuppressPresetApply;
     }
 
     // Set IVs (after PID event so we overwrite any stale preset lookup)
@@ -6612,6 +6887,9 @@ function initPidFinder() {
       lockStyle($('#item'));
       lockStyle($('#originGame'));
       lockStyle($('#otGender'));
+    } else if (isBACDResult && currentEncounterMode === 'mystery') {
+      // BACD mystery OT gender is part of the legality correlation.
+      lockStyle($('#otGender'));
     }
 
     checkShiny();
@@ -6623,14 +6901,20 @@ function initPidFinder() {
       ? 'Channel'
       : r.method === 'CXD'
       ? 'CXD'
-      : currentEncounterMode === 'roamer'
-        ? r.method.replace(/^H-?(\d)/, 'H-$1-Roaming')
-        : currentEncounterMode === 'static'
-          ? r.method.replace('H', '')
-          : r.method;
-    if (statusSpan) statusSpan.textContent = r.method === 'Channel'
-      ? `PID set (Channel, SID ${r.sid})`
-      : `PID set (${statusMethod === 'CXD' ? 'CXD' : 'Method ' + statusMethod}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
+      : isBACDResult
+        ? r.method
+        : currentEncounterMode === 'roamer'
+          ? r.method.replace(/^H-?(\d)/, 'H-$1-Roaming')
+          : currentEncounterMode === 'static'
+            ? r.method.replace('H', '')
+            : r.method;
+    if (statusSpan) {
+      statusSpan.textContent = r.method === 'Channel'
+        ? `PID set (Channel, SID ${r.sid})`
+        : isBACDResult
+          ? `PID set (${r.method}, seed 0x${Number(r.originSeed ?? r.seed ?? 0).toString(16).toUpperCase().padStart(4, '0')})`
+          : `PID set (${statusMethod === 'CXD' ? 'CXD' : 'Method ' + statusMethod}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
+    }
     closeModal();
   }
 }
