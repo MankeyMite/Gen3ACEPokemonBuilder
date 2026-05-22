@@ -41,6 +41,7 @@ function section(name) {
 const TEST_PATTERNS = [
   '^ass$',        // exact → boundary-only
   '^sa$',         // exact → boundary-only
+  '^dp$',         // exact in PKHeX, but manually overridden to strong
   '.*wix.*',      // substring len 3 -> boundary (digit-bridged regression case)
   '.*fag.*',      // substring, len 3, but manually overridden to strong
   '.*shit.*',     // substring, len 4 → strong
@@ -153,6 +154,7 @@ section('classifyPattern');
 
 assert(classifyPattern('^ass$').ruleClass === 'boundary', '^ass$ → boundary (exact match)');
 assert(classifyPattern('^sa$').ruleClass === 'boundary', '^sa$ → boundary (exact match)');
+assert(classifyPattern('^dp$').ruleClass === 'strong', '^dp$ → strong (manual override)');
 assert(classifyPattern('.*fag.*').ruleClass === 'strong', '.*fag.* → strong (manual override)');
 assert(classifyPattern('.*shit.*').ruleClass === 'strong', '.*shit.* → strong (manual override)');
 assert(classifyPattern('.*fuck.*').ruleClass === 'strong', '.*fuck.* → strong (manual override)');
@@ -210,6 +212,15 @@ assert(filter.check('sa') === true, '"sa" = banned');
 assert(filter.check('xsa') === false, '"xsa" = allowed');
 assert(filter.check('sax') === false, '"sax" = allowed');
 assert(filter.check('xsax') === false, '"xsax" = allowed');
+
+// ═══════════════════════════════════════════════════════════════════════
+// Full filter integration — "dp" (manual strong override)
+// ═══════════════════════════════════════════════════════════════════════
+section('Full filter: "dp" (strong override)');
+
+assert(filter.check('dp') === true, '"dp" = banned');
+assert(filter.check('tetdp') === true, '"tetdp" = banned');
+assert(filter.check('t0?et7dP') === true, '"t0?et7dP" = banned (digit/separator bridged)');
 
 // ═══════════════════════════════════════════════════════════════════════
 // Full filter integration — "asshole" (strong substring)
