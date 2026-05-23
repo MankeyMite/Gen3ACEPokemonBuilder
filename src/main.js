@@ -184,7 +184,7 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
               newLevel = Math.max(10, Number(newLevel));
             } else if (tU === 'BOX_EVENT') {
               newLevel = Math.max(5, Number(newLevel));
-            } else if (tU === 'DOEL_DEOXYS') {
+            } else if (tU === 'DOEL_DEOXYS' || tU === 'SPACE_CENTER_DEOXYS') {
               newLevel = Math.max(70, Number(newLevel));
             } else if (tU === 'JOURNEY_ACROSS_AMERICA') {
               newLevel = Math.max(70, Number(newLevel));
@@ -426,7 +426,7 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
       // Force English-only languages for specific events where only English
       // game versions are supported in this dataset.
       try {
-        const englishOnly = ['POKEMON_ROCKS_METANG','WISHMKR_BEST','WISHMKR_SHINY','DOEL_DEOXYS','CHANNEL_JIRACHI'];
+        const englishOnly = ['POKEMON_ROCKS_METANG','WISHMKR_BEST','WISHMKR_SHINY','DOEL_DEOXYS','SPACE_CENTER_DEOXYS','CHANNEL_JIRACHI'];
         if (englishOnly.includes(String(tag).toUpperCase())) {
           const langSel = $('#language');
           if (langSel && langSel.options) {
@@ -619,6 +619,7 @@ function getMysteryPidMethod() {
     tag === '10ANNI' ||
     tag === 'AURA_MEW' ||
     tag === 'DOEL_DEOXYS' ||
+    tag === 'SPACE_CENTER_DEOXYS' ||
     tag === 'JOURNEY_ACROSS_AMERICA' ||
     tag === 'PARTY_OF_THE_DECADE' ||
     tag === 'POKEMON_ROCKS_METANG'
@@ -712,6 +713,7 @@ function resolveMysteryBacdOtGender(result) {
     tag === '10ANNI' ||
     tag === 'AURA_MEW' ||
     tag === 'DOEL_DEOXYS' ||
+    tag === 'SPACE_CENTER_DEOXYS' ||
     tag === 'JOURNEY_ACROSS_AMERICA' ||
     tag === 'PARTY_OF_THE_DECADE'
   );
@@ -3827,6 +3829,7 @@ function boot(){
         let ms = null;
         // Direct lookups
         if (tag && MYSTERY_MOVESETS[tag]) ms = MYSTERY_MOVESETS[tag];
+        if (!ms && presetTag && MYSTERY_MOVESETS[presetTag]) ms = MYSTERY_MOVESETS[presetTag];
         if (!ms && raw && MYSTERY_MOVESETS[raw]) ms = MYSTERY_MOVESETS[raw];
         if (!ms && revRaw && MYSTERY_MOVESETS[revRaw]) ms = MYSTERY_MOVESETS[revRaw];
         // Fallback: normalized name matching against available moveset keys
@@ -4795,7 +4798,7 @@ function boot(){
           else if (tag === 'AURA_MEW' && val < 10) val = 10;
           else if (tag === 'AGETO_CELEBI' && val < 10) val = 10;
           else if (tag === 'BOX_EVENT' && val < 5) val = 5;
-          else if (tag === 'DOEL_DEOXYS' && val < 70) val = 70;
+          else if ((tag === 'DOEL_DEOXYS' || tag === 'SPACE_CENTER_DEOXYS') && val < 70) val = 70;
           else if (tag === 'JOURNEY_ACROSS_AMERICA' && val < 70) val = 70;
           else if (tag === 'PARTY_OF_THE_DECADE' && val < 70) val = 70;
           else if (tag === 'POKEMON_ROCKS_METANG' && val < 30) val = 30;

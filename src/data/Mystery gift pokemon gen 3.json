@@ -44,6 +44,20 @@
       "defaultFatefulEncounter": true,
       "species": [410]
     },
+    "SPACE_CENTER_DEOXYS": {
+      "fixedTID": 10,
+      "fixedSID": 0,
+      "ot_name": "SPACE C",
+      "shinyLocked": true,
+      "defaultOriginGame": 2,
+      "defaultMetLocation": "(Fateful Encounter)",
+      "defaultBall": "Poke Ball",
+      "defaultMetLevel": 70,
+      "defaultFatefulEncounter": true,
+      "pidMethod": "BACD_R_A",
+      "presetTag": "DOEL_DEOXYS",
+      "species": [410]
+    },
     "JOURNEY_ACROSS_AMERICA": {
       "fixedTID": 10,
       "fixedSID": 0,
