@@ -3723,9 +3723,8 @@ function boot(){
       }
       const selectedEvent = (MYSTERY_EVENTS && MYSTERY_EVENTS[rawTag]) ? MYSTERY_EVENTS[rawTag] : null;
       const isAgetoCelebi = String(rawTag).toUpperCase() === 'AGETO_CELEBI';
-      const presetTag = (!MYSTERY_GIFTS[tag] && selectedEvent && selectedEvent.presetTag && MYSTERY_GIFTS[selectedEvent.presetTag])
-        ? selectedEvent.presetTag
-        : tag;
+      const selectedPresetTag = String(selectedEvent?.presetTag || '').trim();
+      const presetTag = selectedPresetTag || tag;
       const natureIndex = Number($('#nature').value || 0);
       const natureName = NATURES[natureIndex] || '';
 
@@ -3758,7 +3757,6 @@ function boot(){
 
       // Diagnostics: log available entries and currently selected nature
       if (!candidates.length) {
-        if (!presetTag || !MYSTERY_GIFTS[presetTag]) { suppressUserChangeMark = false; return; }
         try {
           const candidateNatures = (MYSTERY_GIFTS[presetTag] || []).map(e => String(e.nature || ''));
           console.log('applyMysteryPresetForSpecies', { tag, presetTag, speciesId, natureIndex, natureName, candidateNatures });
@@ -3775,11 +3773,23 @@ function boot(){
           try {
             const rawLower = String(rawTag).toLowerCase();
             const rev = String(rawTag).split(/[_\- ]+/).filter(Boolean).reverse().join('_').toLowerCase();
+            const presetLower = String(selectedPresetTag || presetTag || '').toLowerCase();
+            const revPreset = String(selectedPresetTag || presetTag || '').split(/[_\- ]+/).filter(Boolean).reverse().join('_').toLowerCase();
             for (const k of Object.keys(MYSTERY_GIFTS)) {
               for (const e of (MYSTERY_GIFTS[k] || [])) {
                 const etag = String(e.tag || '').toLowerCase();
                 if (!etag) continue;
-                if (etag === rawLower || etag === rev || etag.includes(rawLower) || rawLower.includes(etag)) {
+                if (
+                  etag === rawLower ||
+                  etag === rev ||
+                  (rawLower && (etag.includes(rawLower) || rawLower.includes(etag))) ||
+                  (presetLower && (
+                    etag === presetLower ||
+                    etag === revPreset ||
+                    etag.includes(presetLower) ||
+                    presetLower.includes(etag)
+                  ))
+                ) {
                   candidates.push(e);
                 }
               }
