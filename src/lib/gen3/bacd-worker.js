@@ -1,5 +1,5 @@
 /**
- * BACD/BACD_R/BACD_R_A mystery gift PID/IV search worker.
+ * BACD/BACD_R/BACD_R_A/BACD_RBCD mystery gift PID/IV search worker.
  *
  * Restricted Gen 3 event methods use a 16-bit origin seed space (0x0000..0xFFFF).
  * This worker scans that space and returns best-IV results matching UI filters.
@@ -96,6 +96,53 @@ function passesFilters(result, p) {
 function generateBACDFromSeed(originSeed, method, tid, sid) {
   const state = { seed: originSeed >>> 0 };
 
+  if (method === 'BACD_RBCD') {
+    // Berry Program Update Zigzagoon (PKHeX: BACD_S [BACD_RBCD]).
+    // PID: forced shiny from first/third RNG calls; second call consumed.
+    const pidHigh = next16(state);
+    const consumed = next16(state);
+    const pidTail = next16(state);
+    void consumed;
+
+    const idXor = (tid ^ sid) & 0xFFFF;
+    const pidLow = (((idXor ^ pidHigh) & 0xFFF8) | (pidTail & 0x7)) & 0xFFFF;
+    const pid = (((pidHigh & 0xFFFF) << 16) | pidLow) >>> 0;
+
+    // IVs use the next two sequential calls packed as 30 bits.
+    const ivRand1 = next16(state) & 0x7FFF;
+    const ivRand2 = next16(state) & 0x7FFF;
+    const iv32 = ((ivRand2 << 15) | ivRand1) >>> 0;
+
+    const ivs = {
+      hp: iv32 & 31,
+      atk: (iv32 >>> 5) & 31,
+      def: (iv32 >>> 10) & 31,
+      spe: (iv32 >>> 15) & 31,
+      spa: (iv32 >>> 20) & 31,
+      spd: (iv32 >>> 25) & 31,
+    };
+
+    // Sixth RNG call selects OT variant (RUBY/SAPHIRE).
+    const otRand = next16(state);
+    const otGenderBit = (Math.floor(otRand / 3) & 1);
+    const otName = otGenderBit === 1 ? 'RUBY' : 'SAPHIRE';
+    const otGender = otGenderBit === 1 ? 'female' : 'male';
+
+    return {
+      seed: originSeed >>> 0,
+      originSeed: originSeed >>> 0,
+      pid,
+      method,
+      ivs,
+      hpt: hpType(ivs),
+      hpp: hpPower(ivs),
+      metLevels: null,
+      otName,
+      otGender,
+      otGenderBit,
+    };
+  }
+
   const a = next16(state);
   const b = next16(state);
   const c = next16(state);
@@ -137,11 +184,28 @@ function ivTotal(r) {
 function searchBACD(params) {
   const method = String(params.method || 'BACD_R').toUpperCase();
   const maxResults = Math.max(1, Number(params.maxResults) || 250);
+  const rawBerryFixOtPref = String(
+    params.berryFixOtPreference || (method === 'BACD_RBCD' ? 'SAPHIRE' : 'ANY')
+  ).toUpperCase();
+  const berryFixOtPreference = rawBerryFixOtPref === 'RUBY'
+    ? 'RUBY'
+    : rawBerryFixOtPref === 'ANY'
+      ? 'ANY'
+      : 'SAPHIRE';
 
   const inputStart = Number(params.startSeed);
   const inputEnd = Number(params.endSeed);
-  const startSeed = Number.isFinite(inputStart) ? Math.max(0, Math.min(0x10000, inputStart >>> 0)) : 0;
-  const endSeed = Number.isFinite(inputEnd) ? Math.max(startSeed, Math.min(0x10000, inputEnd >>> 0)) : 0x10000;
+  let startSeed = Number.isFinite(inputStart) ? Math.max(0, Math.min(0x10000, inputStart >>> 0)) : 0;
+  let endSeed = Number.isFinite(inputEnd) ? Math.max(startSeed, Math.min(0x10000, inputEnd >>> 0)) : 0x10000;
+
+  if (method === 'BACD_RBCD') {
+    // PKHeX legality range for Berry Program Update BCD sum seeds: [3, 213].
+    const rbcdMin = 3;
+    const rbcdMaxExclusive = 214;
+    startSeed = Math.max(startSeed, rbcdMin);
+    endSeed = Math.min(endSeed, rbcdMaxExclusive);
+    if (endSeed < startSeed) endSeed = startSeed;
+  }
 
   const searchParams = {
     nature: Number(params.nature) || 0,
@@ -171,6 +235,9 @@ function searchBACD(params) {
     }
 
     const r = generateBACDFromSeed(seed, method, searchParams.tid, searchParams.sid);
+    if (method === 'BACD_RBCD' && berryFixOtPreference !== 'ANY' && r.otName !== berryFixOtPreference) {
+      continue;
+    }
     if (!passesFilters(r, searchParams)) continue;
 
     results.push(r);

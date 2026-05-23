@@ -129,11 +129,17 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
       // Shiny lock
       const shinyCheckbox = $('#shiny');
       if (shinyCheckbox) {
-        if (evt.shinyLocked) {
+        if (evt.alwaysShiny) {
+          shinyCheckbox.checked = true;
+          shinyCheckbox.disabled = true;
+          shinyCheckbox.title = 'This event is always shiny.';
+        } else if (evt.shinyLocked) {
           shinyCheckbox.checked = false;
           shinyCheckbox.disabled = true;
+          shinyCheckbox.title = 'This Pokemon is shiny locked.';
         } else {
           shinyCheckbox.disabled = false;
+          shinyCheckbox.title = '';
         }
       }
 
@@ -192,7 +198,7 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
               newLevel = Math.max(70, Number(newLevel));
             } else if (tU === 'POKEMON_ROCKS_METANG') {
               newLevel = Math.max(30, Number(newLevel));
-            } else if (tU === 'WISHMKR_BEST' || tU === 'WISHMKR_SHINY') {
+            } else if (tU === 'WISHMKR_BEST' || tU === 'WISHMKR_SHINY' || tU === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') {
               newLevel = Math.max(5, Number(newLevel));
             } else if (tU === 'CHANNEL_JIRACHI') {
               newLevel = Math.max(5, Number(newLevel));
@@ -218,6 +224,25 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
           const opts = ballSel.options && typeof ballSel.options[Symbol.iterator] === 'function' ? Array.from(ballSel.options) : Array.from(ballSel.querySelectorAll ? ballSel.querySelectorAll('option') : []);
           const opt = opts.find(o => (o.text || o.textContent || '').toLowerCase() === String(evt.defaultBall).toLowerCase());
           if (opt) ballSel.value = opt.value;
+        }
+      }
+
+      // Held item default
+      if (evt.defaultItemId !== undefined) {
+        const itemEl = $('#item');
+        if (itemEl) {
+          itemEl.value = String(evt.defaultItemId);
+          try { itemEl.dispatchEvent(new Event('change')); } catch (e) {}
+        }
+      } else if (evt.defaultItem) {
+        const itemEl = $('#item');
+        if (itemEl) {
+          const normalized = String(evt.defaultItem).toLowerCase().replace(/[^a-z0-9]/g, '');
+          const match = ITEMS.find(([id, name]) => String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '') === normalized);
+          if (match) {
+            itemEl.value = String(match[0]);
+            try { itemEl.dispatchEvent(new Event('change')); } catch (e) {}
+          }
         }
       }
 
@@ -426,7 +451,7 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
       // Force English-only languages for specific events where only English
       // game versions are supported in this dataset.
       try {
-        const englishOnly = ['POKEMON_ROCKS_METANG','WISHMKR_BEST','WISHMKR_SHINY','DOEL_DEOXYS','SPACE_CENTER_DEOXYS','CHANNEL_JIRACHI'];
+        const englishOnly = ['POKEMON_ROCKS_METANG','WISHMKR_BEST','WISHMKR_SHINY','DOEL_DEOXYS','SPACE_CENTER_DEOXYS','BERRY_PROGRAM_UPDATE_ZIGZAGOON','CHANNEL_JIRACHI'];
         if (englishOnly.includes(String(tag).toUpperCase())) {
           const langSel = $('#language');
           if (langSel && langSel.options) {
@@ -577,6 +602,10 @@ let pidFinderResultActive = false;
 // TID/SID that were used when the PID Finder result was selected (for change detection)
 let pidFinderOriginalTid = 0;
 let pidFinderOriginalSid = 0;
+// True after a PID Finder result has been selected until it is explicitly cleared.
+let pidFinderHadSelection = false;
+// Assigned from boot() so non-boot modules (PID finder modal) can clear active locks safely.
+let unlockPidFinderFieldsFn = null;
 // When true, the Manual Override checkbox is active — all field locks are bypassed
 let manualOverrideActive = false;
 // Per-encounter-mode field snapshots to prevent cross-mode value bleed.
@@ -596,11 +625,59 @@ let mysteryUserModifiedSincePreset = false;
 
 function getSelectedMysteryEvent() {
   const rawTag = String(document.getElementById('mysteryEvent')?.value || '').toUpperCase();
-  const tag = rawTag === 'WISHMKR_SHINY' ? 'WISHMKR_BEST' : rawTag;
+  let tag = rawTag;
+  if (tag === 'WISHMKR_SHINY') tag = 'WISHMKR_BEST';
+  if (tag === 'BERRY_FIX_ZIGZAGOON') tag = 'BERRY_PROGRAM_UPDATE_ZIGZAGOON';
   return {
     tag,
     event: MYSTERY_EVENTS[tag] || null,
   };
+}
+
+function isBerryFixMysteryTag(tag) {
+  const t = String(tag || '').toUpperCase();
+  return t === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON' || t === 'BERRY_FIX_ZIGZAGOON';
+}
+
+function isBerryFixMysteryEventSelected() {
+  if (currentEncounterMode !== 'mystery') return false;
+  return isBerryFixMysteryTag(getSelectedMysteryEvent().tag);
+}
+
+function requiresBerryFixPidFinderSelection() {
+  return isBerryFixMysteryEventSelected();
+}
+
+function hasRequiredBerryFixPidFinderSelection() {
+  if (!requiresBerryFixPidFinderSelection()) return true;
+  return !!pidFinderHadSelection;
+}
+
+function getBerryFixOtPreference() {
+  const raw = String(document.getElementById('berryFixOtPreference')?.value || 'SAPHIRE').toUpperCase();
+  if (raw === 'RUBY') return 'RUBY';
+  if (raw === 'ANY') return 'ANY';
+  return 'SAPHIRE';
+}
+
+function updateBerryFixOtPreferenceUi() {
+  const row = document.getElementById('berryFixOtFilterRow');
+  const pref = document.getElementById('berryFixOtPreference');
+  if (!row || !pref) return;
+
+  const show = isBerryFixMysteryEventSelected();
+  row.style.display = show ? '' : 'none';
+
+  if (!show) {
+    pref.disabled = false;
+    pref.value = 'SAPHIRE';
+    const pidFinderBtn = document.getElementById('pidFinderBtn');
+    if (pidFinderBtn) pidFinderBtn.classList.remove('field-error');
+    return;
+  }
+
+  pref.value = getBerryFixOtPreference();
+  pref.disabled = !!pidFinderResultActive;
 }
 
 function getMysteryPidMethod() {
@@ -612,6 +689,7 @@ function getMysteryPidMethod() {
 
   if (tag === 'CHANNEL_JIRACHI') return 'CHANNEL';
   if (tag === 'AGETO_CELEBI') return 'CXD';
+  if (tag === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') return 'BACD_RBCD';
 
   if (tag === 'WISHMKR_BEST' || tag === 'WISHMKR_SHINY') return 'BACD_R';
 
@@ -635,7 +713,8 @@ function isMysteryBACDMethod(method) {
     method === 'BACD' ||
     method === 'BACD_R' ||
     method === 'BACD_R_A' ||
-    method === 'BACD_A'
+    method === 'BACD_A' ||
+    method === 'BACD_RBCD'
   );
 }
 
@@ -683,6 +762,11 @@ function resolveMysteryBacdOtGender(result) {
   // Event-level fixed OT gender always takes precedence when present.
   const fixedEventGender = normalizeOtGenderValue(event?.ot_gender);
   if (fixedEventGender) return fixedEventGender;
+
+  // Some event methods derive OT gender directly from the seed and include it
+  // in finder results. Prefer that value when present.
+  const seededGender = normalizeOtGenderValue(result?.otGender);
+  if (seededGender) return seededGender;
 
   const entries = Array.isArray(MYSTERY_GIFTS[tag]) ? MYSTERY_GIFTS[tag] : [];
   const resultPid = parseSeedLike(result?.pid);
@@ -740,6 +824,7 @@ function updatePidFinderVisibility() {
     isMysteryBACDMethod(mysteryMethod);
 
   row.style.display = shouldShow ? 'flex' : '';
+  try { updateBerryFixOtPreferenceUi(); } catch (e) {}
 }
 
 // ── Roamer encounter definitions ─────────────────────────────────
@@ -1507,6 +1592,7 @@ function highlightMissingFields() {
   const move3Value = $('#move3').value;
   const move4Value = $('#move4').value;
   const otNameValue = $('#otName').value;
+  const pidFinderBtn = $('#pidFinderBtn');
   
   // Remove any existing error highlights
   $('#species').parentElement.classList.remove('field-error');
@@ -1516,6 +1602,7 @@ function highlightMissingFields() {
   $('#move3').parentElement.classList.remove('field-error');
   $('#move4').parentElement.classList.remove('field-error');
   $('#otName').classList.remove('field-error');
+  if (pidFinderBtn) pidFinderBtn.classList.remove('field-error');
   
   let missingFields = [];
   
@@ -1544,6 +1631,11 @@ function highlightMissingFields() {
   if (!hasMove) {
     $('#move1').parentElement.classList.add('field-error');
     missingFields.push('At least one Move');
+  }
+
+  if (!hasRequiredBerryFixPidFinderSelection()) {
+    if (pidFinderBtn) pidFinderBtn.classList.add('field-error');
+    missingFields.push('Find Legal Encounter');
   }
   
   return missingFields;
@@ -1760,6 +1852,7 @@ function boot(){
     const move3Value = $('#move3').value;
     const move4Value = $('#move4').value;
     const otNameValue = $('#otName').value;
+    const pidFinderBtn = $('#pidFinderBtn');
     
     // Check if species and nature are selected
     const hasSpecies = speciesValue && speciesValue.trim() !== '';
@@ -1771,10 +1864,15 @@ function boot(){
                     (move2Value && move2Value !== '0') || 
                     (move3Value && move3Value !== '0') || 
                     (move4Value && move4Value !== '0');
+    const hasBerryFixLegalPid = hasRequiredBerryFixPidFinderSelection();
+
+    if (pidFinderBtn && hasBerryFixLegalPid) {
+      pidFinderBtn.classList.remove('field-error');
+    }
     
     // Enable generate button only if all conditions are met
     const generateBtn = $('#generateBtn');
-    if (hasSpecies && hasNature && hasMove && hasOTName) {
+    if (hasSpecies && hasNature && hasMove && hasOTName && hasBerryFixLegalPid) {
       generateBtn.setAttribute('data-disabled', 'false');
     } else {
       generateBtn.setAttribute('data-disabled', 'true');
@@ -2386,7 +2484,7 @@ function boot(){
         }
       }
       // Reset PID Finder locks when species changes (result is no longer valid)
-      if (!importedMode && pidFinderResultActive) unlockPidFinderFields();
+      if (!importedMode && hasPidFinderSelectionState()) unlockPidFinderFields({ clearPid: true });
       // Always update gender dropdown for selected species
       if (!importedMode) handleEncounterModeChange(speciesId);
 
@@ -2862,7 +2960,7 @@ function boot(){
       } catch (ee) {}
       pidFinderLockedMetLevel = false;
       // Reset PID Finder field locks when encounter mode changes
-      if (pidFinderResultActive) unlockPidFinderFields();
+      if (hasPidFinderSelectionState()) unlockPidFinderFields({ clearPid: true });
       // Unlock CXD-specific field locks (origin game, met location, met level)
       const unlockEl = (el) => { if (!el) return; el.disabled = false; el.style.pointerEvents = ''; el.style.opacity = ''; el.style.cursor = ''; };
       unlockEl($('#originGame'));
@@ -2972,7 +3070,7 @@ function boot(){
       }
       manualOverrideActive = e.target.checked;
       // Clear PID Finder locks when override is toggled
-      if (pidFinderResultActive) unlockPidFinderFields();
+      if (hasPidFinderSelectionState()) unlockPidFinderFields();
       // Re-run all locking functions — they will skip locks when override is active
       try { updateMetLevelLocking(); } catch (e) {}
       try { updateBallLocking(); } catch (e) {}
@@ -3108,7 +3206,13 @@ function boot(){
    * Unlock all fields that were locked by the PID Finder result.
    * Called when species or encounter mode changes, invalidating the previous result.
    */
-  function unlockPidFinderFields() {
+  function hasPidFinderSelectionState() {
+    const statusText = String(document.getElementById('pidFinderStatus')?.textContent || '').trim();
+    return pidFinderResultActive || pidFinderHadSelection || statusText.length > 0;
+  }
+
+  function unlockPidFinderFields(options = {}) {
+    const clearPid = !!options.clearPid;
     pidFinderResultActive = false;
     pidFinderLockedMetLevel = false;
     const pidFinderStatusEl = document.getElementById('pidFinderStatus');
@@ -3130,12 +3234,27 @@ function boot(){
     // Also unlock Channel-specific fields if they were locked
     unlock($('#item'));
     unlock($('#otGender'));
+    unlock($('#otName'));
     unlock($('#originGame'));
+
+    if (clearPid) {
+      const pidEl = $('#pid');
+      if (pidEl) {
+        pidEl.value = '';
+        try { pidEl.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
+      }
+      pidFinderHadSelection = false;
+    }
+
     try { updatePidLocking(); } catch (e) {}
     try { updateTidSidLocking(); } catch (e) {}
     try { updateMetLevelLocking(); } catch (e) {}
     try { updateIvLocking(); } catch (e) {}
+    try { updateBerryFixOtPreferenceUi(); } catch (e) {}
+    try { validateForm(); } catch (e) {}
   }
+
+  unlockPidFinderFieldsFn = unlockPidFinderFields;
 
   // By default, Japanese (language id '1') is not selectable in the UI because
   // we don't support the required character set yet. Events that explicitly
@@ -3449,6 +3568,10 @@ function boot(){
             const aliasMap = {
               'doeldeoxys': 'DOEL_DEOXYS',
               'pokemonrocksamerica2005': 'POKEMON_ROCKS_METANG',
+              'berryfix': 'BERRY_PROGRAM_UPDATE_ZIGZAGOON',
+              'berryfixzigzagoon': 'BERRY_PROGRAM_UPDATE_ZIGZAGOON',
+              'berryprogramupdate': 'BERRY_PROGRAM_UPDATE_ZIGZAGOON',
+              'berryprogramupdatezigzagoon': 'BERRY_PROGRAM_UPDATE_ZIGZAGOON',
               'partyofthedecade': 'PARTY_OF_THE_DECADE',
               'agetocelebi': 'AGETO_CELEBI',
               'clubnintendojirachigiveaway': 'WISHMKR_BEST',
@@ -3590,7 +3713,7 @@ function boot(){
             const tag = eventSel.value;
             console.log('Mystery event selected:', tag);
             // Unlock any PID Finder result from the previous event
-            if (pidFinderResultActive) try { unlockPidFinderFields(); } catch (e) {}
+            if (hasPidFinderSelectionState()) try { unlockPidFinderFields({ clearPid: true }); } catch (e) {}
             // Clear any previous event-specific UI state (ribbons, language disables)
             try { clearMysteryEventState(); } catch (e) {}
             // Apply event-level defaults
@@ -3810,25 +3933,27 @@ function boot(){
         if (ec && ec === targetCanon) return true;
         return false;
       }) || candidates[0];
-      if (!entry) { suppressUserChangeMark = false; return; }
-      // Reset user-modified flag when applying preset
-      mysteryUserModifiedSincePreset = false;
-      // If entry contains pid/ivs, apply them
-      const pidInput = $('#pid');
-      if (pidInput && entry.pid) pidInput.value = String(entry.pid);
-      if (entry.ivs && entry.ivs.length >= 6) {
-        // JSON ivs order: [hp, atk, def, speed, sp.atk, sp.def] per notes
-        $('#ivHp').value = String(entry.ivs[0]);
-        $('#ivAtk').value = String(entry.ivs[1]);
-        $('#ivDef').value = String(entry.ivs[2]);
-        $('#ivSpe').value = String(entry.ivs[3]);
-        $('#ivSpAtk').value = String(entry.ivs[4]);
-        $('#ivSpDef').value = String(entry.ivs[5]);
+      if (entry) {
+        // Reset user-modified flag when applying a concrete preset row.
+        mysteryUserModifiedSincePreset = false;
+
+        // If entry contains pid/ivs, apply them.
+        const pidInput = $('#pid');
+        if (pidInput && entry.pid) pidInput.value = String(entry.pid);
+        if (entry.ivs && entry.ivs.length >= 6) {
+          // JSON ivs order: [hp, atk, def, speed, sp.atk, sp.def] per notes
+          $('#ivHp').value = String(entry.ivs[0]);
+          $('#ivAtk').value = String(entry.ivs[1]);
+          $('#ivDef').value = String(entry.ivs[2]);
+          $('#ivSpe').value = String(entry.ivs[3]);
+          $('#ivSpAtk').value = String(entry.ivs[4]);
+          $('#ivSpDef').value = String(entry.ivs[5]);
+        }
+        if (entry.fixedTID !== undefined) $('#tid').value = String(entry.fixedTID);
+        if (entry.fixedSID !== undefined) $('#sid').value = String(entry.fixedSID);
+        if (entry.ot_name) $('#otName').value = entry.ot_name;
+        if (entry.ot_gender) $('#otGender').value = entry.ot_gender.toLowerCase();
       }
-      if (entry.fixedTID !== undefined) $('#tid').value = String(entry.fixedTID);
-      if (entry.fixedSID !== undefined) $('#sid').value = String(entry.fixedSID);
-      if (entry.ot_name) $('#otName').value = entry.ot_name;
-      if (entry.ot_gender) $('#otGender').value = entry.ot_gender.toLowerCase();
       // Apply moveset from external moveset mapping if available.
       // Use a resilient lookup: try the resolved tag, the raw selected tag,
       // the reversed-token variant, and normalized matching against keys.
@@ -3876,6 +4001,13 @@ function boot(){
             });
             if (candidateKey) moves = ms.moves[candidateKey] || [];
           }
+          if (!moves.length && String(rawTag || '').toUpperCase() === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') {
+            moves = [
+              { index: 33 }, // Tackle
+              { index: 45 }, // Growl
+              { index: 39 }  // Tail Whip
+            ];
+          }
           for (let i = 0; i < 4; i++) {
             const el = $(`#move${i+1}`);
             if (!el) continue;
@@ -3891,6 +4023,15 @@ function boot(){
             }
             try { el.dispatchEvent(new Event('change')); } catch (e) {}
           }
+        } else if (String(rawTag || '').toUpperCase() === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') {
+          const fallbackMoves = [33, 45, 39];
+          for (let i = 0; i < 4; i++) {
+            const el = $(`#move${i+1}`);
+            if (!el) continue;
+            const mv = fallbackMoves[i];
+            el.value = mv !== undefined ? String(mv) : '';
+            try { el.dispatchEvent(new Event('change')); } catch (e) {}
+          }
         }
       } catch (e) {}
       updateGenderFromPID();
@@ -3900,7 +4041,7 @@ function boot(){
         const g = $('#gender');
         if (currentEncounterMode === 'mystery' && g) {
           // If preset provided a gender explicitly in the entry, prefer it
-          if (entry.gender) {
+          if (entry && entry.gender) {
             g.value = String(entry.gender).toLowerCase();
           }
           g.style.pointerEvents = 'none';
@@ -4812,7 +4953,7 @@ function boot(){
           else if (tag === 'JOURNEY_ACROSS_AMERICA' && val < 70) val = 70;
           else if (tag === 'PARTY_OF_THE_DECADE' && val < 70) val = 70;
           else if (tag === 'POKEMON_ROCKS_METANG' && val < 30) val = 30;
-          else if ((tag === 'WISHMKR_BEST' || tag === 'WISHMKR_SHINY') && val < 5) val = 5;
+          else if ((tag === 'WISHMKR_BEST' || tag === 'WISHMKR_SHINY' || tag === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') && val < 5) val = 5;
           }
           // Legendary Mew: if in legendaries mode and species is Mew (151), enforce min level 30
           else if (currentEncounterMode === 'static') {
@@ -5092,6 +5233,12 @@ function boot(){
         if (currentEncounterMode === 'mystery') {
           const tag = ($('#mysteryEvent') && $('#mysteryEvent').value) ? String($('#mysteryEvent').value).toUpperCase() : '';
           const evt = MYSTERY_EVENTS[tag];
+          if (evt && evt.alwaysShiny) {
+            shinyCheckboxLocal.checked = true;
+            shinyCheckboxLocal.disabled = true;
+            shinyCheckboxLocal.title = 'This event is always shiny.';
+            return;
+          }
           if (evt && evt.shinyLocked) {
             shinyCheckboxLocal.checked = false;
             shinyCheckboxLocal.disabled = true;
@@ -6110,8 +6257,45 @@ function initPidFinder() {
   const resultCount  = document.getElementById('pfResultCount');
   const summaryEl    = document.getElementById('pidFinderSummary');
   const statusSpan   = document.getElementById('pidFinderStatus');
+  const berryFixOtPrefEl = document.getElementById('berryFixOtPreference');
 
   if (!btn || !overlay) return;
+
+  function clearActivePidFinderResult(reasonText) {
+    const hasStatus = !!String(statusSpan?.textContent || '').trim();
+    if (!pidFinderResultActive && !pidFinderHadSelection && !hasStatus) return;
+
+    if (pidFinderResultActive) {
+      if (typeof unlockPidFinderFieldsFn === 'function') {
+        try { unlockPidFinderFieldsFn({ clearPid: true }); } catch (e) {}
+      } else {
+        pidFinderResultActive = false;
+        pidFinderLockedMetLevel = false;
+      }
+    }
+
+    const pidEl = $('#pid');
+    if (pidEl) {
+      pidEl.value = '';
+      try { pidEl.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
+    }
+    pidFinderHadSelection = false;
+
+    if (statusSpan) {
+      statusSpan.textContent = reasonText || '';
+    }
+
+    try { updateBerryFixOtPreferenceUi(); } catch (e) {}
+    try { checkShiny(); } catch (e) {}
+    try { updateMakeShinyButton(); } catch (e) {}
+    try { updatePidTidSidWarning(); } catch (e) {}
+    try { _validateForm?.(); } catch (e) {}
+  }
+
+  function maybeClearStaleBerryFixSelection(reasonText) {
+    if (!isBerryFixMysteryEventSelected()) return;
+    clearActivePidFinderResult(reasonText);
+  }
 
   // Validate PID-finder TID/SID: strip non-digits, cap at 65535, preserve leading zeros
   const pfClampId = (e) => {
@@ -6129,6 +6313,25 @@ function initPidFinder() {
   const refilter = () => { if (pfAllResults.length > 0) displayResults(); };
   if (pfHpTypeSelect) pfHpTypeSelect.addEventListener('change', refilter);
   if (pfHpPowerInput) pfHpPowerInput.addEventListener('input', refilter);
+
+  if (berryFixOtPrefEl) {
+    berryFixOtPrefEl.addEventListener('change', () => {
+      maybeClearStaleBerryFixSelection('Berry Fix OT changed. Select a new legal encounter.');
+      try { updateBerryFixOtPreferenceUi(); } catch (e) {}
+    });
+  }
+
+  const staleResultFilterIds = [
+    'pfGender', 'pfAbility', 'pfShiny', 'pfMinHp', 'pfMinAtk', 'pfMinDef', 'pfMinSpA', 'pfMinSpD', 'pfMinSpe',
+    'pfMaxHp', 'pfMaxAtk', 'pfMaxDef', 'pfMaxSpA', 'pfMaxSpD', 'pfMaxSpe', 'pfHpType', 'pfHpPower'
+  ];
+  const staleResultMsg = 'Filters changed. Select a new legal encounter.';
+  for (const id of staleResultFilterIds) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.addEventListener('input', () => maybeClearStaleBerryFixSelection(staleResultMsg));
+    el.addEventListener('change', () => maybeClearStaleBerryFixSelection(staleResultMsg));
+  }
 
   /* â”€â”€ Open / Close â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
@@ -6275,7 +6478,10 @@ function initPidFinder() {
         pfSidEl.value = String(event.fixedSID);
         pfSidEl.disabled = true;
       }
-      if (pfShinyEl && event?.shinyLocked) {
+      if (pfShinyEl && event?.alwaysShiny) {
+        pfShinyEl.checked = true;
+        pfShinyEl.disabled = true;
+      } else if (pfShinyEl && event?.shinyLocked) {
         pfShinyEl.checked = false;
         pfShinyEl.disabled = true;
       }
@@ -6331,6 +6537,8 @@ function initPidFinder() {
     stopBtn.disabled   = true;
     pfAllResults = [];
 
+    try { updateBerryFixOtPreferenceUi(); } catch (e) {}
+
     overlay.classList.add('open');
   }
 
@@ -6339,7 +6547,10 @@ function initPidFinder() {
     stopSearch();
   }
 
-  btn.addEventListener('click', openModal);
+  btn.addEventListener('click', () => {
+    btn.classList.remove('field-error');
+    openModal();
+  });
   closeBtn.addEventListener('click', closeModal);
   overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
   document.addEventListener('keydown', e => {
@@ -6535,6 +6746,9 @@ function initPidFinder() {
 
       if (isBACDSearch) {
         const { event } = getSelectedMysteryEvent();
+        const berryFixOtPreference = mysteryMethod === 'BACD_RBCD'
+          ? getBerryFixOtPreference()
+          : 'ANY';
 
         worker.postMessage({
           startSeed: start,
@@ -6548,6 +6762,7 @@ function initPidFinder() {
           sid,
           wantShiny,
           noShiny: !!event?.shinyLocked,
+          berryFixOtPreference,
           minIVs,
           maxIVs,
           maxResults: Math.ceil(250 / workerCount)
@@ -6785,6 +7000,7 @@ function initPidFinder() {
     // Mark PID Finder result as active — this guards preset-application paths
     // from overwriting the selected PID/IVs without enabling full Manual Override.
     pidFinderResultActive = true;
+    pidFinderHadSelection = true;
 
     // Sync TID/SID from PID Finder modal back to main form
     const pfTid = Number(document.getElementById('pfTid').value) & 0xFFFF;
@@ -6808,10 +7024,22 @@ function initPidFinder() {
       const otGenderEl = $('#otGender');
       if (otGenderEl) { otGenderEl.value = r.otGender === 1 ? 'female' : 'male'; }
     } else if (isBACDResult && currentEncounterMode === 'mystery') {
+      const otNameEl = $('#otName');
+      if (otNameEl && r.otName) {
+        otNameEl.value = String(r.otName);
+      }
       const otGenderEl = $('#otGender');
-      const otGender = resolveMysteryBacdOtGender(r);
+      const otGender = normalizeOtGenderValue(r.otGender) || resolveMysteryBacdOtGender(r);
       if (otGenderEl && otGender) {
         otGenderEl.value = otGender;
+      }
+
+      if (String(r.method || '').toUpperCase() === 'BACD_RBCD') {
+        const berryFixOtEl = document.getElementById('berryFixOtPreference');
+        if (berryFixOtEl && r.otName) {
+          berryFixOtEl.value = String(r.otName).toUpperCase() === 'RUBY' ? 'RUBY' : 'SAPHIRE';
+          berryFixOtEl.disabled = true;
+        }
       }
     }
 
@@ -6903,6 +7131,7 @@ function initPidFinder() {
     } else if (isBACDResult && currentEncounterMode === 'mystery') {
       // BACD mystery OT gender is part of the legality correlation.
       lockStyle($('#otGender'));
+      if (r.otName) lockStyle($('#otName'));
     }
 
     checkShiny();
@@ -6928,6 +7157,7 @@ function initPidFinder() {
           ? `PID set (${r.method}, seed 0x${Number(r.originSeed ?? r.seed ?? 0).toString(16).toUpperCase().padStart(4, '0')})`
           : `PID set (${statusMethod === 'CXD' ? 'CXD' : 'Method ' + statusMethod}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
     }
+    try { _validateForm?.(); } catch (e) {}
     closeModal();
   }
 }
