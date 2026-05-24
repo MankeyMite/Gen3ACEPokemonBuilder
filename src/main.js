@@ -679,7 +679,7 @@ function isBerryFixMysteryEventSelected() {
 }
 
 function requiresBerryFixPidFinderSelection() {
-  return isBerryFixMysteryEventSelected();
+  return isBerryFixMysteryEventSelected() || isPcnyWishEggsMysteryEventSelected();
 }
 
 function hasRequiredBerryFixPidFinderSelection() {
