@@ -228,7 +228,13 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
       }
 
       // Held item default
-      if (evt.defaultItemId !== undefined) {
+      if (evt.defaultNoItem) {
+        const itemEl = $('#item');
+        if (itemEl) {
+          itemEl.value = '';
+          try { itemEl.dispatchEvent(new Event('change')); } catch (e) {}
+        }
+      } else if (evt.defaultItemId !== undefined) {
         const itemEl = $('#item');
         if (itemEl) {
           itemEl.value = String(evt.defaultItemId);
@@ -259,8 +265,13 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
         }
       }
 
+      if (evt.defaultIsEgg !== undefined) {
+        const isEggEl = $('#isEgg');
+        if (isEggEl) isEggEl.checked = Boolean(evt.defaultIsEgg);
+      }
+
       // If event requires fateful encounter, ensure met location is set to a "Fateful" entry
-      if (evt.defaultFatefulEncounter) {
+      if (evt.defaultFatefulEncounter && !isPcnyWishEggsMysteryTag(tag)) {
         try {
           const sel = $('#metLocation');
           if (sel) {
@@ -451,7 +462,7 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
       // Force English-only languages for specific events where only English
       // game versions are supported in this dataset.
       try {
-        const englishOnly = ['POKEMON_ROCKS_METANG','WISHMKR_BEST','WISHMKR_SHINY','DOEL_DEOXYS','SPACE_CENTER_DEOXYS','BERRY_PROGRAM_UPDATE_ZIGZAGOON','CHANNEL_JIRACHI'];
+        const englishOnly = ['POKEMON_ROCKS_METANG','WISHMKR_BEST','WISHMKR_SHINY','DOEL_DEOXYS','SPACE_CENTER_DEOXYS','BERRY_PROGRAM_UPDATE_ZIGZAGOON','CHANNEL_JIRACHI','PCNY_WISH_EGGS'];
         if (englishOnly.includes(String(tag).toUpperCase())) {
           const langSel = $('#language');
           if (langSel && langSel.options) {
@@ -461,6 +472,29 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
             langSel.value = '2';
             try { langSel.dispatchEvent(new Event('change')); } catch (e) {}
           }
+        }
+      } catch (e) {}
+
+      // PCNY Wish Eggs: use FR/LG hatch locations (not Fateful met-location),
+      // keep fateful flag enabled separately, and enforce hatched-style defaults.
+      try {
+        if (isPcnyWishEggsMysteryTag(tag)) {
+          applyPcnyWishEggsOriginAndLocationConstraints();
+
+          const metLevelEl = $('#metLevel');
+          if (metLevelEl) metLevelEl.value = '0';
+
+          const levelEl = $('#level');
+          if (levelEl && (!String(levelEl.value || '').trim() || Number(levelEl.value) < 5)) {
+            levelEl.value = '5';
+            try { computeAndSetExpFromLevel(); } catch (e) {}
+          }
+
+          const f = $('#fatefulEncounter');
+          if (f) f.checked = true;
+
+          const eggEl = $('#isEgg');
+          if (eggEl) eggEl.checked = false;
         }
       } catch (e) {}
 
@@ -660,6 +694,72 @@ function getBerryFixOtPreference() {
   return 'SAPHIRE';
 }
 
+const PCNY_WISH_EGGS_TAG = 'PCNY_WISH_EGGS';
+const PCNY_WISH_EGGS_ALLOWED_ORIGIN_GAMES = [4, 5];
+const PCNY_FRLG_HATCH_LOCATION_MIN = 88;
+const PCNY_FRLG_HATCH_LOCATION_MAX = 196;
+
+function isPcnyWishEggsMysteryTag(tag) {
+  return String(tag || '').toUpperCase() === PCNY_WISH_EGGS_TAG;
+}
+
+function isPcnyWishEggsMysteryEventSelected() {
+  if (currentEncounterMode !== 'mystery') return false;
+  return isPcnyWishEggsMysteryTag(getSelectedMysteryEvent().tag);
+}
+
+function getPcnyWishEggsHatchLocationsForGame(originGame) {
+  const gameId = Number(originGame);
+  if (!PCNY_WISH_EGGS_ALLOWED_ORIGIN_GAMES.includes(gameId)) return [];
+
+  return getLocationsForGame(gameId).filter(([id, name]) => {
+    const locId = Number(id);
+    if (!Number.isFinite(locId)) return false;
+    if (locId < PCNY_FRLG_HATCH_LOCATION_MIN || locId > PCNY_FRLG_HATCH_LOCATION_MAX) return false;
+    if (locId === 255) return false;
+    if (String(name || '').toLowerCase().includes('fateful')) return false;
+    return true;
+  });
+}
+
+function applyPcnyWishEggsOriginAndLocationConstraints() {
+  if (!isPcnyWishEggsMysteryEventSelected()) return false;
+
+  const originGameSelect = $('#originGame');
+  if (!originGameSelect) return true;
+
+  for (const opt of Array.from(originGameSelect.options || [])) {
+    const gid = Number(opt.value);
+    const allow = PCNY_WISH_EGGS_ALLOWED_ORIGIN_GAMES.includes(gid);
+    opt.disabled = !allow;
+    opt.hidden = !allow;
+  }
+
+  let gameId = Number(originGameSelect.value);
+  if (!PCNY_WISH_EGGS_ALLOWED_ORIGIN_GAMES.includes(gameId)) {
+    gameId = PCNY_WISH_EGGS_ALLOWED_ORIGIN_GAMES[0];
+    originGameSelect.value = String(gameId);
+  }
+
+  const filteredLocations = getPcnyWishEggsHatchLocationsForGame(gameId);
+  if (metLocationWrapper && metLocationWrapper.updateList) {
+    metLocationWrapper.updateList(filteredLocations);
+  }
+
+  const metLocationEl = $('#metLocation');
+  if (metLocationEl) {
+    const validIds = new Set(filteredLocations.map(([id]) => Number(id)));
+    const currentLocId = Number(metLocationEl.value);
+    if (!validIds.has(currentLocId)) {
+      metLocationEl.value = filteredLocations.length
+        ? String(filteredLocations[0][0])
+        : String(PCNY_FRLG_HATCH_LOCATION_MIN);
+    }
+  }
+
+  return true;
+}
+
 function updateBerryFixOtPreferenceUi() {
   const row = document.getElementById('berryFixOtFilterRow');
   const pref = document.getElementById('berryFixOtPreference');
@@ -690,6 +790,7 @@ function getMysteryPidMethod() {
   if (tag === 'CHANNEL_JIRACHI') return 'CHANNEL';
   if (tag === 'AGETO_CELEBI') return 'CXD';
   if (tag === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') return 'BACD_RBCD';
+  if (tag === PCNY_WISH_EGGS_TAG) return 'METHOD_2';
 
   if (tag === 'WISHMKR_BEST' || tag === 'WISHMKR_SHINY') return 'BACD_R';
 
@@ -716,6 +817,11 @@ function isMysteryBACDMethod(method) {
     method === 'BACD_A' ||
     method === 'BACD_RBCD'
   );
+}
+
+function isMysteryMethod2(method) {
+  const normalized = String(method || '').toUpperCase().replace(/\s+/g, '_');
+  return normalized === 'METHOD_2' || normalized === 'METHOD2' || normalized === 'H2';
 }
 
 function normalizeOtGenderValue(value) {
@@ -819,6 +925,7 @@ function updatePidFinderVisibility() {
     currentEncounterMode === 'static' ||
     currentEncounterMode === 'roamer' ||
     currentEncounterMode === 'cxd_shadow' ||
+    isMysteryMethod2(mysteryMethod) ||
     mysteryMethod === 'CHANNEL' ||
     mysteryMethod === 'CXD' ||
     isMysteryBACDMethod(mysteryMethod);
@@ -2334,6 +2441,53 @@ function boot(){
           if (spdIV !== 0) errors.push('Non-Emerald roamer SpDef IV must be 0');
         }
       }
+    } else if (mode === 'mystery') {
+      const { tag } = getSelectedMysteryEvent();
+      if (isPcnyWishEggsMysteryTag(tag)) {
+        const originGame = Number($('#originGame')?.value) || 0;
+        if (!PCNY_WISH_EGGS_ALLOWED_ORIGIN_GAMES.includes(originGame)) {
+          errors.push('PCNY Wish Eggs must have FireRed or LeafGreen as origin game');
+        }
+
+        if (metLevel !== 0) {
+          errors.push('PCNY Wish Eggs must have met level 0');
+        }
+
+        const fatefulCheckbox = $('#fatefulEncounter');
+        if (fatefulCheckbox && !fatefulCheckbox.checked) {
+          errors.push('Fateful encounter must be checked for PCNY Wish Eggs');
+        }
+
+        const metLocationId = Number($('#metLocation')?.value) || 0;
+        const validLocationIds = new Set(getPcnyWishEggsHatchLocationsForGame(originGame).map(([id]) => Number(id)));
+        if (!validLocationIds.has(metLocationId)) {
+          errors.push('Met location must be a FireRed/LeafGreen hatch location for PCNY Wish Eggs');
+        }
+        const locName = String((LOCATIONS.find(([id]) => Number(id) === metLocationId)?.[1]) || '');
+        if (metLocationId === 255 || locName.toLowerCase().includes('fateful')) {
+          errors.push('Met location cannot be a Fateful Encounter entry for PCNY Wish Eggs');
+        }
+
+        const languageId = Number($('#language')?.value) || 0;
+        if (languageId !== 2) {
+          errors.push('PCNY Wish Eggs must use English language setting');
+        }
+
+        const itemId = Number($('#item')?.value) || 0;
+        if (itemId !== 0) {
+          errors.push('PCNY Wish Eggs should not have a held item');
+        }
+
+        const ballId = Number($('#ball')?.value) || 0;
+        if (ballId !== 4) {
+          errors.push('PCNY Wish Eggs must be in a Poké Ball');
+        }
+
+        const eggCheckbox = $('#isEgg');
+        if (eggCheckbox && eggCheckbox.checked) {
+          errors.push('PCNY Wish Eggs output should be hatched (Egg flag off)');
+        }
+      }
     }
     
     return {
@@ -2774,9 +2928,19 @@ function boot(){
       return;
     }
 
+    if (isPcnyWishEggsMysteryEventSelected()) {
+      applyPcnyWishEggsOriginAndLocationConstraints();
+
+      const speciesId = Number($('#species').value) || 0;
+      if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
+
+      updateLegalityStatus();
+      return;
+    }
+
     // Default: show all locations for the selected game
     const filteredLocations = getLocationsForGame(newGame);
-    
+
     if (metLocationWrapper && metLocationWrapper.updateList) {
       metLocationWrapper.updateList(filteredLocations);
     }
@@ -3052,6 +3216,8 @@ function boot(){
       try { updateShinyCheckboxState(); } catch (e) {}
       try { updatePidLocking(); } catch (e) {}
       try { updatePidFinderVisibility(); } catch (e) {}
+      try { updateTidSidLocking(); } catch (e) {}
+      try { applyPcnyWishEggsOriginAndLocationConstraints(); } catch (e) {}
     });
   }
 
@@ -3152,7 +3318,9 @@ function boot(){
       const sidEl = $('#sid');
       const otEl = $('#otName');
       const tag = String($('#mysteryEvent')?.value || '').toUpperCase();
-      const shouldLock = !manualOverrideActive && (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT');
+      const evt = (tag && MYSTERY_EVENTS && MYSTERY_EVENTS[tag]) ? MYSTERY_EVENTS[tag] : null;
+      const usesHatcherTrainerData = isPcnyWishEggsMysteryTag(tag) || !!evt?.usesHatcherTrainerData;
+      const shouldLock = !manualOverrideActive && (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData);
       if (tidEl) {
         tidEl.disabled = Boolean(shouldLock);
         tidEl.style.pointerEvents = shouldLock ? 'none' : '';
@@ -3170,6 +3338,10 @@ function boot(){
         otEl.style.pointerEvents = shouldLock ? 'none' : '';
         otEl.style.opacity = shouldLock ? '0.6' : '';
         otEl.style.cursor = shouldLock ? 'not-allowed' : '';
+      }
+
+      if (isPcnyWishEggsMysteryEventSelected()) {
+        applyPcnyWishEggsOriginAndLocationConstraints();
       }
     } catch (e) {}
   }
@@ -3303,6 +3475,17 @@ function boot(){
   function updateFatefulLocking() {
     const el = $('#fatefulEncounter');
     if (!el) return;
+
+    if (isPcnyWishEggsMysteryEventSelected()) {
+      if (manualOverrideActive) {
+        el.disabled = false;
+      } else {
+        el.checked = true;
+        el.disabled = true;
+      }
+      return;
+    }
+
     if (manualOverrideActive) {
       el.disabled = false;
     } else {
@@ -3322,6 +3505,14 @@ function boot(){
         metEl.style.pointerEvents = '';
         metEl.style.opacity = '';
         metEl.style.cursor = '';
+        return;
+      }
+      if (isPcnyWishEggsMysteryEventSelected()) {
+        metEl.value = '0';
+        metEl.disabled = true;
+        metEl.style.pointerEvents = 'none';
+        metEl.style.opacity = '0.6';
+        metEl.style.cursor = 'not-allowed';
         return;
       }
       if (currentEncounterMode === 'hatched') {
@@ -3367,6 +3558,16 @@ function boot(){
             ballEl.style.pointerEvents = '';
             ballEl.style.opacity = '';
             ballEl.style.cursor = '';
+            return;
+          }
+
+          if (isPcnyWishEggsMysteryEventSelected()) {
+            if (ballEl.updateList) ballEl.updateList(BALLS);
+            try { ballEl.value = '4'; } catch (e) {}
+            ballEl.disabled = true;
+            ballEl.style.pointerEvents = 'none';
+            ballEl.style.opacity = '0.6';
+            ballEl.style.cursor = 'not-allowed';
             return;
           }
 
@@ -3517,6 +3718,14 @@ function boot(){
           try { computeAndSetExpFromLevel(); } catch (e) {}
           try { updateLegalityStatus(); } catch (e) {}
         }
+      } else if (isPcnyWishEggsMysteryEventSelected()) {
+        try { levelEl.min = '5'; } catch (e) {}
+        const cur = Number(levelEl.value) || 0;
+        if (cur < 5) {
+          levelEl.value = '5';
+          try { computeAndSetExpFromLevel(); } catch (e) {}
+          try { updateLegalityStatus(); } catch (e) {}
+        }
       } else {
         try { levelEl.min = '1'; } catch (e) {}
       }
@@ -3573,6 +3782,7 @@ function boot(){
               'berryprogramupdate': 'BERRY_PROGRAM_UPDATE_ZIGZAGOON',
               'berryprogramupdatezigzagoon': 'BERRY_PROGRAM_UPDATE_ZIGZAGOON',
               'partyofthedecade': 'PARTY_OF_THE_DECADE',
+              'pcnywisheggs': 'PCNY_WISH_EGGS',
               'agetocelebi': 'AGETO_CELEBI',
               'clubnintendojirachigiveaway': 'WISHMKR_BEST',
               'wishmkrjirachibestivs': 'WISHMKR_BEST',
@@ -3720,6 +3930,9 @@ function boot(){
             applyEventDefaults(tag);
             try { updatePidFinderVisibility(); } catch (e) {}
             try { updateMetLevelLocking(); } catch (e) {}
+            try { updateLevelLocking(); } catch (e) {}
+            try { updateFatefulLocking(); } catch (e) {}
+            try { updateBallLocking(); } catch (e) {}
 
             // Update available species/options for this event
             updateSpeciesListForMode();
@@ -3795,6 +4008,16 @@ function boot(){
         // Re-enable shiny checkbox (Channel Jirachi disables it)
         const shinyEl = $('#shiny');
         if (shinyEl) shinyEl.disabled = false;
+
+        // Restore origin-game options and full met-location list after
+        // event-specific restrictions (for example, PCNY FR/LG-only).
+        try { resetOriginGameOptions(); } catch (e) {}
+        try {
+          const gameId = Number($('#originGame')?.value || 3);
+          if (metLocationWrapper && metLocationWrapper.updateList) {
+            metLocationWrapper.updateList(getLocationsForGame(gameId));
+          }
+        } catch (e) {}
 
         // Remove Channel-specific inline display overrides
         const pfRow = document.getElementById('pidFinderRow');
@@ -6442,7 +6665,12 @@ function initPidFinder() {
     const mysteryMethod = getMysteryPidMethod();
     const isChannelPF = mysteryMethod === 'CHANNEL';
     const isBACDPF = isMysteryBACDMethod(mysteryMethod);
+    const isMysteryMethod2PF = currentEncounterMode === 'mystery' && isMysteryMethod2(mysteryMethod);
     const isMysteryCXD = currentEncounterMode === 'mystery' && mysteryMethod === 'CXD';
+
+    if (pfM1) pfM1.disabled = false;
+    if (pfM2) pfM2.disabled = false;
+    if (pfM4) pfM4.disabled = false;
 
     if (isChannelPF) {
       // Channel Jirachi uses XDRNG Channel method only
@@ -6493,6 +6721,23 @@ function initPidFinder() {
       }
       if (pfGenderSel && !pfGenderSel.disabled && pfGenderSel.querySelector('option[value="any"]')) {
         pfGenderSel.value = 'any';
+      }
+
+    } else if (isMysteryMethod2PF) {
+      // PCNY Wish Eggs and other Method 2 mystery events: Method 2 only.
+      if (pfM1) {
+        pfM1.checked = false;
+        pfM1.parentElement.style.display = 'none';
+      }
+      if (pfM2) {
+        pfM2.checked = true;
+        pfM2.parentElement.style.display = '';
+        relabelCheckbox(pfM2, 'Method 2');
+        pfM2.disabled = true;
+      }
+      if (pfM4) {
+        pfM4.checked = false;
+        pfM4.parentElement.style.display = 'none';
       }
 
     } else if (isMysteryCXD || currentEncounterMode === 'cxd_shadow' || (currentEncounterMode === 'static' && currentGameId === 15)) {
@@ -6740,7 +6985,7 @@ function initPidFinder() {
       // Static/roamer encounters do NOT use wild encounter slots,
       // so pass null to skip encounter-chain validation.
       const locationId = Number($('#metLocation').value) || 0;
-      const slotTables = (currentEncounterMode === 'static' || currentEncounterMode === 'roamer')
+      const slotTables = (currentEncounterMode === 'static' || currentEncounterMode === 'roamer' || currentEncounterMode === 'mystery')
         ? null
         : (ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]) || null;
 

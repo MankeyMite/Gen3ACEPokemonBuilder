@@ -281,6 +281,68 @@
             }
         ]
     },
+    "PCNY Wish Eggs": {
+        "Farfetch'd": [
+            {
+                "name": "Yawn",
+                "index": 281
+            },
+            {
+                "name": "Wish",
+                "index": 273
+            }
+        ],
+        "Drowzee": [
+            {
+                "name": "Belly Drum",
+                "index": 187
+            },
+            {
+                "name": "Wish",
+                "index": 273
+            }
+        ],
+        "Exeggcute": [
+            {
+                "name": "Sweet Scent",
+                "index": 230
+            },
+            {
+                "name": "Wish",
+                "index": 273
+            }
+        ],
+        "Lickitung": [
+            {
+                "name": "Heal Bell",
+                "index": 215
+            },
+            {
+                "name": "Wish",
+                "index": 273
+            }
+        ],
+        "Chansey": [
+            {
+                "name": "Sweet Scent",
+                "index": 230
+            },
+            {
+                "name": "Wish",
+                "index": 273
+            }
+        ],
+        "Kangaskhan": [
+            {
+                "name": "Yawn",
+                "index": 281
+            },
+            {
+                "name": "Wish",
+                "index": 273
+            }
+        ]
+    },
     "Club Nintendo Jirachi Giveaway": {
         "Jirachi": [
             {

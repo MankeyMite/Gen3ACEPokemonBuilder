@@ -129,6 +129,20 @@
       "defaultFatefulEncounter": false,
       "species": [358, 288, 315, 172]
     },
+    "PCNY_WISH_EGGS": {
+      "defaultLanguage": 2,
+      "defaultOriginGame": 4,
+      "defaultMetLocationId": 88,
+      "defaultBall": "Poke Ball",
+      "defaultMetLevel": 0,
+      "current_level": 5,
+      "defaultFatefulEncounter": true,
+      "defaultIsEgg": false,
+      "defaultNoItem": true,
+      "usesHatcherTrainerData": true,
+      "pidMethod": "METHOD_2",
+      "species": [83, 96, 102, 108, 113, 115]
+    },
     "BERRY_PROGRAM_UPDATE_ZIGZAGOON": {
       "fixedTID": 30317,
       "fixedSID": 0,
