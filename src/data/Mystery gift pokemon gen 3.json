@@ -32,6 +32,23 @@
       "defaultFatefulEncounter": true,
       "species": [151]
     },
+    "MYSTRY_MEW": {
+      "fixedTID": 6930,
+      "fixedSID": 0,
+      "ot_name": "MYSTRY",
+      "shinyLocked": true,
+      "defaultLanguage": 2,
+      "defaultOriginGame": 2,
+      "defaultMetLocation": "(Fateful Encounter)",
+      "defaultMetLocationId": 255,
+      "defaultBall": "Poke Ball",
+      "defaultMetLevel": 10,
+      "current_level": 10,
+      "defaultFatefulEncounter": true,
+      "defaultNoItem": true,
+      "pidMethod": "BACD_M",
+      "species": [151]
+    },
     "DOEL_DEOXYS": {
       "fixedTID": 28606,
       "fixedSID": 0,

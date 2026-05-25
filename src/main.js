@@ -462,7 +462,7 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
       // Force English-only languages for specific events where only English
       // game versions are supported in this dataset.
       try {
-        const englishOnly = ['POKEMON_ROCKS_METANG','WISHMKR_BEST','WISHMKR_SHINY','DOEL_DEOXYS','SPACE_CENTER_DEOXYS','BERRY_PROGRAM_UPDATE_ZIGZAGOON','CHANNEL_JIRACHI','PCNY_WISH_EGGS'];
+        const englishOnly = ['POKEMON_ROCKS_METANG','WISHMKR_BEST','WISHMKR_SHINY','DOEL_DEOXYS','SPACE_CENTER_DEOXYS','BERRY_PROGRAM_UPDATE_ZIGZAGOON','CHANNEL_JIRACHI','PCNY_WISH_EGGS','MYSTRY_MEW'];
         if (englishOnly.includes(String(tag).toUpperCase())) {
           const langSel = $('#language');
           if (langSel && langSel.options) {
@@ -495,6 +495,13 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
 
           const eggEl = $('#isEgg');
           if (eggEl) eggEl.checked = false;
+        }
+      } catch (e) {}
+
+      // MYSTRY Mew: restrict Origin Game to Ruby.
+      try {
+        if (isMystryMewMysteryTag(tag)) {
+          applyMystryMewOriginGameConstraints();
         }
       } catch (e) {}
 
@@ -678,8 +685,21 @@ function isBerryFixMysteryEventSelected() {
   return isBerryFixMysteryTag(getSelectedMysteryEvent().tag);
 }
 
+function isMystryMewMysteryTag(tag) {
+  return String(tag || '').toUpperCase() === 'MYSTRY_MEW';
+}
+
+function isMystryMewMysteryEventSelected() {
+  if (currentEncounterMode !== 'mystery') return false;
+  return isMystryMewMysteryTag(getSelectedMysteryEvent().tag);
+}
+
 function requiresBerryFixPidFinderSelection() {
-  return isBerryFixMysteryEventSelected() || isPcnyWishEggsMysteryEventSelected();
+  return (
+    isBerryFixMysteryEventSelected() ||
+    isPcnyWishEggsMysteryEventSelected() ||
+    isMystryMewMysteryEventSelected()
+  );
 }
 
 function hasRequiredBerryFixPidFinderSelection() {
@@ -698,6 +718,7 @@ const PCNY_WISH_EGGS_TAG = 'PCNY_WISH_EGGS';
 const PCNY_WISH_EGGS_ALLOWED_ORIGIN_GAMES = [4, 5];
 const PCNY_FRLG_HATCH_LOCATION_MIN = 88;
 const PCNY_FRLG_HATCH_LOCATION_MAX = 196;
+const MYSTRY_MEW_ORIGIN_GAME_ID = 2;
 
 function isPcnyWishEggsMysteryTag(tag) {
   return String(tag || '').toUpperCase() === PCNY_WISH_EGGS_TAG;
@@ -760,6 +781,32 @@ function applyPcnyWishEggsOriginAndLocationConstraints() {
   return true;
 }
 
+function applyMystryMewOriginGameConstraints() {
+  if (!isMystryMewMysteryEventSelected()) return false;
+
+  const originGameSelect = $('#originGame');
+  if (!originGameSelect) return true;
+
+  for (const opt of Array.from(originGameSelect.options || [])) {
+    const gid = Number(opt.value);
+    const allow = gid === MYSTRY_MEW_ORIGIN_GAME_ID;
+    opt.disabled = !allow;
+    opt.hidden = !allow;
+  }
+
+  if (Number(originGameSelect.value) !== MYSTRY_MEW_ORIGIN_GAME_ID) {
+    originGameSelect.value = String(MYSTRY_MEW_ORIGIN_GAME_ID);
+  }
+
+  try {
+    if (metLocationWrapper && metLocationWrapper.updateList) {
+      metLocationWrapper.updateList(getLocationsForGame(MYSTRY_MEW_ORIGIN_GAME_ID));
+    }
+  } catch (e) {}
+
+  return true;
+}
+
 function updateBerryFixOtPreferenceUi() {
   const row = document.getElementById('berryFixOtFilterRow');
   const pref = document.getElementById('berryFixOtPreference');
@@ -790,6 +837,7 @@ function getMysteryPidMethod() {
   if (tag === 'CHANNEL_JIRACHI') return 'CHANNEL';
   if (tag === 'AGETO_CELEBI') return 'CXD';
   if (tag === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') return 'BACD_RBCD';
+  if (tag === 'MYSTRY_MEW') return 'BACD_M';
   if (tag === PCNY_WISH_EGGS_TAG) return 'METHOD_2';
 
   if (tag === 'WISHMKR_BEST' || tag === 'WISHMKR_SHINY') return 'BACD_R';
@@ -815,7 +863,8 @@ function isMysteryBACDMethod(method) {
     method === 'BACD_R' ||
     method === 'BACD_R_A' ||
     method === 'BACD_A' ||
-    method === 'BACD_RBCD'
+    method === 'BACD_RBCD' ||
+    method === 'BACD_M'
   );
 }
 
@@ -2487,6 +2536,65 @@ function boot(){
         if (eggCheckbox && eggCheckbox.checked) {
           errors.push('PCNY Wish Eggs output should be hatched (Egg flag off)');
         }
+      } else if (isMystryMewMysteryTag(tag)) {
+        const originGame = Number($('#originGame')?.value) || 0;
+        if (originGame !== 2) {
+          errors.push('MYSTRY Mew must have Ruby as origin game');
+        }
+
+        if (metLevel !== 10) {
+          errors.push('MYSTRY Mew must have met level 10');
+        }
+
+        const fatefulCheckbox = $('#fatefulEncounter');
+        if (fatefulCheckbox && !fatefulCheckbox.checked) {
+          errors.push('Fateful encounter must be checked for MYSTRY Mew');
+        }
+
+        const metLocationId = Number($('#metLocation')?.value) || 0;
+        const locName = String((LOCATIONS.find(([id]) => Number(id) === metLocationId)?.[1]) || '');
+        if (metLocationId !== 255 && !locName.toLowerCase().includes('fateful')) {
+          errors.push('Met location must be Fateful Encounter for MYSTRY Mew');
+        }
+
+        const languageId = Number($('#language')?.value) || 0;
+        if (languageId !== 2) {
+          errors.push('MYSTRY Mew must use English language setting');
+        }
+
+        const tid = Number($('#tid')?.value) || 0;
+        const sid = Number($('#sid')?.value) || 0;
+        if (tid !== 6930 || sid !== 0) {
+          errors.push('MYSTRY Mew must have TID 06930 and SID 00000');
+        }
+
+        const otName = String($('#otName')?.value || '').trim().toUpperCase();
+        if (otName !== 'MYSTRY') {
+          errors.push('MYSTRY Mew must have OT name MYSTRY');
+        }
+
+        const itemId = Number($('#item')?.value) || 0;
+        if (itemId !== 0) {
+          errors.push('MYSTRY Mew should not have a held item');
+        }
+
+        const ballId = Number($('#ball')?.value) || 0;
+        if (ballId !== 4) {
+          errors.push('MYSTRY Mew must be in a Poké Ball');
+        }
+
+        const shinyCheckbox = $('#shiny');
+        if (shinyCheckbox && shinyCheckbox.checked) {
+          errors.push('MYSTRY Mew cannot be shiny');
+        }
+
+        const pid = parsePidInput($('#pid')?.value || '0');
+        const pidHigh = (pid >>> 16) & 0xFFFF;
+        const pidLow = pid & 0xFFFF;
+        const xor = (pidHigh ^ pidLow) ^ (6930 ^ 0);
+        if (xor < 8) {
+          errors.push('Selected PID is shiny for MYSTRY Mew and is illegal');
+        }
       }
     }
     
@@ -2585,6 +2693,12 @@ function boot(){
                 langSel.value = '2';
                 try { langSel.dispatchEvent(new Event('change')); } catch (e) {}
               }
+              const fatefulCheckbox = $('#fatefulEncounter');
+              if (fatefulCheckbox) fatefulCheckbox.checked = true;
+            } else if (currentEncounterMode === 'mystery' && String(currentTag).toUpperCase() === 'MYSTRY_MEW') {
+              $('#nickname').value = 'MEW';
+              $('#otName').value = 'MYSTRY';
+              $('#language').value = '2';
               const fatefulCheckbox = $('#fatefulEncounter');
               if (fatefulCheckbox) fatefulCheckbox.checked = true;
             } else {
@@ -2938,6 +3052,16 @@ function boot(){
       return;
     }
 
+    if (isMystryMewMysteryEventSelected()) {
+      applyMystryMewOriginGameConstraints();
+
+      const speciesId = Number($('#species').value) || 0;
+      if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
+
+      updateLegalityStatus();
+      return;
+    }
+
     // Default: show all locations for the selected game
     const filteredLocations = getLocationsForGame(newGame);
 
@@ -3218,6 +3342,7 @@ function boot(){
       try { updatePidFinderVisibility(); } catch (e) {}
       try { updateTidSidLocking(); } catch (e) {}
       try { applyPcnyWishEggsOriginAndLocationConstraints(); } catch (e) {}
+      try { applyMystryMewOriginGameConstraints(); } catch (e) {}
     });
   }
 
@@ -3342,6 +3467,9 @@ function boot(){
 
       if (isPcnyWishEggsMysteryEventSelected()) {
         applyPcnyWishEggsOriginAndLocationConstraints();
+      }
+      if (isMystryMewMysteryEventSelected()) {
+        applyMystryMewOriginGameConstraints();
       }
     } catch (e) {}
   }
@@ -3783,6 +3911,8 @@ function boot(){
               'berryprogramupdatezigzagoon': 'BERRY_PROGRAM_UPDATE_ZIGZAGOON',
               'partyofthedecade': 'PARTY_OF_THE_DECADE',
               'pcnywisheggs': 'PCNY_WISH_EGGS',
+              'mystrymew': 'MYSTRY_MEW',
+              'mysterymew': 'MYSTRY_MEW',
               'agetocelebi': 'AGETO_CELEBI',
               'clubnintendojirachigiveaway': 'WISHMKR_BEST',
               'wishmkrjirachibestivs': 'WISHMKR_BEST',
@@ -6683,10 +6813,13 @@ function initPidFinder() {
       // Gender: genderless (already handled above by threshold=-1)
       // Ability: lock (single ability Serene Grace)
     } else if (isBACDPF) {
+      const bacdMethodLabel = mysteryMethod === 'BACD_M'
+        ? 'BACD [BACD_M] (index-subIndex)'
+        : mysteryMethod;
       if (pfM1) {
         pfM1.checked = true;
         pfM1.parentElement.style.display = '';
-        relabelCheckbox(pfM1, mysteryMethod);
+        relabelCheckbox(pfM1, bacdMethodLabel);
       }
       if (pfM2) {
         pfM2.checked = false;
@@ -7006,7 +7139,7 @@ function initPidFinder() {
           tid,
           sid,
           wantShiny,
-          noShiny: !!event?.shinyLocked,
+          noShiny: !!event?.shinyLocked || mysteryMethod === 'BACD_M',
           berryFixOtPreference,
           minIVs,
           maxIVs,
@@ -7190,13 +7323,16 @@ function initPidFinder() {
 
       // For static encounters, show method without 'H' prefix; for roamer, show 'H-1-Roaming'
       // CXD results already have method='CXD' so no replacement needed
+      const bacdMethodDisplay = String(r.method || '').toUpperCase() === 'BACD_M'
+        ? `BACD [BACD_M] (${Number.isFinite(Number(r.seedIndex)) ? Number(r.seedIndex) : '?'}-${Number.isFinite(Number(r.subIndex)) ? Number(r.subIndex) : '?'})`
+        : r.method;
       const methodLabel = r.method === 'CXD'
         ? 'CXD'
         : currentEncounterMode === 'roamer'
           ? r.method.replace(/^H-?(\d)/, 'H-$1-Roaming')
           : currentEncounterMode === 'static'
             ? r.method.replace('H', '')
-            : r.method;
+            : bacdMethodDisplay;
 
       const tr = document.createElement('tr');
       if (r.method === 'Channel') {
@@ -7395,11 +7531,14 @@ function initPidFinder() {
           : currentEncounterMode === 'static'
             ? r.method.replace('H', '')
             : r.method;
+    const bacdStatusLabel = String(r.method || '').toUpperCase() === 'BACD_M'
+      ? `BACD [BACD_M] (${Number.isFinite(Number(r.seedIndex)) ? Number(r.seedIndex) : '?'}-${Number.isFinite(Number(r.subIndex)) ? Number(r.subIndex) : '?'})`
+      : r.method;
     if (statusSpan) {
       statusSpan.textContent = r.method === 'Channel'
         ? `PID set (Channel, SID ${r.sid})`
         : isBACDResult
-          ? `PID set (${r.method}, seed 0x${Number(r.originSeed ?? r.seed ?? 0).toString(16).toUpperCase().padStart(4, '0')})`
+          ? `PID set (${bacdStatusLabel}, seed 0x${Number(r.originSeed ?? r.seed ?? 0).toString(16).toUpperCase().padStart(4, '0')})`
           : `PID set (${statusMethod === 'CXD' ? 'CXD' : 'Method ' + statusMethod}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
     }
     try { _validateForm?.(); } catch (e) {}
@@ -7673,6 +7812,8 @@ function isPristineImportedRoundTrip() {
 }
 
 function onGenerate(){
+  try { _validateForm?.(); } catch (e) {}
+
   // Rule of thumb:
   // - Unedited import => byte-preserved output
   // - Edited import   => rebuild from current UI fields
@@ -7703,6 +7844,11 @@ function onGenerate(){
 
   // Check if button is disabled and show validation errors
   if ($('#generateBtn').getAttribute('data-disabled') === 'true') {
+    highlightMissingFields();
+    return;
+  }
+
+  if (!hasRequiredBerryFixPidFinderSelection()) {
     highlightMissingFields();
     return;
   }
