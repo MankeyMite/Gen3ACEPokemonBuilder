@@ -1,9 +1,18 @@
+Patch Notes - (V.0.3.4)
+- Added "Find legal encounter" to Mystery Gifts encounter type
+- Improved the profanity filter
+- Added Space Center Deoxys mystery gift
+- Added "Berry Program Update Zigzagoon" event to Mystery Gifts
+- Added "PCNY WISH EGGS" event
+- Added MYSTRY Mew event to Mystery Gifts
+- Set the global minimum IVs to 20 in the Find Legal Encounter function, to allow for more results on event Pokemon with limited pool.
+
+
 Patch Notes - (V.0.3.3)
 - Removed simple and advanced mode to simplify the page. They are now instead merged together with an improved flow.
 - Added Ageto Celebi to Mystery Gifts
-- added a strict rule for import, where unedited imports = byte-preserved output. Edited import = rebuild from UI fields
-- fixed a bug where pk3 files were not converted correctly to raw encrypted data, causing the tool to rebuild the Pokemon, giving slightly different code.
-
+- Added a strict rule for import, where unedited imports = byte-preserved output. Edited import = rebuild from UI fields
+- Fixed a bug where pk3 files were not converted correctly to raw encrypted data, causing the tool to rebuild the Pokemon, giving slightly different code.
 
 Patch Notes - (V.0.3.2)
 - Added Base64 as an import function.
@@ -16,7 +25,7 @@ Patch Notes - (V.0.3.2)
 
 Patch Notes - (V.0.3.1)
 - Added Hidden Power filter to the "find legal PID" button and changed the name to "find legal encounter"
-- locked IV fields from non-hatched modes for a lower risk of creating illegal Pokemon.
+- Locked IV fields from non-hatched modes for a lower risk of creating illegal Pokemon.
 - Fixed the Hatched mode generating the wrong gender because of old system using NatDex numbers instead of Index numbers when determining species.
 - Fixed a browser auto-restore bug on the base64 guide.
 - Fixed Colosseum Pokemon having the "fateful encounter" checked, added warning for changing TID/SID after PID selection.
@@ -27,14 +36,14 @@ Patch Notes - (V.0.3.0)
 - Added a profanity filter workaround, where the code generator scans for bad words, then splits them in two and shifts the code string forward.
 - Additional profanity filter workaround added that kicks in if the first workaround fails: swaps certian letters for symbols. 
 - Added tutor moves for FR/LG, and added special moves Blast Burn, Hydro Cannon and Frenzy Plant for Charizard, Blastoise and Venusaur. 
-- allows typing 0 in front of TID and SID to avoid confusion. (0 at the front is just a filler, but shows in-game).
+- Allows typing 0 in front of TID and SID to avoid confusion. (0 at the front is just a filler, but shows in-game).
 - Small fixes to ability id's.
 
 Patch Notes - (V.0.2.9)
 - Repositioned the Import button to the top of the page.
-- added smogon/showdown format as an import option.
-- added .ek3/.pk3 file import option in the same import window.
-- fixed a bug where the "generate" button would not be clickable after import.
+- Added smogon/showdown format as an import option.
+- Added .ek3/.pk3 file import option in the same import window.
+- Fixed a bug where the "generate" button would not be clickable after import.
 - Fixed missing egg moves from evolutions.
 
 
