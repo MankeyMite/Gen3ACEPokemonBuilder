@@ -53,6 +53,9 @@
     .remember-list{margin-top:12px;color:var(--muted);font-size:0.95rem}
     .remember-list ul{margin:6px 0 0 18px;padding:0}
     .remember-list li{margin:6px 0}
+    .builder-start-link{display:inline-block;color:#b7e1ff;font-weight:700;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:2px;padding:2px 0;border-radius:4px;transition:color .15s ease,background-color .15s ease}
+    .builder-start-link:hover,.builder-start-link:focus-visible{color:#ffffff;background:rgba(74,158,255,0.22);outline:none}
+    .builder-start-link::after{content:' ->';font-weight:700}
     .remember-image{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px}
     .remember-image img{width:48%;max-width:48%;height:auto;border-radius:8px;border:1px solid rgba(255,255,255,0.03);}
     details.instructions .instructions-inner p.section-gap{margin-top:1.25rem;margin-bottom:0.5rem}
@@ -498,6 +501,7 @@
         htmlT += '<li>If you get a bad egg, it usually means the code is typed wrong. You can also check for ghost data in boxes 13 and 14 by entering deposit mode, and selecting a pokemon to deposit. The first box will be box 1, go left once to reach box 14. It should say 2/30. Now check Box 13, it should also say 2/30, but might say 3/30 if you have an invisible bad egg in slot 8, but that can be ignored. If you still get bad eggs, WELDR was probably typed incorrectly, and you should move WELDR and the sacrificial Pokemon out and redo all the codes. After creating a new WELDR, you may delete the old one.</li>';
         htmlT += '<li>After successfully creating and removing the Bulbasaur, you are ready to use my Pokémon Builder website to spawn any Pokémon you want.</li>';
         htmlT += '<li>If you want to execute regular ACE codes in the future, you must move WELDR and the extra species out of box 14, and back if you want to use BASE64 codes again.</li>';
+        htmlT += '<li><a class="builder-start-link" href="https://mankeymite.github.io/Gen3ACEPokemonBuilder/">Click here to start building your custom gen 3 Pokémon</a></li>';
         htmlT += '</ul></div>';
         htmlT += '<div class="remember-image" style="margin-top:10px;">';
         htmlT += '<img src="../src/Images/Test bulba code base64.png" alt="Test code placeholder image 1" />';
