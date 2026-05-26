@@ -288,6 +288,64 @@
       font-size: 0.9rem;
     }
 
+    .output-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .output-help-inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      margin-top: 0.15rem;
+      margin-left: auto;
+      color: #dbeafe;
+      font-size: 0.78rem;
+      line-height: 1.25;
+      text-align: right;
+    }
+
+    .output-help-inline[hidden] {
+      display: none !important;
+    }
+
+    .output-help-text {
+      max-width: min(330px, 75vw);
+    }
+
+    .output-help-metang-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 0;
+      border-radius: 0;
+      text-decoration: none;
+    }
+
+    .output-help-metang-link:focus-visible {
+      outline: 2px solid rgba(56, 189, 248, 0.95);
+      outline-offset: 2px;
+    }
+
+    .output-help-metang-link:hover img {
+      transform: translateY(-1px);
+      filter: drop-shadow(0 2px 4px rgba(56, 189, 248, 0.5));
+    }
+
+    .output-help-metang-link img {
+      width: 64px;
+      height: 64px;
+      display: block;
+      image-rendering: auto;
+      object-fit: contain;
+      border: none;
+      background: transparent;
+      transition: transform 0.16s ease, filter 0.16s ease;
+    }
+
     /* Output tabs */
     .output-tabs {
       display: flex;
@@ -1187,7 +1245,15 @@
 
     <!-- OUTPUT CARD -->
     <section class="card" id="outputCard">
-      <h2>Codes</h2>
+      <div class="output-header-row">
+        <h2>Codes</h2>
+        <div id="codeHelpInline" class="output-help-inline" hidden>
+          <span class="output-help-text">If you have problems with the code, click on me!</span>
+          <a id="codeHelpMetangLink" class="output-help-metang-link" href="./docs/code-troubleshooting.html" target="_blank" rel="noopener noreferrer" aria-label="Open code troubleshooting guide in a new tab">
+            <img id="codeHelpMetangSprite" alt="Metang help sprite" loading="lazy" />
+          </a>
+        </div>
+      </div>
 
       <!-- Legality Checker -->
       <div class="row" style="align-items: center; gap: 1rem; margin-bottom: 1rem;">

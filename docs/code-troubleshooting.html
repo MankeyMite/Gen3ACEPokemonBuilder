@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Code Troubleshooting - Gen 3 ACE Pokemon Builder</title>
+  <link rel="stylesheet" href="../src/styles.css" />
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+
+    .doc-wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    .doc-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .doc-toolbar a {
+      color: var(--accent-glow);
+      text-decoration: none;
+      border-bottom: 1px dotted currentColor;
+      font-size: 0.9rem;
+    }
+
+    .doc-toolbar a:hover {
+      color: #ffffff;
+    }
+
+    .doc-status {
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .doc-content {
+      border: 1px solid rgba(125, 211, 252, 0.22);
+      border-radius: 12px;
+      padding: 1.25rem;
+      background: rgba(10, 20, 40, 0.45);
+      box-shadow: inset 0 0 0 1px rgba(72, 213, 151, 0.08);
+    }
+
+    .doc-content h1,
+    .doc-content h2,
+    .doc-content h3 {
+      margin: 1.35rem 0 0.6rem 0;
+      color: #c8ebff;
+      text-shadow: none;
+    }
+
+    .doc-content h1 {
+      margin-top: 0;
+      color: var(--accent-glow);
+      font-size: 1.65rem;
+      border-bottom: 1px solid rgba(125, 211, 252, 0.25);
+      padding-bottom: 0.3rem;
+    }
+
+    .doc-content h2 {
+      font-size: 1.15rem;
+      border-bottom: 1px solid rgba(125, 211, 252, 0.15);
+      padding-bottom: 0.2rem;
+      margin-top: 1.7rem;
+    }
+
+    .doc-content p {
+      margin: 0.8rem 0;
+      color: var(--fg);
+      line-height: 1.72;
+    }
+
+    .doc-content ul {
+      margin: 0.5rem 0 1.1rem 1.35rem;
+      padding: 0;
+    }
+
+    .doc-content li {
+      margin: 0.4rem 0;
+      line-height: 1.62;
+      color: var(--fg);
+    }
+
+    .doc-content .md-break {
+      height: 0.55rem;
+    }
+
+    .doc-content a {
+      color: var(--accent-glow);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .doc-content a:hover {
+      color: #ffffff;
+    }
+
+    .doc-fallback {
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 0.9rem;
+      color: #e2e8f0;
+      background: rgba(2, 6, 23, 0.55);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 8px;
+      padding: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-scene" aria-hidden="true">
+    <svg class="bg-pokeballs" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <symbol id="pb" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" stroke-width="4"/>
+          <line x1="2" y1="50" x2="38" y2="50" stroke="currentColor" stroke-width="4"/>
+          <line x1="62" y1="50" x2="98" y2="50" stroke="currentColor" stroke-width="4"/>
+          <circle cx="50" cy="50" r="12" fill="none" stroke="currentColor" stroke-width="4"/>
+          <circle cx="50" cy="50" r="6" fill="currentColor"/>
+        </symbol>
+      </defs>
+      <use href="#pb" x="3%"  y="2%"   width="110" height="110" style="color:rgba(74,158,255,0.07);  transform:rotate(-15deg);  transform-origin:58px 57px;"/>
+      <use href="#pb" x="82%" y="1%"   width="80"  height="80"  style="color:rgba(72,213,151,0.055);transform:rotate(25deg);  transform-origin:82% 41px;"/>
+      <use href="#pb" x="45%" y="5%"   width="60"  height="60"  style="color:rgba(231,76,60,0.045); transform:rotate(-8deg);  transform-origin:45% 35px;"/>
+      <use href="#pb" x="22%" y="18%"  width="140" height="140" style="color:rgba(74,158,255,0.05); transform:rotate(12deg);  transform-origin:22% 88px;"/>
+      <use href="#pb" x="68%" y="15%"  width="90"  height="90"  style="color:rgba(72,213,151,0.06);transform:rotate(-22deg); transform-origin:68% 60px;"/>
+      <use href="#pb" x="92%" y="22%"  width="70"  height="70"  style="color:rgba(231,76,60,0.04); transform:rotate(35deg);  transform-origin:92% 57px;"/>
+      <use href="#pb" x="8%"  y="35%"  width="75"  height="75"  style="color:rgba(72,213,151,0.05);transform:rotate(18deg);  transform-origin:8% 72px;"/>
+      <use href="#pb" x="38%" y="30%"  width="120" height="120" style="color:rgba(74,158,255,0.04); transform:rotate(-30deg); transform-origin:38% 90px;"/>
+      <use href="#pb" x="60%" y="38%"  width="55"  height="55"  style="color:rgba(231,76,60,0.05); transform:rotate(5deg);   transform-origin:60% 65px;"/>
+      <use href="#pb" x="85%" y="42%"  width="100" height="100" style="color:rgba(74,158,255,0.055);transform:rotate(-18deg); transform-origin:85% 92px;"/>
+      <use href="#pb" x="2%"  y="55%"  width="95"  height="95"  style="color:rgba(231,76,60,0.045);transform:rotate(28deg);  transform-origin:2% 102px;"/>
+      <use href="#pb" x="30%" y="52%"  width="65"  height="65"  style="color:rgba(72,213,151,0.05);transform:rotate(-12deg); transform-origin:30% 84px;"/>
+      <use href="#pb" x="52%" y="58%"  width="130" height="130" style="color:rgba(74,158,255,0.04); transform:rotate(20deg);  transform-origin:52% 123px;"/>
+      <use href="#pb" x="78%" y="60%"  width="70"  height="70"  style="color:rgba(72,213,151,0.055);transform:rotate(-25deg); transform-origin:78% 95px;"/>
+      <use href="#pb" x="15%" y="72%"  width="110" height="110" style="color:rgba(74,158,255,0.05); transform:rotate(8deg);   transform-origin:15% 127px;"/>
+      <use href="#pb" x="42%" y="75%"  width="80"  height="80"  style="color:rgba(231,76,60,0.04); transform:rotate(-20deg); transform-origin:42% 115px;"/>
+      <use href="#pb" x="70%" y="78%"  width="105" height="105" style="color:rgba(72,213,151,0.05);transform:rotate(15deg);  transform-origin:70% 130px;"/>
+      <use href="#pb" x="95%" y="75%"  width="60"  height="60"  style="color:rgba(74,158,255,0.045);transform:rotate(-35deg); transform-origin:95% 105px;"/>
+      <use href="#pb" x="5%"  y="88%"  width="70"  height="70"  style="color:rgba(72,213,151,0.04);transform:rotate(22deg);  transform-origin:5% 123px;"/>
+      <use href="#pb" x="55%" y="90%"  width="90"  height="90"  style="color:rgba(74,158,255,0.05); transform:rotate(-10deg); transform-origin:55% 135px;"/>
+      <use href="#pb" x="25%" y="92%"  width="50"  height="50"  style="color:rgba(231,76,60,0.04); transform:rotate(30deg);  transform-origin:25% 117px;"/>
+      <use href="#pb" x="88%" y="90%"  width="85"  height="85"  style="color:rgba(72,213,151,0.045);transform:rotate(-5deg);  transform-origin:88% 132px;"/>
+    </svg>
+  </div>
+
+  <header class="container">
+    <h1>Base64 Code Troubleshooting</h1>
+    <p class="muted">Guidance for issues while using generated Base64 box codes.</p>
+  </header>
+
+  <main class="container doc-wrap">
+    <section class="card">
+      <div class="doc-toolbar">
+        <a href="../index.html">Back to Builder</a>
+        <span id="statusText" class="doc-status">Loading troubleshooting guide...</span>
+      </div>
+
+      <section id="troubleshootContent" class="doc-content"></section>
+    </section>
+  </main>
+
+  <script>
+    const statusText = document.getElementById('statusText');
+    const content = document.getElementById('troubleshootContent');
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function formatInline(text) {
+      const safe = escapeHtml(text);
+      return safe.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+    }
+
+    function markdownToHtml(mdText) {
+      const lines = String(mdText || '').replace(/\r\n/g, '\n').split('\n');
+      const out = [];
+      let inList = false;
+      let previousBlockType = '';
+
+      const closeList = () => {
+        if (inList) {
+          out.push('</ul>');
+          inList = false;
+          previousBlockType = 'list';
+        }
+      };
+
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+
+        if (!line) {
+          closeList();
+          if (out.length && previousBlockType !== 'break') {
+            out.push('<div class="md-break" aria-hidden="true"></div>');
+            previousBlockType = 'break';
+          }
+          continue;
+        }
+
+        if (/^<a\s+id=/.test(line)) {
+          closeList();
+          out.push(line);
+          previousBlockType = 'anchor';
+          continue;
+        }
+
+        if (/^#{1,6}\s+/.test(line)) {
+          closeList();
+          const level = Math.min(6, (line.match(/^#+/)[0] || '').length);
+          const body = formatInline(line.replace(/^#{1,6}\s+/, ''));
+          out.push('<h' + level + '>' + body + '</h' + level + '>');
+          previousBlockType = 'heading';
+          continue;
+        }
+
+        if (/^-\s+/.test(line)) {
+          if (!inList) {
+            out.push('<ul>');
+            inList = true;
+          }
+          out.push('<li>' + formatInline(line.replace(/^-\s+/, '')) + '</li>');
+          previousBlockType = 'list-item';
+          continue;
+        }
+
+        closeList();
+        out.push('<p>' + formatInline(line) + '</p>');
+        previousBlockType = 'paragraph';
+      }
+
+      closeList();
+
+      while (out.length && out[out.length - 1] === '<div class="md-break" aria-hidden="true"></div>') {
+        out.pop();
+      }
+
+      return out.join('\n');
+    }
+
+    async function loadTroubleshooting() {
+      try {
+        const response = await fetch('./code-troubleshooting.md', { cache: 'no-store' });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+
+        const markdown = await response.text();
+        content.innerHTML = markdownToHtml(markdown);
+        statusText.textContent = 'Showing latest code-troubleshooting.md';
+      } catch (error) {
+        statusText.textContent = 'Could not load code-troubleshooting.md';
+        content.innerHTML = '<div class="doc-fallback">' +
+          'Failed to load the troubleshooting Markdown automatically.\n\n' +
+          'Open this file directly:\n' +
+          './code-troubleshooting.md' +
+          '</div>';
+      }
+    }
+
+    loadTroubleshooting();
+  </script>
+</body>
+</html>

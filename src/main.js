@@ -6224,6 +6224,27 @@ function boot(){
     });
   });
 
+  // Output help: prepare the clickable Metang sprite and keep it hidden
+  // until Generate produces Base64/Hex output.
+  const codeHelpInline = $('#codeHelpInline');
+  const codeHelpMetangSprite = $('#codeHelpMetangSprite');
+  if (codeHelpInline && codeHelpMetangSprite) {
+    const metangOnlineSprite = getOnlineSpriteUrl('Metang', false);
+    const metangLocalSprite = getSpritePath('Metang');
+
+    if (metangOnlineSprite || metangLocalSprite) {
+      if (metangLocalSprite) {
+        codeHelpMetangSprite.onerror = () => {
+          codeHelpMetangSprite.onerror = null;
+          codeHelpMetangSprite.src = metangLocalSprite;
+        };
+      }
+      codeHelpMetangSprite.src = metangOnlineSprite || metangLocalSprite;
+    }
+
+    codeHelpInline.hidden = true;
+  }
+
   $('#generateBtn').addEventListener('click', onGenerate);
   $('#copyHexBtn').addEventListener('click', ()=> {
     copy($('#hexOutput').value);
@@ -7803,6 +7824,14 @@ function updateProfanityWarning(b64Text) {
   banner.style.display = 'block';
 }
 
+function setOutputTroubleshootingVisible(visible) {
+  const helper = document.getElementById('codeHelpInline');
+  if (!helper) return;
+  const show = Boolean(visible);
+  helper.hidden = !show;
+  helper.style.display = show ? 'inline-flex' : 'none';
+}
+
 function clearGeneratedOutputs() {
   const hexOut = document.getElementById('hexOutput');
   if (hexOut) hexOut.value = '';
@@ -7826,6 +7855,8 @@ function clearGeneratedOutputs() {
   if (copyHex) copyHex.classList.remove('show');
   const copyB64 = document.getElementById('copyBase64Check');
   if (copyB64) copyB64.classList.remove('show');
+
+  setOutputTroubleshootingVisible(false);
 }
 
 function clearImportedRoundTripState() {
@@ -7877,6 +7908,11 @@ function onGenerate(){
     $('#hexOutput').value = pristineOutput.hex;
     $('#base64Output').value = pristineOutput.base64Text;
     updateProfanityWarning(pristineOutput.base64Text);
+    const canShowHelper = (
+      $('#generateBtn').getAttribute('data-disabled') !== 'true' &&
+      String(pristineOutput.base64Text || '').trim().length > 0
+    );
+    setOutputTroubleshootingVisible(canShowHelper);
 
     const substBanner = document.getElementById('substitutionWarning');
     if (substBanner) {
@@ -7908,6 +7944,11 @@ function onGenerate(){
   const b64Result = toBase64Emerald(result.bytes);
   $('#hexOutput').value = hex;
   $('#base64Output').value = b64Result.text;
+  const canShowHelper = (
+    $('#generateBtn').getAttribute('data-disabled') !== 'true' &&
+    String(b64Result.text || '').trim().length > 0
+  );
+  setOutputTroubleshootingVisible(canShowHelper);
 
   // Check for profanity in the generated box names
   updateProfanityWarning(b64Result.text);
