@@ -18,6 +18,8 @@ Another reason for a bad egg is that you have other Pokemon inside the execution
 
 You should also make sure the pokemon next to the Base64 writer has the correct nickname for your game. For the non-japanese languages, this would be J-FKVC for Emerald, J7VC for Fire Red/Leaf Green, and ♀7VC for Ruby or Sapphire.
 
+Previously in some rare cases, a Pokemon that is imported from .pk3 would display the wrong Base64 code, so if you tried all the previous steps, try changing anything about the Pokémon and click generate again. This should ensure the code will read from the input fields correctly, although this bug has been looked at and hopefully fixed fully.
+
 The final reason is that your Base64 writer is not set up correctly. Maybe you typed something wrong while creating it, resulting in the base64 format being translated incorrectly, creating wrong data on the Pokémon. If you have already made sure the 14 boxes are typed correct, and cleaned the boxes for potential ghost data, creating a new Base64 writer would be your final option. Make sure to do the test code after creating it, to ensure it is working, although it is unknown if it is possible that the test code might succeed while the Base64 writer is slightly wrong.
 
 
