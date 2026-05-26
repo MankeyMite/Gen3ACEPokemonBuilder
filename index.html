@@ -379,6 +379,66 @@
       background: rgba(122, 162, 247, 0.3);
     }
 
+    .tooltip-icon.tooltip-toggle {
+      appearance: none;
+      -webkit-appearance: none;
+      padding: 0;
+    }
+
+    .tooltip-icon.tooltip-toggle:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .inline-tooltip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      vertical-align: middle;
+    }
+
+    .inline-tooltip-content {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 320px;
+      max-width: min(320px, 78vw);
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      background: rgba(15, 23, 42, 0.96);
+      color: #e2e8f0;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+      z-index: 1000;
+      text-align: left;
+      font-weight: 400;
+    }
+
+    .inline-tooltip-content::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: rgba(15, 23, 42, 0.96);
+    }
+
+    .inline-tooltip:hover .inline-tooltip-content,
+    .inline-tooltip.is-open .inline-tooltip-content,
+    .inline-tooltip:focus-within .inline-tooltip-content {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
     /* Autocomplete styling */
     .autocomplete-wrapper {
       position: relative;
@@ -741,7 +801,13 @@
       <h3 class="form-section-title">Stats</h3>
 
       <div class="row ev-row">
-        <label>EVs</label>
+        <label>
+          EVs
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="EV training info" aria-describedby="evInfoTooltip" aria-expanded="false">?</button>
+            <span id="evInfoTooltip" class="inline-tooltip-content" role="tooltip">Train your Pokémon for extra stat points, scaling to 1 extra point per 4 EVs at level 100. The total is 510 EV points, with 252 being the maximum for one stat.</span>
+          </span>
+        </label>
         <div class="grid ev-grid">
           <div>
             <label for="evHp">HP EV</label>

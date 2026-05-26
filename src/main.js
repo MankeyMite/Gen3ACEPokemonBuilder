@@ -3194,6 +3194,48 @@ function boot(){
       element.addEventListener('change', updateLegalityStatus);
     }
   });
+
+  // Inline tooltip helper (supports hover + explicit click open/close)
+  (function setupInlineTooltips() {
+    const wrappers = Array.from(document.querySelectorAll('.inline-tooltip'));
+    if (!wrappers.length) return;
+
+    const closeAll = (except = null) => {
+      wrappers.forEach((wrap) => {
+        if (except && wrap === except) return;
+        wrap.classList.remove('is-open');
+        const btn = wrap.querySelector('.tooltip-toggle');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      });
+    };
+
+    wrappers.forEach((wrap) => {
+      const btn = wrap.querySelector('.tooltip-toggle');
+      if (!btn) return;
+
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const shouldOpen = !wrap.classList.contains('is-open');
+        closeAll(wrap);
+        wrap.classList.toggle('is-open', shouldOpen);
+        btn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+      });
+
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          wrap.classList.remove('is-open');
+          btn.setAttribute('aria-expanded', 'false');
+          btn.blur();
+        }
+      });
+    });
+
+    document.addEventListener('click', () => closeAll());
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeAll();
+    });
+  })();
   
   // Experience field (affects legality for level 5 base EXP check)
   const experienceInput = $('#experience');
@@ -5431,7 +5473,14 @@ function boot(){
     try {
       clearImportedRoundTripState();
       // First-time mode visit defaults: clear values so nothing bleeds across modes.
-      const defaults = {};
+      const defaults = {
+        evHp: '0',
+        evAtk: '0',
+        evDef: '0',
+        evSpAtk: '0',
+        evSpDef: '0',
+        evSpe: '0'
+      };
 
       for (const id of ENCOUNTER_MODE_FIELD_IDS) {
         if (Object.prototype.hasOwnProperty.call(defaults, id)) {
