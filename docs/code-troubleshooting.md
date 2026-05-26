@@ -63,31 +63,31 @@ Code has been split and pushed:
   Box 7:  (2!6jovvu) 
   Box 8:  (o6Lb5yOD) 
   Box 9:  (JBFcn)     <--- Notice how the box ends without using spaces at the end. this is important, or else the code will stop here. 
-  Box 10: (dvuo6L8) 
-  Box 11: (7rOi29uv)
-  Box 12: (oiSoo6Lb)
-  Box 13: (7qOi2!6j)
-  Box 14: (otvuo6I)   <--- As a result, everything after box 9 is shifted forward. 
+  Box 10: (dvuo6L87) 
+  Box 11: (rOi29uvo) 
+  Box 12: (iSoo6Lb7)
+  Box 13: (qOi2!6jo) 
+  Box 14: (tvuo6I)   <--- As a result, everything after box 9 is shifted forward.
 
 
-   Be mindful of the available spaces in box 14. You may not split a box further than the 4th letter of the box, as that would result in box 14 getting more than 8 characters, which is impossible. If the word is within the first four characters of a box, this method will not work.
+   Be mindful of the available spaces in box 14. You may not split a box earlier than the 4th letter of a box, as that would result in box 14 getting more than 8 characters, which is impossible. If the word is within the first four characters of a box, this method will not work.
 
 
 When splitting cannot fix it, especially if the blocked word starts in the first 4 characters of a box or appears in Box 14, you may swap certain Base64 letters for equivalent symbols. The code’s substitution map is:
 
 
 Base64 letter -> symbol
-A	. (period)
-B	- (dash)
-D	… (ellipsis)
-E	“ (left double quote)
-F	” (right double quote)
-G	‘ (left single quote)
-H	’ (right single quote)
-I	♂ (male sign)
-J	♀ (female sign)
-L	, (comma)
-N	/ (slash)
+A -> . (period)
+B -> - (dash)
+D -> … (ellipsis)
+E -> “ (left double quote)
+F -> ” (right double quote)
+G -> ‘ (left single quote)
+H -> ’ (right single quote)
+I -> ♂ (male sign)
+J -> ♀ (female sign)
+L -> , (comma)
+N -> / (slash)
 
 
 In the rare case that the bad word does not contain any of these letters, you have to adjust some info on the Pokemon to change the code.
