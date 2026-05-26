@@ -3383,6 +3383,7 @@ function boot(){
       try { updatePidLocking(); } catch (e) {}
       try { updatePidFinderVisibility(); } catch (e) {}
       try { updateTidSidLocking(); } catch (e) {}
+      try { updateOtGenderLocking(); } catch (e) {}
       try { applyPcnyWishEggsOriginAndLocationConstraints(); } catch (e) {}
       try { applyMystryMewOriginGameConstraints(); } catch (e) {}
     });
@@ -3411,6 +3412,7 @@ function boot(){
       try { updatePidLocking(); } catch (e) {}
       try { updateIvLocking(); } catch (e) {}
       try { updateTidSidLocking(); } catch (e) {}
+      try { updateOtGenderLocking(); } catch (e) {}
       try { lockLanguageForMewLegend(); } catch (e) {}
       try { enforceJapaneseOption(); } catch (e) {}
       try { updateFatefulLocking(); } catch (e) {}
@@ -3475,6 +3477,7 @@ function boot(){
   try { updateIvLocking(); } catch (e) {}
   try { updateFatefulLocking(); } catch (e) {}
   try { updatePidFinderVisibility(); } catch (e) {}
+  try { updateOtGenderLocking(); } catch (e) {}
 
   // Lock or unlock TID/SID inputs depending on selected mystery event.
   // If in `mystery` mode and a non-BOX_EVENT tag is selected, these should
@@ -3512,6 +3515,35 @@ function boot(){
       }
       if (isMystryMewMysteryEventSelected()) {
         applyMystryMewOriginGameConstraints();
+      }
+    } catch (e) {}
+  }
+
+  // Lock OT gender to Male for Colosseum/XD shadow encounters unless Manual
+  // Override is enabled. Preserve unrelated OT gender locks by only unlocking
+  // when this CXD rule previously applied the lock.
+  function updateOtGenderLocking() {
+    try {
+      const otGenderEl = $('#otGender');
+      if (!otGenderEl) return;
+
+      const shouldLockToMale = !manualOverrideActive && currentEncounterMode === 'cxd_shadow';
+      if (shouldLockToMale) {
+        otGenderEl.value = 'male';
+        otGenderEl.disabled = true;
+        otGenderEl.style.pointerEvents = 'none';
+        otGenderEl.style.opacity = '0.6';
+        otGenderEl.style.cursor = 'not-allowed';
+        otGenderEl.dataset.cxdOtGenderLock = '1';
+        return;
+      }
+
+      if (otGenderEl.dataset.cxdOtGenderLock === '1') {
+        otGenderEl.disabled = false;
+        otGenderEl.style.pointerEvents = '';
+        otGenderEl.style.opacity = '';
+        otGenderEl.style.cursor = '';
+        delete otGenderEl.dataset.cxdOtGenderLock;
       }
     } catch (e) {}
   }
@@ -3590,6 +3622,7 @@ function boot(){
 
     try { updatePidLocking(); } catch (e) {}
     try { updateTidSidLocking(); } catch (e) {}
+    try { updateOtGenderLocking(); } catch (e) {}
     try { updateMetLevelLocking(); } catch (e) {}
     try { updateIvLocking(); } catch (e) {}
     try { updateBerryFixOtPreferenceUi(); } catch (e) {}
@@ -4753,6 +4786,7 @@ function boot(){
         genderSelect.style.cursor = '';
       }
     }
+    try { updateOtGenderLocking(); } catch (e) {}
     // For 'wild' mode, use normal PID generation (already working)
     
     // Update legality status after mode change
