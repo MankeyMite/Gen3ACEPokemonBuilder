@@ -505,6 +505,13 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
         }
       } catch (e) {}
 
+      // WISHMKR Jirachi: restrict Origin Game to Ruby.
+      try {
+        if (isWishmkrMysteryTag(tag)) {
+          applyWishmkrOriginGameConstraints();
+        }
+      } catch (e) {}
+
       // WISHMKR_SHINY: set metLocation to a Fateful entry (but do NOT check
       // the fatefulEncounter box) and restrict available natures to the
       // specific set provided in the JSON for this event so only those 9
@@ -719,6 +726,7 @@ const PCNY_WISH_EGGS_ALLOWED_ORIGIN_GAMES = [4, 5];
 const PCNY_FRLG_HATCH_LOCATION_MIN = 88;
 const PCNY_FRLG_HATCH_LOCATION_MAX = 196;
 const MYSTRY_MEW_ORIGIN_GAME_ID = 2;
+const WISHMKR_ORIGIN_GAME_ID = 2;
 
 function isPcnyWishEggsMysteryTag(tag) {
   return String(tag || '').toUpperCase() === PCNY_WISH_EGGS_TAG;
@@ -801,6 +809,41 @@ function applyMystryMewOriginGameConstraints() {
   try {
     if (metLocationWrapper && metLocationWrapper.updateList) {
       metLocationWrapper.updateList(getLocationsForGame(MYSTRY_MEW_ORIGIN_GAME_ID));
+    }
+  } catch (e) {}
+
+  return true;
+}
+
+function isWishmkrMysteryTag(tag) {
+  const t = String(tag || '').toUpperCase();
+  return t === 'WISHMKR_BEST' || t === 'WISHMKR_SHINY';
+}
+
+function isWishmkrMysteryEventSelected() {
+  if (currentEncounterMode !== 'mystery') return false;
+  return isWishmkrMysteryTag(getSelectedMysteryEvent().tag);
+}
+
+function applyWishmkrOriginGameConstraints() {
+  if (!isWishmkrMysteryEventSelected()) return false;
+
+  const originGameSelect = $('#originGame');
+  if (!originGameSelect) return true;
+
+  if (Number(originGameSelect.value) !== WISHMKR_ORIGIN_GAME_ID) {
+    originGameSelect.value = String(WISHMKR_ORIGIN_GAME_ID);
+  }
+
+  const shouldLock = !manualOverrideActive;
+  originGameSelect.disabled = shouldLock;
+  originGameSelect.style.pointerEvents = shouldLock ? 'none' : '';
+  originGameSelect.style.opacity = shouldLock ? '0.6' : '';
+  originGameSelect.style.cursor = shouldLock ? 'not-allowed' : '';
+
+  try {
+    if (metLocationWrapper && metLocationWrapper.updateList) {
+      metLocationWrapper.updateList(getLocationsForGame(WISHMKR_ORIGIN_GAME_ID));
     }
   } catch (e) {}
 
@@ -1597,6 +1640,10 @@ function updateWildEncounterFilters(speciesId) {
 function resetOriginGameOptions() {
   const select = $('#originGame');
   if (!select) return;
+  select.disabled = false;
+  select.style.pointerEvents = '';
+  select.style.opacity = '';
+  select.style.cursor = '';
   for (const opt of Array.from(select.options)) {
     opt.disabled = false;
     opt.hidden   = false;
@@ -3062,6 +3109,16 @@ function boot(){
       return;
     }
 
+    if (isWishmkrMysteryEventSelected()) {
+      applyWishmkrOriginGameConstraints();
+
+      const speciesId = Number($('#species').value) || 0;
+      if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
+
+      updateLegalityStatus();
+      return;
+    }
+
     // Default: show all locations for the selected game
     const filteredLocations = getLocationsForGame(newGame);
 
@@ -3386,6 +3443,7 @@ function boot(){
       try { updateOtGenderLocking(); } catch (e) {}
       try { applyPcnyWishEggsOriginAndLocationConstraints(); } catch (e) {}
       try { applyMystryMewOriginGameConstraints(); } catch (e) {}
+      try { applyWishmkrOriginGameConstraints(); } catch (e) {}
     });
   }
 
@@ -3515,6 +3573,9 @@ function boot(){
       }
       if (isMystryMewMysteryEventSelected()) {
         applyMystryMewOriginGameConstraints();
+      }
+      if (isWishmkrMysteryEventSelected()) {
+        applyWishmkrOriginGameConstraints();
       }
     } catch (e) {}
   }
@@ -7810,6 +7871,11 @@ function collect(){
     out.totalExp += 1;
   }
   delete out.evLegalityBump;
+
+  // WISHMKR Jirachi Mystery Gift is Ruby-origin only.
+  if (currentEncounterMode === 'mystery' && isWishmkrMysteryEventSelected()) {
+    out.originGame = WISHMKR_ORIGIN_GAME_ID;
+  }
 
   return out;
 }
