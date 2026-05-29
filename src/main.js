@@ -701,11 +701,21 @@ function isMystryMewMysteryEventSelected() {
   return isMystryMewMysteryTag(getSelectedMysteryEvent().tag);
 }
 
+function isChannelJirachiMysteryTag(tag) {
+  return String(tag || '').toUpperCase() === 'CHANNEL_JIRACHI';
+}
+
+function isChannelJirachiMysteryEventSelected() {
+  if (currentEncounterMode !== 'mystery') return false;
+  return isChannelJirachiMysteryTag(getSelectedMysteryEvent().tag);
+}
+
 function requiresBerryFixPidFinderSelection() {
   return (
     isBerryFixMysteryEventSelected() ||
     isPcnyWishEggsMysteryEventSelected() ||
-    isMystryMewMysteryEventSelected()
+    isMystryMewMysteryEventSelected() ||
+    isChannelJirachiMysteryEventSelected()
   );
 }
 
@@ -3779,6 +3789,13 @@ function boot(){
         metEl.style.cursor = 'not-allowed';
         return;
       }
+      if (isChannelJirachiMysteryEventSelected()) {
+        metEl.disabled = true;
+        metEl.style.pointerEvents = 'none';
+        metEl.style.opacity = '0.6';
+        metEl.style.cursor = 'not-allowed';
+        return;
+      }
       if (currentEncounterMode === 'hatched') {
         metEl.value = '0';
         metEl.disabled = true;
@@ -3806,12 +3823,20 @@ function boot(){
       function updateBallLocking() {
         try {
           const ballEl = $('#ball');
+          const metLocationEl = $('#metLocation');
           if (!ballEl) return;
           const applyDefaultPokeBallIfEmpty = () => {
             const current = String(ballEl.value ?? '').trim();
             if (!current) {
               try { ballEl.value = '4'; } catch (e) {}
             }
+          };
+          const setMetLocationLock = (shouldLock) => {
+            if (!metLocationEl) return;
+            metLocationEl.disabled = Boolean(shouldLock);
+            metLocationEl.style.pointerEvents = shouldLock ? 'none' : '';
+            metLocationEl.style.opacity = shouldLock ? '0.6' : '';
+            metLocationEl.style.cursor = shouldLock ? 'not-allowed' : '';
           };
 
           if (manualOverrideActive) {
@@ -3822,8 +3847,22 @@ function boot(){
             ballEl.style.pointerEvents = '';
             ballEl.style.opacity = '';
             ballEl.style.cursor = '';
+            setMetLocationLock(false);
             return;
           }
+
+          if (isChannelJirachiMysteryEventSelected()) {
+            if (ballEl.updateList) ballEl.updateList(BALLS);
+            applyDefaultPokeBallIfEmpty();
+            ballEl.disabled = true;
+            ballEl.style.pointerEvents = 'none';
+            ballEl.style.opacity = '0.6';
+            ballEl.style.cursor = 'not-allowed';
+            setMetLocationLock(true);
+            return;
+          }
+
+          setMetLocationLock(false);
 
           if (isPcnyWishEggsMysteryEventSelected()) {
             if (ballEl.updateList) ballEl.updateList(BALLS);
@@ -3942,10 +3981,17 @@ function boot(){
         try {
           const otEl = $('#otName');
           if (otEl) {
-            otEl.disabled = false;
-            otEl.style.pointerEvents = '';
-            otEl.style.opacity = '';
-            otEl.style.cursor = '';
+            if (!manualOverrideActive && isChannelJirachiMysteryEventSelected()) {
+              otEl.disabled = true;
+              otEl.style.pointerEvents = 'none';
+              otEl.style.opacity = '0.6';
+              otEl.style.cursor = 'not-allowed';
+            } else {
+              otEl.disabled = false;
+              otEl.style.pointerEvents = '';
+              otEl.style.opacity = '';
+              otEl.style.cursor = '';
+            }
           }
         } catch (e) {}
         // Restore nickname control
@@ -7674,6 +7720,7 @@ function initPidFinder() {
       lockStyle($('#item'));
       lockStyle($('#originGame'));
       lockStyle($('#otGender'));
+      lockStyle($('#otName'));
     } else if (isBACDResult && currentEncounterMode === 'mystery') {
       // BACD mystery OT gender is part of the legality correlation.
       lockStyle($('#otGender'));
