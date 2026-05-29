@@ -1117,11 +1117,31 @@
             }
         ]
     },
-    "AGETO CELEBI": {
+    "MITSURIN CELEBI": {
         "Celebi": [
             {
                 "name": "Leech Seed",
                 "index": 73
+            },
+            {
+                "name": "Recover",
+                "index": 105
+            },
+            {
+                "name": "Heal Bell",
+                "index": 215
+            },
+            {
+                "name": "Safeguard",
+                "index": 219
+            }
+        ]
+    },
+    "AGETO CELEBI": {
+        "Celebi": [
+            {
+                "name": "Confusion",
+                "index": 93
             },
             {
                 "name": "Recover",

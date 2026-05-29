@@ -266,7 +266,7 @@ for (const enc of STATIC_ENCOUNTER_LIST) {
     };
   }
 }
-// Patch in the fixed events that the old format had (WISHMKR Jirachi / Ageto Celebi)
+// Patch in the fixed events that the old format had (WISHMKR Jirachi / Mitsurin Celebi)
 STATIC_ENCOUNTERS[409] = {
   defaultMetLocation: "Fateful Encounter",
   defaultMetLevel: 5,

@@ -186,7 +186,7 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
               newLevel = Math.max(70, Number(newLevel));
             } else if (tU === 'AURA_MEW') {
               newLevel = Math.max(10, Number(newLevel));
-            } else if (tU === 'AGETO_CELEBI') {
+            } else if (tU === 'AGETO_CELEBI' || tU === 'MITSURIN_CELEBI') {
               newLevel = Math.max(10, Number(newLevel));
             } else if (tU === 'BOX_EVENT') {
               newLevel = Math.max(5, Number(newLevel));
@@ -888,7 +888,7 @@ function getMysteryPidMethod() {
   if (explicit) return explicit.toUpperCase();
 
   if (tag === 'CHANNEL_JIRACHI') return 'CHANNEL';
-  if (tag === 'AGETO_CELEBI') return 'CXD';
+  if (tag === 'AGETO_CELEBI' || tag === 'MITSURIN_CELEBI') return 'CXD';
   if (tag === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') return 'BACD_RBCD';
   if (tag === 'MYSTRY_MEW') return 'BACD_M';
   if (tag === PCNY_WISH_EGGS_TAG) return 'METHOD_2';
@@ -3621,27 +3621,36 @@ function boot(){
       const tidEl = $('#tid');
       const sidEl = $('#sid');
       const otEl = $('#otName');
+      const originGameEl = $('#originGame');
       const tag = String($('#mysteryEvent')?.value || '').toUpperCase();
       const evt = (tag && MYSTERY_EVENTS && MYSTERY_EVENTS[tag]) ? MYSTERY_EVENTS[tag] : null;
       const usesHatcherTrainerData = isPcnyWishEggsMysteryTag(tag) || !!evt?.usesHatcherTrainerData;
-      const shouldLock = !manualOverrideActive && (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData);
+      const shouldLockTidSid = !manualOverrideActive && (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData);
+      const shouldLockOtName = !manualOverrideActive && currentEncounterMode === 'mystery';
+      const shouldLockOriginGame = !manualOverrideActive && currentEncounterMode === 'mystery';
       if (tidEl) {
-        tidEl.disabled = Boolean(shouldLock);
-        tidEl.style.pointerEvents = shouldLock ? 'none' : '';
-        tidEl.style.opacity = shouldLock ? '0.6' : '';
-        tidEl.style.cursor = shouldLock ? 'not-allowed' : '';
+        tidEl.disabled = Boolean(shouldLockTidSid);
+        tidEl.style.pointerEvents = shouldLockTidSid ? 'none' : '';
+        tidEl.style.opacity = shouldLockTidSid ? '0.6' : '';
+        tidEl.style.cursor = shouldLockTidSid ? 'not-allowed' : '';
       }
       if (sidEl) {
-        sidEl.disabled = Boolean(shouldLock);
-        sidEl.style.pointerEvents = shouldLock ? 'none' : '';
-        sidEl.style.opacity = shouldLock ? '0.6' : '';
-        sidEl.style.cursor = shouldLock ? 'not-allowed' : '';
+        sidEl.disabled = Boolean(shouldLockTidSid);
+        sidEl.style.pointerEvents = shouldLockTidSid ? 'none' : '';
+        sidEl.style.opacity = shouldLockTidSid ? '0.6' : '';
+        sidEl.style.cursor = shouldLockTidSid ? 'not-allowed' : '';
       }
       if (otEl) {
-        otEl.disabled = Boolean(shouldLock);
-        otEl.style.pointerEvents = shouldLock ? 'none' : '';
-        otEl.style.opacity = shouldLock ? '0.6' : '';
-        otEl.style.cursor = shouldLock ? 'not-allowed' : '';
+        otEl.disabled = Boolean(shouldLockOtName);
+        otEl.style.pointerEvents = shouldLockOtName ? 'none' : '';
+        otEl.style.opacity = shouldLockOtName ? '0.6' : '';
+        otEl.style.cursor = shouldLockOtName ? 'not-allowed' : '';
+      }
+      if (originGameEl) {
+        originGameEl.disabled = Boolean(shouldLockOriginGame);
+        originGameEl.style.pointerEvents = shouldLockOriginGame ? 'none' : '';
+        originGameEl.style.opacity = shouldLockOriginGame ? '0.6' : '';
+        originGameEl.style.cursor = shouldLockOriginGame ? 'not-allowed' : '';
       }
 
       if (isPcnyWishEggsMysteryEventSelected()) {
@@ -3857,7 +3866,7 @@ function boot(){
         metEl.style.cursor = 'not-allowed';
         return;
       }
-      if (isChannelJirachiMysteryEventSelected()) {
+      if (currentEncounterMode === 'mystery' || isChannelJirachiMysteryEventSelected()) {
         metEl.disabled = true;
         metEl.style.pointerEvents = 'none';
         metEl.style.opacity = '0.6';
@@ -3953,6 +3962,15 @@ function boot(){
             if (ballEl.updateList) ballEl.updateList(BALLS);
             try { ballEl.value = '4'; } catch (e) {}
             setBallLockState(true);
+            setMetLocationLock(true);
+            return;
+          }
+
+          if (currentEncounterMode === 'mystery') {
+            if (ballEl.updateList) ballEl.updateList(BALLS);
+            applyDefaultPokeBallIfEmpty();
+            setBallLockState(true);
+            setMetLocationLock(true);
             return;
           }
 
@@ -4005,6 +4023,23 @@ function boot(){
       if (!langSel || !langSel.options) return;
       const speciesId = Number($('#species')?.value || 0);
       const isMew = speciesId === 151;
+      const mysteryTag = String($('#mysteryEvent')?.value || '').toUpperCase();
+      const shouldLockJapaneseForCelebiMystery = !manualOverrideActive
+        && currentEncounterMode === 'mystery'
+        && (mysteryTag === 'MITSURIN_CELEBI' || mysteryTag === 'AGETO_CELEBI');
+
+      if (shouldLockJapaneseForCelebiMystery) {
+        for (const o of Array.from(langSel.options)) {
+          if (String(o.value) === '1') o.disabled = false;
+        }
+        langSel.value = '1';
+        langSel.disabled = true;
+        langSel.style.pointerEvents = 'none';
+        langSel.style.opacity = '0.6';
+        langSel.style.cursor = 'not-allowed';
+        return;
+      }
+
       if (!manualOverrideActive && currentEncounterMode === 'static' && isMew) {
         // Ensure Japanese option is enabled and select it, then disable the control
         for (const o of Array.from(langSel.options)) {
@@ -4048,7 +4083,7 @@ function boot(){
         try {
           const otEl = $('#otName');
           if (otEl) {
-            if (!manualOverrideActive && isChannelJirachiMysteryEventSelected()) {
+            if (!manualOverrideActive && currentEncounterMode === 'mystery') {
               otEl.disabled = true;
               otEl.style.pointerEvents = 'none';
               otEl.style.opacity = '0.6';
@@ -4112,7 +4147,7 @@ function boot(){
   // In hatched mode, contest stats are not user-editable unless Manual Override is enabled.
   function updateContestStatsLocking() {
     try {
-      const shouldLock = !manualOverrideActive && currentEncounterMode === 'hatched';
+      const shouldLock = !manualOverrideActive && (currentEncounterMode === 'hatched' || currentEncounterMode === 'mystery');
       const ids = ['contestCool', 'contestBeauty', 'contestCute', 'contestSmart', 'contestTough', 'contestSheen'];
       for (const id of ids) {
         const el = $('#' + id);
@@ -4146,9 +4181,10 @@ function boot(){
         const el = $('#' + id);
         if (!el) continue;
 
-        const shouldLock = (!manualOverrideActive && currentEncounterMode === 'hatched')
-          ? !allowedInHatched.has(id)
-          : false;
+        const shouldLock = !manualOverrideActive && (
+          currentEncounterMode === 'mystery' ||
+          (currentEncounterMode === 'hatched' && !allowedInHatched.has(id))
+        );
 
         el.disabled = Boolean(shouldLock);
         el.style.pointerEvents = shouldLock ? 'none' : '';
@@ -4211,6 +4247,7 @@ function boot(){
               'pcnywisheggs': 'PCNY_WISH_EGGS',
               'mystrymew': 'MYSTRY_MEW',
               'mysterymew': 'MYSTRY_MEW',
+              'mitsurincelebi': 'MITSURIN_CELEBI',
               'agetocelebi': 'AGETO_CELEBI',
               'clubnintendojirachigiveaway': 'WISHMKR_BEST',
               'wishmkrjirachibestivs': 'WISHMKR_BEST',
@@ -4335,6 +4372,8 @@ function boot(){
             // rename for legacy 10ANNI tag.
             if (String(t).toUpperCase() === '10ANNI') {
               o.textContent = 'TOP 10 DISTRIBUTION POKÉMON';
+            } else if (String(t).toUpperCase() === 'MITSURIN_CELEBI') {
+              o.textContent = 'MITSURIN CELEBI';
             } else if (String(t).toUpperCase() === 'AGETO_CELEBI') {
               o.textContent = 'AGETO CELEBI';
             } else if (String(t).toUpperCase() === 'WISHMKR_BEST') {
@@ -4496,15 +4535,16 @@ function boot(){
         if (foundKey) tag = foundKey;
       }
       const selectedEvent = (MYSTERY_EVENTS && MYSTERY_EVENTS[rawTag]) ? MYSTERY_EVENTS[rawTag] : null;
-      const isAgetoCelebi = String(rawTag).toUpperCase() === 'AGETO_CELEBI';
+      const rawTagUpper = String(rawTag).toUpperCase();
+      const isCxdCelebiMysteryEvent = rawTagUpper === 'AGETO_CELEBI' || rawTagUpper === 'MITSURIN_CELEBI';
       const selectedPresetTag = String(selectedEvent?.presetTag || '').trim();
       const presetTag = selectedPresetTag || tag;
       const natureIndex = Number($('#nature').value || 0);
       const natureName = NATURES[natureIndex] || '';
 
-      // AGETO CELEBI: use CXD nature PID table from the imported preset data.
+      // MITSURIN/AGETO CELEBI events use the CXD nature PID table from imported preset data.
       let candidates = [];
-      if (isAgetoCelebi) {
+      if (isCxdCelebiMysteryEvent) {
         try {
           const preset = getLegendaryPreset(natureIndex, 15);
           if (preset && preset.pid !== undefined && preset.ivs) {
@@ -5643,7 +5683,7 @@ function boot(){
           const tag = String(document.getElementById('mysteryEvent')?.value || '').toUpperCase();
           if (tag === '10ANNI' && val < 70) val = 70;
           else if (tag === 'AURA_MEW' && val < 10) val = 10;
-          else if (tag === 'AGETO_CELEBI' && val < 10) val = 10;
+          else if ((tag === 'AGETO_CELEBI' || tag === 'MITSURIN_CELEBI') && val < 10) val = 10;
           else if (tag === 'BOX_EVENT' && val < 5) val = 5;
           else if ((tag === 'DOEL_DEOXYS' || tag === 'SPACE_CENTER_DEOXYS') && val < 70) val = 70;
           else if (tag === 'JOURNEY_ACROSS_AMERICA' && val < 70) val = 70;

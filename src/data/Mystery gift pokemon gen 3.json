@@ -176,8 +176,25 @@
       "pidMethod": "BACD_RBCD",
       "species": [288]
     },
-    "AGETO_CELEBI": {
+    "MITSURIN_CELEBI": {
       "fixedTID": 60720,
+      "fixedSID": 0,
+      "nickname": "セレビィ",
+      "ot_name": "アゲト",
+      "ot_names": {"1":"アゲト"},
+      "shinyLocked": true,
+      "defaultLanguage": 1,
+      "defaultOriginGame": 2,
+      "defaultMetLocation": "Fateful Encounter",
+      "defaultMetLocationId": 255,
+      "defaultBall": "Poke Ball",
+      "defaultMetLevel": 10,
+      "defaultFatefulEncounter": false,
+      "pidMethod": "CXD",
+      "species": [251]
+    },
+    "AGETO_CELEBI": {
+      "fixedTID": 31121,
       "fixedSID": 0,
       "nickname": "セレビィ",
       "ot_name": "アゲト",
