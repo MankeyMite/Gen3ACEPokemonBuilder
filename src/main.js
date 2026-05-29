@@ -1238,6 +1238,9 @@ function createAutocomplete(selectEl, list, opts = {}) {
   const placeholder = opts.placeholder ?? '— Select —';
   const allowEmpty = opts.placeholder !== null;
   const onSelect = opts.onSelect || null;
+  const isItemDisabled = typeof opts.isItemDisabled === 'function'
+    ? opts.isItemDisabled
+    : () => false;
   // Optional full list used to resolve display names for values not in the
   // current filtered list (e.g. mystery-gift preset moves outside the learnset).
   const masterList = opts.masterList || null;
@@ -1348,11 +1351,17 @@ function createAutocomplete(selectEl, list, opts = {}) {
     filtered.forEach((item, idx) => {
       const div = document.createElement('div');
       div.className = 'autocomplete-item';
+      const disabled = Boolean(isItemDisabled(item));
+      if (disabled) {
+        div.classList.add('disabled');
+        div.setAttribute('aria-disabled', 'true');
+      }
       div.textContent = item.name;
       div.dataset.id = item.id;
       div.dataset.index = idx;
       div.addEventListener('mousedown', (e) => {
         e.preventDefault();
+        if (disabled) return;
         selectItem(item);
       });
       dropdown.appendChild(div);
@@ -1360,6 +1369,7 @@ function createAutocomplete(selectEl, list, opts = {}) {
   }
   
   function selectItem(item) {
+    if (isItemDisabled(item)) return;
     selectedId = item.id;
     input.value = item.name;
     dropdown.classList.remove('show');
@@ -1424,31 +1434,36 @@ function createAutocomplete(selectEl, list, opts = {}) {
         const exactMatch = items.find(item => 
           item.name.toLowerCase() === input.value.toLowerCase()
         );
-        if (exactMatch) {
+        if (exactMatch && !isItemDisabled(exactMatch)) {
           selectItem(exactMatch);
         } else {
           // Clear invalid input
           input.value = '';
+          selectedId = '';
         }
       }
     }, 200);
   });
   
   input.addEventListener('keydown', (e) => {
-    const items = dropdown.querySelectorAll('.autocomplete-item');
+    const allItems = Array.from(dropdown.querySelectorAll('.autocomplete-item'));
+    const selectableItems = allItems.filter(el => !el.classList.contains('disabled'));
+    if (allItems.length === 0) return;
     
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
-      updateSelectedItem(items);
+      if (selectableItems.length === 0) return;
+      selectedIndex = Math.min(selectedIndex + 1, selectableItems.length - 1);
+      updateSelectedItem(selectableItems, allItems);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
+      if (selectableItems.length === 0) return;
       selectedIndex = Math.max(selectedIndex - 1, 0);
-      updateSelectedItem(items);
+      updateSelectedItem(selectableItems, allItems);
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (selectedIndex >= 0 && items[selectedIndex]) {
-        const id = items[selectedIndex].dataset.id;
+      if (selectedIndex >= 0 && selectableItems[selectedIndex]) {
+        const id = selectableItems[selectedIndex].dataset.id;
         const filtered = filterItems(input.value);
         const item = filtered.find(i => i.id === id);
         if (item) selectItem(item);
@@ -1458,12 +1473,13 @@ function createAutocomplete(selectEl, list, opts = {}) {
     }
   });
   
-  function updateSelectedItem(items) {
-    items.forEach((el, idx) => {
-      el.classList.toggle('selected', idx === selectedIndex);
+  function updateSelectedItem(selectableItems, allItems) {
+    allItems.forEach(el => {
+      el.classList.remove('selected');
     });
-    if (items[selectedIndex]) {
-      items[selectedIndex].scrollIntoView({ block: 'nearest' });
+    if (selectableItems[selectedIndex]) {
+      selectableItems[selectedIndex].classList.add('selected');
+      selectableItems[selectedIndex].scrollIntoView({ block: 'nearest' });
     }
   }
   
@@ -1483,24 +1499,57 @@ function createAutocomplete(selectEl, list, opts = {}) {
 // Filter locations based on origin game
 function getLocationsForGame(originGame) {
   const gameId = Number(originGame);
+
+  const SHARED_SPECIAL_LOCATION_IDS = new Set([253, 254, 255]);
+  const isColoXdLocation = (name) => /^\d{3}:/.test(String(name || ''));
+  const isRseLocationId = (id) => {
+    const locId = Number(id);
+    // Core RSE table plus Emerald-exclusive extension IDs.
+    return (locId >= 0 && locId <= 87) || (locId >= 197 && locId <= 212);
+  };
+  const isFrlgLocationId = (id) => {
+    const locId = Number(id);
+    return locId >= 88 && locId <= 196;
+  };
   
   // Colosseum/XD (game ID 15) uses locations with format "###: Name / Name"
   if (gameId === 15) {
     return LOCATIONS.filter(([id, name]) => {
       // Check if name starts with "###:" pattern (Colosseum/XD format)
-      return /^\d{3}:/.test(String(name));
+      return isColoXdLocation(name);
+    });
+  }
+
+  // RSE games: Sapphire(1), Ruby(2), Emerald(3)
+  if (gameId === 1 || gameId === 2 || gameId === 3) {
+    return LOCATIONS.filter(([id, name]) => {
+      if (isColoXdLocation(name)) return false;
+      const locId = Number(id);
+      return isRseLocationId(locId) || SHARED_SPECIAL_LOCATION_IDS.has(locId);
+    });
+  }
+
+  // FRLG games: FireRed(4), LeafGreen(5)
+  if (gameId === 4 || gameId === 5) {
+    return LOCATIONS.filter(([id, name]) => {
+      if (isColoXdLocation(name)) return false;
+      const locId = Number(id);
+      return isFrlgLocationId(locId) || SHARED_SPECIAL_LOCATION_IDS.has(locId);
     });
   }
   
-  // RSE/FRLG (game IDs 1-5) use locations WITHOUT the "###:" prefix
+  // Fallback: all non-Colosseum/XD locations
   return LOCATIONS.filter(([id, name]) => {
     // Exclude Colosseum/XD formatted locations
-    return !/^\d{3}:/.test(String(name));
+    return !isColoXdLocation(name);
   });
 }
 
 // Store reference to metLocation autocomplete wrapper for updating
 let metLocationWrapper = null;
+const MIRAGE_ISLAND_LOCATION_ID = 71;
+const HATCHED_DISABLED_MET_LOCATION_IDS = new Set([253, 254, 255]);
+const COLOSSEUM_XD_ORIGIN_GAME_ID = 15;
 
 /**
  * Given an array of merged level ranges [[min,max], ...] and a target level,
@@ -2849,7 +2898,16 @@ function boot(){
   
   // Create metLocation autocomplete with initial filtered list
   const initialGame = $('#originGame').value || '3';
-  metLocationWrapper = createAutocomplete($('#metLocation'), getLocationsForGame(initialGame));
+  metLocationWrapper = createAutocomplete($('#metLocation'), getLocationsForGame(initialGame), {
+    isItemDisabled: (item) => {
+      if (manualOverrideActive) return false;
+      const locationId = Number(item?.id);
+      // Keep Mirage Island visible but non-selectable unless Manual Override is enabled.
+      if (locationId === MIRAGE_ISLAND_LOCATION_ID) return true;
+      // In Hatched mode, keep special event/trade locations visible but not selectable.
+      return currentEncounterMode === 'hatched' && HATCHED_DISABLED_MET_LOCATION_IDS.has(locationId);
+    }
+  });
   
   // Set default met location to Mauville City (ID 9)
   $('#metLocation').value = '9';
@@ -3488,6 +3546,7 @@ function boot(){
       try { updateFatefulLocking(); } catch (e) {}
       try { updateContestStatsLocking(); } catch (e) {}
       try { updateRibbonLocking(); } catch (e) {}
+      try { updateHatchedOriginGameLocking(); } catch (e) {}
       // Refresh move dropdowns — override shows all Gen 3 moves, normal re-applies learnset
       try {
         const speciesId = Number($('#species').value) || 0;
@@ -3543,6 +3602,7 @@ function boot(){
 
   // Initialize description for the default/current encounter mode
   try { setEncounterModeDescription(currentEncounterMode); } catch (e) {}
+  try { updateHatchedOriginGameLocking(); } catch (e) {}
   try { updateMetLevelLocking(); } catch (e) {}
   try { updateBallLocking(); } catch (e) {}
   try { updateContestStatsLocking(); } catch (e) {}
@@ -4065,19 +4125,31 @@ function boot(){
     } catch (e) {}
   }
 
-  // In hatched mode, all ribbon controls are locked unless Manual Override is enabled.
+  // In hatched mode, only a subset of ribbons are editable unless Manual Override is enabled.
   function updateRibbonLocking() {
     try {
-      const shouldLock = !manualOverrideActive && currentEncounterMode === 'hatched';
-      const ids = [
+      const allIds = [
         'ribbonCool', 'ribbonBeauty', 'ribbonCute', 'ribbonSmart', 'ribbonTough',
         'ribbonChampion', 'ribbonWinning', 'ribbonVictory', 'ribbonArtist', 'ribbonEffort',
         'ribbonBattleChampion', 'ribbonRegionalChampion', 'ribbonNationalChampion',
         'ribbonCountry', 'ribbonNational', 'ribbonEarth', 'ribbonWorld'
       ];
-      for (const id of ids) {
+
+      // Hatched mode: keep these editable
+      const allowedInHatched = new Set([
+        'ribbonCool', 'ribbonBeauty', 'ribbonCute', 'ribbonSmart', 'ribbonTough',
+        'ribbonArtist', 'ribbonChampion', 'ribbonEarth', 'ribbonEffort',
+        'ribbonVictory', 'ribbonWinning'
+      ]);
+
+      for (const id of allIds) {
         const el = $('#' + id);
         if (!el) continue;
+
+        const shouldLock = (!manualOverrideActive && currentEncounterMode === 'hatched')
+          ? !allowedInHatched.has(id)
+          : false;
+
         el.disabled = Boolean(shouldLock);
         el.style.pointerEvents = shouldLock ? 'none' : '';
         el.style.opacity = shouldLock ? '0.6' : '';
@@ -4938,6 +5010,7 @@ function boot(){
       }
     }
     try { updateOtGenderLocking(); } catch (e) {}
+    try { updateHatchedOriginGameLocking(); } catch (e) {}
     // For 'wild' mode, use normal PID generation (already working)
     
     // Update legality status after mode change
@@ -5477,6 +5550,49 @@ function boot(){
       // Re-apply preset with the corrected game
       if (!pidFinderResultActive && !suppressPresetApply) applyRoamerPreset(speciesId);
     }
+  }
+
+  // In hatched mode, keep Colosseum/XD visible in Origin Game but locked
+  // unless Manual Override is active.
+  function updateHatchedOriginGameLocking() {
+    try {
+      if (currentEncounterMode !== 'hatched') return;
+
+      const originGameSelect = $('#originGame');
+      if (!originGameSelect) return;
+
+      const coloXdOption = Array.from(originGameSelect.options || [])
+        .find(opt => Number(opt.value) === COLOSSEUM_XD_ORIGIN_GAME_ID);
+      if (!coloXdOption) return;
+
+      const shouldDisableColoXd = !manualOverrideActive;
+      coloXdOption.hidden = false;
+      coloXdOption.disabled = shouldDisableColoXd;
+      coloXdOption.style.color = shouldDisableColoXd ? '#666' : '';
+
+      if (!shouldDisableColoXd) return;
+      if (Number(originGameSelect.value) !== COLOSSEUM_XD_ORIGIN_GAME_ID) return;
+
+      const fallback = Array.from(originGameSelect.options || []).find(opt =>
+        Number(opt.value) === 3 && !opt.disabled
+      ) || Array.from(originGameSelect.options || []).find(opt =>
+        !opt.disabled && Number(opt.value) !== COLOSSEUM_XD_ORIGIN_GAME_ID
+      );
+
+      if (!fallback) return;
+      originGameSelect.value = String(fallback.value);
+
+      const fallbackGameId = Number(fallback.value) || 3;
+      if (metLocationWrapper && metLocationWrapper.updateList) {
+        metLocationWrapper.updateList(getLocationsForGame(fallbackGameId));
+      }
+
+      const speciesId = Number($('#species')?.value) || 0;
+      if (speciesId) {
+        updateMovesForSpecies(speciesId, { preserveValue: true });
+      }
+      updateLegalityStatus();
+    } catch (e) {}
   }
 
   /**

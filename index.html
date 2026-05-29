@@ -557,6 +557,18 @@
       background: rgba(100, 150, 255, 0.3);
     }
 
+    .autocomplete-item.disabled {
+      color: var(--muted);
+      opacity: 0.55;
+      cursor: not-allowed;
+      background: transparent;
+    }
+
+    .autocomplete-item.disabled:hover,
+    .autocomplete-item.disabled.selected {
+      background: transparent;
+    }
+
     .autocomplete-item:last-child {
       border-bottom: none;
     }
