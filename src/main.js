@@ -3439,6 +3439,8 @@ function boot(){
       try { updateIsEggVisibility(); } catch (e) {}
       try { updateMetLevelLocking(); } catch (e) {}
       try { updateBallLocking(); } catch (e) {}
+      try { updateContestStatsLocking(); } catch (e) {}
+      try { updateRibbonLocking(); } catch (e) {}
       try { updateLevelLocking(); } catch (e) {}
       try { updateIvLocking(); } catch (e) {}
       try { updateHiddenPower(); } catch (e) {}
@@ -3484,6 +3486,8 @@ function boot(){
       try { lockLanguageForMewLegend(); } catch (e) {}
       try { enforceJapaneseOption(); } catch (e) {}
       try { updateFatefulLocking(); } catch (e) {}
+      try { updateContestStatsLocking(); } catch (e) {}
+      try { updateRibbonLocking(); } catch (e) {}
       // Refresh move dropdowns — override shows all Gen 3 moves, normal re-applies learnset
       try {
         const speciesId = Number($('#species').value) || 0;
@@ -3541,6 +3545,8 @@ function boot(){
   try { setEncounterModeDescription(currentEncounterMode); } catch (e) {}
   try { updateMetLevelLocking(); } catch (e) {}
   try { updateBallLocking(); } catch (e) {}
+  try { updateContestStatsLocking(); } catch (e) {}
+  try { updateRibbonLocking(); } catch (e) {}
   try { updateLevelLocking(); } catch (e) {}
   try { updateIvLocking(); } catch (e) {}
   try { updateFatefulLocking(); } catch (e) {}
@@ -3696,6 +3702,8 @@ function boot(){
     try { updateOtGenderLocking(); } catch (e) {}
     try { updateMetLevelLocking(); } catch (e) {}
     try { updateIvLocking(); } catch (e) {}
+    try { updateContestStatsLocking(); } catch (e) {}
+    try { updateRibbonLocking(); } catch (e) {}
     try { updateBerryFixOtPreferenceUi(); } catch (e) {}
     try { validateForm(); } catch (e) {}
   }
@@ -3819,12 +3827,35 @@ function boot(){
       // Lock ball selection based on encounter mode and location.
       // Safari Zone locations (Hoenn 57, Kanto 136) require Safari Ball;
       // other wild/legendary locations cannot use Safari Ball.
-      const SAFARI_ZONE_IDS = [57, 136];
       function updateBallLocking() {
         try {
           const ballEl = $('#ball');
           const metLocationEl = $('#metLocation');
+          const safariZoneIds = [57, 136];
           if (!ballEl) return;
+
+          const setBallLockState = (shouldLock) => {
+            ballEl.disabled = Boolean(shouldLock);
+            ballEl.style.pointerEvents = shouldLock ? 'none' : '';
+            ballEl.style.opacity = shouldLock ? '0.6' : '';
+            ballEl.style.cursor = shouldLock ? 'not-allowed' : '';
+
+            // #ball is an autocomplete wrapper in this UI; disable its input too.
+            try {
+              const inputEl = typeof ballEl.querySelector === 'function' ? ballEl.querySelector('input') : null;
+              if (inputEl) {
+                inputEl.disabled = Boolean(shouldLock);
+                inputEl.style.pointerEvents = shouldLock ? 'none' : '';
+                // Keep opacity only on the wrapper so the field doesn't get double-faded.
+                inputEl.style.opacity = '';
+                inputEl.style.cursor = '';
+                // Match the visual language of other locked controls (e.g. PID).
+                inputEl.style.borderColor = shouldLock ? 'rgba(74, 158, 255, 0.3)' : '';
+                inputEl.style.background = shouldLock ? 'rgba(10, 20, 40, 0.6)' : '';
+              }
+            } catch (e) {}
+          };
+
           const applyDefaultPokeBallIfEmpty = () => {
             const current = String(ballEl.value ?? '').trim();
             if (!current) {
@@ -3843,10 +3874,7 @@ function boot(){
             // Override: full ball list, unlocked
             if (ballEl.updateList) ballEl.updateList(BALLS);
             applyDefaultPokeBallIfEmpty();
-            ballEl.disabled = false;
-            ballEl.style.pointerEvents = '';
-            ballEl.style.opacity = '';
-            ballEl.style.cursor = '';
+            setBallLockState(false);
             setMetLocationLock(false);
             return;
           }
@@ -3854,10 +3882,7 @@ function boot(){
           if (isChannelJirachiMysteryEventSelected()) {
             if (ballEl.updateList) ballEl.updateList(BALLS);
             applyDefaultPokeBallIfEmpty();
-            ballEl.disabled = true;
-            ballEl.style.pointerEvents = 'none';
-            ballEl.style.opacity = '0.6';
-            ballEl.style.cursor = 'not-allowed';
+            setBallLockState(true);
             setMetLocationLock(true);
             return;
           }
@@ -3867,32 +3892,23 @@ function boot(){
           if (isPcnyWishEggsMysteryEventSelected()) {
             if (ballEl.updateList) ballEl.updateList(BALLS);
             try { ballEl.value = '4'; } catch (e) {}
-            ballEl.disabled = true;
-            ballEl.style.pointerEvents = 'none';
-            ballEl.style.opacity = '0.6';
-            ballEl.style.cursor = 'not-allowed';
+            setBallLockState(true);
             return;
           }
 
           const locId = Number($('#metLocation')?.value) || 0;
-          const isSafariZone = SAFARI_ZONE_IDS.includes(locId);
+          const isSafariZone = safariZoneIds.includes(locId);
 
           if (isSafariZone) {
             // Safari Zone: force Safari Ball and lock, regardless of encounter mode
             if (ballEl.updateList) ballEl.updateList(BALLS);
             try { ballEl.value = '5'; } catch (e) {}
-            ballEl.disabled = true;
-            ballEl.style.pointerEvents = 'none';
-            ballEl.style.opacity = '0.6';
-            ballEl.style.cursor = 'not-allowed';
+            setBallLockState(true);
           } else if (currentEncounterMode === 'hatched') {
             // Hatched: force Poké Ball and lock
             if (ballEl.updateList) ballEl.updateList(BALLS);
             try { ballEl.value = '4'; } catch (e) {}
-            ballEl.disabled = true;
-            ballEl.style.pointerEvents = 'none';
-            ballEl.style.opacity = '0.6';
-            ballEl.style.cursor = 'not-allowed';
+            setBallLockState(true);
           } else if (currentEncounterMode === 'wild' || currentEncounterMode === 'static' || currentEncounterMode === 'roamer') {
             // Check if this static encounter has a fixed ball (starters, gifts, fossils, game corner)
             const speciesId = Number($('#species')?.value || 0);
@@ -3902,10 +3918,7 @@ function boot(){
               // Fixed ball: force it and lock
               if (ballEl.updateList) ballEl.updateList(BALLS);
               try { ballEl.value = String(detEnc.fixedBall); } catch (e) {}
-              ballEl.disabled = true;
-              ballEl.style.pointerEvents = 'none';
-              ballEl.style.opacity = '0.6';
-              ballEl.style.cursor = 'not-allowed';
+              setBallLockState(true);
             } else {
               // Wild/Static NOT at Safari Zone, no fixed ball: remove Safari Ball from options
               const filteredBalls = BALLS.filter(b => b[0] !== 5);
@@ -3913,19 +3926,13 @@ function boot(){
               if (!String(ballEl.value ?? '').trim() || Number(ballEl.value) === 5) {
                 try { ballEl.value = '4'; } catch (e) {}
               }
-              ballEl.disabled = false;
-              ballEl.style.pointerEvents = '';
-              ballEl.style.opacity = '';
-              ballEl.style.cursor = '';
+              setBallLockState(false);
             }
           } else {
             // Other modes: full ball list, unlocked
             if (ballEl.updateList) ballEl.updateList(BALLS);
             applyDefaultPokeBallIfEmpty();
-            ballEl.disabled = false;
-            ballEl.style.pointerEvents = '';
-            ballEl.style.opacity = '';
-            ballEl.style.cursor = '';
+            setBallLockState(false);
           }
         } catch (e) {}
       }
@@ -4038,6 +4045,43 @@ function boot(){
         }
       } else {
         try { levelEl.min = '1'; } catch (e) {}
+      }
+    } catch (e) {}
+  }
+
+  // In hatched mode, contest stats are not user-editable unless Manual Override is enabled.
+  function updateContestStatsLocking() {
+    try {
+      const shouldLock = !manualOverrideActive && currentEncounterMode === 'hatched';
+      const ids = ['contestCool', 'contestBeauty', 'contestCute', 'contestSmart', 'contestTough', 'contestSheen'];
+      for (const id of ids) {
+        const el = $('#' + id);
+        if (!el) continue;
+        el.disabled = Boolean(shouldLock);
+        el.style.pointerEvents = shouldLock ? 'none' : '';
+        el.style.opacity = shouldLock ? '0.6' : '';
+        el.style.cursor = shouldLock ? 'not-allowed' : '';
+      }
+    } catch (e) {}
+  }
+
+  // In hatched mode, all ribbon controls are locked unless Manual Override is enabled.
+  function updateRibbonLocking() {
+    try {
+      const shouldLock = !manualOverrideActive && currentEncounterMode === 'hatched';
+      const ids = [
+        'ribbonCool', 'ribbonBeauty', 'ribbonCute', 'ribbonSmart', 'ribbonTough',
+        'ribbonChampion', 'ribbonWinning', 'ribbonVictory', 'ribbonArtist', 'ribbonEffort',
+        'ribbonBattleChampion', 'ribbonRegionalChampion', 'ribbonNationalChampion',
+        'ribbonCountry', 'ribbonNational', 'ribbonEarth', 'ribbonWorld'
+      ];
+      for (const id of ids) {
+        const el = $('#' + id);
+        if (!el) continue;
+        el.disabled = Boolean(shouldLock);
+        el.style.pointerEvents = shouldLock ? 'none' : '';
+        el.style.opacity = shouldLock ? '0.6' : '';
+        el.style.cursor = shouldLock ? 'not-allowed' : '';
       }
     } catch (e) {}
   }
