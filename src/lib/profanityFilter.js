@@ -116,6 +116,14 @@ export function normalizeInput(str) {
     .replace(SEPARATOR_RE, '\x00');     // mark separator positions
 }
 
+function isProfanityLetter(ch) {
+  return /^[a-z\u00C0-\u024F\u0400-\u04FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]$/i.test(ch);
+}
+
+function isDigit(ch) {
+  return /^[0-9]$/.test(ch);
+}
+
 /**
  * Split a normalized string into "letter tokens" — contiguous runs of
  * letters (a-z / Unicode) — separated by non-letter characters (digits,
@@ -140,19 +148,14 @@ export function splitIntoLetterTokens(normalized) {
 }
 
 /**
- * Check whether a boundary-only term is present in the input.
- *
- * A boundary-only term matches when:
- *   - A letter token exactly equals the term, OR
- *   - Consecutive single-character tokens spell out the term (separator bypass)
- *
- * It does NOT match when the term is a substring of a longer letter token.
+ * Fallback for separator-bypass spelling where single-letter tokens combine
+ * into a boundary term, e.g. "a\x00s\x00s" -> "ass".
  *
  * @param {string} normalized - output of normalizeInput()
  * @param {string} term - lowercase term to search for
  * @returns {boolean}
  */
-export function containsBoundaryTerm(normalized, term) {
+export function containsBoundaryTermSeparatedLetters(normalized, term) {
   const tokens = splitIntoLetterTokens(normalized);
 
   // Direct exact-token match
@@ -160,30 +163,99 @@ export function containsBoundaryTerm(normalized, term) {
     if (token === term) return true;
   }
 
+  if (term.length <= 1) return false;
+
   // Check for separator-bypassed spelling: consecutive single-char tokens
-  // that together spell the term (e.g. "a\x00s\x00s" → "a","s","s" → "ass")
-  if (term.length > 1) {
-    const singles = [];
-    for (const token of tokens) {
-      if (token.length === 1) {
-        singles.push(token);
-      } else {
-        // Check accumulated singles before resetting
-        if (singles.length >= term.length) {
-          const joined = singles.join('');
-          if (joined.includes(term)) return true;
-        }
-        singles.length = 0;
+  // that together spell the term (e.g. "a\x00s\x00s" -> "a","s","s" -> "ass")
+  const singles = [];
+  for (const token of tokens) {
+    if (token.length === 1) {
+      singles.push(token);
+    } else {
+      // Check accumulated singles before resetting
+      if (singles.length >= term.length) {
+        const joined = singles.join('');
+        if (joined.includes(term)) return true;
       }
-    }
-    // Check remaining singles
-    if (singles.length >= term.length) {
-      const joined = singles.join('');
-      if (joined.includes(term)) return true;
+      singles.length = 0;
     }
   }
 
+  // Check remaining singles
+  if (singles.length >= term.length) {
+    const joined = singles.join('');
+    if (joined.includes(term)) return true;
+  }
+
   return false;
+}
+
+/**
+ * Check whether a boundary-only term is present in the input.
+ *
+ * A boundary-only term matches when:
+ *   - The term letters are found in order, allowing digits to be skipped
+ *     between term letters (e.g. "k8z" matches "kz"), AND
+ *   - The matched letter span is not directly embedded in letters
+ *     (letters directly before/after block the match)
+ *
+ * Digits do not provide letter protection at boundaries.
+ *
+ * For separator-bypass cases like "a s s", a fallback recombination check is
+ * still applied via containsBoundaryTermSeparatedLetters().
+ *
+ * @param {string} normalized - output of normalizeInput()
+ * @param {string} term - lowercase term to search for
+ * @returns {boolean}
+ */
+export function containsBoundaryTerm(normalized, term) {
+  const s = normalized.toLowerCase();
+  const t = term.toLowerCase();
+
+  if (!t) return false;
+
+  for (let start = 0; start < s.length; start++) {
+    if (s[start] !== t[0]) continue;
+
+    let i = start;
+    let j = 0;
+    let end = start;
+
+    while (i < s.length && j < t.length) {
+      const ch = s[i];
+
+      if (isDigit(ch)) {
+        i++;
+        continue; // digits can be skipped inside the bad word
+      }
+
+      if (ch === t[j]) {
+        end = i;
+        i++;
+        j++;
+        continue;
+      }
+
+      break;
+    }
+
+    if (j !== t.length) continue;
+
+    const before = s[start - 1] ?? '\x00';
+    const after = s[end + 1] ?? '\x00';
+
+    const beforeIsLetter = isProfanityLetter(before);
+    const afterIsLetter = isProfanityLetter(after);
+
+    // Boundary-only term matches only if not directly embedded in letters.
+    // Digits/separators do not protect.
+    if (!beforeIsLetter && !afterIsLetter) {
+      return true;
+    }
+  }
+
+  // Preserve separator-bypass behavior for inputs like "a s s".
+  return containsBoundaryTermSeparatedLetters(normalized, term);
 }
 
 /**

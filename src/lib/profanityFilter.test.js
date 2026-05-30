@@ -43,7 +43,9 @@ const TEST_PATTERNS = [
   '^sa$',         // exact → boundary-only
   '^dp$',         // exact in PKHeX, but manually overridden to strong
   '.*wix.*',      // substring len 3 -> boundary (digit-bridged regression case)
+  '.*kz.*',       // substring len 2 -> boundary (Nintendo digit-isolated behavior)
   '.*fag.*',      // substring, len 3, but manually overridden to strong
+  '.*dick.*',     // substring, len 4, manually overridden to strong
   '.*shit.*',     // substring, len 4 → strong
   '.*fuck.*',     // substring, len 4 → strong
   '.*asshole.*',  // substring, len 7 → strong
@@ -115,6 +117,14 @@ assert(containsBoundaryTerm(normalizeInput('class'), 'ass') === false, '"class" 
 assert(containsBoundaryTerm(normalizeInput('xassx'), 'ass') === false, '"xassx" does NOT match');
 assert(containsBoundaryTerm(normalizeInput('wi8x'), 'wix') === true, '"wi8x" matches boundary term "wix"');
 
+assert(containsBoundaryTerm(normalizeInput('kz'), 'kz') === true, '"kz" matches boundary term "kz"');
+assert(containsBoundaryTerm(normalizeInput('Hkz'), 'kz') === false, '"Hkz" does NOT match');
+assert(containsBoundaryTerm(normalizeInput('Kza'), 'kz') === false, '"Kza" does NOT match');
+assert(containsBoundaryTerm(normalizeInput('k8z'), 'kz') === true, '"k8z" matches (digits inside term are skipped)');
+assert(containsBoundaryTerm(normalizeInput('H8kz'), 'kz') === true, '"H8kz" matches (digit boundary before term)');
+assert(containsBoundaryTerm(normalizeInput('kz8a'), 'kz') === true, '"kz8a" matches (digit boundary after term)');
+assert(containsBoundaryTerm(normalizeInput('H6K8z8a8'), 'kz') === true, '"H6K8z8a8" matches "kz" with digit isolation');
+
 assert(containsBoundaryTerm(normalizeInput('sa'), 'sa') === true, '"sa" matches boundary term "sa"');
 assert(containsBoundaryTerm(normalizeInput('xsa'), 'sa') === false, '"xsa" does NOT match');
 assert(containsBoundaryTerm(normalizeInput('sax'), 'sa') === false, '"sax" does NOT match');
@@ -183,6 +193,15 @@ assert(filter.check('a-s-s') === true, '"a-s-s" = banned');
 assert(filter.check('a.s.s') === true, '"a.s.s" = banned');
 assert(filter.check('wi8x') === true, '"wi8x" = banned');
 
+// Boundary-only short term should respect Nintendo-style digit-isolated boundaries.
+assert(filter.check('kz') === true, '"kz" = blocked');
+assert(filter.check('Hkz') === false, '"Hkz" = allowed');
+assert(filter.check('Kza') === false, '"Kza" = allowed');
+assert(filter.check('k8z') === true, '"k8z" = blocked');
+assert(filter.check('H8kz') === true, '"H8kz" = blocked');
+assert(filter.check('kz8a') === true, '"kz8a" = blocked');
+assert(filter.check('H6K8z8a8') === true, '"H6K8z8a8" = blocked');
+
 // ═══════════════════════════════════════════════════════════════════════
 // Full filter integration — "fag" (strong substring)
 // ═══════════════════════════════════════════════════════════════════════
@@ -202,6 +221,13 @@ section('Full filter: "shit" (strong substring)');
 assert(filter.check('shit') === true, '"shit" = banned');
 assert(filter.check('xshit') === true, '"xshit" = banned');
 assert(filter.check('shitx') === true, '"shitx" = banned');
+
+section('Full filter: "dick" (strong substring)');
+
+assert(filter.check('dick') === true, '"dick" = blocked');
+assert(filter.check('xdick') === true, '"xdick" = blocked');
+assert(filter.check('dickx') === true, '"dickx" = blocked');
+assert(filter.check('xdickx') === true, '"xdickx" = blocked');
 
 // ═══════════════════════════════════════════════════════════════════════
 // Full filter integration — "sa" (boundary-only)
