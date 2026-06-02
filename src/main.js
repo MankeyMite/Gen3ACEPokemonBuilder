@@ -512,10 +512,13 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
         }
       } catch (e) {}
 
-      // BOX_EVENT: use Route 117 by default for non-egg and Fateful Encounter
-      // only when Is Egg is enabled.
+      // BOX_EVENT: keep the Fateful Encounter checkbox disabled/unchecked.
+      // Non-egg defaults: Route 117 (RSE) or Four Island (FRLG).
+      // Egg: met location switches to Fateful Encounter.
       try {
         if (isBoxEventMysteryTag(tag)) {
+          const f = $('#fatefulEncounter');
+          if (f) f.checked = false;
           applyBoxEventMysteryLocationConstraints({ preserveCurrentNonEgg: false });
         }
       } catch (e) {}
@@ -754,7 +757,10 @@ const WISHMKR_ORIGIN_GAME_ID = 2;
 const BOX_EVENT_TAG = 'BOX_EVENT';
 const BOX_EVENT_ALLOWED_ORIGIN_GAMES = [1, 2, 3, 4, 5];
 const BOX_EVENT_DEFAULT_MET_LOCATION_ID = 32; // Route 117
+const BOX_EVENT_FRLG_EGG_MET_LOCATION_ID = 146; // Four Island
 const BOX_EVENT_FATEFUL_MET_LOCATION_ID = 255;
+const IS_EGG_OVERRIDE_LANGUAGE_ID = 1; // Japanese
+const IS_EGG_OVERRIDE_LEVEL = 5;
 
 function isPcnyWishEggsMysteryTag(tag) {
   return String(tag || '').toUpperCase() === PCNY_WISH_EGGS_TAG;
@@ -772,6 +778,98 @@ function isBoxEventMysteryTag(tag) {
 function isBoxEventMysteryEventSelected() {
   if (currentEncounterMode !== 'mystery') return false;
   return isBoxEventMysteryTag(getSelectedMysteryEvent().tag);
+}
+
+function getFatefulLocationIdForGame(originGame) {
+  const gameId = Number(originGame) || 0;
+  const gameLocations = getLocationsForGame(gameId);
+  const found = gameLocations.find(([id, name]) => {
+    if (Number(id) === BOX_EVENT_FATEFUL_MET_LOCATION_ID) return true;
+    return String(name || '').toLowerCase().includes('fateful');
+  }) || LOCATIONS.find(([id, name]) => {
+    if (Number(id) === BOX_EVENT_FATEFUL_MET_LOCATION_ID) return true;
+    return String(name || '').toLowerCase().includes('fateful');
+  });
+  return found ? Number(found[0]) : BOX_EVENT_FATEFUL_MET_LOCATION_ID;
+}
+
+function getBoxEventDefaultMetLocationIdForGame(originGame) {
+  const gameId = Number(originGame) || 0;
+  if (gameId === 1 || gameId === 2 || gameId === 3) {
+    return BOX_EVENT_DEFAULT_MET_LOCATION_ID;
+  }
+  if (gameId === 4 || gameId === 5) {
+    return BOX_EVENT_FRLG_EGG_MET_LOCATION_ID;
+  }
+  return null;
+}
+
+function getIsEggOverrideMetLocationId(originGame) {
+  if (isBoxEventMysteryEventSelected()) {
+    return getFatefulLocationIdForGame(originGame);
+  }
+  const gameId = Number(originGame) || 0;
+  if (gameId === 1 || gameId === 2 || gameId === 3) {
+    return BOX_EVENT_DEFAULT_MET_LOCATION_ID;
+  }
+  if (gameId === 4 || gameId === 5) {
+    return BOX_EVENT_FRLG_EGG_MET_LOCATION_ID;
+  }
+  return null;
+}
+
+function shouldApplyIsEggOverrides() {
+  const isEggChecked = Boolean($('#isEgg')?.checked);
+  if (!isEggChecked) return false;
+  if (currentEncounterMode === 'hatched') return true;
+  if (isBoxEventMysteryEventSelected()) return true;
+  return false;
+}
+
+function applyIsEggOverrides(options = {}) {
+  if (!shouldApplyIsEggOverrides()) return false;
+
+  const syncUi = options.syncUi !== false;
+  const updateLegality = options.updateLegality === true;
+  const originGameId = Number($('#originGame')?.value) || 0;
+  const forcedMetLocationId = getIsEggOverrideMetLocationId(originGameId);
+
+  if (!syncUi) return true;
+
+  const languageEl = $('#language');
+  if (languageEl && String(languageEl.value) !== String(IS_EGG_OVERRIDE_LANGUAGE_ID)) {
+    languageEl.value = String(IS_EGG_OVERRIDE_LANGUAGE_ID);
+    try { languageEl.dispatchEvent(new Event('change')); } catch (e) {}
+  }
+
+  const levelEl = $('#level');
+  if (levelEl && Number(levelEl.value) !== IS_EGG_OVERRIDE_LEVEL) {
+    levelEl.value = String(IS_EGG_OVERRIDE_LEVEL);
+  }
+  try { computeAndSetExpFromLevel(); } catch (e) {}
+
+  const metLocationEl = $('#metLocation');
+  if (metLocationEl && forcedMetLocationId !== null) {
+    try {
+      if (metLocationWrapper && metLocationWrapper.updateList) {
+        metLocationWrapper.updateList(getLocationsForGame(originGameId));
+      }
+    } catch (e) {}
+    metLocationEl.value = String(forcedMetLocationId);
+  }
+
+  if (isBoxEventMysteryEventSelected()) {
+    const otNameEl = $('#otName');
+    if (otNameEl) {
+      otNameEl.value = 'AZUZA';
+    }
+  }
+
+  try { enforceJapaneseOption(); } catch (e) {}
+  if (updateLegality) {
+    try { updateLegalityStatus(); } catch (e) {}
+  }
+  return true;
 }
 
 function getPcnyWishEggsHatchLocationsForGame(originGame) {
@@ -887,19 +985,6 @@ function applyWishmkrOriginGameConstraints() {
   return true;
 }
 
-function getFatefulLocationIdForGame(originGame) {
-  const gameId = Number(originGame) || 0;
-  const gameLocations = getLocationsForGame(gameId);
-  const found = gameLocations.find(([id, name]) => {
-    if (Number(id) === BOX_EVENT_FATEFUL_MET_LOCATION_ID) return true;
-    return String(name || '').toLowerCase().includes('fateful');
-  }) || LOCATIONS.find(([id, name]) => {
-    if (Number(id) === BOX_EVENT_FATEFUL_MET_LOCATION_ID) return true;
-    return String(name || '').toLowerCase().includes('fateful');
-  });
-  return found ? Number(found[0]) : BOX_EVENT_FATEFUL_MET_LOCATION_ID;
-}
-
 function applyBoxEventMysteryLocationConstraints(options = {}) {
   if (!isBoxEventMysteryEventSelected()) return false;
 
@@ -962,21 +1047,15 @@ function applyBoxEventMysteryLocationConstraints(options = {}) {
 
   if (manualOverrideActive) return true;
 
-  const currentLocId = Number(metLocationEl.value) || 0;
-
   if (isEgg) {
-    metLocationEl.value = String(getFatefulLocationIdForGame(originGameId));
+    const fatefulLocationId = getFatefulLocationIdForGame(originGameId);
+    metLocationEl.value = String(fatefulLocationId);
     return true;
   }
 
-  const isCurrentBlocked = HATCHED_DISABLED_MET_LOCATION_IDS.has(currentLocId);
-  if (preserveCurrentNonEgg && currentLocId > 0 && !isCurrentBlocked) {
-    return true;
-  }
-
-  const hasRoute117 = locations.some(([id]) => Number(id) === BOX_EVENT_DEFAULT_MET_LOCATION_ID);
-  if (hasRoute117) {
-    metLocationEl.value = String(BOX_EVENT_DEFAULT_MET_LOCATION_ID);
+  const defaultMetLocationId = getBoxEventDefaultMetLocationIdForGame(originGameId);
+  if (defaultMetLocationId !== null) {
+    metLocationEl.value = String(defaultMetLocationId);
     return true;
   }
 
@@ -984,7 +1063,6 @@ function applyBoxEventMysteryLocationConstraints(options = {}) {
   if (fallback) {
     metLocationEl.value = String(fallback[0]);
   }
-
   return true;
 }
 
@@ -2855,16 +2933,26 @@ function boot(){
           errors.push('BOX Event must have met level 0');
         }
 
+        const fatefulCheckbox = $('#fatefulEncounter');
+        if (fatefulCheckbox && fatefulCheckbox.checked) {
+          errors.push('BOX Event must keep the Fateful Encounter checkbox unchecked');
+        }
+
         const isEgg = Boolean($('#isEgg')?.checked);
         const metLocationId = Number($('#metLocation')?.value) || 0;
-        const locName = String((LOCATIONS.find(([id]) => Number(id) === metLocationId)?.[1]) || '').toLowerCase();
-        const isFatefulLocation = metLocationId === BOX_EVENT_FATEFUL_MET_LOCATION_ID || locName.includes('fateful');
-
-        if (isEgg && !isFatefulLocation) {
-          errors.push('BOX Event eggs must use a Fateful Encounter met location');
+        const expectedLocationId = isEgg
+          ? getFatefulLocationIdForGame(Number($('#originGame')?.value) || 0)
+          : getBoxEventDefaultMetLocationIdForGame(Number($('#originGame')?.value) || 0);
+        if (expectedLocationId !== null && metLocationId !== expectedLocationId) {
+          const expectedName = String((LOCATIONS.find(([id]) => Number(id) === expectedLocationId)?.[1]) || expectedLocationId);
+          errors.push(`BOX Event must use ${expectedName} as met location`);
         }
-        if (!isEgg && isFatefulLocation) {
-          errors.push('Non-egg BOX Event should not use a Fateful Encounter met location');
+
+        if (isEgg) {
+          const otName = String($('#otName')?.value || '').trim().toUpperCase();
+          if (otName !== 'AZUZA') {
+            errors.push('BOX Event eggs must have OT name AZUZA');
+          }
         }
       }
     }
@@ -3133,17 +3221,21 @@ function boot(){
             $('#otName').value = evt.ot_names[langKey];
             // update legality/status if needed
             try { updateLegalityStatus(); } catch (e) {}
+            try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
             return;
           }
           // Fallback to generic ot_name if provided
           if (evt.ot_name) {
             $('#otName').value = evt.ot_name;
             try { updateLegalityStatus(); } catch (e) {}
+            try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
             return;
           }
         }
       }
     } catch (e) {}
+
+    try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
   });
   
   // Attach validation to relevant fields
@@ -3298,10 +3390,19 @@ function boot(){
   const isEggCheckbox = $('#isEgg');
   if (isEggCheckbox) {
     isEggCheckbox.addEventListener('change', () => {
+      if (isEggCheckbox.checked) {
+        const friendshipEl = $('#friendship');
+        if (friendshipEl) {
+          friendshipEl.value = '1';
+          try { friendshipEl.dispatchEvent(new Event('input')); } catch (e) {}
+          try { friendshipEl.dispatchEvent(new Event('change')); } catch (e) {}
+        }
+      }
       if (isBoxEventMysteryEventSelected()) {
         applyBoxEventMysteryLocationConstraints({ preserveCurrentNonEgg: true });
         try { updateBallLocking(); } catch (e) {}
       }
+      try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
       updateLegalityStatus();
     });
   }
@@ -3379,6 +3480,7 @@ function boot(){
       if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
 
       try { updateBallLocking(); } catch (e) {}
+      try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
       updateLegalityStatus();
       return;
     }
@@ -3393,6 +3495,8 @@ function boot(){
     // Refresh move list — FRLG have different level-up learnsets from Emerald
     const speciesId = Number($('#species').value) || 0;
     if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
+
+    try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
 
     // Update legality status when origin game changes
     updateLegalityStatus();
@@ -3463,6 +3567,7 @@ function boot(){
       updateLegalityStatus();
       // Update ball locking for Safari Zone logic
       try { updateBallLocking(); } catch (e) {}
+      try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
       // In wild mode, snap met level for the newly chosen location
       if (currentEncounterMode === 'wild') {
         const spId = Number($('#species').value) || 0;
@@ -3711,6 +3816,7 @@ function boot(){
       try { applyMystryMewOriginGameConstraints(); } catch (e) {}
       try { applyWishmkrOriginGameConstraints(); } catch (e) {}
       try { applyBoxEventMysteryLocationConstraints({ preserveCurrentNonEgg: true }); } catch (e) {}
+      try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
     });
   }
 
@@ -3992,7 +4098,7 @@ function boot(){
       if (currentEncounterMode === 'imported') return;
       const langSel = $('#language');
       if (!langSel || !langSel.options) return;
-      let allowJapanese = manualOverrideActive; // override unlocks all languages
+      let allowJapanese = manualOverrideActive || shouldApplyIsEggOverrides(); // override unlocks all languages
       if (!allowJapanese) {
         const t = String(tag || '').toUpperCase();
         if (t && MYSTERY_EVENTS && MYSTERY_EVENTS[t]) {
@@ -4029,6 +4135,16 @@ function boot(){
   function updateFatefulLocking() {
     const el = $('#fatefulEncounter');
     if (!el) return;
+
+    if (isBoxEventMysteryEventSelected()) {
+      if (manualOverrideActive) {
+        el.disabled = false;
+      } else {
+        el.checked = false;
+        el.disabled = true;
+      }
+      return;
+    }
 
     if (isPcnyWishEggsMysteryEventSelected()) {
       if (manualOverrideActive) {
@@ -4625,6 +4741,7 @@ function boot(){
             try { updateLevelLocking(); } catch (e) {}
             try { updateFatefulLocking(); } catch (e) {}
             try { updateBallLocking(); } catch (e) {}
+            try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
 
             // Update available species/options for this event
             updateSpeciesListForMode();
@@ -5931,6 +6048,11 @@ function boot(){
             } catch (eee) {}
           }
       } catch (ee) {}
+      try {
+        if (shouldApplyIsEggOverrides()) {
+          val = IS_EGG_OVERRIDE_LEVEL;
+        }
+      } catch (eee) {}
       if (String(e.target.value) !== String(val)) {
         e.target.value = String(val);
       }
@@ -8354,6 +8476,29 @@ function collect(){
   // WISHMKR Jirachi Mystery Gift is Ruby-origin only.
   if (currentEncounterMode === 'mystery' && isWishmkrMysteryEventSelected()) {
     out.originGame = WISHMKR_ORIGIN_GAME_ID;
+  }
+
+  // BOX event should keep the explicit Fateful Encounter flag unchecked.
+  if (currentEncounterMode === 'mystery' && isBoxEventMysteryEventSelected()) {
+    out.ribbons.fatefulEncounter = false;
+  }
+
+  // Hatched and BOX_EVENT egg outputs must use Japanese + level 5 + game-specific met location.
+  if (out.isEgg && (currentEncounterMode === 'hatched' || isBoxEventMysteryEventSelected())) {
+    out.languageId = IS_EGG_OVERRIDE_LANGUAGE_ID;
+    out.level = IS_EGG_OVERRIDE_LEVEL;
+
+    const forcedMetLocationId = getIsEggOverrideMetLocationId(out.originGame);
+    if (forcedMetLocationId !== null) {
+      out.metLocationId = forcedMetLocationId;
+    }
+
+    const growthGroup = EXP_GROUPS[out.speciesId] ?? GROUP.MEDIUM_FAST;
+    out.totalExp = expForLevel(growthGroup, IS_EGG_OVERRIDE_LEVEL);
+
+    if (currentEncounterMode === 'mystery' && isBoxEventMysteryEventSelected()) {
+      out.otName = 'AZUZA';
+    }
   }
 
   return out;

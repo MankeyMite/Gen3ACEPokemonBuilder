@@ -1,4 +1,16 @@
 Patch Notes - (V.0.3.4)
+- Added a troubleshooting guide for Base64 codes, and added a clickable Metang sprite in the code section.
+- Locked CXD generations to Male OT, as there is no female protaganist in Colosseum or XD
+- Added tooltip for EVs
+- Added "Find legal encounter" button to Ruby&Sapphire Box distribution pokemon.
+- locked the Origin Game to Ruby for WISHMKR Jirachi Event, and updated the wording on the extra pkmn next to WELDR to avoid confusion about spaces.
+- Locked some fields for the Channel Jirachi event
+- Locked multiple fields in mystery gift encounter type
+- improved profanity filter, making it no longer treat numbers as invisible, helping to catch more bad words
+- fixed some bugs in the mystery gifts events, and added find legal encounter for pokemon Box ruby & sapphire
+- changed .ek3 file import to allow 100 bytes, ignoring the last 20 bytes.
+
+Patch Notes - (V.0.3.4)
 - Added "Find legal encounter" to Mystery Gifts encounter type
 - Improved the profanity filter
 - Added Space Center Deoxys mystery gift
