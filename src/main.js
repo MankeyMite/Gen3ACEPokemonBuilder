@@ -271,7 +271,7 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
       }
 
       // If event requires fateful encounter, ensure met location is set to a "Fateful" entry
-      if (evt.defaultFatefulEncounter && !isPcnyWishEggsMysteryTag(tag)) {
+      if (evt.defaultFatefulEncounter && !isPcnyWishEggsMysteryTag(tag) && !isBoxEventMysteryTag(tag)) {
         try {
           const sel = $('#metLocation');
           if (sel) {
@@ -319,11 +319,11 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
         }
       } catch (e) {}
 
-      // BOX_EVENT and POKEMON_ROCKS_METANG should always default met location
-      // to a Fateful Encounter entry.
+      // POKEMON_ROCKS_METANG should always default met location to a
+      // Fateful Encounter entry.
       try {
         const tU = String(tag).toUpperCase();
-        if (tU === 'BOX_EVENT' || tU === 'POKEMON_ROCKS_METANG') {
+        if (tU === 'POKEMON_ROCKS_METANG') {
           const sel = $('#metLocation');
           if (sel) {
             const originGameId = Number($('#originGame')?.value) || evt.defaultOriginGame || 2;
@@ -512,10 +512,18 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
         }
       } catch (e) {}
 
+      // BOX_EVENT: use Route 117 by default for non-egg and Fateful Encounter
+      // only when Is Egg is enabled.
+      try {
+        if (isBoxEventMysteryTag(tag)) {
+          applyBoxEventMysteryLocationConstraints({ preserveCurrentNonEgg: false });
+        }
+      } catch (e) {}
+
       // WISHMKR_SHINY: set metLocation to a Fateful entry (but do NOT check
-      // the fatefulEncounter box) and restrict available natures to the
-      // specific set provided in the JSON for this event so only those 9
-      // preset PIDs are selectable.
+      // the fatefulEncounter box), force shiny checked+locked, and restrict
+      // available natures to the specific set provided in the JSON for this
+      // event so only those 9 preset PIDs are selectable.
       try {
         if (String(tag).toUpperCase() === 'WISHMKR_SHINY') {
           // set met location to a Fateful entry
@@ -528,6 +536,13 @@ function updateMysterySpeciesOptions(/*tag*/) { return; }
             if (found) sel.value = String(found[0]);
           }
           const f = $('#fatefulEncounter'); if (f) f.checked = false;
+
+          const shinyEl = $('#shiny');
+          if (shinyEl) {
+            shinyEl.checked = true;
+            shinyEl.disabled = true;
+            shinyEl.title = 'This event is always shiny.';
+          }
 
           // Restrict nature choices to those present in the mystery JSON for this tag
           try {
@@ -674,7 +689,6 @@ let mysteryUserModifiedSincePreset = false;
 function getSelectedMysteryEvent() {
   const rawTag = String(document.getElementById('mysteryEvent')?.value || '').toUpperCase();
   let tag = rawTag;
-  if (tag === 'WISHMKR_SHINY') tag = 'WISHMKR_BEST';
   if (tag === 'BERRY_FIX_ZIGZAGOON') tag = 'BERRY_PROGRAM_UPDATE_ZIGZAGOON';
   return {
     tag,
@@ -737,6 +751,10 @@ const PCNY_FRLG_HATCH_LOCATION_MIN = 88;
 const PCNY_FRLG_HATCH_LOCATION_MAX = 196;
 const MYSTRY_MEW_ORIGIN_GAME_ID = 2;
 const WISHMKR_ORIGIN_GAME_ID = 2;
+const BOX_EVENT_TAG = 'BOX_EVENT';
+const BOX_EVENT_ALLOWED_ORIGIN_GAMES = [1, 2, 3, 4, 5];
+const BOX_EVENT_DEFAULT_MET_LOCATION_ID = 32; // Route 117
+const BOX_EVENT_FATEFUL_MET_LOCATION_ID = 255;
 
 function isPcnyWishEggsMysteryTag(tag) {
   return String(tag || '').toUpperCase() === PCNY_WISH_EGGS_TAG;
@@ -745,6 +763,15 @@ function isPcnyWishEggsMysteryTag(tag) {
 function isPcnyWishEggsMysteryEventSelected() {
   if (currentEncounterMode !== 'mystery') return false;
   return isPcnyWishEggsMysteryTag(getSelectedMysteryEvent().tag);
+}
+
+function isBoxEventMysteryTag(tag) {
+  return String(tag || '').toUpperCase() === BOX_EVENT_TAG;
+}
+
+function isBoxEventMysteryEventSelected() {
+  if (currentEncounterMode !== 'mystery') return false;
+  return isBoxEventMysteryTag(getSelectedMysteryEvent().tag);
 }
 
 function getPcnyWishEggsHatchLocationsForGame(originGame) {
@@ -860,6 +887,107 @@ function applyWishmkrOriginGameConstraints() {
   return true;
 }
 
+function getFatefulLocationIdForGame(originGame) {
+  const gameId = Number(originGame) || 0;
+  const gameLocations = getLocationsForGame(gameId);
+  const found = gameLocations.find(([id, name]) => {
+    if (Number(id) === BOX_EVENT_FATEFUL_MET_LOCATION_ID) return true;
+    return String(name || '').toLowerCase().includes('fateful');
+  }) || LOCATIONS.find(([id, name]) => {
+    if (Number(id) === BOX_EVENT_FATEFUL_MET_LOCATION_ID) return true;
+    return String(name || '').toLowerCase().includes('fateful');
+  });
+  return found ? Number(found[0]) : BOX_EVENT_FATEFUL_MET_LOCATION_ID;
+}
+
+function applyBoxEventMysteryLocationConstraints(options = {}) {
+  if (!isBoxEventMysteryEventSelected()) return false;
+
+  const preserveCurrentNonEgg = options.preserveCurrentNonEgg !== undefined
+    ? Boolean(options.preserveCurrentNonEgg)
+    : true;
+
+  const evt = MYSTERY_EVENTS[BOX_EVENT_TAG] || null;
+  const originGameSelect = $('#originGame');
+  const isEgg = Boolean($('#isEgg')?.checked);
+  const allowedOriginGames = new Set(BOX_EVENT_ALLOWED_ORIGIN_GAMES);
+
+  if (originGameSelect) {
+    for (const opt of Array.from(originGameSelect.options || [])) {
+      const gid = Number(opt.value);
+      const allow = allowedOriginGames.has(gid);
+      opt.disabled = !allow;
+      opt.hidden = !allow;
+    }
+  }
+
+  let originGameId = Number(originGameSelect?.value) || Number(evt?.defaultOriginGame) || 2;
+
+  if (!allowedOriginGames.has(originGameId)) {
+    const preferredGames = [Number(evt?.defaultOriginGame) || 0, 2, 3, 1, 4, 5];
+    const fallbackGameId = preferredGames.find((gameId) => allowedOriginGames.has(Number(gameId)))
+      || BOX_EVENT_ALLOWED_ORIGIN_GAMES[0];
+    originGameId = Number(fallbackGameId);
+    if (originGameSelect) {
+      originGameSelect.value = String(originGameId);
+    }
+  }
+
+  if (!manualOverrideActive && !isEgg) {
+    const supportsRoute117 = getLocationsForGame(originGameId)
+      .some(([id]) => Number(id) === BOX_EVENT_DEFAULT_MET_LOCATION_ID);
+    if (!supportsRoute117) {
+      const preferredGames = [Number(evt?.defaultOriginGame) || 0, 2, 3, 1];
+      const fallbackGameId = preferredGames.find((gameId) => {
+        if (!gameId) return false;
+        return getLocationsForGame(gameId)
+          .some(([id]) => Number(id) === BOX_EVENT_DEFAULT_MET_LOCATION_ID);
+      });
+      if (fallbackGameId) {
+        originGameId = Number(fallbackGameId);
+        if (originGameSelect) {
+          originGameSelect.value = String(originGameId);
+        }
+      }
+    }
+  }
+
+  const metLocationEl = $('#metLocation');
+  if (!metLocationEl) return true;
+
+  const locations = getLocationsForGame(originGameId);
+  if (metLocationWrapper && metLocationWrapper.updateList) {
+    metLocationWrapper.updateList(locations);
+  }
+
+  if (manualOverrideActive) return true;
+
+  const currentLocId = Number(metLocationEl.value) || 0;
+
+  if (isEgg) {
+    metLocationEl.value = String(getFatefulLocationIdForGame(originGameId));
+    return true;
+  }
+
+  const isCurrentBlocked = HATCHED_DISABLED_MET_LOCATION_IDS.has(currentLocId);
+  if (preserveCurrentNonEgg && currentLocId > 0 && !isCurrentBlocked) {
+    return true;
+  }
+
+  const hasRoute117 = locations.some(([id]) => Number(id) === BOX_EVENT_DEFAULT_MET_LOCATION_ID);
+  if (hasRoute117) {
+    metLocationEl.value = String(BOX_EVENT_DEFAULT_MET_LOCATION_ID);
+    return true;
+  }
+
+  const fallback = locations.find(([id]) => !HATCHED_DISABLED_MET_LOCATION_IDS.has(Number(id))) || locations[0];
+  if (fallback) {
+    metLocationEl.value = String(fallback[0]);
+  }
+
+  return true;
+}
+
 function updateBerryFixOtPreferenceUi() {
   const row = document.getElementById('berryFixOtFilterRow');
   const pref = document.getElementById('berryFixOtPreference');
@@ -891,6 +1019,7 @@ function getMysteryPidMethod() {
   if (tag === 'AGETO_CELEBI' || tag === 'MITSURIN_CELEBI') return 'CXD';
   if (tag === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') return 'BACD_RBCD';
   if (tag === 'MYSTRY_MEW') return 'BACD_M';
+  if (tag === BOX_EVENT_TAG) return 'BACD_U';
   if (tag === PCNY_WISH_EGGS_TAG) return 'METHOD_2';
 
   if (tag === 'WISHMKR_BEST' || tag === 'WISHMKR_SHINY') return 'BACD_R';
@@ -913,6 +1042,7 @@ function getMysteryPidMethod() {
 function isMysteryBACDMethod(method) {
   return (
     method === 'BACD' ||
+    method === 'BACD_U' ||
     method === 'BACD_R' ||
     method === 'BACD_R_A' ||
     method === 'BACD_A' ||
@@ -1021,6 +1151,8 @@ function updatePidFinderVisibility() {
   const row = document.getElementById('pidFinderRow');
   if (!row) return;
 
+  const pidFinderBtn = document.getElementById('pidFinderBtn');
+
   const mysteryMethod = getMysteryPidMethod();
   const shouldShow =
     currentEncounterMode === 'wild' ||
@@ -1033,6 +1165,23 @@ function updatePidFinderVisibility() {
     isMysteryBACDMethod(mysteryMethod);
 
   row.style.display = shouldShow ? 'flex' : '';
+
+  if (pidFinderBtn) {
+    const mysteryTag = String(document.getElementById('mysteryEvent')?.value || '').toUpperCase();
+    const disableForWishmkrShiny = currentEncounterMode === 'mystery' && mysteryTag === 'WISHMKR_SHINY';
+    pidFinderBtn.disabled = disableForWishmkrShiny;
+    pidFinderBtn.style.pointerEvents = disableForWishmkrShiny ? 'none' : '';
+    pidFinderBtn.style.opacity = disableForWishmkrShiny ? '0.6' : '';
+    pidFinderBtn.style.cursor = disableForWishmkrShiny ? 'not-allowed' : '';
+    pidFinderBtn.title = disableForWishmkrShiny
+      ? 'Find Legal Encounter is unavailable for WISHMKR JIRACHI - ALL SHINY VERSIONS.'
+      : '';
+
+    if (disableForWishmkrShiny) {
+      pidFinderBtn.classList.remove('field-error');
+    }
+  }
+
   try { updateBerryFixOtPreferenceUi(); } catch (e) {}
 }
 
@@ -2701,6 +2850,22 @@ function boot(){
         if (xor < 8) {
           errors.push('Selected PID is shiny for MYSTRY Mew and is illegal');
         }
+      } else if (isBoxEventMysteryTag(tag)) {
+        if (metLevel !== 0) {
+          errors.push('BOX Event must have met level 0');
+        }
+
+        const isEgg = Boolean($('#isEgg')?.checked);
+        const metLocationId = Number($('#metLocation')?.value) || 0;
+        const locName = String((LOCATIONS.find(([id]) => Number(id) === metLocationId)?.[1]) || '').toLowerCase();
+        const isFatefulLocation = metLocationId === BOX_EVENT_FATEFUL_MET_LOCATION_ID || locName.includes('fateful');
+
+        if (isEgg && !isFatefulLocation) {
+          errors.push('BOX Event eggs must use a Fateful Encounter met location');
+        }
+        if (!isEgg && isFatefulLocation) {
+          errors.push('Non-egg BOX Event should not use a Fateful Encounter met location');
+        }
       }
     }
     
@@ -2905,7 +3070,16 @@ function boot(){
       // Keep Mirage Island visible but non-selectable unless Manual Override is enabled.
       if (locationId === MIRAGE_ISLAND_LOCATION_ID) return true;
       // In Hatched mode, keep special event/trade locations visible but not selectable.
-      return currentEncounterMode === 'hatched' && HATCHED_DISABLED_MET_LOCATION_IDS.has(locationId);
+      if (currentEncounterMode === 'hatched' && HATCHED_DISABLED_MET_LOCATION_IDS.has(locationId)) {
+        return true;
+      }
+      // BOX_EVENT in mystery mode should use hatched-style location choices
+      // when not marked as an egg.
+      if (currentEncounterMode === 'mystery' && isBoxEventMysteryEventSelected()) {
+        const isEgg = Boolean($('#isEgg')?.checked);
+        return !isEgg && HATCHED_DISABLED_MET_LOCATION_IDS.has(locationId);
+      }
+      return false;
     }
   });
   
@@ -3120,6 +3294,17 @@ function boot(){
   if (fatefulEncounterCheckbox) {
     fatefulEncounterCheckbox.addEventListener('change', updateLegalityStatus);
   }
+
+  const isEggCheckbox = $('#isEgg');
+  if (isEggCheckbox) {
+    isEggCheckbox.addEventListener('change', () => {
+      if (isBoxEventMysteryEventSelected()) {
+        applyBoxEventMysteryLocationConstraints({ preserveCurrentNonEgg: true });
+        try { updateBallLocking(); } catch (e) {}
+      }
+      updateLegalityStatus();
+    });
+  }
   
   // Run initial validation
   validateForm();
@@ -3183,6 +3368,17 @@ function boot(){
       const speciesId = Number($('#species').value) || 0;
       if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
 
+      updateLegalityStatus();
+      return;
+    }
+
+    if (isBoxEventMysteryEventSelected()) {
+      applyBoxEventMysteryLocationConstraints({ preserveCurrentNonEgg: true });
+
+      const speciesId = Number($('#species').value) || 0;
+      if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
+
+      try { updateBallLocking(); } catch (e) {}
       updateLegalityStatus();
       return;
     }
@@ -3514,6 +3710,7 @@ function boot(){
       try { applyPcnyWishEggsOriginAndLocationConstraints(); } catch (e) {}
       try { applyMystryMewOriginGameConstraints(); } catch (e) {}
       try { applyWishmkrOriginGameConstraints(); } catch (e) {}
+      try { applyBoxEventMysteryLocationConstraints({ preserveCurrentNonEgg: true }); } catch (e) {}
     });
   }
 
@@ -3580,7 +3777,7 @@ function boot(){
       static: {label: 'Static', color: '#f59e0b', text: 'All static encounters: starters, fossils, gifts, game corner, stationary, legends, and events. IVs are hand picked for best possible per nature for Method 1. Use the PID searcher for custom PID/shininess.'},
       roamer: {label: 'Roamer', color: '#e879f9', text: 'Roaming legendaries (Latios, Latias, Raikou, Entei, Suicune). Uses Method 1 PID generation. Non-Emerald roamers have the IV truncation bug (only HP and partial ATK IVs are kept; DEF/SPE/SPA/SPD are forced to 0).'},
       wild: {label: 'Wild', color: '#60a5fa', text: 'Wild encounters (in the overworld). Recommended only if you prefer it looking like it was RNG manipulated. Uses Method 1 encounter slots to aim for best IVs per nature for each species. Use the PID searcher for custom PID/shininess.'},
-      mystery: {label: 'Mystery Gifts', color: '#ef476f', text: 'Mystery Gift events — Get Distribution Event Pokémon! These have strict rules, so you may only change a few fields. IVs are hand picked for the best possible for each nature.'},
+      mystery: {label: 'Mystery Gifts', color: '#ef476f', text: 'Get Distribution Event Pokémon with event-accurate legality rules. Illegal fields are locked automatically, and only unlocked fields can be edited. Use the Find Legal Encounter button, where available, to generate legal custom PID and IV combinations for the selected event.'},
       cxd_shadow: {label: 'XD / Colosseum', color: '#a78bfa', text: 'Shadow Pokémon from Pokémon XD: Gale of Darkness and Pokémon Colosseum. Choose a species and encounter location, then use the PID Finder with CXD method. TID and SID must be a valid GameCube RNG pair.'},
       imported: {label: 'Imported', color: '#94a3b8', text: 'Pokémon imported from external data. Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from UI fields. This matters for glitched bytes the UI cannot safely represent.'}
     };
@@ -3626,8 +3823,8 @@ function boot(){
       const evt = (tag && MYSTERY_EVENTS && MYSTERY_EVENTS[tag]) ? MYSTERY_EVENTS[tag] : null;
       const usesHatcherTrainerData = isPcnyWishEggsMysteryTag(tag) || !!evt?.usesHatcherTrainerData;
       const shouldLockTidSid = !manualOverrideActive && (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData);
-      const shouldLockOtName = !manualOverrideActive && currentEncounterMode === 'mystery';
-      const shouldLockOriginGame = !manualOverrideActive && currentEncounterMode === 'mystery';
+      const shouldLockOtName = !manualOverrideActive && currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT';
+      const shouldLockOriginGame = !manualOverrideActive && currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT';
       if (tidEl) {
         tidEl.disabled = Boolean(shouldLockTidSid);
         tidEl.style.pointerEvents = shouldLockTidSid ? 'none' : '';
@@ -3662,34 +3859,40 @@ function boot(){
       if (isWishmkrMysteryEventSelected()) {
         applyWishmkrOriginGameConstraints();
       }
+      if (isBoxEventMysteryEventSelected()) {
+        applyBoxEventMysteryLocationConstraints({ preserveCurrentNonEgg: true });
+      }
     } catch (e) {}
   }
 
-  // Lock OT gender to Male for Colosseum/XD shadow encounters unless Manual
-  // Override is enabled. Preserve unrelated OT gender locks by only unlocking
-  // when this CXD rule previously applied the lock.
+  // Lock OT gender to Male for Colosseum/XD shadow encounters and WISHMKR
+  // mystery events unless Manual Override is enabled. Preserve unrelated OT
+  // gender locks by only unlocking when this rule previously applied the lock.
   function updateOtGenderLocking() {
     try {
       const otGenderEl = $('#otGender');
       if (!otGenderEl) return;
 
-      const shouldLockToMale = !manualOverrideActive && currentEncounterMode === 'cxd_shadow';
+      const shouldLockToMale = !manualOverrideActive && (
+        currentEncounterMode === 'cxd_shadow' ||
+        isWishmkrMysteryEventSelected()
+      );
       if (shouldLockToMale) {
         otGenderEl.value = 'male';
         otGenderEl.disabled = true;
         otGenderEl.style.pointerEvents = 'none';
         otGenderEl.style.opacity = '0.6';
         otGenderEl.style.cursor = 'not-allowed';
-        otGenderEl.dataset.cxdOtGenderLock = '1';
+        otGenderEl.dataset.otGenderForcedLock = '1';
         return;
       }
 
-      if (otGenderEl.dataset.cxdOtGenderLock === '1') {
+      if (otGenderEl.dataset.otGenderForcedLock === '1') {
         otGenderEl.disabled = false;
         otGenderEl.style.pointerEvents = '';
         otGenderEl.style.opacity = '';
         otGenderEl.style.cursor = '';
-        delete otGenderEl.dataset.cxdOtGenderLock;
+        delete otGenderEl.dataset.otGenderForcedLock;
       }
     } catch (e) {}
   }
@@ -3813,7 +4016,7 @@ function boot(){
       if (!isEggInput) return;
       const row = isEggInput.parentElement;
       if (!row) return;
-      if (currentEncounterMode === 'hatched') {
+      if (currentEncounterMode === 'hatched' || isBoxEventMysteryEventSelected()) {
         row.style.display = '';
       } else {
         row.style.display = 'none';
@@ -3970,7 +4173,13 @@ function boot(){
             if (ballEl.updateList) ballEl.updateList(BALLS);
             applyDefaultPokeBallIfEmpty();
             setBallLockState(true);
-            setMetLocationLock(true);
+            if (isBoxEventMysteryEventSelected()) {
+              try { applyBoxEventMysteryLocationConstraints({ preserveCurrentNonEgg: true }); } catch (e) {}
+              const shouldLockMetLocation = Boolean($('#isEgg')?.checked);
+              setMetLocationLock(shouldLockMetLocation);
+            } else {
+              setMetLocationLock(true);
+            }
             return;
           }
 
@@ -4024,9 +4233,22 @@ function boot(){
       const speciesId = Number($('#species')?.value || 0);
       const isMew = speciesId === 151;
       const mysteryTag = String($('#mysteryEvent')?.value || '').toUpperCase();
+      const shouldLockEnglishForWishmkrMystery = !manualOverrideActive
+        && currentEncounterMode === 'mystery'
+        && isWishmkrMysteryEventSelected();
+
       const shouldLockJapaneseForCelebiMystery = !manualOverrideActive
         && currentEncounterMode === 'mystery'
         && (mysteryTag === 'MITSURIN_CELEBI' || mysteryTag === 'AGETO_CELEBI');
+
+      if (shouldLockEnglishForWishmkrMystery) {
+        langSel.value = '2';
+        langSel.disabled = true;
+        langSel.style.pointerEvents = 'none';
+        langSel.style.opacity = '0.6';
+        langSel.style.cursor = 'not-allowed';
+        return;
+      }
 
       if (shouldLockJapaneseForCelebiMystery) {
         for (const o of Array.from(langSel.options)) {
@@ -4083,7 +4305,7 @@ function boot(){
         try {
           const otEl = $('#otName');
           if (otEl) {
-            if (!manualOverrideActive && currentEncounterMode === 'mystery') {
+            if (!manualOverrideActive && currentEncounterMode === 'mystery' && mysteryTag !== 'BOX_EVENT') {
               otEl.disabled = true;
               otEl.style.pointerEvents = 'none';
               otEl.style.opacity = '0.6';
@@ -4251,7 +4473,8 @@ function boot(){
               'agetocelebi': 'AGETO_CELEBI',
               'clubnintendojirachigiveaway': 'WISHMKR_BEST',
               'wishmkrjirachibestivs': 'WISHMKR_BEST',
-              'wishmkrjirachiallshinypids': 'WISHMKR_BEST'
+              'wishmkrjirachiallshinypids': 'WISHMKR_SHINY',
+              'wishmkrjirachiallshinyversions': 'WISHMKR_SHINY'
             };
             for (const displayName of Object.keys(movesData || {})) {
               const movesForEvent = movesData[displayName];
@@ -4362,9 +4585,7 @@ function boot(){
           eventSel.appendChild(placeholderOpt);
 
           const keys = Object.keys(MYSTERY_EVENTS).length ? Object.keys(MYSTERY_EVENTS) : Object.keys(MYSTERY_GIFTS);
-          const tags = keys
-            .filter(t => String(t).toUpperCase() !== 'WISHMKR_SHINY')
-            .sort();
+          const tags = keys.sort();
           for (const t of tags) {
             const o = document.createElement('option');
             o.value = t;
@@ -4378,8 +4599,12 @@ function boot(){
               o.textContent = 'AGETO CELEBI';
             } else if (String(t).toUpperCase() === 'WISHMKR_BEST') {
               o.textContent = 'WISHMKR JIRACHI';
+            } else if (String(t).toUpperCase() === 'WISHMKR_SHINY') {
+              o.textContent = 'WISHMKR JIRACHI - ALL SHINY VERSIONS';
             } else if (String(t).toUpperCase() === 'CHANNEL_JIRACHI') {
               o.textContent = "CHANNEL JIRACHI";
+            } else if (String(t).toUpperCase() === 'BOX_EVENT') {
+              o.textContent = 'POKÉMON BOX RUBY & SAPPHIRE';
             } else {
               o.textContent = t.replace(/_/g,' ');
             }
@@ -5976,6 +6201,12 @@ function boot(){
         if (currentEncounterMode === 'mystery') {
           const tag = ($('#mysteryEvent') && $('#mysteryEvent').value) ? String($('#mysteryEvent').value).toUpperCase() : '';
           const evt = MYSTERY_EVENTS[tag];
+          if (tag === 'WISHMKR_SHINY') {
+            shinyCheckboxLocal.checked = true;
+            shinyCheckboxLocal.disabled = true;
+            shinyCheckboxLocal.title = 'This event is always shiny.';
+            return;
+          }
           if (evt && evt.alwaysShiny) {
             shinyCheckboxLocal.checked = true;
             shinyCheckboxLocal.disabled = true;
@@ -7337,6 +7568,7 @@ function initPidFinder() {
   }
 
   btn.addEventListener('click', () => {
+    if (btn.disabled) return;
     btn.classList.remove('field-error');
     openModal();
   });
