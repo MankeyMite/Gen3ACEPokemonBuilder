@@ -1,4 +1,4 @@
-Patch Notes - (V.0.3.4)
+Patch Notes - (V.0.3.5)
 - Added a troubleshooting guide for Base64 codes, and added a clickable Metang sprite in the code section.
 - Locked CXD generations to Male OT, as there is no female protaganist in Colosseum or XD
 - Added tooltip for EVs
