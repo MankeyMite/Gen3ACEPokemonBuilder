@@ -9199,12 +9199,16 @@ function onImportPk3(event) {
         // .pk3 is canonical decrypted data; convert to encrypted/raw ek3 bytes.
         rawBytes = convertPk3CanonicalToEk3Raw(bytes);
       } else {
-        // .ek3 is encrypted/raw box data and should be exactly 80 bytes.
-        if (bytes.length !== 80) {
-          alert(`Invalid .ek3 file size: ${bytes.length} bytes (expected 80 bytes)`);
+        // .ek3 is encrypted/raw box data (80 bytes). Some tools can export
+        // a 100-byte variant with a trailing 20-byte tail; ignore that tail.
+        if (bytes.length < 80 || bytes.length > 100) {
+          alert(`Invalid .ek3 file size: ${bytes.length} bytes (expected 80 to 100 bytes)`);
           return;
         }
         rawBytes = bytes.slice(0, 80);
+        if (bytes.length > 80) {
+          console.info(`Imported .ek3 has ${bytes.length} bytes; ignoring trailing ${bytes.length - 80} bytes.`);
+        }
       }
       
       // Parse the bytes and load into form fields (without updating outputs yet)
