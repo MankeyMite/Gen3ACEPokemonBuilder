@@ -1,3 +1,8 @@
+Patch Notes - (V.0.3.6)
+- Added buttons to choose between Console/Emulator code and Nintendo Switch code.
+- Added and adjusted some tooltips and structure of the site for more clarity.
+- Fixed the PID type generation for Ruby&Sapphire Box distribution for the BACD_U PID type. It was giving limited and incorrect results.
+
 Patch Notes - (V.0.3.5)
 - Added a troubleshooting guide for Base64 codes, and added a clickable Metang sprite in the code section.
 - Locked CXD generations to Male OT, as there is no female protaganist in Colosseum or XD
