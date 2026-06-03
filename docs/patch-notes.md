@@ -1,5 +1,5 @@
 Patch Notes - (V.0.3.6)
-- Added Pokérus option. You may choose between no pokérus, has pokérus and cured for all encounter types
+- Added Pokérus option. You may choose between no pokérus, has pokérus and cured for all encounter types.
 - Added buttons to choose between Console/Emulator code and Nintendo Switch code.
 - Added and adjusted some tooltips and structure of the site for more clarity.
 - Fixed the PID type generation for Ruby&Sapphire Box distribution for the BACD_U PID type. It was giving limited and incorrect results.
