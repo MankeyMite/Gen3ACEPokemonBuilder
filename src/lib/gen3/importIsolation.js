@@ -53,3 +53,20 @@ export function shouldMarkImportedDirtyFromEvent({
   if (!inDataCards) return false;
   return true;
 }
+
+export function resolvePokerusStateForBuild({
+  currentEncounterMode,
+  importedPokerusState,
+  pokerusDropdownDirty,
+  selectedPokerusStatus,
+  getPokerusStateFromStatusFn,
+}) {
+  const selectedState = getPokerusStateFromStatusFn(selectedPokerusStatus);
+  const shouldPreserveImportedState = currentEncounterMode === 'imported'
+    && !pokerusDropdownDirty
+    && Number.isFinite(Number(importedPokerusState));
+
+  return shouldPreserveImportedState
+    ? (Number(importedPokerusState) & 0xFF)
+    : selectedState;
+}

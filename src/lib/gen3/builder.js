@@ -8,6 +8,23 @@ import { PROFANITY_LIST } from '../../data/profanity.gen3.js';
 // Shared profanity filter instance for Base64 box-name shifting
 const _b64ProfanityFilter = createProfanityFilter(PROFANITY_LIST);
 
+export function getPokerusStateFromStatus(status) {
+  switch (status) {
+    case 'active': return 0x11;
+    case 'cured': return 0x10;
+    case 'none':
+    default: return 0x00;
+  }
+}
+
+export function getPokerusStatusFromState(byte) {
+  const strain = (byte >> 4) & 0x0F;
+  const days = byte & 0x0F;
+  if (strain === 0) return 'none';
+  if (days === 0) return 'cured';
+  return 'active';
+}
+
 const BOX_LETTER_RE = /[a-z\u00C0-\u024F\u0400-\u04FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/i;
 
 function isBoxLetter(ch) {
@@ -111,7 +128,7 @@ export function buildPokemonBytes(cfg){
 
   // ---- M (Miscellaneous) ----
   // Pokérus status (offset 0x00): bits 0-3 = days, bits 4-7 = strain
-  M[0] = 0; // No Pokérus for now
+  M[0] = (cfg.pokerusState ?? 0) & 0xFF;
   
   // Met Location (offset 0x01): 1 byte (0-255)
   M[1] = (cfg.metLocationId ?? 0) & 0xFF;
@@ -288,7 +305,7 @@ export function buildDecryptedPokemonFile(cfg){
   E[11] = (cfg.contest?.sheen ?? 0) & 0xFF;
 
   // M
-  M[0] = 0;
+  M[0] = (cfg.pokerusState ?? 0) & 0xFF;
   M[1] = (cfg.metLocationId ?? 0) & 0xFF;
   let originsInfo = ((cfg.metLevel ?? cfg.level) & 0x7F) | (((cfg.originGame ?? 3) & 0x0F) << 7) | (((cfg.ballId ?? 0) & 0x0F) << 11) | (((cfg.otGender ?? 0) & 0x01) << 15);
   writeU16LE(M, 2, originsInfo & 0xFFFF);
@@ -1014,6 +1031,8 @@ export function parsePokemonBytes(hexString) {
   };
   
   // Parse Miscellaneous (M)
+  const pokerusState = M[0] & 0xFF;
+  const pokerusStatus = getPokerusStatusFromState(pokerusState);
   const metLocationId = M[1];
   const originsInfo = M[2] | (M[3] << 8);
   const metLevel = originsInfo & 0x7F;
@@ -1081,6 +1100,8 @@ export function parsePokemonBytes(hexString) {
     moves,
     evs,
     contest,
+    pokerusStatus,
+    pokerusState,
     ivs,
     metLocationId,
     metLevel,

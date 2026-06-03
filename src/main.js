@@ -9,7 +9,7 @@ import { LOCATIONS } from './data/locations.gen3.js';
 import { PID_PRESETS } from './data/pid_presets.gen3.js';
 import { STATIC_ENCOUNTERS, isLegendary, isBreedable, isGiftPokemon, STATIC_CATEGORIES, STATIC_ENCOUNTER_LIST, STATIC_SPECIES_SET, getEncountersByCategory, getSpeciesForCategory, getEncountersForSpeciesGame, getEncounterForSpecies } from './data/staticEncounters.gen3.js';
 import { getLegendaryPreset, isColosseumXDLegendary } from './data/legendaryPresets.gen3.js';
-import { buildPokemonBytes, toHexString, toFormattedHex, toBase64Emerald, coreSource, parsePokemonBytes, parseBase64Emerald, buildDecryptedPokemonFile, convertPk3CanonicalToEk3Raw, convertEk3RawToPk3Canonical } from './lib/gen3/builder.js';
+import { buildPokemonBytes, toHexString, toFormattedHex, toBase64Emerald, coreSource, parsePokemonBytes, parseBase64Emerald, buildDecryptedPokemonFile, convertPk3CanonicalToEk3Raw, convertEk3RawToPk3Canonical, getPokerusStateFromStatus, getPokerusStatusFromState } from './lib/gen3/builder.js';
 import { GROUP, expForLevel, levelForExp } from './lib/exp.js';
 import EXP_GROUPS from './data/expGroups.gen3.js';
 import { ABILITIES, getAbilityName } from './data/abilities.gen3.js';
@@ -25,7 +25,7 @@ import { CXD_SHADOW_ENCOUNTERS, CXD_SHADOW_SPECIES, getShadowEncountersForSpecie
 import { COLO_SHADOW_LOCKS, XD_SHADOW_LOCKS, COLO_NO_LOCK_SPECIES, XD_NO_LOCK_SPECIES } from './data/cxdLocks.gen3.js';
 import { getSpritePath, getUnownFormIndex, getUnownFormChar, getUnownFormSuffix, getUnownSpritePath, getOnlineSpriteUrl, getOnlineUnownSpriteUrl, UNOWN_FORMS, TANOBY_FORMS_BY_LOCATION, getTanobyFormsForLocation, getTanobyLocationsForForm } from './data/nationalDex.gen3.js';
 import { GENDER_THRESHOLDS, getGenderThreshold } from './data/genderThresholds.gen3.js';
-import { isPristineImportedRoundTripState, tryBuildPristineImportedOutputs, shouldMarkImportedDirtyFromEvent } from './lib/gen3/importIsolation.js';
+import { isPristineImportedRoundTripState, tryBuildPristineImportedOutputs, shouldMarkImportedDirtyFromEvent, resolvePokerusStateForBuild } from './lib/gen3/importIsolation.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -681,6 +681,8 @@ let importedRoundTripBytes = null;
 let importedRoundTripDirty = true;
 let suppressImportedDirtyTracking = false;
 let outputCodeTarget = 'console';
+let importedPokerusState = null;
+let pokerusDropdownDirty = false;
 // When true, skip applying simple-mode PID presets (used during imports)
 let suppressPresetApply = false;
 // When true, suppress marking user-change events while programmatically applying presets
@@ -6091,7 +6093,7 @@ function boot(){
     'ivHp', 'ivAtk', 'ivDef', 'ivSpAtk', 'ivSpDef', 'ivSpe',
     'evHp', 'evAtk', 'evDef', 'evSpAtk', 'evSpDef', 'evSpe',
     'move1', 'move2', 'move3', 'move4', 'pp1', 'pp2', 'pp3', 'pp4',
-    'friendship', 'fatefulEncounter',
+    'friendship', 'pokerusStatus', 'fatefulEncounter',
     'contestCool', 'contestBeauty', 'contestCute', 'contestSmart', 'contestTough', 'contestSheen',
     'markCircle', 'markTriangle', 'markSquare', 'markHeart',
     'ribbonCool', 'ribbonBeauty', 'ribbonCute', 'ribbonSmart', 'ribbonTough',
@@ -6894,6 +6896,13 @@ function boot(){
   if (friendshipEl) {
     friendshipEl.addEventListener('input', (e) => {
       e.target.value = clampInt(e.target.value, 0, 255);
+    });
+  }
+
+  const pokerusStatusEl = document.querySelector('#pokerusStatus');
+  if (pokerusStatusEl) {
+    pokerusStatusEl.addEventListener('change', () => {
+      if (!suppressImportedDirtyTracking) pokerusDropdownDirty = true;
     });
   }
 
@@ -8358,6 +8367,16 @@ function collect(){
     }
   }
 
+  const selectedPokerusStatus = $('#pokerusStatus')?.value || 'none';
+  const pokerusState = resolvePokerusStateForBuild({
+    currentEncounterMode,
+    importedPokerusState,
+    pokerusDropdownDirty,
+    selectedPokerusStatus,
+    getPokerusStateFromStatusFn: getPokerusStateFromStatus,
+  });
+  const pokerusStatus = getPokerusStatusFromState(pokerusState);
+
   const out = {
     speciesId: Number($('#species').value || 0),
     itemId: Number($('#item').value || 0),
@@ -8422,6 +8441,8 @@ function collect(){
       sheen: Math.max(0, Math.min(255, Number($('#contestSheen')?.value || 0)))
     },
     friendship: Number($('#friendship').value) & 0xFF,
+    pokerusStatus,
+    pokerusState,
     moves: moves.map(x=>Number(x)),
     forceShiny: $('#shiny').checked,
     // totalExp: either the advanced input or computed from species+level
@@ -8647,6 +8668,19 @@ function clearGeneratedOutputs() {
 function clearImportedRoundTripState() {
   importedRoundTripBytes = null;
   importedRoundTripDirty = true;
+  importedPokerusState = null;
+  pokerusDropdownDirty = false;
+}
+
+function setPokerusUiFromParsedData(data) {
+  const state = Number(data?.pokerusState);
+  importedPokerusState = Number.isFinite(state) ? (state & 0xFF) : null;
+  pokerusDropdownDirty = false;
+
+  const pokerusEl = document.getElementById('pokerusStatus');
+  if (!pokerusEl) return;
+  const status = data?.pokerusStatus || getPokerusStatusFromState(importedPokerusState ?? 0);
+  pokerusEl.value = ['none', 'active', 'cured'].includes(status) ? status : 'none';
 }
 
 function setImportedRoundTripFromHex(hexInput) {
@@ -9245,6 +9279,7 @@ function onLoadFromHex(hexString){
     $('#pp4').value = String(data.pps[3]);
     
     $('#friendship').value = String(data.friendship);
+    setPokerusUiFromParsedData(data);
     
     // Ribbons
     if (data.ribbons) {
@@ -9529,6 +9564,7 @@ function onImportPk3(event) {
       $('#pp4').value = String(data.pps[3]);
       
       $('#friendship').value = String(data.friendship);
+      setPokerusUiFromParsedData(data);
       
       // Ribbons
       if (data.ribbons) {

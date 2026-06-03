@@ -1,7 +1,10 @@
 import {
+  buildDecryptedPokemonFile,
   buildPokemonBytes,
   convertEk3RawToPk3Canonical,
   convertPk3CanonicalToEk3Raw,
+  getPokerusStateFromStatus,
+  getPokerusStatusFromState,
   parsePokemonBytes,
   toHexString,
 } from './builder.js';
@@ -123,6 +126,41 @@ section('glitch-like header bytes remain unchanged');
   assert(before.ivs.hp === after.ivs.hp, 'HP IV must not change during conversion roundtrip');
   assert(before.ivs.atk === after.ivs.atk, 'ATK IV must not change during conversion roundtrip');
   assert(before.nickname === after.nickname, 'decoded nickname view must remain stable through conversion');
+}
+
+section('pokerus simple states write and parse Misc offset 0');
+{
+  const cases = [
+    { status: 'none', state: 0x00, label: 'No Pokerus' },
+    { status: 'active', state: 0x11, label: 'Has Pokerus' },
+    { status: 'cured', state: 0x10, label: 'Cured Pokerus' },
+  ];
+
+  for (const tc of cases) {
+    const cfg = { ...makeSampleCfg(), pokerusStatus: tc.status, pokerusState: getPokerusStateFromStatus(tc.status) };
+    const raw = buildPokemonBytes(cfg).bytes;
+    const parsedRaw = parsePokemonBytes(toHexString(raw));
+    assert(parsedRaw.pokerusState === tc.state, `${tc.label} writes encrypted M[0]`);
+    assert(parsedRaw.pokerusStatus === tc.status, `${tc.label} parses from encrypted output`);
+
+    const pk3 = buildDecryptedPokemonFile(cfg);
+    const parsedPk3 = parsePokemonBytes(toHexString(pk3.slice(0, 80)));
+    assert(parsedPk3.pokerusState === tc.state, `${tc.label} writes decrypted M[0]`);
+    assert(parsedPk3.pokerusStatus === tc.status, `${tc.label} parses from decrypted output`);
+  }
+}
+
+section('pokerus exact imported byte can be preserved');
+{
+  const cfg = { ...makeSampleCfg(), pokerusStatus: 'active', pokerusState: 0x42 };
+  const raw = buildPokemonBytes(cfg).bytes;
+  const parsed = parsePokemonBytes(toHexString(raw));
+
+  assert(parsed.pokerusState === 0x42, 'nonstandard Pokerus strain/day byte must parse exactly');
+  assert(parsed.pokerusStatus === 'active', 'nonstandard Pokerus strain/day byte displays as active');
+  assert(getPokerusStatusFromState(0x00) === 'none', '0x00 displays No Pokerus');
+  assert(getPokerusStatusFromState(0x11) === 'active', '0x11 displays Has Pokerus');
+  assert(getPokerusStatusFromState(0x10) === 'cured', '0x10 displays Cured Pokerus');
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

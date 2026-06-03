@@ -1,5 +1,6 @@
-import { toBase64Emerald, toFormattedHex } from './builder.js';
+import { getPokerusStateFromStatus, toBase64Emerald, toFormattedHex } from './builder.js';
 import {
+  resolvePokerusStateForBuild,
   tryBuildPristineImportedOutputs,
   shouldMarkImportedDirtyFromEvent,
 } from './importIsolation.js';
@@ -107,6 +108,27 @@ section('code target controls remain non-dirty');
 
     assert(shouldDirty === false, `${targetId} interactions must not dirty imported state`);
   }
+}
+
+section('pokerus exact import byte is preserved until dropdown edit');
+{
+  const preserved = resolvePokerusStateForBuild({
+    currentEncounterMode: 'imported',
+    importedPokerusState: 0x42,
+    pokerusDropdownDirty: false,
+    selectedPokerusStatus: 'active',
+    getPokerusStateFromStatusFn: getPokerusStateFromStatus,
+  });
+  assert(preserved === 0x42, 'unedited imported Pokerus byte should be preserved exactly');
+
+  const edited = resolvePokerusStateForBuild({
+    currentEncounterMode: 'imported',
+    importedPokerusState: 0x42,
+    pokerusDropdownDirty: true,
+    selectedPokerusStatus: 'active',
+    getPokerusStateFromStatusFn: getPokerusStateFromStatus,
+  });
+  assert(edited === 0x11, 'edited Pokerus dropdown should use the simple active state');
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
