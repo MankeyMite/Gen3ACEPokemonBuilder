@@ -950,13 +950,25 @@
 
       <h3 class="form-section-title">Trainer details</h3>
 
-      <div class="row two">
+      <div class="row two trainer-id-row">
         <div>
-          <label for="tid">TID</label>
+          <label for="tid">
+            TID
+            <span class="inline-tooltip">
+              <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Trainer ID info" aria-describedby="tidInfoTooltip" aria-expanded="false">?</button>
+              <span id="tidInfoTooltip" class="inline-tooltip-content" role="tooltip">Trainer ID is the visible ID shown in-game and can range from 0 to 65535. Together with SID and the Pokémon's PID, it determines whether the Pokémon is shiny.</span>
+            </span>
+          </label>
           <input id="tid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="12345" />
         </div>
         <div>
-          <label for="sid">SID</label>
+          <label for="sid">
+            SID
+            <span class="inline-tooltip">
+              <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Secret ID info" aria-describedby="sidInfoTooltip" aria-expanded="false">?</button>
+              <span id="sidInfoTooltip" class="inline-tooltip-content" role="tooltip">Secret ID is hidden in normal gameplay and can range from 0 to 65535. It pairs with TID and PID for shiny calculation, so changing it can change whether a Pokémon is shiny.</span>
+            </span>
+          </label>
           <input id="sid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="54321" />
         </div>
       </div>
@@ -966,17 +978,35 @@
       <div id="pidTidSidWarning" class="profanity-warning" style="display:none;"></div>
 
       <div class="row">
-        <label for="otName">OT Name</label>
+        <label for="otName">
+          OT Name
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="OT name info" aria-describedby="otNameInfoTooltip" aria-expanded="false">?</button>
+            <span id="otNameInfoTooltip" class="inline-tooltip-content" role="tooltip">Original Trainer name is the trainer name stored on the Pokémon. Event Pokémon may require a fixed OT name, while custom Pokémon usually use your in-game trainer name.</span>
+          </span>
+        </label>
         <input id="otName" type="text" maxlength="7" autocomplete="off" />
       </div>
 
       <div class="row">
-        <label for="language">Language</label>
+        <label for="language">
+          Language
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Language info" aria-describedby="languageInfoTooltip" aria-expanded="false">?</button>
+            <span id="languageInfoTooltip" class="inline-tooltip-content" role="tooltip">Language controls the Pokémon's language of origin and affects text encoding for names. Some events or egg outputs may require a specific language for legality or compatibility.</span>
+          </span>
+        </label>
         <select id="language"></select>
       </div>
 
       <div class="row">
-        <label for="otGender">OT Gender</label>
+        <label for="otGender">
+          OT Gender
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="OT gender info" aria-describedby="otGenderInfoTooltip" aria-expanded="false">?</button>
+            <span id="otGenderInfoTooltip" class="inline-tooltip-content" role="tooltip">Original Trainer gender is stored separately from the Pokémon's gender. It should match the trainer who originally received or caught the Pokémon; some events lock this value.</span>
+          </span>
+        </label>
         <select id="otGender">
           <option value="male">Male</option>
           <option value="female">Female</option>
@@ -986,13 +1016,25 @@
       <h3 class="form-section-title">Encounter details</h3>
 
       <div class="row wild-or-legend" id="pidFinderRow">
-        <label>PID &amp; IV legality tools</label>
+        <label>
+          PID &amp; IV legality tools
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="PID and IV legality tools info" aria-describedby="pidIvToolsInfoTooltip" aria-expanded="false">?</button>
+            <span id="pidIvToolsInfoTooltip" class="inline-tooltip-content" role="tooltip">Use this window to find PID, IV, ability, gender, and shiny combinations that match the selected encounter type or event. This is important for legality: for many Gen 3 encounters, PID and IVs are linked by RNG, so manually typing preferred values can create an illegal Pokémon. This button is highly recommended for legal results.</span>
+          </span>
+        </label>
         <button id="pidFinderBtn" type="button" class="pid-finder-btn">&#x1F50D; Find Legal Encounter</button>
         <span id="pidFinderStatus" class="pid-finder-status"></span>
       </div>
 
       <div class="row wild-or-legend" id="makeShinyRow">
-        <label>Shiny</label>
+        <label>
+          Shiny
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Shiny info" aria-describedby="makeShinyInfoTooltip" aria-expanded="false">?</button>
+            <span id="makeShinyInfoTooltip" class="inline-tooltip-content" role="tooltip">In Gen 3, a Pokémon is shiny when TID ^ SID ^ PID high ^ PID low is less than 8, giving 1 in 8192 odds. Changing TID, SID, or PID can change shininess. Forcing it to become shiny attempts to adjust SID to match the current TID and PID, or changes the PID in the Hatched encounter type. Use the Find Legal Encounter button in encounter types where it is available to filter for shinies with your preferred TID and SID.</span>
+          </span>
+        </label>
         <button id="makeShinyBtn" type="button" class="make-shiny-btn">&#x2728; Make Shiny</button>
         <span id="shinyIndicatorBtn" class="shiny-indicator" title="This Pokémon is shiny!" style="margin-left: 0.5rem;">✨</span>
         <span id="makeShinyStatus" class="make-shiny-status"></span>
@@ -1000,19 +1042,37 @@
       </div>
 
       <div class="row shiny-external">
-        <label for="shiny">Shiny</label>
+        <label for="shiny">
+          Shiny
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Shiny info" aria-describedby="shinyInfoTooltip" aria-expanded="false">?</button>
+            <span id="shinyInfoTooltip" class="inline-tooltip-content" role="tooltip">In Gen 3, a Pokémon is shiny when TID ^ SID ^ PID high ^ PID low is less than 8, giving 1 in 8192 odds. Changing TID, SID, or PID can change shininess. Forcing it to become shiny attempts to adjust SID to match the current TID and PID, or changes the PID in the Hatched encounter type. Use the Find Legal Encounter button in encounter types where it is available to filter for shinies with your preferred TID and SID.</span>
+          </span>
+        </label>
         <input id="shiny" type="checkbox" />
         <span id="shinyIndicatorSimple" class="shiny-indicator" title="This Pokémon is shiny!" style="margin-left: 0.5rem;">✨</span>
       </div>
 
       <div class="row">
-        <label for="pid">PID (hex)</label>
+        <label for="pid">
+          PID (hex)
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="PID info" aria-describedby="pidInfoTooltip" aria-expanded="false">?</button>
+            <span id="pidInfoTooltip" class="inline-tooltip-content" role="tooltip">Personality ID is a 32-bit value from 0x00000000 to 0xFFFFFFFF. In Gen 3, it affects nature, ability slot, gender, Unown form, Spinda spots, and shininess together with TID and SID.</span>
+          </span>
+        </label>
         <input id="pid" type="text" placeholder="0x12345678" value="0x0" />
         <span id="shinyIndicator" class="shiny-indicator" title="This Pokémon is shiny!">✨</span>
       </div>
 
       <div class="row">
-        <label for="originGame">Origin Game</label>
+        <label for="originGame">
+          Origin Game
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Origin game info" aria-describedby="originGameInfoTooltip" aria-expanded="false">?</button>
+            <span id="originGameInfoTooltip" class="inline-tooltip-content" role="tooltip">Origin Game is the game the Pokémon is marked as coming from. It affects legal met locations, encounter methods, balls, and event rules. Some events or egg outputs may require a specific game for legality or compatibility.</span>
+          </span>
+        </label>
         <select id="originGame">
           <option value="1">Sapphire</option>
           <option value="2">Ruby</option>
@@ -1037,7 +1097,13 @@
       </div>
 
       <div class="row">
-        <label for="ball-input">Ball</label>
+        <label for="ball-input">
+          Ball
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Ball info" aria-describedby="ballInfoTooltip" aria-expanded="false">?</button>
+            <span id="ballInfoTooltip" class="inline-tooltip-content" role="tooltip">Ball is the Poké Ball stored on the Pokémon. Hatched Pokémon must use a Poké Ball in Gen 3, and some event distributions or Mystery Gifts also require Poké Ball for legality.</span>
+          </span>
+        </label>
         <select id="ball"></select>
       </div>
 
@@ -1090,7 +1156,13 @@
       </div>
 
       <div class="row iv-row">
-        <label>IVs</label>
+        <label>
+          IVs
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="IV legality info" aria-describedby="ivInfoTooltip" aria-expanded="false">?</button>
+            <span id="ivInfoTooltip" class="inline-tooltip-content" role="tooltip">IVs range from 0 to 31 in each stat, and each point equals 1 stat point at level 100. IVs are controlled by the selected legal encounter. In hatched mode, any combination is automatically legal.</span>
+          </span>
+        </label>
         <div class="grid iv-grid">
           <div>
             <label for="ivHp">HP IV</label>
