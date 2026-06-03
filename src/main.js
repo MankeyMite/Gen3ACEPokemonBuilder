@@ -680,6 +680,7 @@ const encounterModeStateCache = {};
 let importedRoundTripBytes = null;
 let importedRoundTripDirty = true;
 let suppressImportedDirtyTracking = false;
+let outputCodeTarget = 'console';
 // When true, skip applying simple-mode PID presets (used during imports)
 let suppressPresetApply = false;
 // When true, suppress marking user-change events while programmatically applying presets
@@ -6918,6 +6919,13 @@ function boot(){
     });
   });
 
+  document.querySelectorAll('.code-target-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setOutputCodeTarget(btn.dataset.codeTarget, { regenerate: true });
+    });
+  });
+  setOutputCodeTarget(outputCodeTarget);
+
   // Output help: prepare the clickable Metang sprite and keep it hidden
   // until Generate produces Base64/Hex output.
   const codeHelpInline = $('#codeHelpInline');
@@ -8548,6 +8556,59 @@ function updateProfanityWarning(b64Text) {
   banner.style.display = 'block';
 }
 
+function isNintendoSwitchCodeTarget() {
+  return outputCodeTarget !== 'console';
+}
+
+function hideBase64SafetyWarnings() {
+  const profanityBanner = document.getElementById('profanityWarning');
+  if (profanityBanner) {
+    profanityBanner.style.display = 'none';
+    profanityBanner.textContent = '';
+  }
+
+  const substitutionBanner = document.getElementById('substitutionWarning');
+  if (substitutionBanner) {
+    substitutionBanner.style.display = 'none';
+    substitutionBanner.textContent = '';
+  }
+}
+
+function updateBase64SafetyWarnings(b64Text, substitutionUsed) {
+  if (!isNintendoSwitchCodeTarget()) {
+    hideBase64SafetyWarnings();
+    return;
+  }
+
+  updateProfanityWarning(b64Text);
+
+  const substBanner = document.getElementById('substitutionWarning');
+  if (!substBanner) return;
+  if (substitutionUsed) {
+    substBanner.textContent = 'One or more characters have been converted to a symbol to avoid the profanity filter on Switch.';
+    substBanner.style.display = 'block';
+  } else {
+    substBanner.style.display = 'none';
+    substBanner.textContent = '';
+  }
+}
+
+function setOutputCodeTarget(target, options = {}) {
+  outputCodeTarget = target === 'console' ? 'console' : 'switch';
+
+  document.querySelectorAll('.code-target-btn').forEach(btn => {
+    const active = btn.dataset.codeTarget === outputCodeTarget;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+
+  if (options.regenerate && $('#base64Output')?.value) {
+    onGenerate();
+  } else if (!isNintendoSwitchCodeTarget()) {
+    hideBase64SafetyWarnings();
+  }
+}
+
 function setOutputTroubleshootingVisible(visible) {
   const helper = document.getElementById('codeHelpInline');
   if (!helper) return;
@@ -8626,28 +8687,17 @@ function onGenerate(){
     importedRoundTripBytes,
     importedRoundTripDirty,
     toFormattedHexFn: toFormattedHex,
-    toBase64Fn: toBase64Emerald,
+    toBase64Fn: (bytes) => toBase64Emerald(bytes, { switchSafe: isNintendoSwitchCodeTarget() }),
   });
   if (pristineOutput) {
     $('#hexOutput').value = pristineOutput.hex;
     $('#base64Output').value = pristineOutput.base64Text;
-    updateProfanityWarning(pristineOutput.base64Text);
     const canShowHelper = (
       $('#generateBtn').getAttribute('data-disabled') !== 'true' &&
       String(pristineOutput.base64Text || '').trim().length > 0
     );
     setOutputTroubleshootingVisible(canShowHelper);
-
-    const substBanner = document.getElementById('substitutionWarning');
-    if (substBanner) {
-      if (pristineOutput.substitutionUsed) {
-        substBanner.textContent = 'One or more characters have been converted to a symbol to avoid the profanity filter on Switch.';
-        substBanner.style.display = 'block';
-      } else {
-        substBanner.style.display = 'none';
-        substBanner.textContent = '';
-      }
-    }
+    updateBase64SafetyWarnings(pristineOutput.base64Text, pristineOutput.substitutionUsed);
     return;
   }
 
@@ -8665,7 +8715,7 @@ function onGenerate(){
   const cfg = collect();
   const result = buildPokemonBytes(cfg);
   const hex = toFormattedHex(result.bytes);
-  const b64Result = toBase64Emerald(result.bytes);
+  const b64Result = toBase64Emerald(result.bytes, { switchSafe: isNintendoSwitchCodeTarget() });
   $('#hexOutput').value = hex;
   $('#base64Output').value = b64Result.text;
   const canShowHelper = (
@@ -8673,21 +8723,7 @@ function onGenerate(){
     String(b64Result.text || '').trim().length > 0
   );
   setOutputTroubleshootingVisible(canShowHelper);
-
-  // Check for profanity in the generated box names
-  updateProfanityWarning(b64Result.text);
-
-  // Show substitution notice if characters were swapped to avoid censorship
-  const substBanner = document.getElementById('substitutionWarning');
-  if (substBanner) {
-    if (b64Result.substitutionUsed) {
-      substBanner.textContent = 'One or more characters have been converted to a symbol to avoid the profanity filter on Switch.';
-      substBanner.style.display = 'block';
-    } else {
-      substBanner.style.display = 'none';
-      substBanner.textContent = '';
-    }
-  }
+  updateBase64SafetyWarnings(b64Result.text, b64Result.substitutionUsed);
 }
 
 function enterImportedModeSilently() {

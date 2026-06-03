@@ -93,5 +93,21 @@ section('ignored controls remain non-dirty');
   assert(shouldDirty === false, 'generate button interactions must not dirty imported state');
 }
 
+section('code target controls remain non-dirty');
+{
+  for (const targetId of ['codeTargetConsole', 'codeTargetSwitch']) {
+    const shouldDirty = shouldMarkImportedDirtyFromEvent({
+      event: { isTrusted: true },
+      suppressImportedDirtyTracking: false,
+      currentEncounterMode: 'imported',
+      importedRoundTripBytes: rawBytes,
+      targetId,
+      inDataCards: true,
+    });
+
+    assert(shouldDirty === false, `${targetId} interactions must not dirty imported state`);
+  }
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

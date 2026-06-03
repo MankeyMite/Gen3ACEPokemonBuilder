@@ -38,7 +38,15 @@ export function shouldMarkImportedDirtyFromEvent({
   if (currentEncounterMode !== 'imported') return false;
   if (!(importedRoundTripBytes instanceof Uint8Array) || importedRoundTripBytes.length !== 80) return false;
 
-  if (targetId === 'manualOverride' || targetId === 'encounterMode' || targetId === 'generateBtn' || targetId === 'copyHexBtn' || targetId === 'copyBase64Btn') {
+  if (
+    targetId === 'manualOverride' ||
+    targetId === 'encounterMode' ||
+    targetId === 'generateBtn' ||
+    targetId === 'copyHexBtn' ||
+    targetId === 'copyBase64Btn' ||
+    targetId === 'codeTargetConsole' ||
+    targetId === 'codeTargetSwitch'
+  ) {
     return false;
   }
 

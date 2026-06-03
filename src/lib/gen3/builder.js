@@ -479,7 +479,8 @@ export function toFormattedHex(bytes){
 }
 
 // Convert bytes to Base64 with Emerald ACE naming rules
-export function toBase64Emerald(bytes){
+export function toBase64Emerald(bytes, options = {}){
+  const switchSafe = options.switchSafe !== false;
   // Standard btoa over binary string
   let bin = '';
   for(const b of bytes) bin += String.fromCharCode(b);
@@ -510,6 +511,9 @@ export function toBase64Emerald(bytes){
   // bad words.
   const MAX_SHIFT_PASSES = 14; // safety limit
   const shiftedBoxes = new Set();               // track which boxes were truncated
+  let substitutionUsed = false;
+
+  if (switchSafe) {
   for (let pass = 0; pass < MAX_SHIFT_PASSES; pass++) {
     let shifted = false;
     for (let bi = 0; bi < 13; bi++) {           // boxes 1-13 (index 0-12)
@@ -594,7 +598,6 @@ export function toBase64Emerald(bytes){
   const B64_VAL = {};
   for (let i = 0; i < B64_ALPHA.length; i++) B64_VAL[B64_ALPHA[i]] = i;
 
-  let substitutionUsed = false;
   for (let sPass = 0; sPass < MAX_SHIFT_PASSES; sPass++) {
     let anySubst = false;
     for (let bi = 0; bi < 14; bi++) {
@@ -673,6 +676,7 @@ export function toBase64Emerald(bytes){
       if (anySubst) break; // restart full scan
     }
     if (!anySubst) break;
+  }
   }
 
   // Ambiguous character annotations
