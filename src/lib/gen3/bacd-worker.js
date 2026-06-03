@@ -7,6 +7,8 @@
 
 const MULT = 0x41C64E6D;
 const ADD = 0x6073;
+const RMULT = 0xEEB9EB65;
+const RADD = 0x0A3561A1;
 
 const HP_TYPES = [
   'Fighting','Flying','Poison','Ground','Rock','Bug',
@@ -43,6 +45,10 @@ let stopped = false;
 
 function advance(seed) {
   return (Math.imul(seed, MULT) + ADD) >>> 0;
+}
+
+function reverse(seed) {
+  return (Math.imul(seed, RMULT) + RADD) >>> 0;
 }
 
 function next16(state) {
@@ -277,8 +283,111 @@ function ivTotal(r) {
   return r.ivs.hp + r.ivs.atk + r.ivs.def + r.ivs.spa + r.ivs.spd + r.ivs.spe;
 }
 
+function normalizeBACDSearchParams(params) {
+  return {
+    nature: Number(params.nature) || 0,
+    ability: Number.isFinite(Number(params.ability)) ? Number(params.ability) : -1,
+    genderThreshold: Number.isFinite(Number(params.genderThreshold)) ? Number(params.genderThreshold) : -1,
+    targetGender: Number.isFinite(Number(params.targetGender)) ? Number(params.targetGender) : 3,
+    tid: Number(params.tid) & 0xFFFF,
+    sid: Number(params.sid) & 0xFFFF,
+    wantShiny: !!params.wantShiny,
+    noShiny: !!params.noShiny,
+    minIVs: params.minIVs || [0, 0, 0, 0, 0, 0],
+    maxIVs: params.maxIVs || [31, 31, 31, 31, 31, 31],
+  };
+}
+
+function searchBACDUByIVRecovery(params) {
+  const maxResults = Math.max(1, Number(params.maxResults) || 250);
+  const searchParams = normalizeBACDSearchParams(params);
+  const results = [];
+  const pushResult = (r) => {
+    results.push(r);
+    results.sort((a, b) => ivTotal(b) - ivTotal(a));
+    if (results.length > maxResults) results.length = maxResults;
+  };
+
+  const minIVs = searchParams.minIVs;
+  const maxIVs = searchParams.maxIVs;
+  const mHp = minIVs[0], mAtk = minIVs[1], mDef = minIVs[2],
+        mSpA = minIVs[3], mSpD = minIVs[4], mSpe = minIVs[5];
+  const xHp = maxIVs[0], xAtk = maxIVs[1], xDef = maxIVs[2],
+        xSpA = maxIVs[3], xSpD = maxIVs[4], xSpe = maxIVs[5];
+
+  const totalCombos = Math.max(0, (xHp - mHp + 1) * (xAtk - mAtk + 1) * (xDef - mDef + 1));
+  let combo = 0;
+  const progressTick = Math.max(1, Math.floor(totalCombos / 50));
+
+  for (let hp = mHp; hp <= xHp; hp++) {
+    for (let atk = mAtk; atk <= xAtk; atk++) {
+      for (let def = mDef; def <= xDef; def++) {
+        if (stopped) {
+          self.postMessage({ type: 'done', results });
+          return;
+        }
+
+        combo++;
+        if (combo % progressTick === 0) {
+          self.postMessage({ type: 'progress', done: combo, total: totalCombos });
+          if (results.length) {
+            self.postMessage({ type: 'snapshot', results: results.slice(0, maxResults) });
+          }
+        }
+
+        const iv1 = hp | (atk << 5) | (def << 10);
+        const ivPartial = hp + atk + def;
+
+        for (let bit15 = 0; bit15 <= 1; bit15++) {
+          const iv1Hi = ((iv1 | (bit15 << 15)) << 16) >>> 0;
+
+          for (let low16 = 0; low16 < 0x10000; low16++) {
+            const seed3 = (iv1Hi | low16) >>> 0;
+            const seed4 = advance(seed3);
+            const d = seed4 >>> 16;
+
+            const spe = d & 31;
+            if (spe < mSpe || spe > xSpe) continue;
+            const spa = (d >>> 5) & 31;
+            if (spa < mSpA || spa > xSpA) continue;
+            const spd = (d >>> 10) & 31;
+            if (spd < mSpD || spd > xSpD) continue;
+
+            const seed2 = reverse(seed3);
+            const seed1 = reverse(seed2);
+            const seed0 = reverse(seed1);
+            const a = seed1 >>> 16;
+            const b = seed2 >>> 16;
+            const pid = ((a << 16) | b) >>> 0;
+            const ivs = { hp, atk, def, spa, spd, spe };
+            const r = {
+              seed: seed0,
+              originSeed: seed0,
+              pid,
+              method: 'BACD_U',
+              ivs,
+              hpt: hpType(ivs),
+              hpp: hpPower(ivs),
+            };
+
+            if (!passesFilters(r, searchParams)) continue;
+
+            pushResult(r);
+          }
+        }
+      }
+    }
+  }
+
+  self.postMessage({ type: 'done', results });
+}
+
 function searchBACD(params) {
   const method = String(params.method || 'BACD_R').toUpperCase();
+  if (method === 'BACD_U') {
+    return searchBACDUByIVRecovery(params);
+  }
+
   const isMystryMewMethod = method === 'BACD_M';
   const maxResults = Math.max(1, Number(params.maxResults) || 250);
   const rawBerryFixOtPref = String(
@@ -308,18 +417,7 @@ function searchBACD(params) {
     }
   }
 
-  const searchParams = {
-    nature: Number(params.nature) || 0,
-    ability: Number.isFinite(Number(params.ability)) ? Number(params.ability) : -1,
-    genderThreshold: Number.isFinite(Number(params.genderThreshold)) ? Number(params.genderThreshold) : -1,
-    targetGender: Number.isFinite(Number(params.targetGender)) ? Number(params.targetGender) : 3,
-    tid: Number(params.tid) & 0xFFFF,
-    sid: Number(params.sid) & 0xFFFF,
-    wantShiny: !!params.wantShiny,
-    noShiny: !!params.noShiny,
-    minIVs: params.minIVs,
-    maxIVs: params.maxIVs,
-  };
+  const searchParams = normalizeBACDSearchParams(params);
 
   if (isMystryMewMethod) {
     searchParams.tid = MYSTRY_MEW_FIXED_TID;
