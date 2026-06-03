@@ -948,100 +948,6 @@
         </div>
       </div>
 
-      <h3 class="form-section-title">Stats</h3>
-
-      <div class="row ev-row">
-        <label>
-          EVs
-          <span class="inline-tooltip">
-            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="EV training info" aria-describedby="evInfoTooltip" aria-expanded="false">?</button>
-            <span id="evInfoTooltip" class="inline-tooltip-content" role="tooltip">Train your Pokémon for extra stat points, scaling to 1 extra point per 4 EVs at level 100. The total is 510 EV points, with 252 being the maximum for one stat.</span>
-          </span>
-        </label>
-        <div class="grid ev-grid">
-          <div>
-            <label for="evHp">HP EV</label>
-            <input id="evHp" type="number" min="0" max="255" value="0" />
-          </div>
-          <div>
-            <label for="evAtk">Atk EV</label>
-            <input id="evAtk" type="number" min="0" max="255" value="0" />
-          </div>
-          <div>
-            <label for="evDef">Def EV</label>
-            <input id="evDef" type="number" min="0" max="255" value="0" />
-          </div>
-          <div>
-            <label for="evSpAtk">SpA EV</label>
-            <input id="evSpAtk" type="number" min="0" max="255" value="0" />
-          </div>
-          <div>
-            <label for="evSpDef">SpD EV</label>
-            <input id="evSpDef" type="number" min="0" max="255" value="0" />
-          </div>
-          <div>
-            <label for="evSpe">Spe EV</label>
-            <input id="evSpe" type="number" min="0" max="255" value="0" />
-          </div>
-        </div>
-      </div>
-
-      <div class="row iv-row">
-        <label>IVs</label>
-        <div class="grid iv-grid">
-          <div>
-            <label for="ivHp">HP IV</label>
-            <input id="ivHp" type="number" min="0" max="31" value="31" />
-          </div>
-          <div>
-            <label for="ivAtk">Atk IV</label>
-            <input id="ivAtk" type="number" min="0" max="31" value="31" />
-          </div>
-          <div>
-            <label for="ivDef">Def IV</label>
-            <input id="ivDef" type="number" min="0" max="31" value="31" />
-          </div>
-          <div>
-            <label for="ivSpAtk">SpA IV</label>
-            <input id="ivSpAtk" type="number" min="0" max="31" value="31" />
-          </div>
-          <div>
-            <label for="ivSpDef">SpD IV</label>
-            <input id="ivSpDef" type="number" min="0" max="31" value="31" />
-          </div>
-          <div>
-            <label for="ivSpe">Spe IV</label>
-            <input id="ivSpe" type="number" min="0" max="31" value="31" />
-          </div>
-        </div>
-      </div>
-
-      <div class="row">
-        <label>Hidden Power</label>
-        <div style="display: flex; gap: 1rem; align-items: center;">
-          <span id="hiddenPowerTypeText" style="font-weight: bold; color: var(--accent);">Dark</span>
-          <select id="hiddenPowerTypeSelect" aria-label="Select Hidden Power type" style="display: none;">
-            <option value="Fighting">Fighting</option>
-            <option value="Flying">Flying</option>
-            <option value="Poison">Poison</option>
-            <option value="Ground">Ground</option>
-            <option value="Rock">Rock</option>
-            <option value="Bug">Bug</option>
-            <option value="Ghost">Ghost</option>
-            <option value="Steel">Steel</option>
-            <option value="Fire">Fire</option>
-            <option value="Water">Water</option>
-            <option value="Grass">Grass</option>
-            <option value="Electric">Electric</option>
-            <option value="Psychic">Psychic</option>
-            <option value="Ice">Ice</option>
-            <option value="Dragon">Dragon</option>
-            <option value="Dark">Dark</option>
-          </select>
-          <span id="hiddenPowerPower" style="color: var(--muted);">Power: 70</span>
-        </div>
-      </div>
-
       <h3 class="form-section-title">Trainer details</h3>
 
       <div class="row two">
@@ -1143,6 +1049,100 @@
       <div class="row">
         <label for="isEgg">Is Egg</label>
         <input id="isEgg" type="checkbox" />
+      </div>
+
+      <h3 class="form-section-title">Stats</h3>
+
+      <div class="row ev-row">
+        <label>
+          EVs
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="EV training info" aria-describedby="evInfoTooltip" aria-expanded="false">?</button>
+            <span id="evInfoTooltip" class="inline-tooltip-content" role="tooltip">Train your Pokémon for extra stat points, scaling to 1 extra point per 4 EVs at level 100. The total is 510 EV points, with 252 being the maximum for one stat.</span>
+          </span>
+        </label>
+        <div class="grid ev-grid">
+          <div>
+            <label for="evHp">HP EV</label>
+            <input id="evHp" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evAtk">Atk EV</label>
+            <input id="evAtk" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evDef">Def EV</label>
+            <input id="evDef" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evSpAtk">SpA EV</label>
+            <input id="evSpAtk" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evSpDef">SpD EV</label>
+            <input id="evSpDef" type="number" min="0" max="255" value="0" />
+          </div>
+          <div>
+            <label for="evSpe">Spe EV</label>
+            <input id="evSpe" type="number" min="0" max="255" value="0" />
+          </div>
+        </div>
+      </div>
+
+      <div class="row iv-row">
+        <label>IVs</label>
+        <div class="grid iv-grid">
+          <div>
+            <label for="ivHp">HP IV</label>
+            <input id="ivHp" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivAtk">Atk IV</label>
+            <input id="ivAtk" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivDef">Def IV</label>
+            <input id="ivDef" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivSpAtk">SpA IV</label>
+            <input id="ivSpAtk" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivSpDef">SpD IV</label>
+            <input id="ivSpDef" type="number" min="0" max="31" value="31" />
+          </div>
+          <div>
+            <label for="ivSpe">Spe IV</label>
+            <input id="ivSpe" type="number" min="0" max="31" value="31" />
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>Hidden Power</label>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <span id="hiddenPowerTypeText" style="font-weight: bold; color: var(--accent);">Dark</span>
+          <select id="hiddenPowerTypeSelect" aria-label="Select Hidden Power type" style="display: none;">
+            <option value="Fighting">Fighting</option>
+            <option value="Flying">Flying</option>
+            <option value="Poison">Poison</option>
+            <option value="Ground">Ground</option>
+            <option value="Rock">Rock</option>
+            <option value="Bug">Bug</option>
+            <option value="Ghost">Ghost</option>
+            <option value="Steel">Steel</option>
+            <option value="Fire">Fire</option>
+            <option value="Water">Water</option>
+            <option value="Grass">Grass</option>
+            <option value="Electric">Electric</option>
+            <option value="Psychic">Psychic</option>
+            <option value="Ice">Ice</option>
+            <option value="Dragon">Dragon</option>
+            <option value="Dark">Dark</option>
+          </select>
+          <span id="hiddenPowerPower" style="color: var(--muted);">Power: 70</span>
+        </div>
       </div>
 
       <h3 class="form-section-title">Extra data</h3>
