@@ -961,6 +961,8 @@ function applyIsEggOverrides(options = {}) {
 
   if (!syncUi) return true;
 
+  try { updateItemLockingForEgg(); } catch (e) {}
+
   const languageEl = $('#language');
   if (languageEl && String(languageEl.value) !== String(IS_EGG_OVERRIDE_LANGUAGE_ID)) {
     languageEl.value = String(IS_EGG_OVERRIDE_LANGUAGE_ID);
@@ -995,6 +997,47 @@ function applyIsEggOverrides(options = {}) {
     try { updateLegalityStatus(); } catch (e) {}
   }
   return true;
+}
+
+function updateItemLockingForEgg() {
+  const itemEl = $('#item');
+  if (!itemEl) return;
+
+  const shouldLock = shouldApplyIsEggOverrides();
+  const inputEl = typeof itemEl.querySelector === 'function'
+    ? itemEl.querySelector('input')
+    : null;
+
+  if (shouldLock) {
+    if (String(itemEl.value || '') !== '') {
+      itemEl.value = '';
+      try { itemEl.dispatchEvent(new Event('change')); } catch (e) {}
+    }
+    itemEl.disabled = true;
+    itemEl.style.pointerEvents = 'none';
+    itemEl.style.opacity = '0.6';
+    itemEl.style.cursor = 'not-allowed';
+    itemEl.dataset.itemLockedByEgg = '1';
+    if (inputEl) {
+      inputEl.disabled = true;
+      inputEl.style.pointerEvents = 'none';
+      inputEl.style.cursor = 'not-allowed';
+    }
+    return;
+  }
+
+  if (itemEl.dataset.itemLockedByEgg === '1') {
+    itemEl.disabled = false;
+    itemEl.style.pointerEvents = '';
+    itemEl.style.opacity = '';
+    itemEl.style.cursor = '';
+    delete itemEl.dataset.itemLockedByEgg;
+    if (inputEl) {
+      inputEl.disabled = false;
+      inputEl.style.pointerEvents = '';
+      inputEl.style.cursor = '';
+    }
+  }
 }
 
 function getPcnyWishEggsHatchLocationsForGame(originGame) {
@@ -3546,6 +3589,7 @@ function boot(){
         try { updateBallLocking(); } catch (e) {}
       }
       try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
+      try { updateItemLockingForEgg(); } catch (e) {}
       updateLegalityStatus();
     });
   }
@@ -3964,6 +4008,7 @@ function boot(){
       try { applyWishmkrOriginGameConstraints(); } catch (e) {}
       try { applyBoxEventMysteryLocationConstraints({ preserveCurrentNonEgg: true }); } catch (e) {}
       try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
+      try { updateItemLockingForEgg(); } catch (e) {}
     });
   }
 
@@ -3995,6 +4040,7 @@ function boot(){
       try { enforceJapaneseOption(); } catch (e) {}
       try { updateFatefulLocking(); } catch (e) {}
       try { updateIsEggVisibility(); } catch (e) {}
+      try { updateItemLockingForEgg(); } catch (e) {}
       try { updateContestStatsLocking(); } catch (e) {}
       try { updateRibbonLocking(); } catch (e) {}
       try { updateHatchedOriginGameLocking(); } catch (e) {}
@@ -4292,6 +4338,7 @@ function boot(){
       isEggInput.title = canBeEgg
         ? ''
         : 'Only base-stage Pokémon and valid incense-baby exceptions can be created as unhatched Eggs.';
+      try { updateItemLockingForEgg(); } catch (e) {}
     } catch (e) {}
   }
 
