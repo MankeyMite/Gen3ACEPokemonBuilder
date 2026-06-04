@@ -1108,12 +1108,24 @@
       </div>
 
       <div class="row">
-        <label for="fatefulEncounter">Fateful Encounter</label>
+        <label for="fatefulEncounter">
+          Fateful Encounter
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Fateful encounter info" aria-describedby="fatefulEncounterInfoTooltip" aria-expanded="false">?</button>
+            <span id="fatefulEncounterInfoTooltip" class="inline-tooltip-content" role="tooltip">Fateful Encounter is a legality flag used only by specific events and special encounters. It has to be unchecked for most encounters. The default option should not be changed, as it is already set to the legal option for the current chosen encounter type.</span>
+          </span>
+        </label>
         <input id="fatefulEncounter" type="checkbox" disabled />
       </div>
 
       <div class="row">
-        <label for="isEgg">Is Egg</label>
+        <label for="isEgg">
+          Is Egg
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Is Egg info" aria-describedby="isEggInfoTooltip" aria-expanded="false">?</button>
+            <span id="isEggInfoTooltip" class="inline-tooltip-content" role="tooltip">Creates the Pokémon as an unhatched Egg. Regular legal Gen 3 eggs use Japanese language, met level 0, Route 117/Four Island as met location, and current level 5. When the egg hatches, in-game details replace hatch-updated fields including TID, SID, language, OT name, OT gender and met location. While it is an egg, friendship is egg cycles, so this tool sets friendship to 1 for a quicker hatch. The exported egg may appear illegal in PKHeX, but it will be legal after hatching, as long as the moves are obtainable at that level. If you attempt to create a shiny egg, you must use your actual TID and SID for it to hatch as shiny.</span>
+          </span>
+        </label>
         <input id="isEgg" type="checkbox" />
       </div>
 

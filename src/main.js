@@ -824,9 +824,19 @@ function getIsEggOverrideMetLocationId(originGame) {
 function shouldApplyIsEggOverrides() {
   const isEggChecked = Boolean($('#isEgg')?.checked);
   if (!isEggChecked) return false;
+  if (!canSelectedSpeciesBeUnhatchedEgg()) return false;
   if (currentEncounterMode === 'hatched') return true;
   if (isBoxEventMysteryEventSelected()) return true;
   return false;
+}
+
+function canSpeciesBeUnhatchedEgg(speciesId) {
+  const id = Number(speciesId) || 0;
+  return id > 0 && PRE_EVOLUTIONS[id] == null;
+}
+
+function canSelectedSpeciesBeUnhatchedEgg() {
+  return canSpeciesBeUnhatchedEgg(Number($('#species')?.value || 0));
 }
 
 function applyIsEggOverrides(options = {}) {
@@ -2486,6 +2496,11 @@ function boot(){
       if (fatefulCheckbox && fatefulCheckbox.checked) {
         errors.push('Fateful encounter cannot be checked for hatched Pokémon');
       }
+
+      const eggCheckbox = $('#isEgg');
+      if (eggCheckbox && eggCheckbox.checked && !canSpeciesBeUnhatchedEgg(speciesId)) {
+        errors.push('Only base-stage Pokémon can be created as unhatched Eggs');
+      }
     } else if (mode === 'static' && STATIC_ENCOUNTERS[speciesId]) {
       // Legendary mode rules
       const encounter = STATIC_ENCOUNTERS[speciesId];
@@ -3124,6 +3139,7 @@ function boot(){
       updateMovesForSpecies(speciesId, {
         preserveValue: currentEncounterMode === 'mystery' || importedMode
       });
+      try { updateIsEggVisibility(); } catch (e) {}
 
       // If we're in Mystery Gifts mode and an event is selected, apply any
       // per-species mystery preset (TID/SID/OT/PID/IVs) so the basics/stats
@@ -3851,6 +3867,7 @@ function boot(){
       try { lockLanguageForMewLegend(); } catch (e) {}
       try { enforceJapaneseOption(); } catch (e) {}
       try { updateFatefulLocking(); } catch (e) {}
+      try { updateIsEggVisibility(); } catch (e) {}
       try { updateContestStatsLocking(); } catch (e) {}
       try { updateRibbonLocking(); } catch (e) {}
       try { updateHatchedOriginGameLocking(); } catch (e) {}
@@ -3917,6 +3934,7 @@ function boot(){
   try { updateLevelLocking(); } catch (e) {}
   try { updateIvLocking(); } catch (e) {}
   try { updateFatefulLocking(); } catch (e) {}
+  try { updateIsEggVisibility(); } catch (e) {}
   try { updatePidFinderVisibility(); } catch (e) {}
   try { updateOtGenderLocking(); } catch (e) {}
 
@@ -4126,11 +4144,26 @@ function boot(){
       if (!isEggInput) return;
       const row = isEggInput.parentElement;
       if (!row) return;
-      if (currentEncounterMode === 'hatched' || isBoxEventMysteryEventSelected()) {
+      const shouldShow = currentEncounterMode === 'hatched' || isBoxEventMysteryEventSelected();
+      if (shouldShow) {
         row.style.display = '';
       } else {
         row.style.display = 'none';
       }
+
+      const canBeEgg = shouldShow && canSelectedSpeciesBeUnhatchedEgg();
+      if (!canBeEgg && isEggInput.checked) {
+        isEggInput.checked = false;
+        try { isEggInput.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+      }
+
+      isEggInput.disabled = !canBeEgg;
+      isEggInput.style.pointerEvents = canBeEgg ? '' : 'none';
+      isEggInput.style.opacity = canBeEgg ? '' : '0.6';
+      isEggInput.style.cursor = canBeEgg ? '' : 'not-allowed';
+      isEggInput.title = canBeEgg
+        ? ''
+        : 'Only base-stage Pokémon can be created as unhatched Eggs.';
     } catch (e) {}
   }
 
@@ -8396,7 +8429,7 @@ function collect(){
     otName: $('#otName').value || 'BRENDAN',
     nickname: $('#nickname').value || '',
     languageId: Number($('#language').value),
-    isEgg: $('#isEgg')?.checked || false,
+    isEgg: Boolean($('#isEgg')?.checked) && canSpeciesBeUnhatchedEgg(Number($('#species').value || 0)),
     markings: {
       circle: $('#markCircle')?.checked || false,
       triangle: $('#markTriangle')?.checked || false,
