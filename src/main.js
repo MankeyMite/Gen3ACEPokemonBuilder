@@ -581,6 +581,9 @@ function updateStatGraph() {
         if (isPcnyWishEggsMysteryTag(tag)) {
           applyPcnyWishEggsOriginAndLocationConstraints();
 
+          const metLocationEl = $('#metLocation');
+          if (metLocationEl) metLocationEl.value = String(PCNY_WISH_EGGS_DEFAULT_MET_LOCATION_ID);
+
           const metLevelEl = $('#metLevel');
           if (metLevelEl) metLevelEl.value = '0';
 
@@ -595,6 +598,14 @@ function updateStatGraph() {
 
           const eggEl = $('#isEgg');
           if (eggEl) eggEl.checked = false;
+
+          const otNameEl = $('#otName');
+          if (otNameEl) {
+            otNameEl.disabled = false;
+            otNameEl.style.pointerEvents = '';
+            otNameEl.style.opacity = '';
+            otNameEl.style.cursor = '';
+          }
         }
       } catch (e) {}
 
@@ -853,6 +864,7 @@ function getBerryFixOtPreference() {
 
 const PCNY_WISH_EGGS_TAG = 'PCNY_WISH_EGGS';
 const PCNY_WISH_EGGS_ALLOWED_ORIGIN_GAMES = [4, 5];
+const PCNY_WISH_EGGS_DEFAULT_MET_LOCATION_ID = 88; // Pallet Town
 const PCNY_FRLG_HATCH_LOCATION_MIN = 88;
 const PCNY_FRLG_HATCH_LOCATION_MAX = 196;
 const MYSTRY_MEW_ORIGIN_GAME_ID = 2;
@@ -1011,6 +1023,10 @@ function applyPcnyWishEggsOriginAndLocationConstraints() {
     opt.disabled = !allow;
     opt.hidden = !allow;
   }
+  originGameSelect.disabled = false;
+  originGameSelect.style.pointerEvents = '';
+  originGameSelect.style.opacity = '';
+  originGameSelect.style.cursor = '';
 
   let gameId = Number(originGameSelect.value);
   if (!PCNY_WISH_EGGS_ALLOWED_ORIGIN_GAMES.includes(gameId)) {
@@ -1028,10 +1044,15 @@ function applyPcnyWishEggsOriginAndLocationConstraints() {
     const validIds = new Set(filteredLocations.map(([id]) => Number(id)));
     const currentLocId = Number(metLocationEl.value);
     if (!validIds.has(currentLocId)) {
-      metLocationEl.value = filteredLocations.length
-        ? String(filteredLocations[0][0])
-        : String(PCNY_FRLG_HATCH_LOCATION_MIN);
+      const defaultLocationId = validIds.has(PCNY_WISH_EGGS_DEFAULT_MET_LOCATION_ID)
+        ? PCNY_WISH_EGGS_DEFAULT_MET_LOCATION_ID
+        : (filteredLocations.length ? Number(filteredLocations[0][0]) : PCNY_FRLG_HATCH_LOCATION_MIN);
+      metLocationEl.value = String(defaultLocationId);
     }
+    metLocationEl.disabled = false;
+    metLocationEl.style.pointerEvents = '';
+    metLocationEl.style.opacity = '';
+    metLocationEl.style.cursor = '';
   }
 
   return true;
@@ -4056,9 +4077,10 @@ function boot(){
       const tag = String($('#mysteryEvent')?.value || '').toUpperCase();
       const evt = (tag && MYSTERY_EVENTS && MYSTERY_EVENTS[tag]) ? MYSTERY_EVENTS[tag] : null;
       const usesHatcherTrainerData = isPcnyWishEggsMysteryTag(tag) || !!evt?.usesHatcherTrainerData;
+      const usesEditableOriginGame = isPcnyWishEggsMysteryTag(tag);
       const shouldLockTidSid = !manualOverrideActive && (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData);
-      const shouldLockOtName = !manualOverrideActive && currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT';
-      const shouldLockOriginGame = !manualOverrideActive && currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT';
+      const shouldLockOtName = !manualOverrideActive && currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesHatcherTrainerData;
+      const shouldLockOriginGame = !manualOverrideActive && currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesEditableOriginGame;
       if (tidEl) {
         tidEl.disabled = Boolean(shouldLockTidSid);
         tidEl.style.pointerEvents = shouldLockTidSid ? 'none' : '';
@@ -4424,7 +4446,7 @@ function boot(){
             if (ballEl.updateList) ballEl.updateList(BALLS);
             try { ballEl.value = '4'; } catch (e) {}
             setBallLockState(true);
-            setMetLocationLock(true);
+            setMetLocationLock(false);
             return;
           }
 
@@ -4564,7 +4586,9 @@ function boot(){
         try {
           const otEl = $('#otName');
           if (otEl) {
-            if (!manualOverrideActive && currentEncounterMode === 'mystery' && mysteryTag !== 'BOX_EVENT') {
+            const mysteryEvent = (mysteryTag && MYSTERY_EVENTS && MYSTERY_EVENTS[mysteryTag]) ? MYSTERY_EVENTS[mysteryTag] : null;
+            const usesHatcherTrainerData = isPcnyWishEggsMysteryTag(mysteryTag) || !!mysteryEvent?.usesHatcherTrainerData;
+            if (!manualOverrideActive && currentEncounterMode === 'mystery' && mysteryTag !== 'BOX_EVENT' && !usesHatcherTrainerData) {
               otEl.disabled = true;
               otEl.style.pointerEvents = 'none';
               otEl.style.opacity = '0.6';
