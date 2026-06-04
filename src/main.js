@@ -1097,7 +1097,8 @@ function getMysteryPidMethod() {
   if (explicit) return explicit.toUpperCase();
 
   if (tag === 'CHANNEL_JIRACHI') return 'CHANNEL';
-  if (tag === 'AGETO_CELEBI' || tag === 'MITSURIN_CELEBI') return 'CXD';
+  if (tag === 'AGETO_CELEBI') return 'CXD';
+  if (tag === 'MITSURIN_CELEBI') return 'BACD_R_A';
   if (tag === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') return 'BACD_RBCD';
   if (tag === 'MYSTRY_MEW') return 'BACD_M';
   if (tag === BOX_EVENT_TAG) return 'BACD_U';
@@ -4881,13 +4882,13 @@ function boot(){
       }
       const selectedEvent = (MYSTERY_EVENTS && MYSTERY_EVENTS[rawTag]) ? MYSTERY_EVENTS[rawTag] : null;
       const rawTagUpper = String(rawTag).toUpperCase();
-      const isCxdCelebiMysteryEvent = rawTagUpper === 'AGETO_CELEBI' || rawTagUpper === 'MITSURIN_CELEBI';
+      const isCxdCelebiMysteryEvent = rawTagUpper === 'AGETO_CELEBI';
       const selectedPresetTag = String(selectedEvent?.presetTag || '').trim();
       const presetTag = selectedPresetTag || tag;
       const natureIndex = Number($('#nature').value || 0);
       const natureName = NATURES[natureIndex] || '';
 
-      // MITSURIN/AGETO CELEBI events use the CXD nature PID table from imported preset data.
+      // AGETO CELEBI uses the CXD nature PID table from imported preset data.
       let candidates = [];
       if (isCxdCelebiMysteryEvent) {
         try {

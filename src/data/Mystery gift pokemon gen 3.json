@@ -180,8 +180,8 @@
       "fixedTID": 60720,
       "fixedSID": 0,
       "nickname": "セレビィ",
-      "ot_name": "アゲト",
-      "ot_names": {"1":"アゲト"},
+      "ot_name": "ミツリン",
+      "ot_names": {"1":"ミツリン"},
       "shinyLocked": true,
       "defaultLanguage": 1,
       "defaultOriginGame": 2,
@@ -190,7 +190,7 @@
       "defaultBall": "Poke Ball",
       "defaultMetLevel": 10,
       "defaultFatefulEncounter": false,
-      "pidMethod": "CXD",
+      "pidMethod": "BACD_R_A",
       "species": [251]
     },
     "AGETO_CELEBI": {
