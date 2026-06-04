@@ -832,6 +832,234 @@
       background: linear-gradient(135deg, rgba(56,189,248,0.35), rgba(168,85,247,0.35));
       border-color: rgba(56,189,248,0.6);
     }
+
+    @media (max-width: 640px) {
+      html,
+      body {
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 100%;
+        padding-left: 0.65rem;
+        padding-right: 0.65rem;
+        overflow-x: hidden;
+      }
+
+      main.layout-vertical {
+        gap: 0.9rem;
+        margin-top: 0.9rem;
+      }
+
+      main.layout-vertical > .card,
+      .card {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        padding: 0.85rem;
+        border-radius: 12px;
+      }
+
+      h1 {
+        font-size: 1.55rem;
+        line-height: 1.15;
+      }
+
+      header.container .muted {
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+
+      .row,
+      body.encounter-mystery .show-when-mystery,
+      body.encounter-static .show-when-static,
+      body.encounter-roamer .show-when-roamer,
+      body.encounter-cxd_shadow .show-when-cxd,
+      body.encounter-wild .wild-or-legend,
+      body.encounter-static .wild-or-legend,
+      body.encounter-cxd_shadow .wild-or-legend,
+      body.encounter-roamer .wild-or-legend {
+        display: grid;
+        grid-template-columns: minmax(6.9rem, 34%) minmax(0, 1fr);
+        gap: 0.45rem 0.65rem;
+        align-items: center;
+        min-width: 0;
+      }
+
+      .row > label,
+      label {
+        min-width: 0;
+      }
+
+      .row > input[type="text"],
+      .row > input[type="number"],
+      .row > select,
+      #pid,
+      .autocomplete-wrapper,
+      .autocomplete-input {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .autocomplete-wrapper {
+        flex: 1 1 auto;
+      }
+
+      input,
+      select,
+      button,
+      textarea {
+        min-height: 2.5rem;
+      }
+
+      input[type="checkbox"] {
+        width: 1.25rem;
+        height: 1.25rem;
+        min-height: 0;
+      }
+
+      .tooltip-icon {
+        width: 1rem;
+        height: 1rem;
+        min-height: 0;
+      }
+
+      .inline-tooltip-content {
+        width: min(18rem, calc(100vw - 2rem));
+        max-width: calc(100vw - 2rem);
+      }
+
+      .row.two,
+      .trainer-id-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .row.two > div {
+        width: auto;
+        min-width: 0;
+      }
+
+      .move-list {
+        min-width: 0;
+      }
+
+      .move-list .move-row {
+        gap: 0.4rem;
+      }
+
+      .move-list .pp-box {
+        flex: 0 0 auto;
+        padding: 0.15rem 0.25rem;
+      }
+
+      .move-list .pp-box .pp-up {
+        font-size: 0.68rem;
+        line-height: 1.05;
+      }
+
+      .move-list .pp-box select {
+        width: 2.85rem;
+        min-height: 1.9rem;
+      }
+
+      .stat-graph {
+        gap: 0.5rem;
+      }
+
+      .stat-graph-header,
+      .stat-graph-row {
+        grid-template-columns: 2.3rem 2.4rem minmax(4.5rem, 1fr) 3.5rem 3.5rem 3rem;
+        gap: 0.32rem;
+      }
+
+      .stat-graph-header {
+        font-size: 0.64rem;
+      }
+
+      .stat-graph-stat {
+        font-size: 0.8rem;
+      }
+
+      .stat-graph-base,
+      .stat-graph-final {
+        font-size: 0.88rem;
+      }
+
+      .stat-bar-track {
+        height: 0.85rem;
+      }
+
+      .stat-graph-input {
+        min-height: 2.1rem;
+        padding: 0.35rem 0.35rem;
+        font-size: 0.8rem;
+      }
+
+      .stat-graph-header .tooltip-icon {
+        width: 0.9rem;
+        height: 0.9rem;
+        font-size: 0.62rem;
+      }
+
+      #hiddenPowerTypeText,
+      #hiddenPowerTypeSelect {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .output-header-row,
+      .output-tabs,
+      .code-target-tabs {
+        min-width: 0;
+      }
+
+      .output-tabs,
+      .code-target-tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .output-tabs .tab-btn,
+      .code-target-btn {
+        white-space: nowrap;
+      }
+
+      textarea,
+      #base64Output,
+      #hexOutput,
+      #output {
+        max-width: 100%;
+      }
+
+      .pid-finder-modal {
+        max-width: calc(100vw - 1rem);
+        margin: 0.5rem;
+      }
+
+      .pid-finder-body {
+        padding: 0.85rem;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .stat-graph-header,
+      .stat-graph-row {
+        grid-template-columns: 2rem 2.2rem minmax(3.25rem, 1fr) 3rem 3rem 2.6rem;
+        gap: 0.25rem;
+      }
+
+      .stat-graph-input {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+      }
+
+      .stat-graph-final {
+        font-size: 0.82rem;
+      }
+    }
   </style>
 </head>
 <body>
