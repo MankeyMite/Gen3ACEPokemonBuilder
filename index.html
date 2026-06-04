@@ -959,8 +959,29 @@
       }
 
       .inline-tooltip-content {
-        width: min(18rem, calc(100vw - 2rem));
-        max-width: calc(100vw - 2rem);
+        position: fixed;
+        left: 0.75rem;
+        right: 0.75rem;
+        bottom: calc(0.75rem + env(safe-area-inset-bottom));
+        transform: none;
+        width: auto;
+        max-width: none;
+        max-height: 55vh;
+        overflow-y: auto;
+        box-sizing: border-box;
+        z-index: 3000;
+      }
+
+      .inline-tooltip-content::after {
+        display: none;
+      }
+
+      .code-target-help .inline-tooltip-content {
+        left: 0.75rem;
+        right: 0.75rem;
+        transform: none;
+        width: auto;
+        max-width: none;
       }
 
       .row.two,
