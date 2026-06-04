@@ -1,3 +1,12 @@
+Patch Notes - (V.0.3.7)
+
+- Added a visual graph for the base stats of the selected Pokémon.
+- Added max-width: 640px mobile overrides to prevent horizontal overflow on mobile.
+- Made sure "is egg" is only availbale to base forms, Marill and Wobbuffet in the Hatched encounter type.
+- Added and adjusted multiple tooltips to the website for extra clarity.
+- Fixed Mitsurin Celebi having the wrong PID type and OT name.
+
+
 Patch Notes - (V.0.3.6)
 - Added Pokérus option. You may choose between no pokérus, has pokérus and cured for all encounter types.
 - Added buttons to choose between Console/Emulator code and Nintendo Switch code.
