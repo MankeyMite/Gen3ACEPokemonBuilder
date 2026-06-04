@@ -860,6 +860,7 @@
         min-width: 0;
         padding: 0.85rem;
         border-radius: 12px;
+        backdrop-filter: none;
       }
 
       h1 {
@@ -962,11 +963,12 @@
         position: fixed;
         left: 0.75rem;
         right: 0.75rem;
-        bottom: calc(0.75rem + env(safe-area-inset-bottom));
-        transform: none;
+        top: 50%;
+        bottom: auto;
+        transform: translateY(-50%);
         width: auto;
         max-width: none;
-        max-height: 55vh;
+        max-height: min(70vh, 28rem);
         overflow-y: auto;
         box-sizing: border-box;
         z-index: 3000;
@@ -979,7 +981,7 @@
       .code-target-help .inline-tooltip-content {
         left: 0.75rem;
         right: 0.75rem;
-        transform: none;
+        transform: translateY(-50%);
         width: auto;
         max-width: none;
       }
