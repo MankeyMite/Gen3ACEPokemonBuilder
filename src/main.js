@@ -31,6 +31,7 @@ const $ = sel => document.querySelector(sel);
 
 // Set of species IDs that can appear in wild mode (wild + their evolutions)
 const wildPlusEvos = buildWildWithEvolutions(WILD_ENCOUNTERS);
+const EVOLVED_UNHATCHED_EGG_EXCEPTIONS = new Set([183, 202]); // Marill, Wobbuffet
 
 // Global variables for encounter mode and species filtering
 let speciesAutocomplete = null;
@@ -832,7 +833,7 @@ function shouldApplyIsEggOverrides() {
 
 function canSpeciesBeUnhatchedEgg(speciesId) {
   const id = Number(speciesId) || 0;
-  return id > 0 && PRE_EVOLUTIONS[id] == null;
+  return id > 0 && (PRE_EVOLUTIONS[id] == null || EVOLVED_UNHATCHED_EGG_EXCEPTIONS.has(id));
 }
 
 function canSelectedSpeciesBeUnhatchedEgg() {
@@ -2499,7 +2500,7 @@ function boot(){
 
       const eggCheckbox = $('#isEgg');
       if (eggCheckbox && eggCheckbox.checked && !canSpeciesBeUnhatchedEgg(speciesId)) {
-        errors.push('Only base-stage Pokémon can be created as unhatched Eggs');
+        errors.push('Only base-stage Pokémon and valid incense-baby exceptions can be created as unhatched Eggs');
       }
     } else if (mode === 'static' && STATIC_ENCOUNTERS[speciesId]) {
       // Legendary mode rules
@@ -4163,7 +4164,7 @@ function boot(){
       isEggInput.style.cursor = canBeEgg ? '' : 'not-allowed';
       isEggInput.title = canBeEgg
         ? ''
-        : 'Only base-stage Pokémon can be created as unhatched Eggs.';
+        : 'Only base-stage Pokémon and valid incense-baby exceptions can be created as unhatched Eggs.';
     } catch (e) {}
   }
 
