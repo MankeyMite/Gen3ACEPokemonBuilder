@@ -2,6 +2,7 @@
 const ivIds = ['#ivHp','#ivAtk','#ivDef','#ivSpAtk','#ivSpDef','#ivSpe'];
 import { NATURES, LANGUAGES } from './lib/gen3/constants.js';
 import { SPECIES } from './data/species.gen3.js';
+import { BASE_STATS, DEOXYS_FORM_BASE_STATS } from './data/baseStats.gen3.js';
 import { ITEMS } from './data/items.gen3.js';
 import { MOVES } from './data/moves.gen3.js';
 import { BALLS } from './data/balls.gen3.js';
@@ -32,6 +33,33 @@ const $ = sel => document.querySelector(sel);
 // Set of species IDs that can appear in wild mode (wild + their evolutions)
 const wildPlusEvos = buildWildWithEvolutions(WILD_ENCOUNTERS);
 const EVOLVED_UNHATCHED_EGG_EXCEPTIONS = new Set([183, 202]); // Marill, Wobbuffet
+const DEOXYS_SPECIES_ID = 410;
+const SHEDINJA_SPECIES_ID = 303;
+const STAT_GRAPH_MAX_BASE = 180;
+const STAT_GRAPH_ROWS = [
+  { key: 'hp', ivId: 'ivHp', evId: 'evHp', baseId: 'baseStatHp', barId: 'baseStatBarHp', finalId: 'finalStatHp' },
+  { key: 'atk', ivId: 'ivAtk', evId: 'evAtk', baseId: 'baseStatAtk', barId: 'baseStatBarAtk', finalId: 'finalStatAtk' },
+  { key: 'def', ivId: 'ivDef', evId: 'evDef', baseId: 'baseStatDef', barId: 'baseStatBarDef', finalId: 'finalStatDef' },
+  { key: 'spa', ivId: 'ivSpAtk', evId: 'evSpAtk', baseId: 'baseStatSpAtk', barId: 'baseStatBarSpAtk', finalId: 'finalStatSpAtk' },
+  { key: 'spd', ivId: 'ivSpDef', evId: 'evSpDef', baseId: 'baseStatSpDef', barId: 'baseStatBarSpDef', finalId: 'finalStatSpDef' },
+  { key: 'spe', ivId: 'ivSpe', evId: 'evSpe', baseId: 'baseStatSpe', barId: 'baseStatBarSpe', finalId: 'finalStatSpe' },
+];
+const NATURE_STAT_EFFECTS = [
+  {}, { up: 'atk', down: 'def' }, { up: 'atk', down: 'spe' }, { up: 'atk', down: 'spa' }, { up: 'atk', down: 'spd' },
+  { up: 'def', down: 'atk' }, {}, { up: 'def', down: 'spe' }, { up: 'def', down: 'spa' }, { up: 'def', down: 'spd' },
+  { up: 'spe', down: 'atk' }, { up: 'spe', down: 'def' }, {}, { up: 'spe', down: 'spa' }, { up: 'spe', down: 'spd' },
+  { up: 'spa', down: 'atk' }, { up: 'spa', down: 'def' }, { up: 'spa', down: 'spe' }, {}, { up: 'spa', down: 'spd' },
+  { up: 'spd', down: 'atk' }, { up: 'spd', down: 'def' }, { up: 'spd', down: 'spe' }, { up: 'spd', down: 'spa' }, {},
+];
+const STAT_BAR_COLORS = [
+  { max: 39, color: '#ef4444', soft: '#fb7185' },
+  { max: 59, color: '#f97316', soft: '#fb923c' },
+  { max: 79, color: '#f59e0b', soft: '#fbbf24' },
+  { max: 99, color: '#eab308', soft: '#fde047' },
+  { max: 119, color: '#22c55e', soft: '#4ade80' },
+  { max: 149, color: '#14b8a6', soft: '#5eead4' },
+  { max: Infinity, color: '#38bdf8', soft: '#7dd3fc' },
+];
 
 // Global variables for encounter mode and species filtering
 let speciesAutocomplete = null;
@@ -52,6 +80,77 @@ let _validateForm = null;
 
 // Ensure a safe no-op exists early so callers from earlier code don't throw
 function updateMysterySpeciesOptions(/*tag*/) { return; }
+
+function clampNumber(value, min, max, fallback = 0) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.floor(n)));
+}
+
+function getDeoxysBaseStatsForOriginGame(originGameId) {
+  if (originGameId === 4) return DEOXYS_FORM_BASE_STATS.attack;
+  if (originGameId === 5) return DEOXYS_FORM_BASE_STATS.defense;
+  if (originGameId === 3) return DEOXYS_FORM_BASE_STATS.speed;
+  return DEOXYS_FORM_BASE_STATS.normal;
+}
+
+function getDisplayedBaseStats(speciesId) {
+  if (speciesId === DEOXYS_SPECIES_ID) {
+    return getDeoxysBaseStatsForOriginGame(Number($('#originGame')?.value || 0));
+  }
+  return BASE_STATS[speciesId] || null;
+}
+
+function getNatureStatMultiplier(statKey) {
+  const natureIndex = clampNumber($('#nature')?.value, 0, 24, 0);
+  const effect = NATURE_STAT_EFFECTS[natureIndex] || {};
+  if (effect.up === statKey && effect.down !== statKey) return 110;
+  if (effect.down === statKey && effect.up !== statKey) return 90;
+  return 100;
+}
+
+function calculateDisplayedStat({ speciesId, statKey, base, iv, ev, level }) {
+  if (speciesId === SHEDINJA_SPECIES_ID && statKey === 'hp') return 1;
+  const evPoints = Math.floor(ev / 4);
+  const raw = Math.floor(((2 * base + iv + evPoints) * level) / 100);
+  if (statKey === 'hp') return raw + level + 10;
+  return Math.floor((raw + 5) * getNatureStatMultiplier(statKey) / 100);
+}
+
+function getStatBarColor(baseStat) {
+  return STAT_BAR_COLORS.find(entry => baseStat <= entry.max) || STAT_BAR_COLORS[STAT_BAR_COLORS.length - 1];
+}
+
+function updateStatGraph() {
+  const speciesId = Number($('#species')?.value || 0);
+  const baseStats = getDisplayedBaseStats(speciesId);
+  const level = clampNumber($('#level')?.value, 1, 100, 1);
+
+  for (const row of STAT_GRAPH_ROWS) {
+    const baseEl = document.getElementById(row.baseId);
+    const barEl = document.getElementById(row.barId);
+    const finalEl = document.getElementById(row.finalId);
+    if (!baseStats) {
+      if (baseEl) baseEl.textContent = '--';
+      if (barEl) barEl.style.width = '0%';
+      if (finalEl) finalEl.textContent = '--';
+      continue;
+    }
+
+    const base = Number(baseStats[row.key]) || 0;
+    const iv = clampNumber(document.getElementById(row.ivId)?.value, 0, 31, 0);
+    const ev = clampNumber(document.getElementById(row.evId)?.value, 0, 252, 0);
+    const finalStat = calculateDisplayedStat({ speciesId, statKey: row.key, base, iv, ev, level });
+    const barColor = getStatBarColor(base);
+    if (baseEl) baseEl.textContent = String(base);
+    if (barEl) {
+      barEl.style.width = `${Math.min(100, Math.round((base / STAT_GRAPH_MAX_BASE) * 100))}%`;
+      barEl.style.setProperty('--stat-bar-color', barColor.color);
+      barEl.style.setProperty('--stat-bar-color-soft', barColor.soft);
+    }
+    if (finalEl) finalEl.textContent = String(finalStat);
+  }
+}
 
     // Apply event-level defaults (TID/SID, OT name per language, shiny lock, origin, met location/level, ball, fateful flag, default PID)
     function applyEventDefaults(tag) {
@@ -2085,6 +2184,7 @@ function updateHiddenPower() {
       : 'Hidden Power type selection is only available in hatched mode.';
   }
   if (powerEl) powerEl.textContent = `Power: ${hp.power}`;
+  try { updateStatGraph(); } catch (e) {}
 }
 
 // Highlight missing required fields (global scope for access from onGenerate)
@@ -3286,6 +3386,7 @@ function boot(){
   $('#nature').addEventListener('change', () => {
     validateForm();
     updateLegalityStatus();
+    try { updateStatGraph(); } catch (e) {}
     $('#nature').classList.remove('field-error');
     // If we're in mystery event mode, apply the per-event preset for the
     // currently selected species so PID/IV from the JSON are used instead
@@ -3560,6 +3661,8 @@ function boot(){
   if (levelInput) {
     levelInput.addEventListener('input', updateLegalityStatus);
     levelInput.addEventListener('change', updateLegalityStatus);
+    levelInput.addEventListener('input', updateStatGraph);
+    levelInput.addEventListener('change', updateStatGraph);
   }
   
   const metLevelInput = $('#metLevel');
@@ -3623,6 +3726,8 @@ function boot(){
     ballInput.addEventListener('change', updateLegalityStatus);
     ballInput.addEventListener('input', updateLegalityStatus);
   }
+
+  $('#originGame')?.addEventListener('change', updateStatGraph);
   
   // IVs
   ['#ivHp', '#ivAtk', '#ivDef', '#ivSpAtk', '#ivSpDef', '#ivSpe'].forEach(ivField => {
@@ -6043,6 +6148,7 @@ function boot(){
       const val = Number(valRaw) || 0;
       if (val > 100) e.target.value = '100';
       // Do not force values <1 here to avoid snapping while typing (e.g., typing 74)
+      try { updateStatGraph(); } catch (e) {}
     } catch (e) {}
   });
 
@@ -6095,6 +6201,7 @@ function boot(){
         e.target.value = String(val);
       }
       try { computeAndSetExpFromLevel(); } catch (e) {}
+      try { updateStatGraph(); } catch (e) {}
       try { updateLegalityStatus(); } catch (e) {}
       // Re-filter moves: in non-hatched modes the available level-up moves
       // depend on the Pokémon's level, so update the dropdowns.
@@ -6110,6 +6217,7 @@ function boot(){
     const exp = expForLevel(group, lvl);
     const expEl = document.querySelector('#expTotal');
     if (expEl) expEl.value = String(exp);
+    try { updateStatGraph(); } catch (e) {}
   }
 
   const ENCOUNTER_MODE_CHECKBOX_IDS = new Set([
@@ -6823,6 +6931,7 @@ function boot(){
       e.target.value = String(val);
       const lvl = levelForExp(group, val);
       $('#level').value = String(lvl);
+      try { updateStatGraph(); } catch (ex) {}
       try { refreshMoveExclusions(); } catch (ex) {}
     });
   }
@@ -6860,6 +6969,7 @@ function boot(){
     el.addEventListener('input', (e) => {
       e.target.value = clampInt(e.target.value, 0, 31);
       updateHiddenPower();
+      try { updateStatGraph(); } catch (e) {}
     });
   });
   
@@ -6902,6 +7012,7 @@ function boot(){
         const newVal = Math.max(0, cur - over);
         e.target.value = String(newVal);
       }
+      try { updateStatGraph(); } catch (e) {}
     });
   });
 
