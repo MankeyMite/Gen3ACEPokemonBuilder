@@ -888,6 +888,37 @@
         min-width: 0;
       }
 
+      .show-when-mystery,
+      .show-when-static,
+      .show-when-roamer,
+      .show-when-cxd,
+      .wild-only,
+      .wild-or-legend {
+        display: none;
+      }
+
+      body.encounter-mystery .show-when-mystery,
+      body.encounter-static .show-when-static,
+      body.encounter-roamer .show-when-roamer,
+      body.encounter-cxd_shadow .show-when-cxd,
+      body.encounter-wild .wild-or-legend,
+      body.encounter-static .wild-or-legend,
+      body.encounter-cxd_shadow .wild-or-legend,
+      body.encounter-roamer .wild-or-legend {
+        display: grid;
+      }
+
+      body.encounter-wild .wild-only {
+        display: grid;
+      }
+
+      body.encounter-wild .shiny-external,
+      body.encounter-static .shiny-external,
+      body.encounter-cxd_shadow .shiny-external,
+      body.encounter-roamer .shiny-external {
+        display: none;
+      }
+
       .row > label,
       label {
         min-width: 0;
