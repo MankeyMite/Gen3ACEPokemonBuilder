@@ -7154,8 +7154,7 @@ function boot(){
   });
   setOutputCodeTarget(outputCodeTarget);
 
-  // Output help: prepare the clickable Metang sprite and keep it hidden
-  // until Generate produces Base64/Hex output.
+  // Output help: prepare the clickable Metang sprite.
   const codeHelpInline = $('#codeHelpInline');
   const codeHelpMetangSprite = $('#codeHelpMetangSprite');
   if (codeHelpInline && codeHelpMetangSprite) {
@@ -7172,7 +7171,7 @@ function boot(){
       codeHelpMetangSprite.src = metangOnlineSprite || metangLocalSprite;
     }
 
-    codeHelpInline.hidden = true;
+    setOutputTroubleshootingVisible(true);
   }
 
   $('#generateBtn').addEventListener('click', onGenerate);
@@ -8885,7 +8884,7 @@ function clearGeneratedOutputs() {
   const copyB64 = document.getElementById('copyBase64Check');
   if (copyB64) copyB64.classList.remove('show');
 
-  setOutputTroubleshootingVisible(false);
+  setOutputTroubleshootingVisible(true);
 }
 
 function clearImportedRoundTripState() {
@@ -8949,11 +8948,7 @@ function onGenerate(){
   if (pristineOutput) {
     $('#hexOutput').value = pristineOutput.hex;
     $('#base64Output').value = pristineOutput.base64Text;
-    const canShowHelper = (
-      $('#generateBtn').getAttribute('data-disabled') !== 'true' &&
-      String(pristineOutput.base64Text || '').trim().length > 0
-    );
-    setOutputTroubleshootingVisible(canShowHelper);
+    setOutputTroubleshootingVisible(true);
     updateBase64SafetyWarnings(pristineOutput.base64Text, pristineOutput.substitutionUsed);
     return;
   }
@@ -8975,11 +8970,7 @@ function onGenerate(){
   const b64Result = toBase64Emerald(result.bytes, { switchSafe: isNintendoSwitchCodeTarget() });
   $('#hexOutput').value = hex;
   $('#base64Output').value = b64Result.text;
-  const canShowHelper = (
-    $('#generateBtn').getAttribute('data-disabled') !== 'true' &&
-    String(b64Result.text || '').trim().length > 0
-  );
-  setOutputTroubleshootingVisible(canShowHelper);
+  setOutputTroubleshootingVisible(true);
   updateBase64SafetyWarnings(b64Result.text, b64Result.substitutionUsed);
 }
 

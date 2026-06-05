@@ -5,6 +5,7 @@ Patch Notes - (V.0.3.7)
 - Made sure "is egg" is only availbale to base forms, Marill and Wobbuffet in the Hatched encounter type.
 - Added and adjusted multiple tooltips to the website for extra clarity.
 - Fixed Mitsurin Celebi having the wrong PID type and OT name.
+- Made the Metang code troubleshooting link visible before generating a code.
 
 
 Patch Notes - (V.0.3.6)
