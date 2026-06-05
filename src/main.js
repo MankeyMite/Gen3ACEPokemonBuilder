@@ -781,6 +781,8 @@ let pidFinderOriginalTid = 0;
 let pidFinderOriginalSid = 0;
 // True after a PID Finder result has been selected until it is explicitly cleared.
 let pidFinderHadSelection = false;
+// Mystery event tag that the current PID Finder result belongs to.
+let pidFinderMysteryTag = '';
 // Assigned from boot() so non-boot modules (PID finder modal) can clear active locks safely.
 let unlockPidFinderFieldsFn = null;
 // When true, the Manual Override checkbox is active — all field locks are bypassed
@@ -841,18 +843,16 @@ function isChannelJirachiMysteryEventSelected() {
   return isChannelJirachiMysteryTag(getSelectedMysteryEvent().tag);
 }
 
-function requiresBerryFixPidFinderSelection() {
-  return (
-    isBerryFixMysteryEventSelected() ||
-    isPcnyWishEggsMysteryEventSelected() ||
-    isMystryMewMysteryEventSelected() ||
-    isChannelJirachiMysteryEventSelected()
-  );
+function requiresMysteryGiftPidFinderSelection() {
+  if (currentEncounterMode !== 'mystery') return false;
+  const tag = getSelectedMysteryEvent().tag;
+  if (!tag || tag === 'WISHMKR_SHINY') return false;
+  return true;
 }
 
-function hasRequiredBerryFixPidFinderSelection() {
-  if (!requiresBerryFixPidFinderSelection()) return true;
-  return !!pidFinderHadSelection;
+function hasRequiredMysteryGiftPidFinderSelection() {
+  if (!requiresMysteryGiftPidFinderSelection()) return true;
+  return !!pidFinderHadSelection && pidFinderMysteryTag === getSelectedMysteryEvent().tag;
 }
 
 function getBerryFixOtPreference() {
@@ -2301,7 +2301,7 @@ function highlightMissingFields() {
     missingFields.push('At least one Move');
   }
 
-  if (!hasRequiredBerryFixPidFinderSelection()) {
+  if (!hasRequiredMysteryGiftPidFinderSelection()) {
     if (pidFinderBtn) pidFinderBtn.classList.add('field-error');
     missingFields.push('Find Legal Encounter');
   }
@@ -2532,15 +2532,15 @@ function boot(){
                     (move2Value && move2Value !== '0') || 
                     (move3Value && move3Value !== '0') || 
                     (move4Value && move4Value !== '0');
-    const hasBerryFixLegalPid = hasRequiredBerryFixPidFinderSelection();
+    const hasMysteryGiftLegalPid = hasRequiredMysteryGiftPidFinderSelection();
 
-    if (pidFinderBtn && hasBerryFixLegalPid) {
+    if (pidFinderBtn && hasMysteryGiftLegalPid) {
       pidFinderBtn.classList.remove('field-error');
     }
     
     // Enable generate button only if all conditions are met
     const generateBtn = $('#generateBtn');
-    if (hasSpecies && hasNature && hasMove && hasOTName && hasBerryFixLegalPid) {
+    if (hasSpecies && hasNature && hasMove && hasOTName && hasMysteryGiftLegalPid) {
       generateBtn.setAttribute('data-disabled', 'false');
     } else {
       generateBtn.setAttribute('data-disabled', 'true');
@@ -4077,7 +4077,7 @@ function boot(){
       static: {label: 'Static', color: '#f59e0b', text: 'All static encounters: starters, fossils, gifts, game corner, stationary, legends, and events. Use the Find Legal Encounter button in Encounter details to create a legal Pokémon with your preferred PID, IVs, and shininess.'},
       roamer: {label: 'Roamer', color: '#e879f9', text: 'Roaming legendaries (Latios, Latias, Raikou, Entei, Suicune). Uses Method 1 PID generation. Non-Emerald roamers have the IV truncation bug (only HP and partial ATK IVs are kept; DEF/SPE/SPA/SPD are forced to 0).'},
       wild: {label: 'Wild', color: '#60a5fa', text: 'Wild encounters (in the overworld). Recommended only if you prefer it looking like it was RNG manipulated. Uses Method H-1, H-2, and H-4 encounter slots to aim for best IVs per nature for each species. Use the Find Legal Encounter button in Encounter details to create a legal Pokémon with your preferred PID, IVs, and shininess.'},
-      mystery: {label: 'Mystery Gifts', color: '#ef476f', text: 'Get Distribution Event Pokémon with event-accurate legality rules. Illegal fields are locked automatically, and only unlocked fields can be edited. Use the Find Legal Encounter button, where available, to generate legal custom PID and IV combinations for the selected event.'},
+      mystery: {label: 'Mystery Gifts', color: '#ef476f', text: 'Get Distribution Event Pokémon with event-accurate legality rules. Illegal fields are locked automatically, and only unlocked fields can be edited. Most events require selecting a result from Find Legal Encounter before generating a code.'},
       cxd_shadow: {label: 'XD / Colosseum', color: '#a78bfa', text: 'Shadow Pokémon from Pokémon XD: Gale of Darkness and Pokémon Colosseum. Choose a species and encounter location, then use the PID Finder with CXD method. TID and SID must be a valid GameCube RNG pair.'},
       imported: {label: 'Imported', color: '#94a3b8', text: 'Pokémon imported from external data. Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from UI fields. This matters for glitched bytes the UI cannot safely represent.'}
     };
@@ -4242,6 +4242,8 @@ function boot(){
     pidFinderLockedMetLevel = false;
     const pidFinderStatusEl = document.getElementById('pidFinderStatus');
     if (pidFinderStatusEl) pidFinderStatusEl.textContent = '';
+    pidFinderHadSelection = false;
+    pidFinderMysteryTag = '';
     const unlock = (el) => {
       if (!el) return;
       el.disabled = false;
@@ -4268,7 +4270,6 @@ function boot(){
         pidEl.value = '';
         try { pidEl.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
       }
-      pidFinderHadSelection = false;
     }
 
     try { updatePidLocking(); } catch (e) {}
@@ -4972,6 +4973,7 @@ function boot(){
               try { enforceJapaneseOption(tag); } catch (e) {}
               try { lockLanguageForMewLegend(); } catch (e) {}
             try { lockLanguageForMewLegend(); } catch (e) {}
+            validateForm();
           });
         }
       } catch (e) {
@@ -7631,6 +7633,7 @@ function initPidFinder() {
       try { pidEl.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
     }
     pidFinderHadSelection = false;
+    pidFinderMysteryTag = '';
 
     if (statusSpan) {
       statusSpan.textContent = reasonText || '';
@@ -7643,8 +7646,8 @@ function initPidFinder() {
     try { _validateForm?.(); } catch (e) {}
   }
 
-  function maybeClearStaleBerryFixSelection(reasonText) {
-    if (!isBerryFixMysteryEventSelected()) return;
+  function maybeClearStaleMysteryGiftSelection(reasonText) {
+    if (currentEncounterMode !== 'mystery') return;
     clearActivePidFinderResult(reasonText);
   }
 
@@ -7667,7 +7670,9 @@ function initPidFinder() {
 
   if (berryFixOtPrefEl) {
     berryFixOtPrefEl.addEventListener('change', () => {
-      maybeClearStaleBerryFixSelection('Berry Fix OT changed. Select a new legal encounter.');
+      if (isBerryFixMysteryEventSelected()) {
+        maybeClearStaleMysteryGiftSelection('Berry Fix OT changed. Select a new legal encounter.');
+      }
       try { updateBerryFixOtPreferenceUi(); } catch (e) {}
     });
   }
@@ -7680,8 +7685,8 @@ function initPidFinder() {
   for (const id of staleResultFilterIds) {
     const el = document.getElementById(id);
     if (!el) continue;
-    el.addEventListener('input', () => maybeClearStaleBerryFixSelection(staleResultMsg));
-    el.addEventListener('change', () => maybeClearStaleBerryFixSelection(staleResultMsg));
+    el.addEventListener('input', () => maybeClearStaleMysteryGiftSelection(staleResultMsg));
+    el.addEventListener('change', () => maybeClearStaleMysteryGiftSelection(staleResultMsg));
   }
 
   /* â”€â”€ Open / Close â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -7828,7 +7833,7 @@ function initPidFinder() {
         pfM4.parentElement.style.display = 'none';
       }
 
-      const { event } = getSelectedMysteryEvent();
+      const { tag, event } = getSelectedMysteryEvent();
       if (pfTidEl && event?.fixedTID !== undefined) {
         pfTidEl.value = String(event.fixedTID);
         pfTidEl.disabled = true;
@@ -7837,7 +7842,7 @@ function initPidFinder() {
         pfSidEl.value = String(event.fixedSID);
         pfSidEl.disabled = true;
       }
-      if (pfShinyEl && event?.alwaysShiny) {
+      if (pfShinyEl && (event?.alwaysShiny || tag === 'WISHMKR_SHINY')) {
         pfShinyEl.checked = true;
         pfShinyEl.disabled = true;
       } else if (pfShinyEl && event?.shinyLocked) {
@@ -8381,6 +8386,7 @@ function initPidFinder() {
     // from overwriting the selected PID/IVs without enabling full Manual Override.
     pidFinderResultActive = true;
     pidFinderHadSelection = true;
+    pidFinderMysteryTag = currentEncounterMode === 'mystery' ? getSelectedMysteryEvent().tag : '';
 
     // Sync TID/SID from PID Finder modal back to main form
     const pfTid = Number(document.getElementById('pfTid').value) & 0xFFFF;
@@ -8958,7 +8964,7 @@ function onGenerate(){
     return;
   }
 
-  if (!hasRequiredBerryFixPidFinderSelection()) {
+  if (!hasRequiredMysteryGiftPidFinderSelection()) {
     highlightMissingFields();
     return;
   }
