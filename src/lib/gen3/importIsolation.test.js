@@ -94,9 +94,9 @@ section('ignored controls remain non-dirty');
   assert(shouldDirty === false, 'generate button interactions must not dirty imported state');
 }
 
-section('code target controls remain non-dirty');
+section('output controls remain non-dirty');
 {
-  for (const targetId of ['codeTargetConsole', 'codeTargetSwitch']) {
+  for (const targetId of ['codeTargetConsole', 'codeTargetSwitch', 'showGbaTextPreview']) {
     const shouldDirty = shouldMarkImportedDirtyFromEvent({
       event: { isTrusted: true },
       suppressImportedDirtyTracking: false,

@@ -27,6 +27,7 @@ import { COLO_SHADOW_LOCKS, XD_SHADOW_LOCKS, COLO_NO_LOCK_SPECIES, XD_NO_LOCK_SP
 import { getSpritePath, getUnownFormIndex, getUnownFormChar, getUnownFormSuffix, getUnownSpritePath, getOnlineSpriteUrl, getOnlineUnownSpriteUrl, UNOWN_FORMS, TANOBY_FORMS_BY_LOCATION, getTanobyFormsForLocation, getTanobyLocationsForForm } from './data/nationalDex.gen3.js';
 import { GENDER_THRESHOLDS, getGenderThreshold } from './data/genderThresholds.gen3.js';
 import { isPristineImportedRoundTripState, tryBuildPristineImportedOutputs, shouldMarkImportedDirtyFromEvent, resolvePokerusStateForBuild } from './lib/gen3/importIsolation.js';
+import { parseBase64BoxOutput, renderBoxNamePreview } from './lib/gen3/gbaTextPreview.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -34,6 +35,7 @@ const $ = sel => document.querySelector(sel);
 const wildPlusEvos = buildWildWithEvolutions(WILD_ENCOUNTERS);
 const EVOLVED_UNHATCHED_EGG_EXCEPTIONS = new Set([183, 202]); // Marill, Wobbuffet
 const DEOXYS_SPECIES_ID = 410;
+const CELEBI_SPECIES_ID = 251;
 const SHEDINJA_SPECIES_ID = 303;
 const STAT_GRAPH_MAX_BASE = 180;
 const STAT_GRAPH_ROWS = [
@@ -234,9 +236,10 @@ function updateStatGraph() {
           shinyCheckbox.disabled = true;
           shinyCheckbox.title = 'This event is always shiny.';
         } else if (evt.shinyLocked) {
-          shinyCheckbox.checked = false;
-          shinyCheckbox.disabled = true;
-          shinyCheckbox.title = 'This Pokemon is shiny locked.';
+          const unlockShinyLock = shouldUnlockCelebiShinyLock(tag, evt);
+          if (!unlockShinyLock) shinyCheckbox.checked = false;
+          shinyCheckbox.disabled = !unlockShinyLock;
+          shinyCheckbox.title = unlockShinyLock ? '' : 'This Pokemon is shiny locked.';
         } else {
           shinyCheckbox.disabled = false;
           shinyCheckbox.title = '';
@@ -794,6 +797,7 @@ let importedRoundTripBytes = null;
 let importedRoundTripDirty = true;
 let suppressImportedDirtyTracking = false;
 let outputCodeTarget = 'console';
+let gbaTextPreviewRenderId = 0;
 let importedPokerusState = null;
 let pokerusDropdownDirty = false;
 // When true, skip applying simple-mode PID presets (used during imports)
@@ -813,6 +817,15 @@ function getSelectedMysteryEvent() {
     tag,
     event: MYSTERY_EVENTS[tag] || null,
   };
+}
+
+function shouldUnlockCelebiShinyLock(tag, evt) {
+  if (!manualOverrideActive || currentEncounterMode !== 'mystery' || !evt?.shinyLocked) return false;
+  const speciesId = Number($('#species')?.value) || 0;
+  if (speciesId === CELEBI_SPECIES_ID) return true;
+
+  const eventSpecies = Array.isArray(evt.species) ? evt.species.map(n => Number(n)) : [];
+  return eventSpecies.length === 1 && eventSpecies[0] === CELEBI_SPECIES_ID;
 }
 
 function isBerryFixMysteryTag(tag) {
@@ -3313,6 +3326,7 @@ function boot(){
         const tag = document.getElementById('mysteryEvent')?.value || '';
         if (tag) applyMysteryPresetForSpecies(speciesId);
       }
+      try { updateShinyCheckboxState(); } catch (e) {}
       // Validate form
       validateForm();
     }
@@ -4039,6 +4053,7 @@ function boot(){
       try { lockLanguageForMewLegend(); } catch (e) {}
       try { enforceJapaneseOption(); } catch (e) {}
       try { updateFatefulLocking(); } catch (e) {}
+      try { updateShinyCheckboxState(); } catch (e) {}
       try { updateIsEggVisibility(); } catch (e) {}
       try { updateItemLockingForEgg(); } catch (e) {}
       try { updateContestStatsLocking(); } catch (e) {}
@@ -4967,6 +4982,7 @@ function boot(){
               updateMovesForSpecies(sp, { preserveValue: true });
               applyMysteryPresetForSpecies(sp);
             }
+            try { updateShinyCheckboxState(); } catch (e) {}
             // Update mystery species options (noop if selector removed)
             updateMysterySpeciesOptions(tag);
             try { updateTidSidLocking(); } catch (e) {}
@@ -6526,64 +6542,65 @@ function boot(){
   $('#tid').addEventListener('input', checkShiny);
   $('#sid').addEventListener('input', checkShiny);
   
+  // Update checkbox disabled state when conditions change.
+  // Do NOT disable while the user is typing a partial TID/SID; only
+  // disable for events that explicitly lock shininess.
+  function updateShinyCheckboxState() {
+    try {
+      const shinyCheckboxLocal = $('#shiny');
+      if (!shinyCheckboxLocal) return;
+      // If we're in mystery mode and the selected event requests a shiny lock,
+      // enforce it here. Otherwise keep the control enabled so the user can
+      // toggle shiny while entering TID/SID.
+      if (currentEncounterMode === 'mystery') {
+        const tag = ($('#mysteryEvent') && $('#mysteryEvent').value) ? String($('#mysteryEvent').value).toUpperCase() : '';
+        const evt = MYSTERY_EVENTS[tag];
+        if (tag === 'WISHMKR_SHINY') {
+          shinyCheckboxLocal.checked = true;
+          shinyCheckboxLocal.disabled = true;
+          shinyCheckboxLocal.title = 'This event is always shiny.';
+          return;
+        }
+        if (evt && evt.alwaysShiny) {
+          shinyCheckboxLocal.checked = true;
+          shinyCheckboxLocal.disabled = true;
+          shinyCheckboxLocal.title = 'This event is always shiny.';
+          return;
+        }
+        if (evt && evt.shinyLocked) {
+          const unlockShinyLock = shouldUnlockCelebiShinyLock(tag, evt);
+          if (!unlockShinyLock) shinyCheckboxLocal.checked = false;
+          shinyCheckboxLocal.disabled = !unlockShinyLock;
+          shinyCheckboxLocal.title = unlockShinyLock ? '' : 'This Pokémon is shiny locked!';
+          return;
+        }
+      }
+      // CXD shadow mode: XD shadows are shiny-locked (disable checkbox),
+      // Colosseum shadows can be shiny (adjust SID).
+      if (currentEncounterMode === 'cxd_shadow') {
+        const enc = getSelectedCXDEncounter();
+        if (enc && enc.game === 'xd') {
+          shinyCheckboxLocal.checked = false;
+          shinyCheckboxLocal.disabled = true;
+          shinyCheckboxLocal.title = 'XD shadow Pokémon are shiny locked — shininess is not possible';
+          return;
+        }
+        // Colosseum shadow: allow shiny toggle (adjusts SID)
+        shinyCheckboxLocal.disabled = false;
+        shinyCheckboxLocal.title = 'Colosseum shadow — checking this adjusts your SID';
+        return;
+      }
+      // Default: ensure enabled, clear tooltip
+      shinyCheckboxLocal.disabled = false;
+      shinyCheckboxLocal.title = '';
+      const shinyLockedLabel = document.getElementById('xdShinyLocked');
+      if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
+    } catch (e) {}
+  }
+
   // Handle shiny checkbox
   const shinyCheckbox = $('#shiny');
   if (shinyCheckbox) {
-    // Update checkbox disabled state when conditions change.
-    // Do NOT disable while the user is typing a partial TID/SID; only
-    // disable for mystery events that explicitly lock shininess.
-    function updateShinyCheckboxState() {
-      try {
-        const shinyCheckboxLocal = $('#shiny');
-        if (!shinyCheckboxLocal) return;
-        // If we're in mystery mode and the selected event requests a shiny lock,
-        // enforce it here. Otherwise keep the control enabled so the user can
-        // toggle shiny while entering TID/SID.
-        if (currentEncounterMode === 'mystery') {
-          const tag = ($('#mysteryEvent') && $('#mysteryEvent').value) ? String($('#mysteryEvent').value).toUpperCase() : '';
-          const evt = MYSTERY_EVENTS[tag];
-          if (tag === 'WISHMKR_SHINY') {
-            shinyCheckboxLocal.checked = true;
-            shinyCheckboxLocal.disabled = true;
-            shinyCheckboxLocal.title = 'This event is always shiny.';
-            return;
-          }
-          if (evt && evt.alwaysShiny) {
-            shinyCheckboxLocal.checked = true;
-            shinyCheckboxLocal.disabled = true;
-            shinyCheckboxLocal.title = 'This event is always shiny.';
-            return;
-          }
-          if (evt && evt.shinyLocked) {
-            shinyCheckboxLocal.checked = false;
-            shinyCheckboxLocal.disabled = true;
-            shinyCheckboxLocal.title = 'This Pokémon is shiny locked!';
-            return;
-          }
-        }
-        // CXD shadow mode: XD shadows are shiny-locked (disable checkbox),
-        // Colosseum shadows can be shiny (adjust SID).
-        if (currentEncounterMode === 'cxd_shadow') {
-          const enc = getSelectedCXDEncounter();
-          if (enc && enc.game === 'xd') {
-            shinyCheckboxLocal.checked = false;
-            shinyCheckboxLocal.disabled = true;
-            shinyCheckboxLocal.title = 'XD shadow Pokémon are shiny locked — shininess is not possible';
-            return;
-          }
-          // Colosseum shadow: allow shiny toggle (adjusts SID)
-          shinyCheckboxLocal.disabled = false;
-          shinyCheckboxLocal.title = 'Colosseum shadow — checking this adjusts your SID';
-          return;
-        }
-        // Default: ensure enabled, clear tooltip
-        shinyCheckboxLocal.disabled = false;
-        shinyCheckboxLocal.title = '';
-        const shinyLockedLabel = document.getElementById('xdShinyLocked');
-        if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
-      } catch (e) {}
-    }
-    
     $('#tid').addEventListener('input', updateShinyCheckboxState);
     $('#sid').addEventListener('input', updateShinyCheckboxState);
     updateShinyCheckboxState(); // Initial check
@@ -7183,6 +7200,10 @@ function boot(){
     copy($('#base64Output').value);
     showCopyConfirmation('copyBase64Check');
   });
+  $('#showGbaTextPreview')?.addEventListener('change', (event) => {
+    setGbaTextPreviewVisible(Boolean(event.target.checked));
+  });
+  setGbaTextPreviewVisible(false);
   $('#loadFromHexBtn')?.addEventListener('click', onLoadFromHex);
   // Wire export/import buttons: keep .ek3 export, add .pk3 (decrypted) export,
   // and a unified Import Pokémon button that accepts .ek3 or .pk3 files.
@@ -7841,10 +7862,11 @@ function initPidFinder() {
         pfSidEl.value = String(event.fixedSID);
         pfSidEl.disabled = true;
       }
+      const unlockShinyLock = shouldUnlockCelebiShinyLock(tag, event);
       if (pfShinyEl && (event?.alwaysShiny || tag === 'WISHMKR_SHINY')) {
         pfShinyEl.checked = true;
         pfShinyEl.disabled = true;
-      } else if (pfShinyEl && event?.shinyLocked) {
+      } else if (pfShinyEl && event?.shinyLocked && !unlockShinyLock) {
         pfShinyEl.checked = false;
         pfShinyEl.disabled = true;
       }
@@ -7881,7 +7903,7 @@ function initPidFinder() {
       if (pfM2) { pfM2.checked = false; pfM2.parentElement.style.display = 'none'; }
       if (pfM4) { pfM4.checked = false; pfM4.parentElement.style.display = 'none'; }
       if (currentEncounterMode === 'mystery') {
-        const { event } = getSelectedMysteryEvent();
+        const { tag, event } = getSelectedMysteryEvent();
         if (pfTidEl && event?.fixedTID !== undefined) {
           pfTidEl.value = String(event.fixedTID);
           pfTidEl.disabled = true;
@@ -7890,7 +7912,7 @@ function initPidFinder() {
           pfSidEl.value = String(event.fixedSID);
           pfSidEl.disabled = true;
         }
-        if (pfShinyEl && event?.shinyLocked) {
+        if (pfShinyEl && event?.shinyLocked && !shouldUnlockCelebiShinyLock(tag, event)) {
           pfShinyEl.checked = false;
           pfShinyEl.disabled = true;
         }
@@ -8847,9 +8869,12 @@ function setOutputCodeTarget(target, options = {}) {
 
   if (options.regenerate && $('#base64Output')?.value) {
     onGenerate();
+    return;
   } else if (!isNintendoSwitchCodeTarget()) {
     hideBase64SafetyWarnings();
   }
+
+  updateGbaTextPreview();
 }
 
 function setOutputTroubleshootingVisible(visible) {
@@ -8858,6 +8883,65 @@ function setOutputTroubleshootingVisible(visible) {
   const show = Boolean(visible);
   helper.hidden = !show;
   helper.style.display = show ? 'inline-flex' : 'none';
+}
+
+function isGbaTextPreviewEnabled() {
+  return Boolean(document.getElementById('showGbaTextPreview')?.checked);
+}
+
+function setGbaTextPreviewVisible(visible) {
+  const panel = document.getElementById('gbaTextPreviewPanel');
+  const grid = document.querySelector('.box-code-output-grid');
+  if (!panel) return;
+
+  panel.hidden = !visible;
+  grid?.classList.toggle('preview-active', visible);
+
+  if (visible) {
+    updateGbaTextPreview();
+  } else {
+    clearGbaTextPreview();
+  }
+}
+
+function clearGbaTextPreview() {
+  gbaTextPreviewRenderId++;
+
+  const list = document.getElementById('gbaTextPreviewList');
+  if (list) list.textContent = '';
+
+  const warning = document.getElementById('gbaTextPreviewWarnings');
+  if (warning) {
+    warning.hidden = true;
+    warning.textContent = '';
+  }
+}
+
+async function updateGbaTextPreview() {
+  if (!isGbaTextPreviewEnabled()) return null;
+
+  const list = document.getElementById('gbaTextPreviewList');
+  const warning = document.getElementById('gbaTextPreviewWarnings');
+  const output = document.getElementById('base64Output')?.value || '';
+  if (!list) return null;
+
+  const renderId = ++gbaTextPreviewRenderId;
+  const rows = parseBase64BoxOutput(output);
+
+  try {
+    const result = await renderBoxNamePreview(list, rows, {
+      warningElement: warning,
+      scale: 1,
+    });
+    return renderId === gbaTextPreviewRenderId ? result : null;
+  } catch (err) {
+    if (renderId !== gbaTextPreviewRenderId) return null;
+    if (warning) {
+      warning.hidden = false;
+      warning.textContent = err?.message || 'Could not render the in-game text preview.';
+    }
+    return null;
+  }
 }
 
 function clearGeneratedOutputs() {
@@ -8884,6 +8968,7 @@ function clearGeneratedOutputs() {
   const copyB64 = document.getElementById('copyBase64Check');
   if (copyB64) copyB64.classList.remove('show');
 
+  clearGbaTextPreview();
   setOutputTroubleshootingVisible(true);
 }
 
@@ -8950,6 +9035,7 @@ function onGenerate(){
     $('#base64Output').value = pristineOutput.base64Text;
     setOutputTroubleshootingVisible(true);
     updateBase64SafetyWarnings(pristineOutput.base64Text, pristineOutput.substitutionUsed);
+    updateGbaTextPreview();
     return;
   }
 
@@ -8972,6 +9058,7 @@ function onGenerate(){
   $('#base64Output').value = b64Result.text;
   setOutputTroubleshootingVisible(true);
   updateBase64SafetyWarnings(b64Result.text, b64Result.substitutionUsed);
+  updateGbaTextPreview();
 }
 
 function enterImportedModeSilently() {
