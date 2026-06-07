@@ -864,6 +864,7 @@ function requiresMysteryGiftPidFinderSelection() {
 }
 
 function hasRequiredMysteryGiftPidFinderSelection() {
+  if (manualOverrideActive) return true;
   if (!requiresMysteryGiftPidFinderSelection()) return true;
   return !!pidFinderHadSelection && pidFinderMysteryTag === getSelectedMysteryEvent().tag;
 }
@@ -4059,6 +4060,7 @@ function boot(){
       try { updateContestStatsLocking(); } catch (e) {}
       try { updateRibbonLocking(); } catch (e) {}
       try { updateHatchedOriginGameLocking(); } catch (e) {}
+      try { $('#pidFinderBtn')?.classList.remove('field-error'); } catch (e) {}
       // Refresh move dropdowns — override shows all Gen 3 moves, normal re-applies learnset
       try {
         const speciesId = Number($('#species').value) || 0;
@@ -4080,6 +4082,7 @@ function boot(){
           }
         }
       } catch (e) {}
+      try { validateForm(); } catch (e) {}
     });
   }
 
