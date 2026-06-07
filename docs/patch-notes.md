@@ -3,6 +3,7 @@ Patch Notes - (V.0.3.7)
 - Added a visual graph for the base stats of the selected Pokémon.
 - Added max-width: 640px mobile overrides to prevent horizontal overflow on mobile.
 - Made sure "is egg" is only availbale to base forms, Marill and Wobbuffet in the Hatched encounter type.
+- Allowed Japanese language selection in Hatched mode while keeping the Japanese nickname and OT name length limits.
 - Added and adjusted multiple tooltips to the website for extra clarity.
 - Fixed Mitsurin Celebi having the wrong PID type and OT name.
 - Made the Metang code troubleshooting link visible before generating a code.
