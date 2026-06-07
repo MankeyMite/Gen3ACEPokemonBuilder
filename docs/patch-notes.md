@@ -1,3 +1,11 @@
+Patch Notes - (V.0.3.8)
+- Added in-game text preview for box codes for extra clarity.
+- You can now generate code without requiring the "find legal encounter" button when "unlock all fields" is checked.
+- Made the Metang troubleshooter always appear near the code section.
+- Locked additional fields for less accidental illegal generations.
+- You may no longer equip an item while "is egg" is checked. Auto-removes any item and locks field.
+- Fixed PCNY event from locking certian fields.
+
 Patch Notes - (V.0.3.7)
 
 - Added a visual graph for the base stats of the selected Pokémon.
