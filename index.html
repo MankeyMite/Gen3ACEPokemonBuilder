@@ -575,6 +575,9 @@
     .gba-preview-toggle-row {
       display: flex;
       justify-content: flex-end;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
       margin-bottom: 0.65rem;
     }
 
@@ -604,7 +607,7 @@
 
     .box-code-output-grid.preview-active {
       grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-      align-items: stretch;
+      align-items: start;
     }
 
     .box-code-output-main {
@@ -619,10 +622,11 @@
     .gba-text-preview-panel {
       min-width: 0;
       box-sizing: border-box;
-      padding: 0.55rem 0.75rem;
+      padding: 0.55rem 0.75rem 0.25rem;
       border: 1px solid rgba(56, 189, 248, 0.25);
       border-radius: 8px;
       background: rgba(15, 23, 42, 0.55);
+      overflow: auto;
     }
 
     .gba-text-preview-panel[hidden] {
@@ -636,6 +640,25 @@
       gap: 0.75rem;
       margin-bottom: 0.15rem;
       line-height: 1;
+    }
+
+    .gba-preview-font-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      min-width: 0;
+      color: #94a3b8;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .gba-preview-font-control select {
+      width: auto;
+      min-height: 1.75rem;
+      padding: 0.2rem 1.6rem 0.2rem 0.45rem;
+      font-size: 0.78rem;
+      line-height: 1.1;
+      background-color: rgba(15, 23, 42, 0.9);
     }
 
     .gba-preview-warning {
@@ -679,7 +702,7 @@
       image-rendering: pixelated;
       image-rendering: crisp-edges;
       max-width: 100%;
-      background: transparent;
+      background: #f8fafc;
       border: 0;
       border-radius: 0;
     }
@@ -1976,8 +1999,16 @@
       <!-- Tab content -->
       <div class="tab-content active" data-tab-content="base64">
         <div class="gba-preview-toggle-row">
+          <label class="gba-preview-font-control" for="gbaTextPreviewFont">
+            <span>Preview font</span>
+            <select id="gbaTextPreviewFont">
+              <option value="auto" selected>Auto</option>
+              <option value="emerald">Emerald</option>
+              <option value="frlg">FireRed / LeafGreen</option>
+            </select>
+          </label>
           <label class="gba-preview-toggle-label" for="showGbaTextPreview">
-            <input id="showGbaTextPreview" type="checkbox">
+            <input id="showGbaTextPreview" type="checkbox" checked>
             <span>Show in-game text preview</span>
           </label>
         </div>

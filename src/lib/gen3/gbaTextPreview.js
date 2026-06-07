@@ -1,44 +1,74 @@
-import { GBA_FONT_NORMAL_PROFILE } from '../../data/gbaFontNormalWidths.js';
-import { GEN3_CHAR_MAP } from '../../data/gen3CharMap.js';
+import { GBA_FONT_PROFILES, GBA_FONT_NORMAL_PROFILE } from '../../data/gbaFontNormalWidths.js';
+import { EMERALD_CHAR_MAP, FRLG_CHAR_MAP, GEN3_CHAR_MAP } from '../../data/gen3CharMap.js';
 
-const DEFAULT_FONT_URL = new URL('../../assets/fonts/latin_normal.png', import.meta.url).href;
+const EMERALD_FONT_URL = new URL('../../assets/fonts/latin_normal.png', import.meta.url).href;
+const FRLG_FONT_URL = new URL('../../assets/fonts/frlg_latin_normal.png', import.meta.url).href;
+const DEFAULT_FONT_URL = EMERALD_FONT_URL;
 const GLYPH_BACKGROUND_KEY = 'glyphBackgroundKey';
 
-let fontImagePromise = null;
-let loadedFontImage = null;
+const fontImagePromises = new Map();
+const loadedFontImages = new Map();
 const pixelSourceCache = new WeakMap();
 
-export function loadGbaFontImage(src = DEFAULT_FONT_URL) {
-  if (loadedFontImage?.src === src) return Promise.resolve(loadedFontImage);
-  if (fontImagePromise) return fontImagePromise;
+export const GBA_TEXT_PREVIEW_FONT_PROFILES = {
+  emerald: {
+    ...GBA_FONT_PROFILES.emerald,
+    imagePath: EMERALD_FONT_URL,
+    charMap: EMERALD_CHAR_MAP,
+  },
+  frlg: {
+    ...GBA_FONT_PROFILES.frlg,
+    imagePath: FRLG_FONT_URL,
+    charMap: FRLG_CHAR_MAP,
+  },
+};
 
-  fontImagePromise = new Promise((resolve, reject) => {
+export function loadGbaFontImage(src = DEFAULT_FONT_URL) {
+  if (loadedFontImages.has(src)) return Promise.resolve(loadedFontImages.get(src));
+  if (fontImagePromises.has(src)) return fontImagePromises.get(src);
+
+  const promise = new Promise((resolve, reject) => {
     const image = new Image();
     image.decoding = 'async';
     image.onload = () => {
-      loadedFontImage = image;
+      loadedFontImages.set(src, image);
+      fontImagePromises.delete(src);
       resolve(image);
     };
     image.onerror = () => {
-      fontImagePromise = null;
+      fontImagePromises.delete(src);
       reject(new Error('Could not load Gen 3 Latin font image.'));
     };
     image.src = src;
   });
+  fontImagePromises.set(src, promise);
 
-  return fontImagePromise;
+  return promise;
 }
 
-export function charToGen3Code(ch) {
-  return GEN3_CHAR_MAP[ch];
+export function resolveGbaTextPreviewFontProfile(profileOrId = 'emerald') {
+  if (profileOrId && typeof profileOrId === 'object') {
+    return {
+      ...GBA_TEXT_PREVIEW_FONT_PROFILES.emerald,
+      ...profileOrId,
+      charMap: profileOrId.charMap || GBA_TEXT_PREVIEW_FONT_PROFILES.emerald.charMap,
+      imagePath: profileOrId.imagePath || GBA_TEXT_PREVIEW_FONT_PROFILES.emerald.imagePath,
+    };
+  }
+  return GBA_TEXT_PREVIEW_FONT_PROFILES[profileOrId] || GBA_TEXT_PREVIEW_FONT_PROFILES.emerald;
 }
 
-export function getGlyphIndexForChar(ch) {
-  return charToGen3Code(ch);
+export function charToGen3Code(ch, options = {}) {
+  const profile = getFontProfile(options);
+  return (profile.charMap || GEN3_CHAR_MAP)[ch];
+}
+
+export function getGlyphIndexForChar(ch, options = {}) {
+  return charToGen3Code(ch, options);
 }
 
 function getFontProfile(options = {}) {
-  return options.fontProfile || GBA_FONT_NORMAL_PROFILE;
+  return resolveGbaTextPreviewFontProfile(options.fontProfile || GBA_FONT_NORMAL_PROFILE);
 }
 
 function getPixelSource(image) {
@@ -86,8 +116,8 @@ function drawFallbackPlaceholder(ctx, x, y, scale, profile) {
 
 export function drawGbaGlyph(ctx, ch, x, y, scale = 3, options = {}) {
   const profile = getFontProfile(options);
-  const image = options.image || loadedFontImage;
-  const gen3Code = getGlyphIndexForChar(ch);
+  const image = options.image || loadedFontImages.get(profile.imagePath || DEFAULT_FONT_URL);
+  const gen3Code = getGlyphIndexForChar(ch, { fontProfile: profile });
   const missing = gen3Code === undefined;
   const glyphIndex = missing ? profile.placeholderCode : gen3Code;
   const width = glyphWidthForIndex(glyphIndex, profile);
@@ -147,7 +177,7 @@ function measureGbaText(text, options = {}) {
   const profile = getFontProfile(options);
   let width = 0;
   for (const ch of Array.from(String(text || ''))) {
-    const glyphIndex = getGlyphIndexForChar(ch);
+    const glyphIndex = getGlyphIndexForChar(ch, { fontProfile: profile });
     const code = glyphIndex === undefined ? profile.placeholderCode : glyphIndex;
     width += glyphWidthForIndex(code, profile) + (options.letterSpacing ?? 0);
   }
@@ -207,13 +237,13 @@ export async function renderBoxNamePreview(container, boxOutputLines, options = 
   const rows = normalizeRows(boxOutputLines);
   const profile = getFontProfile(options);
   const scale = Math.max(1, Math.floor(options.scale || 3));
-  const paddingX = 4;
+  const paddingX = Math.max(4, Number(options.paddingX ?? 4) || 4);
   const paddingY = 1;
   const missingChars = new Set();
   let image = null;
 
   try {
-    image = await loadGbaFontImage(options.fontUrl || DEFAULT_FONT_URL);
+    image = await loadGbaFontImage(options.fontUrl || profile.imagePath || DEFAULT_FONT_URL);
   } catch (err) {
     container.textContent = '';
     setWarning(options.warningElement, missingChars, err?.message || 'Could not load Gen 3 Latin font image.');

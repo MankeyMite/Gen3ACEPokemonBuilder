@@ -1,5 +1,5 @@
 // Western Gen 3 text encoding used by English Pokemon Emerald.
-export const GEN3_CHAR_MAP = {
+export const EMERALD_CHAR_MAP = {
   ' ': 0x00,
   '&': 0x2E,
   '+': 0x2F,
@@ -100,3 +100,14 @@ export const GEN3_CHAR_MAP = {
   '\u00F6': 0xF5,
   '\u00FC': 0xF6,
 };
+
+// Western Gen 3 text encoding used by English FireRed / LeafGreen.
+// Values are kept separate because FRLG's include/characters.h differs from
+// Emerald for at least the low punctuation range.
+export const FRLG_CHAR_MAP = {
+  ...EMERALD_CHAR_MAP,
+  '&': 0x2D,
+  '+': 0x2E,
+};
+
+export const GEN3_CHAR_MAP = EMERALD_CHAR_MAP;

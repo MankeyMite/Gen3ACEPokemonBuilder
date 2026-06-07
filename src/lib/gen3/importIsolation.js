@@ -45,6 +45,7 @@ export function shouldMarkImportedDirtyFromEvent({
     targetId === 'copyHexBtn' ||
     targetId === 'copyBase64Btn' ||
     targetId === 'showGbaTextPreview' ||
+    targetId === 'gbaTextPreviewFont' ||
     targetId === 'codeTargetConsole' ||
     targetId === 'codeTargetSwitch'
   ) {
