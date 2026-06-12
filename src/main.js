@@ -2265,43 +2265,85 @@ function updateHiddenPower() {
   try { updateStatGraph(); } catch (e) {}
 }
 
+function getFieldFocusTarget(target) {
+  if (!target) return null;
+  if (target.matches?.('input, select, textarea, button')) return target;
+  return target.querySelector?.('input, select, textarea, button, [tabindex]:not([tabindex="-1"])') || null;
+}
+
+function scrollToMissingField(target, focusTarget = null) {
+  if (!target?.scrollIntoView) return;
+  const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  const behavior = prefersReducedMotion ? 'auto' : 'smooth';
+
+  requestAnimationFrame(() => {
+    target.scrollIntoView({ behavior, block: 'center', inline: 'nearest' });
+    const focusEl = focusTarget || getFieldFocusTarget(target);
+    if (!focusEl?.focus) return;
+    window.setTimeout(() => {
+      try {
+        focusEl.focus({ preventScroll: true });
+      } catch (e) {
+        focusEl.focus();
+      }
+    }, prefersReducedMotion ? 0 : 250);
+  });
+}
+
 // Highlight missing required fields (global scope for access from onGenerate)
-function highlightMissingFields() {
-  const speciesValue = $('#species').value;
-  const natureValue = $('#nature').value;
-  const move1Value = $('#move1').value;
-  const move2Value = $('#move2').value;
-  const move3Value = $('#move3').value;
-  const move4Value = $('#move4').value;
-  const otNameValue = $('#otName').value;
+function highlightMissingFields({ scrollToFirst = true } = {}) {
+  const speciesEl = $('#species');
+  const natureEl = $('#nature');
+  const move1El = $('#move1');
+  const move2El = $('#move2');
+  const move3El = $('#move3');
+  const move4El = $('#move4');
+  const otNameEl = $('#otName');
   const pidFinderBtn = $('#pidFinderBtn');
+
+  const speciesValue = speciesEl.value;
+  const natureValue = natureEl.value;
+  const move1Value = move1El.value;
+  const move2Value = move2El.value;
+  const move3Value = move3El.value;
+  const move4Value = move4El.value;
+  const otNameValue = otNameEl.value;
+  const speciesErrorTarget = speciesEl.parentElement;
+  const move1ErrorTarget = move1El.parentElement;
+  const move2ErrorTarget = move2El.parentElement;
+  const move3ErrorTarget = move3El.parentElement;
+  const move4ErrorTarget = move4El.parentElement;
   
   // Remove any existing error highlights
-  $('#species').parentElement.classList.remove('field-error');
-  $('#nature').classList.remove('field-error');
-  $('#move1').parentElement.classList.remove('field-error');
-  $('#move2').parentElement.classList.remove('field-error');
-  $('#move3').parentElement.classList.remove('field-error');
-  $('#move4').parentElement.classList.remove('field-error');
-  $('#otName').classList.remove('field-error');
+  speciesErrorTarget.classList.remove('field-error');
+  natureEl.classList.remove('field-error');
+  move1ErrorTarget.classList.remove('field-error');
+  move2ErrorTarget.classList.remove('field-error');
+  move3ErrorTarget.classList.remove('field-error');
+  move4ErrorTarget.classList.remove('field-error');
+  otNameEl.classList.remove('field-error');
   if (pidFinderBtn) pidFinderBtn.classList.remove('field-error');
   
   let missingFields = [];
+  let firstMissingTarget = null;
+  let firstMissingFocusTarget = null;
+
+  const markMissing = (label, highlightTarget, focusTarget = null) => {
+    highlightTarget?.classList.add('field-error');
+    missingFields.push(label);
+    if (!firstMissingTarget && highlightTarget) {
+      firstMissingTarget = highlightTarget;
+      firstMissingFocusTarget = focusTarget || getFieldFocusTarget(highlightTarget);
+    }
+  };
   
   // Check each required field
   if (!speciesValue || speciesValue.trim() === '') {
-    $('#species').parentElement.classList.add('field-error');
-    missingFields.push('Species');
+    markMissing('Species', speciesErrorTarget, getFieldFocusTarget(speciesEl));
   }
   
   if (!natureValue || natureValue.trim() === '') {
-    $('#nature').classList.add('field-error');
-    missingFields.push('Nature');
-  }
-  
-  if (!otNameValue || otNameValue.trim() === '') {
-    $('#otName').classList.add('field-error');
-    missingFields.push('OT Name');
+    markMissing('Nature', natureEl);
   }
   
   // Check if at least one move is selected
@@ -2311,13 +2353,19 @@ function highlightMissingFields() {
                   (move4Value && move4Value !== '0');
   
   if (!hasMove) {
-    $('#move1').parentElement.classList.add('field-error');
-    missingFields.push('At least one Move');
+    markMissing('At least one Move', move1ErrorTarget, getFieldFocusTarget(move1El));
+  }
+
+  if (!otNameValue || otNameValue.trim() === '') {
+    markMissing('OT Name', otNameEl);
   }
 
   if (!hasRequiredMysteryGiftPidFinderSelection()) {
-    if (pidFinderBtn) pidFinderBtn.classList.add('field-error');
-    missingFields.push('Find Legal Encounter');
+    markMissing('Find Legal Encounter', pidFinderBtn);
+  }
+
+  if (scrollToFirst && firstMissingTarget) {
+    scrollToMissingField(firstMissingTarget, firstMissingFocusTarget);
   }
   
   return missingFields;
