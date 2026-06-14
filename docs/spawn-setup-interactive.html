@@ -272,52 +272,52 @@
       };
 
       var myBoyCode1Rows = [
-        {box: 1,  text: 'B C U n _ F J u', note: '[BCUn FJu]'},
-        {box: 2,  text: 'I k o B 3 h F', note: '[IkoB3hF] lowercase O (o)'},
-        {box: 3,  text: 'A A T . h r', note: '[AAT.hr]'},
-        {box: 4,  text: 'A h _ f n', note: '[Ah fn]'},
-        {box: 5,  text: '_ F Z O T . h r', note: '[ FZOT.hr] upper case O (O)'},
-        {box: 6,  text: 'J J J _ 1 / …', note: '[JJJ 1/…] one (1)'},
-        {box: 7,  text: 'P q / _ … n', note: '[Pq/ …n]'},
-        {box: 8,  text: 'v 8 5 Q K', note: '[v85QK]'},
-        {box: 9,  text: 'T . g L _ F Z O', note: '[T.gL FZO] upper case O (O)'},
-        {box: 10, text: 'R j o D Y J m ?', note: '[RjoDYJm?] lowercase O (o)'},
-        {box: 11, text: 'B n F K T F F F', note: '[BnFKTFFF]'},
-        {box: 12, text: 'U U F R R G O U', note: '[UUFRRGOU] upper case O (O)'},
-        {box: 13, text: 'T H S G Q U R L', note: '[THSGQURL]'},
-        {box: 14, text: 'Q T R R U U F F', note: '[QTRRUUFF]'}
+        {box: 1,  text: 'B C U n _ F J u', note: ''},
+        {box: 2,  text: 'I k o B 3 h F', note: 'lowercase O (o)'},
+        {box: 3,  text: 'A A T . h r', note: ''},
+        {box: 4,  text: 'A h _ f n', note: ''},
+        {box: 5,  text: '_ F Z O T . h r', note: 'upper case O (O)'},
+        {box: 6,  text: 'J J J _ 1 / …', note: 'one (1)'},
+        {box: 7,  text: 'P q / _ … n', note: ''},
+        {box: 8,  text: 'v 8 5 Q K', note: ''},
+        {box: 9,  text: 'T . g L _ F Z O', note: 'upper case O (O)'},
+        {box: 10, text: 'R j o D Y J m ?', note: 'lowercase O (o)'},
+        {box: 11, text: 'B n F K T F F F', note: ''},
+        {box: 12, text: 'U U F R R G O U', note: 'upper case O (O)'},
+        {box: 13, text: 'T H S G Q U R L', note: ''},
+        {box: 14, text: 'Q T R R U U F F', note: ''}
       ];
 
       var myBoyCode2Rows = [
-        {box: 8,  text: 'v K 5 Q K', note: '[vK5QK]'},
-        {box: 11, text: 'B n R G J I F F', note: '[BnRGJIFF]'},
-        {box: 12, text: 'H G G T M N F G', note: '[HGGTMNFG]'},
-        {box: 13, text: 'I I T T H T F T', note: '[IITTHTFT]'},
-        {box: 14, text: 'S R Q Q I T F G', note: '[SRQQITFG]'}
+        {box: 8,  text: 'v K 5 Q K', note: ''},
+        {box: 11, text: 'B n R G J I F F', note: 'skip boxes 9-10!', highlightBoxNum: true},
+        {box: 12, text: 'H G G T M N F G', note: ''},
+        {box: 13, text: 'I I T T H T F T', note: ''},
+        {box: 14, text: 'S R Q Q I T F G', note: ''}
       ];
 
       var myBoyCode3Rows = [
-        {box: 8,  text: 'v Z 5 Q K', note: '[vZ5QK]'},
-        {box: 11, text: 'B n S K N L H F', note: '[BnSKNLHF]'},
-        {box: 12, text: 'J T I L G H S J', note: '[JTILGHSJ]'},
-        {box: 13, text: 'Q U F G Q U G O', note: '[QUFGQUGO] upper case O (O)'},
-        {box: 14, text: 'F L I G F N H O', note: '[FLIGFNHO] upper case O (O)'}
+        {box: 8,  text: 'v Z 5 Q K', note: ''},
+        {box: 11, text: 'B n S K N L H F', note: 'skip boxes 9-10!', highlightBoxNum: true},
+        {box: 12, text: 'J T I L G H S J', note: ''},
+        {box: 13, text: 'Q U F G Q U G <span class="char-red">O</span>', note: 'upper case O (O)'},
+        {box: 14, text: 'F L I G F N H <span class="char-red">O</span>', note: 'upper case O (O)'}
       ];
 
       var myBoyCode4Rows = [
-        {box: 8,  text: 'v o 5 Q K', note: '[vo5QK] lowercase O (o)'},
-        {box: 11, text: 'B n F J S Q F N', note: '[BnFJSQFN]'},
-        {box: 12, text: 'I O I T F F R T', note: '[IOITFFRT] upper case O (O)'},
-        {box: 13, text: 'J F G L M F F G', note: '[JFGLMFFG]'},
-        {box: 14, text: 'I H T Q T M', note: '[IHTQTM]'}
+        {box: 8,  text: 'v <span class="char-red">o</span> 5 Q K', note: 'lowercase O (o)'},
+        {box: 11, text: 'B n F J S Q F N', note: 'skip boxes 9-10!', highlightBoxNum: true},
+        {box: 12, text: 'I <span class="char-red">O</span> I T F F R T', note: 'upper case O (O)'},
+        {box: 13, text: 'J F G L M F F G', note: ''},
+        {box: 14, text: 'I H T Q T M', note: ''}
       ];
 
       var myBoyCode5Rows = [
-        {box: 8,  text: 'v , 5 Q K', note: '[v,5QK]'},
-        {box: 11, text: 'B n F F S F Q K', note: '[BnFFSFQK]'},
-        {box: 12, text: 'H I P H I L P I', note: '[HIPHILPI]'},
-        {box: 13, text: 'F H T F G R U U', note: '[FHTFGRUU]'},
-        {box: 14, text: 'H U T G', note: '[HUTG]'}
+        {box: 8,  text: 'v , 5 Q K', note: ''},
+        {box: 11, text: 'B n F F S F Q K', note: 'skip boxes 9-10!', highlightBoxNum: true},
+        {box: 12, text: 'H I P H I L P I', note: ''},
+        {box: 13, text: 'F H T F G R U U', note: ''},
+        {box: 14, text: 'H U T G', note: ''}
       ];
 
       // Nickname per game for the sacrificial pokemon
@@ -432,9 +432,10 @@
         var html = '<div class="panel-inner"><div class="codes-box">';
         rows.forEach(function(r){
           var lineHTML;
+          var hasHTML = !!r.hasHTML || r.text.indexOf('<') >= 0;
           if(r.highlightBoxNum){
-            lineHTML = fmtBoxRed(r.box) + ((useHTML && r.hasHTML) ? r.text : escHTML(r.text));
-          } else if(useHTML && r.hasHTML){
+            lineHTML = fmtBoxRed(r.box) + ((useHTML && hasHTML) ? r.text : escHTML(r.text));
+          } else if(useHTML && hasHTML){
             lineHTML = fmtBox(r.box) + r.text;
           } else {
             lineHTML = escHTML(fmtBox(r.box) + r.text);
@@ -548,7 +549,7 @@
 
         myBoyFollowups.forEach(function(code){
           var panel = document.getElementById(code.id);
-          panel.innerHTML = buildPanelHTML(code.rows, false) + code.extra;
+          panel.innerHTML = buildPanelHTML(code.rows, true) + code.extra;
           wirePanel(panel);
         });
 
