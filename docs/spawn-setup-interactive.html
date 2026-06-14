@@ -93,7 +93,7 @@
               <li>Box 10 slot 22 is empty.</li>
             </ul>
 
-            <p>You may now select Console/mGBA or Old Emulator below and start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+            <p>You may now select Console/mGBA, Old Emulator, or MyBoy Emulator below and start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
           </div>
 
           <div class="instr-FRLG" style="display:none">
@@ -112,7 +112,7 @@
               <li>Box 10 slot 22 is empty.</li>
             </ul>
 
-            <p>You may now select Console/mGBA or Old Emulator below and start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+            <p>You may now select Console/mGBA, Old Emulator, or MyBoy Emulator below and start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
           </div>
 
           <div class="instr-FRLGSW" style="display:none">
@@ -157,6 +157,7 @@
       <div class="mode-select">
         <button class="mode-btn requires-instructions" data-mode="modern">Console / mGBA</button>
         <button class="mode-btn requires-instructions" data-mode="old">Old Emulator</button>
+        <button class="mode-btn requires-instructions" data-mode="myboy">MyBoy Emulator</button>
       </div>
 
       <div class="lang-select" style="display:none">
@@ -168,6 +169,8 @@
         <button class="tab" data-tab="code1">Code 1</button>
         <button class="tab" data-tab="code2">Code 2</button>
         <button class="tab" data-tab="code3">Code 3</button>
+        <button class="tab" data-tab="code4">Code 4</button>
+        <button class="tab" data-tab="code5">Code 5</button>
         <button class="tab" data-tab="codeTest">Test code</button>
       </div>
 
@@ -175,6 +178,8 @@
         <section id="code1" class="code-panel" style="display:none"></section>
         <section id="code2" class="code-panel" style="display:none"></section>
         <section id="code3" class="code-panel" style="display:none"></section>
+        <section id="code4" class="code-panel" style="display:none"></section>
+        <section id="code5" class="code-panel" style="display:none"></section>
         <section id="codeTest" class="code-panel" style="display:none"></section>
       </div>
 
@@ -266,6 +271,55 @@
         old:    '_ H B … 8 L Q ♂'
       };
 
+      var myBoyCode1Rows = [
+        {box: 1,  text: 'B C U n _ F J u', note: '[BCUn FJu]'},
+        {box: 2,  text: 'I k o B 3 h F', note: '[IkoB3hF] lowercase O (o)'},
+        {box: 3,  text: 'A A T . h r', note: '[AAT.hr]'},
+        {box: 4,  text: 'A h _ f n', note: '[Ah fn]'},
+        {box: 5,  text: '_ F Z O T . h r', note: '[ FZOT.hr] upper case O (O)'},
+        {box: 6,  text: 'J J J _ 1 / …', note: '[JJJ 1/…] one (1)'},
+        {box: 7,  text: 'P q / _ … n', note: '[Pq/ …n]'},
+        {box: 8,  text: 'v 8 5 Q K', note: '[v85QK]'},
+        {box: 9,  text: 'T . g L _ F Z O', note: '[T.gL FZO] upper case O (O)'},
+        {box: 10, text: 'R j o D Y J m ?', note: '[RjoDYJm?] lowercase O (o)'},
+        {box: 11, text: 'B n F K T F F F', note: '[BnFKTFFF]'},
+        {box: 12, text: 'U U F R R G O U', note: '[UUFRRGOU] upper case O (O)'},
+        {box: 13, text: 'T H S G Q U R L', note: '[THSGQURL]'},
+        {box: 14, text: 'Q T R R U U F F', note: '[QTRRUUFF]'}
+      ];
+
+      var myBoyCode2Rows = [
+        {box: 8,  text: 'v K 5 Q K', note: '[vK5QK]'},
+        {box: 11, text: 'B n R G J I F F', note: '[BnRGJIFF]'},
+        {box: 12, text: 'H G G T M N F G', note: '[HGGTMNFG]'},
+        {box: 13, text: 'I I T T H T F T', note: '[IITTHTFT]'},
+        {box: 14, text: 'S R Q Q I T F G', note: '[SRQQITFG]'}
+      ];
+
+      var myBoyCode3Rows = [
+        {box: 8,  text: 'v Z 5 Q K', note: '[vZ5QK]'},
+        {box: 11, text: 'B n S K N L H F', note: '[BnSKNLHF]'},
+        {box: 12, text: 'J T I L G H S J', note: '[JTILGHSJ]'},
+        {box: 13, text: 'Q U F G Q U G O', note: '[QUFGQUGO] upper case O (O)'},
+        {box: 14, text: 'F L I G F N H O', note: '[FLIGFNHO] upper case O (O)'}
+      ];
+
+      var myBoyCode4Rows = [
+        {box: 8,  text: 'v o 5 Q K', note: '[vo5QK] lowercase O (o)'},
+        {box: 11, text: 'B n F J S Q F N', note: '[BnFJSQFN]'},
+        {box: 12, text: 'I O I T F F R T', note: '[IOITFFRT] upper case O (O)'},
+        {box: 13, text: 'J F G L M F F G', note: '[JFGLMFFG]'},
+        {box: 14, text: 'I H T Q T M', note: '[IHTQTM]'}
+      ];
+
+      var myBoyCode5Rows = [
+        {box: 8,  text: 'v , 5 Q K', note: '[v,5QK]'},
+        {box: 11, text: 'B n F F S F Q K', note: '[BnFFSFQK]'},
+        {box: 12, text: 'H I P H I L P I', note: '[HIPHILPI]'},
+        {box: 13, text: 'F H T F G R U U', note: '[FHTFGRUU]'},
+        {box: 14, text: 'H U T G', note: '[HUTG]'}
+      ];
+
       // Nickname per game for the sacrificial pokemon
       var nicknameByGame = {
         EM:     'J-FKVC',
@@ -279,7 +333,7 @@
          STATE
          ============================================================ */
       var selectedGame = 'EM';
-      var selectedMode = null;  // 'modern' or 'old'
+      var selectedMode = null;  // 'modern', 'old', or 'myboy'
       var selectedLang = null;  // 'RS_EN' or 'RS_NEL' (only used for RS)
       var instructionsAcknowledged = false;
 
@@ -299,6 +353,14 @@
          HELPERS
          ============================================================ */
 
+      function isMyBoyAllowedGame(){
+        return selectedGame === 'EM' || selectedGame === 'FRLG';
+      }
+
+      function isMyBoyMode(){
+        return selectedMode === 'myboy' && isMyBoyAllowedGame();
+      }
+
       // Emulator mode: 'modern' or 'old'
       function effectiveMode(){
         if(selectedGame === 'FRLGSW') return 'modern';
@@ -314,7 +376,8 @@
       // Whether all required selections are made
       function isReady(){
         if(selectedGame === 'FRLGSW') return true;
-        if(selectedGame === 'RS') return !!selectedMode && !!selectedLang;
+        if(selectedMode === 'myboy' && !isMyBoyAllowedGame()) return false;
+        if(selectedGame === 'RS') return !!selectedMode && selectedMode !== 'myboy' && !!selectedLang;
         return !!selectedMode;
       }
 
@@ -398,8 +461,110 @@
         return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       }
 
+      function buildExecutionLi(){
+        if(selectedGame === 'EM'){
+          return '<li>Execute the code with your stable ace species with no trailing spaces.</li>';
+        }
+        return '<li>Execute the code with your ace species.</li>';
+      }
+
+      function buildTestPanelHTML(includeImages){
+        var htmlT = '<div class="panel-inner"><div class="codes-box">';
+        htmlT += '<div class="code-line"><span class="code-text">Box  1:    A Q D ? P w _ _</span></div>';
+        htmlT += '</div><div class="notes-col">';
+        htmlT += '<div class="note" contenteditable="false" tabindex="-1">two spaces at the end!</div>';
+        htmlT += '</div><div class="controls-col">';
+        htmlT += '<div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>';
+        htmlT += '</div></div>';
+        htmlT += '<div class="panel-tip">Execute this code to confirm WELDR is working:';
+        htmlT += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
+        htmlT += '<li>Boxes 2-14 can be anything, they do not affect the test code.</li>';
+        htmlT += '<li>Execute this test code with your ace species.</li>';
+        htmlT += '<li>It should generate a Bulbasaur in box 14 slot 30. Once confirmed, either soft reset the game or release the bulbasaur. It might crash your game if you use it.</li>';
+        htmlT += '<li>If you get a bad egg, it usually means the code is typed wrong. You can also check for ghost data in boxes 13 and 14 by entering deposit mode, and selecting a pokemon to deposit. The first box will be box 1, go left once to reach box 14. It should say 2/30. Now check Box 13, it should also say 2/30, but might say 3/30 if you have an invisible bad egg in slot 8, but that can be ignored. If you still get bad eggs, WELDR was probably typed incorrectly, and you should move WELDR and the sacrificial Pokemon out and redo all the codes. After creating a new WELDR, you may delete the old one.</li>';
+        htmlT += '<li>After successfully creating and removing the Bulbasaur, you are ready to use my Pokémon Builder website to spawn any Pokémon you want.</li>';
+        htmlT += '<li>If you want to execute regular ACE codes in the future, you must move WELDR and the extra species out of box 14, and back if you want to use BASE64 codes again.</li>';
+        htmlT += '<li><a class="builder-start-link" href="https://mankeymite.github.io/Gen3ACEPokemonBuilder/">Click here to start building your custom gen 3 Pokémon</a></li>';
+        htmlT += '</ul></div>';
+        if(includeImages){
+          htmlT += '<div class="remember-image" style="margin-top:10px;">';
+          htmlT += '<img src="../src/Images/Test bulba code base64.png" alt="Test code placeholder image 1" />';
+          htmlT += '<img src="../src/Images/Test Bulba base64.png" alt="Test code placeholder image 2" />';
+          htmlT += '</div>';
+        }
+        return htmlT;
+      }
+
+      function buildMyBoyContinueTip(nextCodeNumber){
+        var html = '<div class="panel-tip">All other boxes stay the same as before.';
+        html += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
+        html += '<li>Save the game</li>';
+        html += buildExecutionLi();
+        html += '<li>After executing this code, no visible change will happen to the egg. Keep going with code ' + nextCodeNumber + '!</li>';
+        html += '</ul></div>';
+        return html;
+      }
+
+      function buildMyBoyFinalTip(nickname){
+        var html = '<div class="panel-tip">All other boxes stay the same as before.';
+        html += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
+        html += '<li>Save the game</li>';
+        html += buildExecutionLi();
+        html += '<li>A Metang called "WELDR" should have appeared in Box 10 Slot 22! If it stayed a bad egg, check your Code 5 for errors, otherwise you\'ll likely have to start from the beginning.</li>';
+        html += '<li>Move WELDR to box 14 slot 28</li>';
+        html += '<li>Catch any Pokemon and name it "' + escHTML(nickname) + '"</li>';
+        html += '<li>Place this in box 14 slot 29.</li>';
+        html += '<li>DONE! Now go to the Test code tab to confirm WELDR is working.</li>';
+        html += '</ul></div>';
+        html += '<div class="panel-tip">IMPORTANT: If you want to execute regular ACE codes in the future, make sure to move WELDR and the sacrificial Pokemon out of box 14 first!</div>';
+        return html;
+      }
+
+      function renderMyBoyPanels(){
+        var gameKey = effectiveGameKey();
+        var nickname = nicknameByGame[gameKey] || nicknameByGame.EM;
+
+        var p1 = document.getElementById('code1');
+        var html1 = buildPanelHTML(myBoyCode1Rows, false);
+        html1 += '<div class="remember-list"><ul>';
+        html1 += '<li>All other boxes should NOT be typed with spaces at the end; end the box name early instead.</li>';
+        html1 += '<li>Save the game</li>';
+        if(selectedGame === 'EM'){
+          html1 += '<li>Execute the code with your stable ace species with no trailing spaces. If you are using a stable or metastable THUMB species, you NEED a THUMB -&gt; ARM bootstrap bad egg anywhere from box 12 slot 4.</li>';
+        } else {
+          html1 += '<li>Execute the code with your ace species.</li>';
+        }
+        html1 += '<li>After this code, a bad egg should have appeared in Box 10 Slot 22. Don\'t look at its summary!</li>';
+        html1 += '</ul></div>';
+        p1.innerHTML = html1;
+        wirePanel(p1);
+
+        var myBoyFollowups = [
+          {id: 'code2', rows: myBoyCode2Rows, extra: buildMyBoyContinueTip(3)},
+          {id: 'code3', rows: myBoyCode3Rows, extra: buildMyBoyContinueTip(4)},
+          {id: 'code4', rows: myBoyCode4Rows, extra: buildMyBoyContinueTip(5)},
+          {id: 'code5', rows: myBoyCode5Rows, extra: buildMyBoyFinalTip(nickname)}
+        ];
+
+        myBoyFollowups.forEach(function(code){
+          var panel = document.getElementById(code.id);
+          panel.innerHTML = buildPanelHTML(code.rows, false) + code.extra;
+          wirePanel(panel);
+        });
+
+        var pT = document.getElementById('codeTest');
+        pT.innerHTML = buildTestPanelHTML(false);
+        wirePanel(pT);
+
+        wrapCaseChars();
+      }
+
       function renderAllPanels(){
         if(!isReady()) return;
+        if(isMyBoyMode()){
+          renderMyBoyPanels();
+          return;
+        }
         var gameKey = effectiveGameKey();
         var nickname = nicknameByGame[gameKey] || nicknameByGame.EM;
 
@@ -486,27 +651,7 @@
 
         // --- Test code ---
         var pT = document.getElementById('codeTest');
-        var htmlT = '<div class="panel-inner"><div class="codes-box">';
-        htmlT += '<div class="code-line"><span class="code-text">Box  1:    A Q D ? P w _ _</span></div>';
-        htmlT += '</div><div class="notes-col">';
-        htmlT += '<div class="note" contenteditable="false" tabindex="-1">two spaces at the end!</div>';
-        htmlT += '</div><div class="controls-col">';
-        htmlT += '<div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>';
-        htmlT += '</div></div>';
-        htmlT += '<div class="panel-tip">Execute this code to confirm WELDR is working:';
-        htmlT += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
-        htmlT += '<li>Boxes 2-14 can be anything, they do not affect the test code.</li>';
-        htmlT += '<li>Execute this test code with your ace species.</li>';
-        htmlT += '<li>It should generate a Bulbasaur in box 14 slot 30. Once confirmed, either soft reset the game or release the bulbasaur. It might crash your game if you use it.</li>';
-        htmlT += '<li>If you get a bad egg, it usually means the code is typed wrong. You can also check for ghost data in boxes 13 and 14 by entering deposit mode, and selecting a pokemon to deposit. The first box will be box 1, go left once to reach box 14. It should say 2/30. Now check Box 13, it should also say 2/30, but might say 3/30 if you have an invisible bad egg in slot 8, but that can be ignored. If you still get bad eggs, WELDR was probably typed incorrectly, and you should move WELDR and the sacrificial Pokemon out and redo all the codes. After creating a new WELDR, you may delete the old one.</li>';
-        htmlT += '<li>After successfully creating and removing the Bulbasaur, you are ready to use my Pokémon Builder website to spawn any Pokémon you want.</li>';
-        htmlT += '<li>If you want to execute regular ACE codes in the future, you must move WELDR and the extra species out of box 14, and back if you want to use BASE64 codes again.</li>';
-        htmlT += '<li><a class="builder-start-link" href="https://mankeymite.github.io/Gen3ACEPokemonBuilder/">Click here to start building your custom gen 3 Pokémon</a></li>';
-        htmlT += '</ul></div>';
-        htmlT += '<div class="remember-image" style="margin-top:10px;">';
-        htmlT += '<img src="../src/Images/Test bulba code base64.png" alt="Test code placeholder image 1" />';
-        htmlT += '<img src="../src/Images/Test Bulba base64.png" alt="Test code placeholder image 2" />';
-        htmlT += '</div>';
+        var htmlT = buildTestPanelHTML(true);
         pT.innerHTML = htmlT;
         wirePanel(pT);
 
@@ -587,9 +732,36 @@
         });
       }
 
+      function updateModeButtonVisibility(){
+        modeButtons.forEach(function(b){
+          if(b.dataset.mode === 'myboy'){
+            b.style.display = isMyBoyAllowedGame() ? '' : 'none';
+          }
+        });
+      }
+
+      function updateTabVisibility(){
+        var showMyBoyTabs = isMyBoyMode();
+        tabs.forEach(function(t){
+          var isMyBoyExtraTab = t.dataset.tab === 'code4' || t.dataset.tab === 'code5';
+          if(isMyBoyExtraTab){
+            t.style.display = showMyBoyTabs ? '' : 'none';
+            if(!showMyBoyTabs) t.classList.remove('active');
+          }
+        });
+        if(!showMyBoyTabs){
+          var p4 = document.getElementById('code4');
+          var p5 = document.getElementById('code5');
+          if(p4) p4.style.display = 'none';
+          if(p5) p5.style.display = 'none';
+        }
+      }
+
       function refreshModeUI(){
         var isRS = selectedGame === 'RS';
         var isFRLGSW = selectedGame === 'FRLGSW';
+        updateModeButtonVisibility();
+        updateTabVisibility();
 
         // FR/LG Switch: hide both selects, always ready
         if(isFRLGSW){
@@ -600,7 +772,7 @@
           return;
         }
 
-        // All other games: show Console/mGBA | Old Emulator
+        // All other games: show available emulator modes
         if(modeContainer) modeContainer.style.display = '';
         // RS also shows English | Non-English
         if(langContainer) langContainer.style.display = isRS ? '' : 'none';
@@ -636,6 +808,7 @@
         if(!isReady()) return;
         if(instrEl) instrEl.open = false;
         renderAllPanels();
+        updateTabVisibility();
         tabs.forEach(function(t){ t.removeAttribute('disabled'); });
         ensureActiveTab();
       }
@@ -656,7 +829,7 @@
         else instrEM.style.display = '';
       }
 
-      // Mode button click handler (Console/mGBA or Old Emulator)
+      // Mode button click handler
       modeButtons.forEach(function(btn){
         btn.addEventListener('click', function(){
           if(!instructionsAcknowledged) return;
