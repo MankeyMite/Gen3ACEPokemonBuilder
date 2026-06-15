@@ -80,6 +80,30 @@
       color: #7dd3fc;
     }
 
+    .setup-guide-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      width: fit-content;
+      max-width: 100%;
+      margin-top: 0.85rem;
+      padding: 0.55rem 0.75rem;
+      border: 1px solid rgba(56,189,248,0.34);
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.38);
+      color: #e0f2fe;
+      font-size: 0.9rem;
+      font-weight: 600;
+      line-height: 1.35;
+      text-decoration: none;
+    }
+
+    .setup-guide-link:hover {
+      border-color: rgba(56,189,248,0.65);
+      background: rgba(56,189,248,0.14);
+      color: #ffffff;
+    }
+
     .builder-origin-row {
       align-items: flex-start;
     }
@@ -587,7 +611,7 @@
 
     .tab-content textarea {
       width: 100%;
-      min-width: 800px;
+      min-width: 0;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
       font-size: 13px;
       line-height: 1.4;
@@ -627,7 +651,7 @@
     }
 
     .box-code-output-grid.preview-active {
-      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       align-items: start;
     }
 
@@ -638,6 +662,17 @@
     .box-code-output-main #base64Output {
       min-width: 0;
       box-sizing: border-box;
+    }
+
+    .output-action-row {
+      gap: 1rem;
+    }
+
+    .output-action-row > div,
+    .output-action-row > button {
+      flex: 1 1 0;
+      width: auto;
+      min-width: 0;
     }
 
     .gba-text-preview-panel {
@@ -1041,6 +1076,11 @@
         word-break: break-word;
       }
 
+      .setup-guide-link {
+        width: 100%;
+        align-items: flex-start;
+      }
+
       .builder-card-header,
       .builder-header-actions {
         align-items: flex-start;
@@ -1373,7 +1413,8 @@
     <p class="muted" style="margin-top: -0.75rem; margin-bottom: 1rem;">
       <a href="./docs/patch-notes.html" target="_blank" rel="noopener" class="version-link" title="View latest patch notes">v.0.3.8</a>
     </p>
-    <p class="muted">Build custom Pokémon for Gen III games from scratch, or import raw hex data and .pk3/ek3 files. Export as BASE64 box codes, raw hex data, or a .pk3/ek3 file. New here? <a href="./docs/spawn-setup-interactive.html" target="_blank">How to spawn Pokemon in your game from this tool</a> — step-by-step setup. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
+    <p class="muted">Create any Pokémon and make them spawn in your in-game PC, using a stable ACE species with a BASE64 writer! No external tools needed. Build them from scratch, or import via Smogon/Showdown sets, raw hexdata or .pk3/ek3 files. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
+    <a href="./docs/spawn-setup-interactive.html" target="_blank" rel="noopener" class="setup-guide-link">Click here to set up a BASE64 writer before creating your Pokémon</a>
 
   </header>
 
@@ -2091,7 +2132,7 @@
         <textarea id="hexOutput" rows="15" spellcheck="false"></textarea>
       </div>
 
-      <div class="row two">
+      <div class="row two output-action-row">
         <div style="display: flex; flex-direction: column; align-items: center; flex: 1;">
           <button id="copyBase64Btn" type="button" style="width: 100%;">Copy Base64</button>
           <span id="copyBase64Check" class="copy-check">✓ Copied</span>
@@ -2102,7 +2143,7 @@
         </div>
       </div>
 
-      <div class="row two">
+      <div class="row two output-action-row">
         <button id="exportEk3Btn" type="button" style="flex: 1;">Export .ek3</button>
         <button id="exportPk3Btn" type="button" style="flex: 1;">Export .pk3</button>
       </div>
