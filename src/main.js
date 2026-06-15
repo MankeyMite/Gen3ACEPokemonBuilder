@@ -4159,16 +4159,11 @@ function boot(){
       imported: {label: 'Imported', color: '#94a3b8', text: 'Pokémon imported from external data. Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from UI fields. This matters for glitched bytes the UI cannot safely represent.'}
     };
     const m = map[mode] || {label: '', color: '#94a3b8', text: ''};
-    // Render pill + text so the description is clearly associated with the selected mode
     el.innerHTML = '';
-    const pill = document.createElement('span');
-    pill.className = 'mode-pill';
-    pill.style.background = m.color;
-    pill.textContent = m.label;
+    el.style.setProperty('--mode-accent', m.color);
     const txt = document.createElement('span');
     txt.className = 'mode-desc-text';
     txt.textContent = m.text;
-    el.appendChild(pill);
     el.appendChild(txt);
   }
 
@@ -9250,14 +9245,10 @@ function switchToImportedMode() {
     const el = document.getElementById('encounterModeDescription');
     if (el) {
       el.innerHTML = '';
-      const pill = document.createElement('span');
-      pill.className = 'mode-pill';
-      pill.style.background = '#94a3b8';
-      pill.textContent = 'Imported';
+      el.style.setProperty('--mode-accent', '#94a3b8');
       const txt = document.createElement('span');
       txt.className = 'mode-desc-text';
       txt.textContent = 'Pokémon imported from external data. Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from UI fields. This matters for glitched bytes the UI cannot safely represent.';
-      el.appendChild(pill);
       el.appendChild(txt);
     }
   } catch (e) {}

@@ -10,19 +10,51 @@
     main.layout-vertical {
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
-      margin-top: 1.5rem;
+      gap: 1rem;
+      margin-top: 1.25rem;
     }
 
-    .mode-toggle {
-      margin-top: 0.75rem;
+    .builder-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: 0.25rem 0 1rem;
+    }
+
+    .builder-card-header h2 {
+      margin: 0;
+    }
+
+    .builder-header-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.85rem;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+
+    .import-action-btn {
+      padding: 0.5rem 1rem;
+      font-size: 0.92rem;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(56,189,248,0.22), rgba(72,213,151,0.18));
+      border: 1px solid rgba(56,189,248,0.42);
+      color: #e2e8f0;
+      cursor: pointer;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .override-toggle {
       display: inline-flex;
       align-items: center;
-      gap: 1rem;
-      padding: 0.5rem 0.75rem;
-      border-radius: 999px;
-      background: rgba(15,23,42,0.7);
-      width: fit-content;
+      gap: 0.35rem;
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.62);
+      cursor: pointer;
+      min-width: 0;
     }
 
     .version-link {
@@ -40,78 +72,59 @@
       color: #7dd3fc;
     }
 
-    .mode-toggle label {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-size: 0.9rem;
-      cursor: pointer;
-    }
-
-    .mode-toggle input[type="radio"] {
-      accent-color: #38bdf8;
-    }
-
-    .mode-toggle label.disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      position: relative;
-    }
-
-    .mode-toggle label.disabled input[type="radio"] {
-      cursor: not-allowed;
-    }
-
-    .mode-toggle label.disabled .coming-soon-tooltip {
-      visibility: hidden;
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      margin-bottom: 0.5rem;
-      padding: 0.4rem 0.75rem;
-      background: rgba(15,23,42,0.95);
-      border: 1px solid rgba(56,189,248,0.3);
-      border-radius: 6px;
-      color: #38bdf8;
-      font-size: 0.85rem;
-      white-space: nowrap;
-      pointer-events: none;
-      z-index: 1000;
-    }
-
-    .mode-toggle label.disabled:hover .coming-soon-tooltip {
-      visibility: visible;
-    }
-
-    /* Encounter mode description under the selector */
-    .mode-desc {
-      display: flex;
-      gap: 0.75rem;
+    .builder-origin-row {
       align-items: flex-start;
-      color: var(--muted);
-      font-size: 0.95rem;
-      margin-top: 0.85rem;
-      margin-bottom: 0.5rem;
-      max-width: 900px;
+    }
+
+    .builder-origin-row label {
+      padding-top: 0.7rem;
+    }
+
+    .encounter-type-control {
+      display: grid;
+      gap: 0;
+      width: min(100%, 760px);
       min-width: 0;
     }
-    .mode-desc .mode-pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.25rem 0.5rem;
-      border-radius: 999px;
-      font-weight: 600;
-      color: white;
-      font-size: 0.85rem;
-      margin-top: 0.1rem;
-      flex: 0 0 auto;
+
+    #encounterMode {
+      min-width: 210px;
+      width: min(100%, 260px);
     }
-    .mode-desc .mode-desc-text {
+
+    .mode-desc {
+      position: relative;
+      display: block;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.45;
+      margin: 0.5rem 0 0.85rem;
+      padding: 0.7rem 0.85rem;
+      max-width: 760px;
+      min-width: 0;
+      border: 1px solid rgba(56,189,248,0.22);
+      border-left: 3px solid var(--mode-accent, #38bdf8);
+      border-radius: 0 10px 10px 10px;
+      background: rgba(15, 23, 42, 0.46);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+    }
+
+    .mode-desc::before {
+      content: '';
+      position: absolute;
+      top: calc(-0.5rem - 1px);
+      left: -3px;
+      width: 3px;
+      height: calc(0.5rem + 1px);
+      background: var(--mode-accent, #38bdf8);
+      opacity: 0.7;
+    }
+
+    .mode-desc-text {
       display: block;
       flex: 1 1 auto;
       min-width: 0;
+      overflow-wrap: anywhere;
       word-break: break-word;
     }
 
@@ -964,7 +977,7 @@
 
     /* Import button hover effect */
     #openImportBtn:hover {
-      background: linear-gradient(135deg, rgba(56,189,248,0.35), rgba(168,85,247,0.35));
+      background: linear-gradient(135deg, rgba(56,189,248,0.32), rgba(72,213,151,0.28));
       border-color: rgba(56,189,248,0.6);
     }
 
@@ -1004,8 +1017,40 @@
       }
 
       header.container .muted {
+        width: 100%;
+        max-width: calc(100vw - 1.3rem);
+        min-width: 0;
         font-size: 0.9rem;
         line-height: 1.45;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      header.container .muted a {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .builder-card-header,
+      .builder-header-actions {
+        align-items: flex-start;
+        justify-content: flex-start;
+      }
+
+      .builder-card-header {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .builder-header-actions {
+        width: 100%;
+      }
+
+      .import-action-btn {
+        width: 100%;
+        min-width: 0;
       }
 
       .row,
@@ -1058,6 +1103,23 @@
       .row > label,
       label {
         min-width: 0;
+      }
+
+      .builder-origin-row label {
+        padding-top: 0;
+      }
+
+      .encounter-type-control {
+        width: 100%;
+      }
+
+      #encounterMode {
+        min-width: 0;
+        width: 100%;
+      }
+
+      .mode-desc {
+        font-size: 0.88rem;
       }
 
       .row > input[type="text"],
@@ -1304,50 +1366,40 @@
     <p class="muted" style="margin-top: -0.75rem; margin-bottom: 1rem;">
       <a href="./docs/patch-notes.html" target="_blank" rel="noopener" class="version-link" title="View latest patch notes">v.0.3.8</a>
     </p>
-    <p class="muted">Build custom Pokémon for Gen III games. Import from raw hex data, .pk3/ek3 files, or create your Pokémon from scratch. Export as BASE64 box codes, raw hex data, or a .pk3/ek3 file. New here? <a href="./docs/spawn-setup-interactive.html" target="_blank">How to spawn Pokemon in your game from this tool</a> — step-by-step setup. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
+    <p class="muted">Build custom Pokémon for Gen III games from scratch, or import raw hex data and .pk3/ek3 files. Export as BASE64 box codes, raw hex data, or a .pk3/ek3 file. New here? <a href="./docs/spawn-setup-interactive.html" target="_blank">How to spawn Pokemon in your game from this tool</a> — step-by-step setup. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
 
   </header>
 
   <main class="container layout-vertical">
-    <!-- Import Pokémon Button -->
-    <div style="margin-bottom: 0.75rem;">
-      <button id="openImportBtn" type="button" style="padding: 0.5rem 1.25rem; font-size: 0.95rem; border-radius: 8px; background: linear-gradient(135deg, rgba(56,189,248,0.25), rgba(168,85,247,0.25)); border: 1px solid rgba(56,189,248,0.4); color: #e2e8f0; cursor: pointer; font-weight: 500; transition: all 0.15s;">
-        📥 Import Pokémon
-      </button>
-    </div>
-
-    <!-- Encounter Mode Selector -->
-    <div class="mode-toggle" id="encounterModeToggle" style="margin-top: 0;">
-      <label for="encounterMode" style="margin-right: 0.5rem; font-weight: 500; color: rgba(255,255,255,0.7);">Encounter Type:</label>
-      <select id="encounterMode" style="padding: 0.35rem 0.5rem; border-radius: 6px; background: rgba(30,41,59,0.9); color: #e2e8f0; border: 1px solid rgba(56,189,248,0.25); font-size: 0.9rem; cursor: pointer;">
-        <option value="hatched" selected>Hatched</option>
-        <option value="static">Static</option>
-        <option value="roamer">Roamer</option>
-        <option value="wild">Wild</option>
-        <option value="mystery">Mystery Gifts</option>
-        <option value="cxd_shadow">XD / Colosseum</option>
-      </select>
-    </div>
-
-    <p class="muted" style="margin: 0.4rem 0 0.15rem 0; max-width: 900px; font-size: 0.92rem;">
-      Select where this Pokémon should come from.<br />
-      This affects legality, available Pokémon, and encounter data.
-    </p>
-
-      <!-- Encounter mode description shown below the selector -->
-      <div id="encounterModeDescription" class="mode-desc" aria-live="polite"></div>
-
     <!-- BUILDER FORM CARD -->
     <section class="card" id="basicsCard">
-      <div style="display: grid; grid-template-columns: 140px 1fr; column-gap: 0.75rem; align-items: center; margin: 0.25rem 0 1rem 0;">
-        <h2 style="margin: 0;">Pokémon Builder</h2>
-        <label class="override-toggle" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: rgba(255,255,255,0.6); cursor: pointer;" title="Unlock all fields for editing. Useful for importing Pokémon or advanced customization.">
-          <input type="checkbox" id="manualOverride" style="accent-color: #f59e0b;" />
-          <span>Unlock all fields for editing</span>
-        </label>
+      <div class="builder-card-header">
+        <h2>Pokémon Builder</h2>
+        <div class="builder-header-actions">
+          <button id="openImportBtn" type="button" class="import-action-btn">📥 Import Pokémon</button>
+          <label class="override-toggle" title="Unlock all fields for editing. Useful for importing Pokémon or advanced customization.">
+            <input type="checkbox" id="manualOverride" style="accent-color: #f59e0b;" />
+            <span>Unlock all fields for editing</span>
+          </label>
+        </div>
       </div>
 
       <h3 class="form-section-title">Basic setup</h3>
+
+      <div class="row builder-origin-row" id="encounterModeToggle">
+        <label for="encounterMode">Encounter Type</label>
+        <div class="encounter-type-control">
+          <select id="encounterMode">
+            <option value="hatched" selected>Hatched</option>
+            <option value="static">Static</option>
+            <option value="roamer">Roamer</option>
+            <option value="wild">Wild</option>
+            <option value="mystery">Mystery Gifts</option>
+            <option value="cxd_shadow">XD / Colosseum</option>
+          </select>
+          <div id="encounterModeDescription" class="mode-desc" aria-live="polite"></div>
+        </div>
+      </div>
 
       <div class="row show-when-mystery">
         <label for="mysteryEvent">Event</label>
