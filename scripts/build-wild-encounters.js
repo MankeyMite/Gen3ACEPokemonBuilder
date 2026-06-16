@@ -19,6 +19,8 @@ const path = require('path');
 
 const DATA  = path.join(__dirname, '..', 'src', 'data');
 const OUT   = path.join(DATA, 'wildEncounters.gen3.js');
+const ZUBAT_SPECIES_ID = 41;
+const EMERALD_ALTERING_CAVE_LOCATION_ID = 210;
 
 // ── 1. Load JSON encounter files ──────────────────────────────────────────────
 const emerald = JSON.parse(fs.readFileSync(path.join(DATA, 'wild_encounters emerald.json'), 'utf8'));
@@ -421,6 +423,13 @@ function processFile(data, sourceFile) {
         const spId = speciesConstToId(mon.species);
         if (spId === null || spId === 0) {
           unmappedSpecies.add(mon.species);
+          continue;
+        }
+        if (
+          sourceFile === 'emerald' &&
+          locId === EMERALD_ALTERING_CAVE_LOCATION_ID &&
+          spId !== ZUBAT_SPECIES_ID
+        ) {
           continue;
         }
         for (const g of games) {

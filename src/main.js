@@ -34,11 +34,15 @@ const $ = sel => document.querySelector(sel);
 // Set of species IDs that can appear in wild mode (wild + their evolutions)
 const wildPlusEvos = buildWildWithEvolutions(WILD_ENCOUNTERS);
 const EVOLVED_UNHATCHED_EGG_EXCEPTIONS = new Set([183, 202]); // Marill, Wobbuffet
+const ZUBAT_SPECIES_ID = 41;
+const EMERALD_ALTERING_CAVE_LOCATION_ID = 210;
 const DEOXYS_SPECIES_ID = 410;
 const CELEBI_SPECIES_ID = 251;
 const SHEDINJA_SPECIES_ID = 303;
 const STATIC_DEFAULT_CATEGORY_ID = 'starters';
-const STATIC_LOCKED_ORIGIN_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner']);
+const STATIC_LOCKED_ORIGIN_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner', 'stationary']);
+const STATIC_LOCKED_MET_FIELD_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner', 'stationary', 'legends']);
+const STATIC_LOCKED_BALL_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner']);
 const STAT_GRAPH_MAX_BASE = 180;
 const STAT_GRAPH_ROWS = [
   { key: 'hp', ivId: 'ivHp', evId: 'evHp', baseId: 'baseStatHp', barId: 'baseStatBarHp', finalId: 'finalStatHp' },
@@ -915,6 +919,24 @@ function shouldLockStaticEncounterOriginFields() {
 
   const encounter = getSelectedStaticEncounter();
   return Boolean(encounter && STATIC_LOCKED_ORIGIN_CATEGORIES.has(encounter.category));
+}
+
+function shouldLockStaticEncounterMetFields() {
+  if (currentEncounterMode !== 'static') return false;
+  const category = getSelectedStaticCategory();
+  if (STATIC_LOCKED_MET_FIELD_CATEGORIES.has(category)) return true;
+
+  const encounter = getSelectedStaticEncounter();
+  return Boolean(encounter && STATIC_LOCKED_MET_FIELD_CATEGORIES.has(encounter.category));
+}
+
+function shouldLockStaticEncounterBall() {
+  if (currentEncounterMode !== 'static') return false;
+  const category = getSelectedStaticCategory();
+  if (STATIC_LOCKED_BALL_CATEGORIES.has(category)) return true;
+
+  const encounter = getSelectedStaticEncounter();
+  return Boolean(encounter && STATIC_LOCKED_BALL_CATEGORIES.has(encounter.category));
 }
 
 function getSelectedMysteryEvent() {
@@ -2024,8 +2046,28 @@ function createAutocomplete(selectEl, list, opts = {}) {
 
 
 // Filter locations based on origin game
-function getLocationsForGame(originGame) {
+function isMetLocationAllowedForEncounterState(locationId, options = {}) {
+  const locId = Number(locationId);
+  if (locId !== EMERALD_ALTERING_CAVE_LOCATION_ID) return true;
+
+  const encounterMode = options.encounterMode ?? currentEncounterMode;
+  const speciesId = Number(
+    options.speciesId ?? (typeof document !== 'undefined' ? ($('#species')?.value || 0) : 0)
+  );
+  const originGame = Number(options.originGame ?? 0);
+  return originGame === 3 && (
+    encounterMode === 'hatched' ||
+    (encounterMode === 'wild' && speciesId === ZUBAT_SPECIES_ID)
+  );
+}
+
+function filterLocationsForEncounterState(locations, options = {}) {
+  return locations.filter(([id]) => isMetLocationAllowedForEncounterState(id, options));
+}
+
+function getLocationsForGame(originGame, options = {}) {
   const gameId = Number(originGame);
+  const locationFilterOptions = { ...options, originGame: gameId };
 
   const SHARED_SPECIAL_LOCATION_IDS = new Set([253, 254, 255]);
   const isColoXdLocation = (name) => /^\d{3}:/.test(String(name || ''));
@@ -2041,35 +2083,35 @@ function getLocationsForGame(originGame) {
   
   // Colosseum/XD (game ID 15) uses locations with format "###: Name / Name"
   if (gameId === 15) {
-    return LOCATIONS.filter(([id, name]) => {
+    return filterLocationsForEncounterState(LOCATIONS.filter(([id, name]) => {
       // Check if name starts with "###:" pattern (Colosseum/XD format)
       return isColoXdLocation(name);
-    });
+    }), locationFilterOptions);
   }
 
   // RSE games: Sapphire(1), Ruby(2), Emerald(3)
   if (gameId === 1 || gameId === 2 || gameId === 3) {
-    return LOCATIONS.filter(([id, name]) => {
+    return filterLocationsForEncounterState(LOCATIONS.filter(([id, name]) => {
       if (isColoXdLocation(name)) return false;
       const locId = Number(id);
       return isRseLocationId(locId) || SHARED_SPECIAL_LOCATION_IDS.has(locId);
-    });
+    }), locationFilterOptions);
   }
 
   // FRLG games: FireRed(4), LeafGreen(5)
   if (gameId === 4 || gameId === 5) {
-    return LOCATIONS.filter(([id, name]) => {
+    return filterLocationsForEncounterState(LOCATIONS.filter(([id, name]) => {
       if (isColoXdLocation(name)) return false;
       const locId = Number(id);
       return isFrlgLocationId(locId) || SHARED_SPECIAL_LOCATION_IDS.has(locId);
-    });
+    }), locationFilterOptions);
   }
   
   // Fallback: all non-Colosseum/XD locations
-  return LOCATIONS.filter(([id, name]) => {
+  return filterLocationsForEncounterState(LOCATIONS.filter(([id, name]) => {
     // Exclude Colosseum/XD formatted locations
     return !isColoXdLocation(name);
-  });
+  }), locationFilterOptions);
 }
 
 // Store reference to metLocation autocomplete wrapper for updating
@@ -2164,9 +2206,18 @@ function updateWildEncounterFilters(speciesId) {
   // â”€â”€ 3. Filter Met Location to valid locations for species + game â”€â”€â”€â”€â”€â”€â”€â”€
   if (encounterData && encounterData[currentGame]) {
     const gameLocs = encounterData[currentGame]; // { locId: [[min,max],...] }
-    const locIds = Object.keys(gameLocs).map(Number);
+    const locIds = Object.keys(gameLocs)
+      .map(Number)
+      .filter(locId => isMetLocationAllowedForEncounterState(locId, {
+        encounterMode: 'wild',
+        speciesId,
+        originGame: currentGame,
+      }));
     // Build the filtered location list from LOCATIONS
-    const baseLocations = getLocationsForGame(currentGame);
+    const baseLocations = getLocationsForGame(currentGame, {
+      encounterMode: 'wild',
+      speciesId,
+    });
     const filteredLocations = baseLocations.filter(([id]) => locIds.includes(id));
     if (metLocationWrapper && metLocationWrapper.updateList) {
       metLocationWrapper.updateList(filteredLocations);
@@ -2180,7 +2231,7 @@ function updateWildEncounterFilters(speciesId) {
 
     // â”€â”€ 4. Snap Met Level to the closest valid level â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const chosenLoc = Number($('#metLocation').value);
-    const ranges = gameLocs[chosenLoc];
+    const ranges = locIds.includes(chosenLoc) ? gameLocs[chosenLoc] : null;
     if (ranges && ranges.length && metLevelInput) {
       const absMin = ranges[0][0];
       const absMax = ranges[ranges.length - 1].length > 1 ? ranges[ranges.length - 1][1] : ranges[ranges.length - 1][0];
@@ -2202,7 +2253,10 @@ function updateWildEncounterFilters(speciesId) {
     }
   } else {
     // No encounter data: show all locations for this game, reset level constraints
-    const baseLocations = getLocationsForGame(currentGame);
+    const baseLocations = getLocationsForGame(currentGame, {
+      encounterMode: 'wild',
+      speciesId,
+    });
     if (metLocationWrapper && metLocationWrapper.updateList) {
       metLocationWrapper.updateList(baseLocations);
     }
@@ -2764,6 +2818,18 @@ function boot(){
     // Level must be at or above met level (applies to all modes)
     if (level < metLevel) {
       errors.push('Current level cannot be lower than met level');
+    }
+
+    const metLocationId = Number($('#metLocation')?.value || 0);
+    if (
+      mode !== 'imported' &&
+      !isMetLocationAllowedForEncounterState(metLocationId, {
+        encounterMode: mode,
+        speciesId,
+        originGame: Number($('#originGame')?.value || 0),
+      })
+    ) {
+      errors.push('Altering Cave (Emerald) is only available for hatched Pokémon or wild Zubat');
     }
     
     if (mode === 'hatched') {
@@ -4622,7 +4688,7 @@ function boot(){
       if (currentEncounterMode === 'hatched') {
         metEl.value = '0';
         setControlLockState(metEl, true);
-      } else if (shouldLockStaticEncounterOriginFields()) {
+      } else if (shouldLockStaticEncounterMetFields()) {
         setControlLockState(metEl, true);
       } else if (pidFinderLockedMetLevel) {
         // PID Finder set a specific met level — keep it locked
@@ -4697,7 +4763,11 @@ function boot(){
             return;
           }
 
-          if (currentEncounterMode === 'static' && shouldLockStaticEncounterOriginFields()) {
+          if (currentEncounterMode === 'static' && shouldLockStaticEncounterMetFields()) {
+            setMetLocationLock(true);
+          }
+
+          if (currentEncounterMode === 'static' && shouldLockStaticEncounterBall()) {
             const detEnc = getSelectedStaticEncounter();
             if (ballEl.updateList) ballEl.updateList(BALLS);
             if (detEnc?.fixedBall) {
@@ -4705,7 +4775,6 @@ function boot(){
             } else {
               applyDefaultPokeBallIfEmpty();
             }
-            setMetLocationLock(true);
             setBallLockState(true);
             return;
           }

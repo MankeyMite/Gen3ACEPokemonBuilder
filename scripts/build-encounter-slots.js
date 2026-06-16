@@ -23,6 +23,8 @@ const path = require('path');
 
 const DATA = path.join(__dirname, '..', 'src', 'data');
 const OUT  = path.join(DATA, 'encounterSlots.gen3.js');
+const ZUBAT_SPECIES_ID = 41;
+const EMERALD_ALTERING_CAVE_LOCATION_ID = 210;
 
 // ── Load JSONs ────────────────────────────────────────────────────────────────
 const emerald = JSON.parse(fs.readFileSync(path.join(DATA, 'wild_encounters emerald.json'), 'utf8'));
@@ -191,6 +193,12 @@ function ensureEntry(gameId, locId) {
   };
 }
 
+function shouldSkipTable(sourceFile, locId, table) {
+  return sourceFile === 'emerald' &&
+    locId === EMERALD_ALTERING_CAVE_LOCATION_ID &&
+    table.some(([speciesId]) => speciesId !== ZUBAT_SPECIES_ID);
+}
+
 function processFile(data, sourceFile) {
   const groups = data.wild_encounter_groups[0];
   const fishingGroups = null;
@@ -219,7 +227,7 @@ function processFile(data, sourceFile) {
           const sp = speciesConstToId(m.species);
           return [sp || 0, m.min_level, m.max_level];
         });
-        e.l.add(JSON.stringify(table));
+        if (!shouldSkipTable(sourceFile, locId, table)) e.l.add(JSON.stringify(table));
       }
 
       // Water (5 slots)
@@ -228,7 +236,7 @@ function processFile(data, sourceFile) {
           const sp = speciesConstToId(m.species);
           return [sp || 0, m.min_level, m.max_level];
         });
-        e.w.add(JSON.stringify(table));
+        if (!shouldSkipTable(sourceFile, locId, table)) e.w.add(JSON.stringify(table));
       }
 
       // Rock Smash (5 slots)
@@ -237,7 +245,7 @@ function processFile(data, sourceFile) {
           const sp = speciesConstToId(m.species);
           return [sp || 0, m.min_level, m.max_level];
         });
-        e.r.add(JSON.stringify(table));
+        if (!shouldSkipTable(sourceFile, locId, table)) e.r.add(JSON.stringify(table));
       }
 
       // Fishing (split by rod type)
@@ -250,9 +258,18 @@ function processFile(data, sourceFile) {
           return [sp || 0, m.min_level, m.max_level];
         });
 
-        if (fishGroups.old_rod)  e.o.add(JSON.stringify(toTable(fishGroups.old_rod)));
-        if (fishGroups.good_rod) e.g.add(JSON.stringify(toTable(fishGroups.good_rod)));
-        if (fishGroups.super_rod) e.s.add(JSON.stringify(toTable(fishGroups.super_rod)));
+        if (fishGroups.old_rod) {
+          const table = toTable(fishGroups.old_rod);
+          if (!shouldSkipTable(sourceFile, locId, table)) e.o.add(JSON.stringify(table));
+        }
+        if (fishGroups.good_rod) {
+          const table = toTable(fishGroups.good_rod);
+          if (!shouldSkipTable(sourceFile, locId, table)) e.g.add(JSON.stringify(table));
+        }
+        if (fishGroups.super_rod) {
+          const table = toTable(fishGroups.super_rod);
+          if (!shouldSkipTable(sourceFile, locId, table)) e.s.add(JSON.stringify(table));
+        }
       }
     }
   }
