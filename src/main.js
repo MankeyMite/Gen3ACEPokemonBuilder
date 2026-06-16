@@ -37,6 +37,8 @@ const EVOLVED_UNHATCHED_EGG_EXCEPTIONS = new Set([183, 202]); // Marill, Wobbuff
 const DEOXYS_SPECIES_ID = 410;
 const CELEBI_SPECIES_ID = 251;
 const SHEDINJA_SPECIES_ID = 303;
+const STATIC_DEFAULT_CATEGORY_ID = 'starters';
+const STATIC_LOCKED_ORIGIN_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner']);
 const STAT_GRAPH_MAX_BASE = 180;
 const STAT_GRAPH_ROWS = [
   { key: 'hp', ivId: 'ivHp', evId: 'evHp', baseId: 'baseStatHp', barId: 'baseStatBarHp', finalId: 'finalStatHp' },
@@ -808,6 +810,112 @@ let suppressUserChangeMark = false;
 let mysteryPresetAppliedFor = 0;
 // Whether the user has modified fields (other than nickname) since the preset was applied
 let mysteryUserModifiedSincePreset = false;
+
+function setControlLockState(el, shouldLock, options = {}) {
+  if (!el) return;
+  const locked = Boolean(shouldLock);
+  el.disabled = locked;
+  el.style.pointerEvents = locked ? 'none' : '';
+  el.style.opacity = locked ? '0.6' : '';
+  el.style.cursor = locked ? 'not-allowed' : '';
+
+  const inputEl = typeof el.querySelector === 'function' ? el.querySelector('input') : null;
+  if (!inputEl) return;
+
+  inputEl.disabled = locked;
+  inputEl.style.pointerEvents = locked ? 'none' : '';
+  inputEl.style.opacity = '';
+  inputEl.style.cursor = locked ? 'not-allowed' : '';
+  if (options.autocompleteFieldStyle) {
+    inputEl.style.borderColor = locked ? 'rgba(74, 158, 255, 0.3)' : '';
+    inputEl.style.background = locked ? 'rgba(10, 20, 40, 0.6)' : '';
+  }
+}
+
+function getCurrentLevelFloor() {
+  let floor = 1;
+  const metLevel = Math.max(0, Math.min(100, Number($('#metLevel')?.value || 0)));
+  floor = Math.max(floor, metLevel);
+
+  if (currentEncounterMode === 'hatched') {
+    floor = Math.max(floor, IS_EGG_OVERRIDE_LEVEL);
+  } else if (currentEncounterMode === 'mystery') {
+    const tag = String(document.getElementById('mysteryEvent')?.value || '').toUpperCase();
+    if (tag === '10ANNI') floor = Math.max(floor, 70);
+    else if (tag === 'AURA_MEW') floor = Math.max(floor, 10);
+    else if (tag === 'AGETO_CELEBI' || tag === 'MITSURIN_CELEBI') floor = Math.max(floor, 10);
+    else if (tag === 'BOX_EVENT') floor = Math.max(floor, 5);
+    else if (tag === 'DOEL_DEOXYS' || tag === 'SPACE_CENTER_DEOXYS') floor = Math.max(floor, 70);
+    else if (tag === 'JOURNEY_ACROSS_AMERICA') floor = Math.max(floor, 70);
+    else if (tag === 'PARTY_OF_THE_DECADE') floor = Math.max(floor, 70);
+    else if (tag === 'POKEMON_ROCKS_METANG') floor = Math.max(floor, 30);
+    else if (tag === 'WISHMKR_BEST' || tag === 'WISHMKR_SHINY' || tag === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') floor = Math.max(floor, 5);
+  } else if (currentEncounterMode === 'static') {
+    const speciesId = Number($('#species')?.value || 0);
+    if (speciesId === 151) floor = Math.max(floor, 30);
+    if (getSelectedStaticEncounter()?.isEgg) floor = Math.max(floor, IS_EGG_OVERRIDE_LEVEL);
+  }
+
+  try {
+    if (shouldApplyIsEggOverrides()) floor = Math.max(floor, IS_EGG_OVERRIDE_LEVEL);
+  } catch (e) {}
+
+  return Math.max(1, Math.min(100, floor));
+}
+
+function syncCurrentLevelMinimumAttribute() {
+  const levelEl = $('#level');
+  if (!levelEl) return 1;
+  const floor = getCurrentLevelFloor();
+  levelEl.min = String(floor);
+  return floor;
+}
+
+function clampCurrentLevelToMinimum() {
+  const levelEl = $('#level');
+  if (!levelEl) return false;
+
+  const floor = syncCurrentLevelMinimumAttribute();
+  const raw = String(levelEl.value ?? '').trim();
+  let next = raw === '' ? floor : Number(raw);
+  if (!Number.isFinite(next)) next = floor;
+  next = Math.max(1, Math.min(100, Math.floor(next)));
+
+  try {
+    if (shouldApplyIsEggOverrides()) {
+      next = IS_EGG_OVERRIDE_LEVEL;
+    } else if (next < floor) {
+      next = floor;
+    }
+  } catch (e) {
+    if (next < floor) next = floor;
+  }
+
+  if (String(levelEl.value) === String(next)) return false;
+  levelEl.value = String(next);
+  return true;
+}
+
+function getSelectedStaticCategory() {
+  return String(document.getElementById('staticCategory')?.value || '');
+}
+
+function getSelectedStaticEncounter() {
+  if (currentEncounterMode !== 'static') return null;
+  const speciesId = Number($('#species')?.value || 0);
+  if (!speciesId) return null;
+  const currentGame = Number($('#originGame')?.value || 0);
+  return getEncounterForSpecies(speciesId, currentGame);
+}
+
+function shouldLockStaticEncounterOriginFields() {
+  if (currentEncounterMode !== 'static') return false;
+  const category = getSelectedStaticCategory();
+  if (STATIC_LOCKED_ORIGIN_CATEGORIES.has(category)) return true;
+
+  const encounter = getSelectedStaticEncounter();
+  return Boolean(encounter && STATIC_LOCKED_ORIGIN_CATEGORIES.has(encounter.category));
+}
 
 function getSelectedMysteryEvent() {
   const rawTag = String(document.getElementById('mysteryEvent')?.value || '').toUpperCase();
@@ -3360,6 +3468,15 @@ function boot(){
       if (!importedMode && hasPidFinderSelectionState()) unlockPidFinderFields({ clearPid: true });
       // Always update gender dropdown for selected species
       if (!importedMode) handleEncounterModeChange(speciesId);
+      if (!importedMode && currentEncounterMode === 'static') {
+        try { updateTidSidLocking(); } catch (e) {}
+        try { updateMetLevelLocking(); } catch (e) {}
+        try {
+          const changed = clampCurrentLevelToMinimum();
+          if (changed) computeAndSetExpFromLevel();
+        } catch (e) {}
+        try { updateBallLocking(); } catch (e) {}
+      }
 
       // Update move dropdowns to only show moves this species can learn.
       // In mystery mode, preserve already-set moves (may be special event moves).
@@ -3797,16 +3914,36 @@ function boot(){
   // Add legality check listeners for fields that affect legality
   const levelInput = $('#level');
   if (levelInput) {
-    levelInput.addEventListener('input', updateLegalityStatus);
-    levelInput.addEventListener('change', updateLegalityStatus);
+    levelInput.addEventListener('input', () => {
+      syncCurrentLevelMinimumAttribute();
+      updateLegalityStatus();
+    });
+    levelInput.addEventListener('change', () => {
+      const changed = clampCurrentLevelToMinimum();
+      if (changed) {
+        try { computeAndSetExpFromLevel(); } catch (e) {}
+        try { refreshMoveExclusions(); } catch (e) {}
+      }
+      updateLegalityStatus();
+    });
     levelInput.addEventListener('input', updateStatGraph);
     levelInput.addEventListener('change', updateStatGraph);
   }
   
   const metLevelInput = $('#metLevel');
   if (metLevelInput) {
-    metLevelInput.addEventListener('input', updateLegalityStatus);
-    metLevelInput.addEventListener('change', updateLegalityStatus);
+    metLevelInput.addEventListener('input', () => {
+      syncCurrentLevelMinimumAttribute();
+      updateLegalityStatus();
+    });
+    metLevelInput.addEventListener('change', () => {
+      const changed = clampCurrentLevelToMinimum();
+      if (changed) {
+        try { computeAndSetExpFromLevel(); } catch (e) {}
+        try { refreshMoveExclusions(); } catch (e) {}
+      }
+      updateLegalityStatus();
+    });
     // In wild mode, snap met level to closest valid encounter level on blur
     metLevelInput.addEventListener('blur', () => {
       if (currentEncounterMode !== 'wild') return;
@@ -3819,6 +3956,11 @@ function boot(){
         const ranges = enc[gameId][locId];
         let v = Number(metLevelInput.value) || 0;
         metLevelInput.value = String(snapToValidLevel(ranges, v));
+        const changed = clampCurrentLevelToMinimum();
+        if (changed) {
+          try { computeAndSetExpFromLevel(); } catch (e) {}
+          try { refreshMoveExclusions(); } catch (e) {}
+        }
       }
     });
   }
@@ -3848,6 +3990,11 @@ function boot(){
             ml.title = `Valid levels: ${rangesToLabel(ranges)}`;
             const cur = Number(ml.value) || 0;
             ml.value = String(snapToValidLevel(ranges, cur));
+            const changed = clampCurrentLevelToMinimum();
+            if (changed) {
+              try { computeAndSetExpFromLevel(); } catch (e) {}
+              try { refreshMoveExclusions(); } catch (e) {}
+            }
           }
         }
         // Unown: filter form dropdown to forms available in this chamber
@@ -4061,6 +4208,10 @@ function boot(){
       try { setEncounterModeDescription(currentEncounterMode); } catch (e) {}
       try { updateIsEggVisibility(); } catch (e) {}
       try { updateMetLevelLocking(); } catch (e) {}
+      try {
+        const changed = clampCurrentLevelToMinimum();
+        if (changed) computeAndSetExpFromLevel();
+      } catch (e) {}
       try { updateBallLocking(); } catch (e) {}
       try { updateContestStatsLocking(); } catch (e) {}
       try { updateRibbonLocking(); } catch (e) {}
@@ -4104,6 +4255,10 @@ function boot(){
       if (hasPidFinderSelectionState()) unlockPidFinderFields();
       // Re-run all locking functions — they will skip locks when override is active
       try { updateMetLevelLocking(); } catch (e) {}
+      try {
+        const changed = clampCurrentLevelToMinimum();
+        if (changed) computeAndSetExpFromLevel();
+      } catch (e) {}
       try { updateBallLocking(); } catch (e) {}
       try { updateLevelLocking(); } catch (e) {}
       try { updatePidLocking(); } catch (e) {}
@@ -4198,7 +4353,10 @@ function boot(){
       const usesEditableOriginGame = isPcnyWishEggsMysteryTag(tag);
       const shouldLockTidSid = !manualOverrideActive && (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData);
       const shouldLockOtName = !manualOverrideActive && currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesHatcherTrainerData;
-      const shouldLockOriginGame = !manualOverrideActive && currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesEditableOriginGame;
+      const shouldLockOriginGame = !manualOverrideActive && (
+        (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesEditableOriginGame) ||
+        shouldLockStaticEncounterOriginFields()
+      );
       if (tidEl) {
         tidEl.disabled = Boolean(shouldLockTidSid);
         tidEl.style.pointerEvents = shouldLockTidSid ? 'none' : '';
@@ -4217,12 +4375,7 @@ function boot(){
         otEl.style.opacity = shouldLockOtName ? '0.6' : '';
         otEl.style.cursor = shouldLockOtName ? 'not-allowed' : '';
       }
-      if (originGameEl) {
-        originGameEl.disabled = Boolean(shouldLockOriginGame);
-        originGameEl.style.pointerEvents = shouldLockOriginGame ? 'none' : '';
-        originGameEl.style.opacity = shouldLockOriginGame ? '0.6' : '';
-        originGameEl.style.cursor = shouldLockOriginGame ? 'not-allowed' : '';
-      }
+      if (originGameEl) setControlLockState(originGameEl, shouldLockOriginGame);
 
       if (isPcnyWishEggsMysteryEventSelected()) {
         applyPcnyWishEggsOriginAndLocationConstraints();
@@ -4454,44 +4607,28 @@ function boot(){
       if (!metEl) return;
       if (manualOverrideActive) {
         // Override: unlock met level for manual editing
-        metEl.disabled = false;
-        metEl.style.pointerEvents = '';
-        metEl.style.opacity = '';
-        metEl.style.cursor = '';
+        setControlLockState(metEl, false);
         return;
       }
       if (isPcnyWishEggsMysteryEventSelected()) {
         metEl.value = '0';
-        metEl.disabled = true;
-        metEl.style.pointerEvents = 'none';
-        metEl.style.opacity = '0.6';
-        metEl.style.cursor = 'not-allowed';
+        setControlLockState(metEl, true);
         return;
       }
       if (currentEncounterMode === 'mystery' || isChannelJirachiMysteryEventSelected()) {
-        metEl.disabled = true;
-        metEl.style.pointerEvents = 'none';
-        metEl.style.opacity = '0.6';
-        metEl.style.cursor = 'not-allowed';
+        setControlLockState(metEl, true);
         return;
       }
       if (currentEncounterMode === 'hatched') {
         metEl.value = '0';
-        metEl.disabled = true;
-        metEl.style.pointerEvents = 'none';
-        metEl.style.opacity = '0.6';
-        metEl.style.cursor = 'not-allowed';
+        setControlLockState(metEl, true);
+      } else if (shouldLockStaticEncounterOriginFields()) {
+        setControlLockState(metEl, true);
       } else if (pidFinderLockedMetLevel) {
         // PID Finder set a specific met level — keep it locked
-        metEl.disabled = true;
-        metEl.style.pointerEvents = 'none';
-        metEl.style.opacity = '0.6';
-        metEl.style.cursor = 'not-allowed';
+        setControlLockState(metEl, true);
       } else {
-        metEl.disabled = false;
-        metEl.style.pointerEvents = '';
-        metEl.style.opacity = '';
-        metEl.style.cursor = '';
+        setControlLockState(metEl, false);
       }
     } catch (e) {}
   }
@@ -4506,25 +4643,7 @@ function boot(){
           if (!ballEl) return;
 
           const setBallLockState = (shouldLock) => {
-            ballEl.disabled = Boolean(shouldLock);
-            ballEl.style.pointerEvents = shouldLock ? 'none' : '';
-            ballEl.style.opacity = shouldLock ? '0.6' : '';
-            ballEl.style.cursor = shouldLock ? 'not-allowed' : '';
-
-            // #ball is an autocomplete wrapper in this UI; disable its input too.
-            try {
-              const inputEl = typeof ballEl.querySelector === 'function' ? ballEl.querySelector('input') : null;
-              if (inputEl) {
-                inputEl.disabled = Boolean(shouldLock);
-                inputEl.style.pointerEvents = shouldLock ? 'none' : '';
-                // Keep opacity only on the wrapper so the field doesn't get double-faded.
-                inputEl.style.opacity = '';
-                inputEl.style.cursor = '';
-                // Match the visual language of other locked controls (e.g. PID).
-                inputEl.style.borderColor = shouldLock ? 'rgba(74, 158, 255, 0.3)' : '';
-                inputEl.style.background = shouldLock ? 'rgba(10, 20, 40, 0.6)' : '';
-              }
-            } catch (e) {}
+            setControlLockState(ballEl, shouldLock, { autocompleteFieldStyle: true });
           };
 
           const applyDefaultPokeBallIfEmpty = () => {
@@ -4534,11 +4653,7 @@ function boot(){
             }
           };
           const setMetLocationLock = (shouldLock) => {
-            if (!metLocationEl) return;
-            metLocationEl.disabled = Boolean(shouldLock);
-            metLocationEl.style.pointerEvents = shouldLock ? 'none' : '';
-            metLocationEl.style.opacity = shouldLock ? '0.6' : '';
-            metLocationEl.style.cursor = shouldLock ? 'not-allowed' : '';
+            setControlLockState(metLocationEl, shouldLock);
           };
 
           if (manualOverrideActive) {
@@ -4579,6 +4694,19 @@ function boot(){
             } else {
               setMetLocationLock(true);
             }
+            return;
+          }
+
+          if (currentEncounterMode === 'static' && shouldLockStaticEncounterOriginFields()) {
+            const detEnc = getSelectedStaticEncounter();
+            if (ballEl.updateList) ballEl.updateList(BALLS);
+            if (detEnc?.fixedBall) {
+              try { ballEl.value = String(detEnc.fixedBall); } catch (e) {}
+            } else {
+              applyDefaultPokeBallIfEmpty();
+            }
+            setMetLocationLock(true);
+            setBallLockState(true);
             return;
           }
 
@@ -5064,6 +5192,9 @@ function boot(){
           o.textContent = cat.label;
           catSel.appendChild(o);
         }
+        if (!catSel.value && STATIC_CATEGORIES.some(cat => cat.id === STATIC_DEFAULT_CATEGORY_ID)) {
+          catSel.value = STATIC_DEFAULT_CATEGORY_ID;
+        }
         catSel.addEventListener('change', () => {
           updateSpeciesListForMode();
           const sp = Number($('#species').value) || 0;
@@ -5071,6 +5202,14 @@ function boot(){
             handleEncounterModeChange(sp);
             updateMovesForSpecies(sp, { preserveValue: false });
           }
+          try { updateTidSidLocking(); } catch (e) {}
+          try { updateMetLevelLocking(); } catch (e) {}
+          try {
+            const changed = clampCurrentLevelToMinimum();
+            if (changed) computeAndSetExpFromLevel();
+          } catch (e) {}
+          try { updateBallLocking(); } catch (e) {}
+          validateForm();
         });
       }
     }
@@ -5400,7 +5539,9 @@ function boot(){
         break;
       case 'static': {
         // Filter species by selected category
-        const catVal = document.getElementById('staticCategory')?.value || '';
+        const catSel = document.getElementById('staticCategory');
+        const catVal = catSel?.value || STATIC_DEFAULT_CATEGORY_ID;
+        if (catSel && !catSel.value) catSel.value = catVal;
         if (catVal) {
           const catSpecies = new Set(getSpeciesForCategory(catVal));
           filteredSpecies = SPECIES.filter(s => catSpecies.has(s[0]));
@@ -5680,6 +5821,10 @@ function boot(){
     }
     try { updateOtGenderLocking(); } catch (e) {}
     try { updateHatchedOriginGameLocking(); } catch (e) {}
+    try {
+      const changed = clampCurrentLevelToMinimum();
+      if (changed) computeAndSetExpFromLevel();
+    } catch (e) {}
     // For 'wild' mode, use normal PID generation (already working)
     
     // Update legality status after mode change
@@ -6039,15 +6184,17 @@ function boot(){
 
     // Set met level and current level
     const metLevel = detailedEnc ? detailedEnc.level : encounter.defaultMetLevel;
-    if (metLevel) {
+    if (metLevel !== undefined) {
       const metLevelInput = $('#metLevel');
       const levelInput = $('#level');
+      const currentLevel = detailedEnc?.isEgg ? IS_EGG_OVERRIDE_LEVEL : Math.max(1, metLevel);
       if (metLevelInput) {
-        metLevelInput.value = metLevel;
+        metLevelInput.value = String(metLevel);
       }
       if (levelInput) {
-        levelInput.value = metLevel;
+        levelInput.value = String(currentLevel);
       }
+      syncCurrentLevelMinimumAttribute();
       computeAndSetExpFromLevel();
     }
 
@@ -6287,6 +6434,7 @@ function boot(){
   $('#level').addEventListener('input', (e) => {
     // Allow typing freely (don't enforce minimums while user types).
     try {
+      syncCurrentLevelMinimumAttribute();
       const valRaw = e.target.value;
       if (valRaw === '') return; // allow empty while typing
       const val = Number(valRaw) || 0;
@@ -6328,14 +6476,8 @@ function boot(){
               if (sp === 151 && val < 30) val = 30;
             } catch (eee) {}
           }
-          // CXD Shadow: current level must be >= met level
-          if (currentEncounterMode === 'cxd_shadow') {
-            try {
-              const metLvl = Number($('#metLevel')?.value || 1);
-              if (val < metLvl) val = metLvl;
-            } catch (eee) {}
-          }
       } catch (ee) {}
+      val = Math.max(val, getCurrentLevelFloor());
       try {
         if (shouldApplyIsEggOverrides()) {
           val = IS_EGG_OVERRIDE_LEVEL;
@@ -6452,6 +6594,7 @@ function boot(){
       clearImportedRoundTripState();
       // First-time mode visit defaults: clear values so nothing bleeds across modes.
       const defaults = {
+        staticCategory: STATIC_DEFAULT_CATEGORY_ID,
         evHp: '0',
         evAtk: '0',
         evDef: '0',
@@ -7202,6 +7345,11 @@ function boot(){
   if (metLevelEl) {
     metLevelEl.addEventListener('input', (e) => {
       e.target.value = clampInt(e.target.value, 0, 100);
+      const changed = clampCurrentLevelToMinimum();
+      if (changed) {
+        try { computeAndSetExpFromLevel(); } catch (ex) {}
+        try { refreshMoveExclusions(); } catch (ex) {}
+      }
     });
   }
 
@@ -8803,6 +8951,16 @@ function collect(){
       fatefulEncounter: $('#fatefulEncounter')?.checked || false
     }
   };
+
+  const outputLevelFloor = Math.min(100, out.metLevel);
+  if (out.level < outputLevelFloor) {
+    out.level = outputLevelFloor;
+    const growthGroup = EXP_GROUPS[out.speciesId] ?? GROUP.MEDIUM_FAST;
+    out.totalExp = expForLevel(growthGroup, out.level);
+  }
+  if (out.metLevel <= 100 && out.level === out.metLevel && Object.values(out.evs).some(v => v > 100)) {
+    out.evLegalityBump = true;
+  }
 
   // â”€â”€ EV > 100 legality fix: bump EXP by 1 when at met level â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (out.evLegalityBump) {
