@@ -80,28 +80,72 @@
       color: #7dd3fc;
     }
 
-    .setup-guide-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      width: fit-content;
-      max-width: 100%;
-      margin-top: 0.85rem;
-      padding: 0.55rem 0.75rem;
+    .how-it-works-card {
+      padding: 1rem 1.1rem;
       border: 1px solid rgba(56,189,248,0.34);
       border-radius: 8px;
       background: rgba(15, 23, 42, 0.38);
-      color: #e0f2fe;
-      font-size: 0.9rem;
-      font-weight: 600;
-      line-height: 1.35;
-      text-decoration: none;
+      box-shadow: 0 0 18px rgba(56,189,248,0.08);
     }
 
-    .setup-guide-link:hover {
-      border-color: rgba(56,189,248,0.65);
+    .how-it-works-card h2 {
+      margin: 0 0 0.65rem;
+      font-size: 1.25rem;
+      color: #67b7ff;
+    }
+
+    .how-it-works-card ol {
+      margin: 0;
+      padding-left: 1.35rem;
+      color: #b9d0e5;
+      line-height: 1.55;
+    }
+
+    .how-it-works-card li + li {
+      margin-top: 0.25rem;
+    }
+
+    .how-it-works-card a {
+      color: #e0f2fe;
+      font-weight: 700;
+      text-decoration-line: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 0.16em;
+    }
+
+    .how-it-works-card a:hover {
+      color: #ffffff;
+    }
+
+    .how-it-works-card .guide-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 0.35rem;
+      padding: 0.28rem 0.65rem;
+      border: 1px solid rgba(56,189,248,0.44);
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.42);
+      color: #e0f2fe;
+      font-size: 0.86rem;
+      font-weight: 700;
+      line-height: 1.2;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .how-it-works-card .guide-button:hover {
+      border-color: rgba(56,189,248,0.72);
       background: rgba(56,189,248,0.14);
       color: #ffffff;
+    }
+
+    .how-it-works-card .spawn-slot {
+      color: #e0f2fe;
+      font-weight: 700;
+      text-decoration-line: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 0.16em;
     }
 
     .builder-origin-row {
@@ -1076,11 +1120,6 @@
         word-break: break-word;
       }
 
-      .setup-guide-link {
-        width: 100%;
-        align-items: flex-start;
-      }
-
       .builder-card-header,
       .builder-header-actions {
         align-items: flex-start;
@@ -1414,15 +1453,23 @@
       <a href="./docs/patch-notes.html" target="_blank" rel="noopener" class="version-link" title="View latest patch notes">v.0.3.9</a>
     </p>
     <p class="muted">Create any Pokémon and make them spawn in your in-game PC, using a stable ACE species with a BASE64 writer! No external tools needed. Build them from scratch, or import via Smogon/Showdown sets, raw hexdata or .pk3/ek3 files. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
-    <a href="./docs/spawn-setup-interactive.html" target="_blank" rel="noopener" class="setup-guide-link">Click here to set up a BASE64 writer before creating your Pokémon</a>
-
   </header>
 
   <main class="container layout-vertical">
+    <section class="how-it-works-card" aria-labelledby="howItWorksTitle">
+      <h2 id="howItWorksTitle">How it works</h2>
+      <ol>
+        <li>Set up the BASE64 writer first. <a href="./docs/spawn-setup-interactive.html" target="_blank" rel="noopener" class="guide-button">Click here</a></li>
+        <li>Build any Pokémon you want by filling out the fields below.</li>
+        <li>Click Generate and type the code into your PC box names.</li>
+        <li>Execute the code with your stable ACE species. The Pokémon will appear in <span class="spawn-slot">Box 14, Slot 30</span>!</li>
+      </ol>
+    </section>
+
     <!-- BUILDER FORM CARD -->
     <section class="card" id="basicsCard">
       <div class="builder-card-header">
-        <h2>Pokémon Builder</h2>
+        <h2>Build Your Pokémon</h2>
         <div class="builder-header-actions">
           <span class="import-optional-label">Optional</span>
           <button id="openImportBtn" type="button" class="import-action-btn">📥 Import Pokémon</button>
