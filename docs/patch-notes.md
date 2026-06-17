@@ -1,4 +1,14 @@
-Patch Notes - (V.0.3.8) - June 7. 2026.
+Patch Notes - (V.0.3.9) - June 17, 2026.
+- Implemented auto-scrolling to missing required fields if the generate button is clicked while being locked.
+- Added MyBoy support to the interactive setup guide for Base64 for Emerald and FR/LG.
+- UI changes for more clarity.
+- Made the import button clearly appear as optional.
+- Made sure Altering Cave is only allowed as a met location in the Wild Encounter type when the selected Pokemon is Zubat.
+- Added dates to patch notes.
+- Locked some extra fields in the static encounter type.
+- Made some empty fields show their default option.
+
+Patch Notes - (V.0.3.8) - June 7, 2026.
 - Added in-game text preview for box codes for extra clarity.
 - You can now generate code without requiring the "find legal encounter" button when "unlock all fields" is checked.
 - Made the Metang troubleshooter always appear near the code section.
