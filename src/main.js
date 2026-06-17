@@ -39,6 +39,10 @@ const EMERALD_ALTERING_CAVE_LOCATION_ID = 210;
 const DEOXYS_SPECIES_ID = 410;
 const CELEBI_SPECIES_ID = 251;
 const SHEDINJA_SPECIES_ID = 303;
+const DEFAULT_TID = '12345';
+const DEFAULT_SID = '54321';
+const DEFAULT_OT_GENDER = 'male';
+const DEFAULT_POKERUS_STATUS = 'none';
 const STATIC_DEFAULT_CATEGORY_ID = 'starters';
 const STATIC_LOCKED_ORIGIN_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner', 'stationary']);
 const STATIC_LOCKED_MET_FIELD_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner', 'stationary', 'legends']);
@@ -6664,6 +6668,10 @@ function boot(){
       // First-time mode visit defaults: clear values so nothing bleeds across modes.
       const defaults = {
         staticCategory: STATIC_DEFAULT_CATEGORY_ID,
+        tid: DEFAULT_TID,
+        sid: DEFAULT_SID,
+        otGender: DEFAULT_OT_GENDER,
+        pokerusStatus: DEFAULT_POKERUS_STATUS,
         evHp: '0',
         evAtk: '0',
         evDef: '0',
