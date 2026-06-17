@@ -45,6 +45,7 @@ const DEFAULT_SID = '54321';
 const DEFAULT_OT_GENDER = 'male';
 const DEFAULT_POKERUS_STATUS = 'none';
 const DEFAULT_AUTO_SHEEN_ENABLED = true;
+const DEFAULT_FRIENDSHIP = '70';
 const STATIC_DEFAULT_CATEGORY_ID = 'starters';
 const STATIC_LOCKED_ORIGIN_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner', 'stationary']);
 const STATIC_LOCKED_MET_FIELD_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner', 'stationary', 'legends']);
@@ -6813,6 +6814,7 @@ function boot(){
         otGender: DEFAULT_OT_GENDER,
         pokerusStatus: DEFAULT_POKERUS_STATUS,
         autoSheenEnabled: DEFAULT_AUTO_SHEEN_ENABLED,
+        friendship: DEFAULT_FRIENDSHIP,
         evHp: '0',
         evAtk: '0',
         evDef: '0',
