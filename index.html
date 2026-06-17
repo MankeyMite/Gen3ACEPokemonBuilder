@@ -1917,8 +1917,17 @@
           </div>
 
           <div class="row">
+            <label for="autoSheenEnabled">Auto-calculate legal Sheen</label>
+            <input id="autoSheenEnabled" type="checkbox" checked />
+          </div>
+
+          <div class="row">
             <label for="contestSheen">Feel (Sheen)</label>
             <input id="contestSheen" type="number" min="0" max="255" value="0" />
+          </div>
+
+          <div id="contestSheenStatus" class="muted" style="font-size:0.85rem; margin-top:0.25rem;">
+            Sheen is automatically adjusted so the contest stats stay legal.
           </div>
         </div>
       </details>

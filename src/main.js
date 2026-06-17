@@ -28,6 +28,7 @@ import { getSpritePath, getUnownFormIndex, getUnownFormChar, getUnownFormSuffix,
 import { GENDER_THRESHOLDS, getGenderThreshold } from './data/genderThresholds.gen3.js';
 import { isPristineImportedRoundTripState, tryBuildPristineImportedOutputs, shouldMarkImportedDirtyFromEvent, resolvePokerusStateForBuild } from './lib/gen3/importIsolation.js';
 import { parseBase64BoxOutput, renderBoxNamePreview } from './lib/gen3/gbaTextPreview.js';
+import { getLegalSheenRangeGen3 } from './lib/gen3/contestSheen.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -43,6 +44,7 @@ const DEFAULT_TID = '12345';
 const DEFAULT_SID = '54321';
 const DEFAULT_OT_GENDER = 'male';
 const DEFAULT_POKERUS_STATUS = 'none';
+const DEFAULT_AUTO_SHEEN_ENABLED = true;
 const STATIC_DEFAULT_CATEGORY_ID = 'starters';
 const STATIC_LOCKED_ORIGIN_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner', 'stationary']);
 const STATIC_LOCKED_MET_FIELD_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner', 'stationary', 'legends']);
@@ -89,6 +91,7 @@ let _postImportUpdate = null;
 let _setEncounterModeDescription = null;
 let _updateSpeciesListForMode = null;
 let _validateForm = null;
+let _updateContestSheenAuto = null;
 
 // Ensure a safe no-op exists early so callers from earlier code don't throw
 function updateMysterySpeciesOptions(/*tag*/) { return; }
@@ -3701,6 +3704,7 @@ function boot(){
     validateForm();
     updateLegalityStatus();
     try { updateStatGraph(); } catch (e) {}
+    try { updateContestSheenAuto({ markImportedDirty: true }); } catch (e) {}
     $('#nature').classList.remove('field-error');
     // If we're in mystery event mode, apply the per-event preset for the
     // currently selected species so PID/IV from the JSON are used instead
@@ -4968,21 +4972,155 @@ function boot(){
     } catch (e) {}
   }
 
-  // In hatched mode, contest stats are not user-editable unless Manual Override is enabled.
+  function getContestStatsFromUI() {
+    return {
+      cool: Math.max(0, Math.min(255, Number($('#contestCool')?.value || 0))),
+      beauty: Math.max(0, Math.min(255, Number($('#contestBeauty')?.value || 0))),
+      cute: Math.max(0, Math.min(255, Number($('#contestCute')?.value || 0))),
+      smart: Math.max(0, Math.min(255, Number($('#contestSmart')?.value || 0))),
+      tough: Math.max(0, Math.min(255, Number($('#contestTough')?.value || 0))),
+      sheen: Math.max(0, Math.min(255, Number($('#contestSheen')?.value || 0))),
+    };
+  }
+
+  function getSelectedNature() {
+    return Number($('#nature')?.value || 0);
+  }
+
+  function readInitialContestStatsFromTemplate(template) {
+    if (!template) return null;
+    const src = template.contest || template.contestStats || template.initialContestStats || template;
+    const hasContestValue = ['cool', 'beauty', 'cute', 'smart', 'tough', 'sheen']
+      .some(key => Object.prototype.hasOwnProperty.call(src, key));
+    if (!hasContestValue) return null;
+    return {
+      cool: Math.max(0, Math.min(255, Number(src.cool || 0))),
+      beauty: Math.max(0, Math.min(255, Number(src.beauty || 0))),
+      cute: Math.max(0, Math.min(255, Number(src.cute || 0))),
+      smart: Math.max(0, Math.min(255, Number(src.smart || 0))),
+      tough: Math.max(0, Math.min(255, Number(src.tough || 0))),
+      sheen: Math.max(0, Math.min(255, Number(src.sheen || 0))),
+    };
+  }
+
+  function getEncounterInitialContestStatsOrZero() {
+    const speciesId = Number($('#species')?.value || 0);
+    const candidates = [];
+    try {
+      if (currentEncounterMode === 'static') candidates.push(getSelectedStaticEncounter());
+    } catch (e) {}
+    try {
+      if (currentEncounterMode === 'mystery') {
+        const tag = document.getElementById('mysteryEvent')?.value || '';
+        if (tag && MYSTERY_EVENTS[tag]) candidates.push(MYSTERY_EVENTS[tag]);
+        if (tag && MYSTERY_GIFTS[tag]) {
+          candidates.push((MYSTERY_GIFTS[tag] || []).find(entry => Number(entry.species) === speciesId));
+        }
+      }
+    } catch (e) {}
+
+    for (const candidate of candidates) {
+      const stats = readInitialContestStatsFromTemplate(candidate);
+      if (stats) return stats;
+    }
+
+    return {
+      cool: 0,
+      beauty: 0,
+      cute: 0,
+      smart: 0,
+      tough: 0,
+      sheen: 0,
+    };
+  }
+
+  function setSheenInputValue(value, options = {}) {
+    const sheenEl = $('#contestSheen');
+    if (!sheenEl) return false;
+    const next = String(Math.max(0, Math.min(255, Number(value) || 0)));
+    if (sheenEl.value === next) return false;
+    sheenEl.value = next;
+    if (options.markImportedDirty && currentEncounterMode === 'imported') {
+      importedRoundTripDirty = true;
+    }
+    return true;
+  }
+
+  function setContestSheenStatus(message, type = 'info') {
+    const statusEl = $('#contestSheenStatus');
+    if (!statusEl) return;
+    const warning = type === 'warning';
+    statusEl.textContent = message;
+    statusEl.style.color = warning ? '#fbbf24' : 'var(--muted)';
+    statusEl.style.padding = warning ? '0.5rem 0.65rem' : '';
+    statusEl.style.borderRadius = warning ? '8px' : '';
+    statusEl.style.background = warning ? 'rgba(245, 158, 11, 0.12)' : '';
+    statusEl.style.border = warning ? '1px solid rgba(245, 158, 11, 0.35)' : '';
+  }
+
+  function getAutoSheenEnabled() {
+    const autoEl = $('#autoSheenEnabled');
+    return autoEl ? Boolean(autoEl.checked) : true;
+  }
+
+  function validateManualSheen() {
+    const stats = getContestStatsFromUI();
+    const nature = getSelectedNature();
+    const initial = getEncounterInitialContestStatsOrZero();
+    const { minSheen, maxSheen } = getLegalSheenRangeGen3(stats, nature, initial);
+    const sheen = Math.max(0, Math.min(255, Number($('#contestSheen')?.value || 0)));
+
+    if (sheen < minSheen) {
+      setContestSheenStatus(`Sheen is too low for these contest stats. PKHeX expects at least ${minSheen}.`, 'warning');
+    } else if (sheen > maxSheen) {
+      setContestSheenStatus(`Sheen is too high for these contest stats. PKHeX expects at most ${maxSheen}.`, 'warning');
+    } else {
+      setContestSheenStatus('Contest stats and Sheen are within the legal Gen 3 range.');
+    }
+
+    return { minSheen, maxSheen, sheen };
+  }
+
+  function updateContestSheenAuto(options = {}) {
+    const autoEnabled = getAutoSheenEnabled();
+    const sheenEl = $('#contestSheen');
+    if (sheenEl) {
+      sheenEl.disabled = autoEnabled;
+      sheenEl.style.pointerEvents = autoEnabled ? 'none' : '';
+      sheenEl.style.opacity = autoEnabled ? '0.6' : '';
+      sheenEl.style.cursor = autoEnabled ? 'not-allowed' : '';
+      sheenEl.title = autoEnabled ? 'Sheen is automatically calculated from the contest stats.' : '';
+    }
+
+    if (!autoEnabled) {
+      return validateManualSheen();
+    }
+
+    const stats = getContestStatsFromUI();
+    const nature = getSelectedNature();
+    const initial = getEncounterInitialContestStatsOrZero();
+    const { minSheen, maxSheen } = getLegalSheenRangeGen3(stats, nature, initial);
+    setSheenInputValue(minSheen, options);
+    setContestSheenStatus(`Legal Sheen range: ${minSheen}-${maxSheen}. Auto set to ${minSheen}. Sheen is automatically adjusted so the contest stats stay legal.`);
+    return { minSheen, maxSheen, sheen: minSheen };
+  }
+
+  // Contest stats stay editable; Sheen is locked only while auto calculation is enabled.
   function updateContestStatsLocking() {
     try {
-      const shouldLock = !manualOverrideActive && (currentEncounterMode === 'hatched' || currentEncounterMode === 'mystery');
-      const ids = ['contestCool', 'contestBeauty', 'contestCute', 'contestSmart', 'contestTough', 'contestSheen'];
+      const ids = ['contestCool', 'contestBeauty', 'contestCute', 'contestSmart', 'contestTough'];
       for (const id of ids) {
         const el = $('#' + id);
         if (!el) continue;
-        el.disabled = Boolean(shouldLock);
-        el.style.pointerEvents = shouldLock ? 'none' : '';
-        el.style.opacity = shouldLock ? '0.6' : '';
-        el.style.cursor = shouldLock ? 'not-allowed' : '';
+        el.disabled = false;
+        el.style.pointerEvents = '';
+        el.style.opacity = '';
+        el.style.cursor = '';
       }
+      updateContestSheenAuto();
     } catch (e) {}
   }
+  _updateContestSheenAuto = updateContestSheenAuto;
 
   // In hatched mode, only a subset of ribbons are editable unless Manual Override is enabled.
   function updateRibbonLocking() {
@@ -6580,7 +6718,7 @@ function boot(){
   }
 
   const ENCOUNTER_MODE_CHECKBOX_IDS = new Set([
-    'shiny', 'isEgg', 'fatefulEncounter',
+    'shiny', 'isEgg', 'fatefulEncounter', 'autoSheenEnabled',
     'markCircle', 'markTriangle', 'markSquare', 'markHeart',
     'ribbonChampion', 'ribbonWinning', 'ribbonVictory', 'ribbonArtist', 'ribbonEffort',
     'ribbonBattleChampion', 'ribbonRegionalChampion', 'ribbonNationalChampion',
@@ -6596,7 +6734,7 @@ function boot(){
     'evHp', 'evAtk', 'evDef', 'evSpAtk', 'evSpDef', 'evSpe',
     'move1', 'move2', 'move3', 'move4', 'pp1', 'pp2', 'pp3', 'pp4',
     'friendship', 'pokerusStatus', 'fatefulEncounter',
-    'contestCool', 'contestBeauty', 'contestCute', 'contestSmart', 'contestTough', 'contestSheen',
+    'contestCool', 'contestBeauty', 'contestCute', 'contestSmart', 'contestTough', 'contestSheen', 'autoSheenEnabled',
     'markCircle', 'markTriangle', 'markSquare', 'markHeart',
     'ribbonCool', 'ribbonBeauty', 'ribbonCute', 'ribbonSmart', 'ribbonTough',
     'ribbonChampion', 'ribbonWinning', 'ribbonVictory', 'ribbonArtist', 'ribbonEffort',
@@ -6672,6 +6810,7 @@ function boot(){
         sid: DEFAULT_SID,
         otGender: DEFAULT_OT_GENDER,
         pokerusStatus: DEFAULT_POKERUS_STATUS,
+        autoSheenEnabled: DEFAULT_AUTO_SHEEN_ENABLED,
         evHp: '0',
         evAtk: '0',
         evDef: '0',
@@ -7350,15 +7489,27 @@ function boot(){
     });
   }
 
-  // Contest stats: cap each at 255
-  const contestIds = ['#contestCool', '#contestBeauty', '#contestCute', '#contestSmart', '#contestTough', '#contestSheen'];
+  // Contest stats: cap each at 255 and keep Sheen legal when auto mode is enabled.
+  const contestFlavorIds = ['#contestCool', '#contestBeauty', '#contestCute', '#contestSmart', '#contestTough'];
+  const contestIds = [...contestFlavorIds, '#contestSheen'];
   contestIds.forEach(sel => {
     const el = document.querySelector(sel);
     if (!el) return;
     el.addEventListener('input', (e) => {
       e.target.value = clampInt(e.target.value, 0, 255);
+      try { updateContestSheenAuto({ markImportedDirty: true }); } catch (ex) {}
+      try { updateLegalityStatus(); } catch (ex) {}
     });
   });
+
+  const autoSheenEl = document.querySelector('#autoSheenEnabled');
+  if (autoSheenEl) {
+    autoSheenEl.addEventListener('change', () => {
+      try { updateContestStatsLocking(); } catch (e) {}
+      try { updateContestSheenAuto({ markImportedDirty: true }); } catch (e) {}
+      try { updateLegalityStatus(); } catch (e) {}
+    });
+  }
 
   // EVs: cap each at 252 and ensure total <= 510 by reducing the changed field
   evIds.forEach(sel => {
@@ -8863,6 +9014,8 @@ function initPidFinder() {
 }
 
 function collect(){
+  try { _updateContestSheenAuto?.({ markImportedDirty: true }); } catch (e) {}
+
   const isImportedMode = currentEncounterMode === 'imported';
   const ivClamp = s => Math.max(0, Math.min(31, Number(s)));
   const evClamp = s => Math.max(0, Math.min(isImportedMode ? 255 : 252, Number(s)));
@@ -9363,6 +9516,7 @@ function isPristineImportedRoundTrip() {
 
 function onGenerate(){
   try { _validateForm?.(); } catch (e) {}
+  try { _updateContestSheenAuto?.({ markImportedDirty: true }); } catch (e) {}
 
   // Rule of thumb:
   // - Unedited import => byte-preserved output
