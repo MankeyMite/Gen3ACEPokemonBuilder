@@ -93,6 +93,7 @@ let _setEncounterModeDescription = null;
 let _updateSpeciesListForMode = null;
 let _validateForm = null;
 let _updateContestSheenAuto = null;
+let _syncLegalModeToggle = null;
 
 // Ensure a safe no-op exists early so callers from earlier code don't throw
 function updateMysterySpeciesOptions(/*tag*/) { return; }
@@ -4314,9 +4315,32 @@ function boot(){
     });
   }
 
-  // Setup Manual Override checkbox
+  // Legal mode toggle: On = normal legality locks, Off = manual override/unlocked fields.
   const overrideCheckbox = document.querySelector('#manualOverride');
+  const legalModeToggle = document.querySelector('#legalModeToggle');
+
+  function syncLegalModeToggle() {
+    if (!legalModeToggle) return;
+    const legalModeOn = !manualOverrideActive;
+    legalModeToggle.textContent = legalModeOn ? 'On' : 'Off';
+    legalModeToggle.classList.toggle('is-on', legalModeOn);
+    legalModeToggle.classList.toggle('is-off', !legalModeOn);
+    legalModeToggle.setAttribute('aria-pressed', legalModeOn ? 'true' : 'false');
+    legalModeToggle.title = legalModeOn
+      ? 'Legal mode is on. Legality-sensitive fields stay locked.'
+      : 'Legal mode is off. All fields are unlocked for customization.';
+  }
+
+  _syncLegalModeToggle = syncLegalModeToggle;
+
   if (overrideCheckbox) {
+    if (legalModeToggle) {
+      legalModeToggle.addEventListener('click', () => {
+        overrideCheckbox.checked = !overrideCheckbox.checked;
+        overrideCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    }
+
     overrideCheckbox.addEventListener('change', (e) => {
       if (e.target.checked && !manualOverrideActive) {
         const proceed = window.confirm(
@@ -4324,10 +4348,12 @@ function boot(){
         );
         if (!proceed) {
           e.target.checked = false;
+          syncLegalModeToggle();
           return;
         }
       }
       manualOverrideActive = e.target.checked;
+      syncLegalModeToggle();
       // Clear PID Finder locks when override is toggled
       if (hasPidFinderSelectionState()) unlockPidFinderFields();
       // Re-run all locking functions — they will skip locks when override is active
@@ -4375,6 +4401,8 @@ function boot(){
       } catch (e) {}
       try { validateForm(); } catch (e) {}
     });
+
+    syncLegalModeToggle();
   }
 
   // Set the encounter mode description element text
@@ -6784,6 +6812,7 @@ function boot(){
     const overrideCb = document.getElementById('manualOverride');
     manualOverrideActive = Boolean(state.manualOverrideActive);
     if (overrideCb) overrideCb.checked = manualOverrideActive;
+    try { _syncLegalModeToggle?.(); } catch (e) {}
 
     for (const id of ENCOUNTER_MODE_FIELD_IDS) {
       if (Object.prototype.hasOwnProperty.call(fields, id)) {
@@ -6837,6 +6866,7 @@ function boot(){
       manualOverrideActive = false;
       const overrideCb = document.getElementById('manualOverride');
       if (overrideCb) overrideCb.checked = false;
+      try { _syncLegalModeToggle?.(); } catch (e) {}
 
       // Re-enable all language options
       const langSel = $('#language');
@@ -9858,6 +9888,7 @@ function applySmogonImport(parsed) {
   suppressPresetApply = true;
   const overrideCb = document.querySelector('#manualOverride');
   if (overrideCb) overrideCb.checked = true;
+  try { _syncLegalModeToggle?.(); } catch (e) {}
 
   // Unlock fields
   const fieldsToUnlock = ['#pid','#metLevel','#ball','#tid','#sid','#otName','#language','#nickname','#gender'];
@@ -9990,6 +10021,7 @@ function onLoadFromHex(hexString){
     suppressPresetApply = true;
     const overrideCb = document.querySelector('#manualOverride');
     if (overrideCb) overrideCb.checked = true;
+    try { _syncLegalModeToggle?.(); } catch (e) {}
 
     // Switch to imported mode FIRST so the species list includes all species
     // (otherwise legendaries or other filtered-out species won't display properly)
@@ -10274,6 +10306,7 @@ function onImportPk3(event) {
       suppressPresetApply = true;
       const overrideCb = document.querySelector('#manualOverride');
       if (overrideCb) overrideCb.checked = true;
+      try { _syncLegalModeToggle?.(); } catch (e) {}
 
       enterImportedModeSilently();
 

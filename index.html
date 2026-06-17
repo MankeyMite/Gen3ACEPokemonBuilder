@@ -55,14 +55,39 @@
       white-space: nowrap;
     }
 
-    .override-toggle {
+    .legal-mode-control {
       display: inline-flex;
       align-items: center;
-      gap: 0.35rem;
+      gap: 0.45rem;
       font-size: 0.85rem;
       color: rgba(255,255,255,0.62);
-      cursor: pointer;
       min-width: 0;
+    }
+
+    .legal-mode-label {
+      font-weight: 700;
+      color: rgba(226, 232, 240, 0.78);
+      white-space: nowrap;
+    }
+
+    .legal-mode-toggle {
+      min-height: 0;
+      padding: 0.34rem 0.74rem;
+      border-radius: 8px;
+      border: 1px solid rgba(34, 197, 94, 0.45);
+      background: rgba(34, 197, 94, 0.16);
+      color: #86efac;
+      font-size: 0.84rem;
+      font-weight: 800;
+      line-height: 1.1;
+      cursor: pointer;
+      min-width: 3.2rem;
+    }
+
+    .legal-mode-toggle.is-off {
+      border-color: rgba(239, 68, 68, 0.48);
+      background: rgba(239, 68, 68, 0.16);
+      color: #fca5a5;
     }
 
     .version-link {
@@ -146,6 +171,13 @@
       text-decoration-line: underline;
       text-decoration-thickness: 2px;
       text-underline-offset: 0.16em;
+    }
+
+    .how-it-works-card .how-tip {
+      margin: 0.75rem 0 0;
+      color: #cfe7f8;
+      font-size: 0.92rem;
+      line-height: 1.45;
     }
 
     .builder-origin-row {
@@ -1452,18 +1484,19 @@
     <p class="muted" style="margin-top: -0.75rem; margin-bottom: 1rem;">
       <a href="./docs/patch-notes.html" target="_blank" rel="noopener" class="version-link" title="View latest patch notes">v.0.3.9</a>
     </p>
-    <p class="muted">Create any Pokémon and make them spawn in your in-game PC, using a stable ACE species with a BASE64 writer! No external tools needed. Build them from scratch, or import via Smogon/Showdown sets, raw hexdata or .pk3/ek3 files. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
+    <p class="muted">Create any Pokémon and make them spawn in your in-game PC, using a stable ACE species with a Base64 writer! No external tools needed. Build them from scratch, or import via Smogon/Showdown sets, raw hexdata or .pk3/ek3 files. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
   </header>
 
   <main class="container layout-vertical">
     <section class="how-it-works-card" aria-labelledby="howItWorksTitle">
       <h2 id="howItWorksTitle">How it works</h2>
       <ol>
-        <li>Set up the BASE64 writer first. <a href="./docs/spawn-setup-interactive.html" target="_blank" rel="noopener" class="guide-button">Click here</a></li>
+        <li>Set up the Base64 writer first. <a href="./docs/spawn-setup-interactive.html" target="_blank" rel="noopener" class="guide-button">Click here</a></li>
         <li>Build any Pokémon you want by filling out the fields below.</li>
         <li>Click Generate and type the code into your PC box names.</li>
         <li>Execute the code with your stable ACE species. The Pokémon will appear in <span class="spawn-slot">Box 14, Slot 30</span>!</li>
       </ol>
+      <p class="how-tip">Tip: Pokémon made with this tool is designed to be legal for transfer through Pokémon Bank/Home. Turning Legal Mode off allows more customization, but can create illegal combinations.</p>
     </section>
 
     <!-- BUILDER FORM CARD -->
@@ -1473,10 +1506,11 @@
         <div class="builder-header-actions">
           <span class="import-optional-label">Optional</span>
           <button id="openImportBtn" type="button" class="import-action-btn">📥 Import Pokémon</button>
-          <label class="override-toggle" title="Unlock all fields for editing. Useful for importing Pokémon or advanced customization.">
-            <input type="checkbox" id="manualOverride" style="accent-color: #f59e0b;" />
-            <span>Unlock all fields for editing</span>
-          </label>
+          <div class="legal-mode-control" title="Legal mode keeps legality locks enabled. Turn it off to unlock all fields for advanced customization.">
+            <span class="legal-mode-label">Legal mode:</span>
+            <input type="checkbox" id="manualOverride" hidden />
+            <button id="legalModeToggle" type="button" class="legal-mode-toggle is-on" aria-pressed="true">On</button>
+          </div>
         </div>
       </div>
 
