@@ -813,6 +813,7 @@ let outputCodeTarget = 'console';
 let gbaTextPreviewRenderId = 0;
 let importedPokerusState = null;
 let pokerusDropdownDirty = false;
+let sidBeforeMakeShiny = null;
 // When true, skip applying simple-mode PID presets (used during imports)
 let suppressPresetApply = false;
 // When true, suppress marking user-change events while programmatically applying presets
@@ -4176,6 +4177,7 @@ function boot(){
     encounterModeSelect.addEventListener('change', (e) => {
       const previousMode = currentEncounterMode;
       const nextMode = String(e.target.value || 'hatched');
+      sidBeforeMakeShiny = null;
       // Save current mode edits before switching away
       try {
         encounterModeStateCache[previousMode] = captureCurrentEncounterModeState();
@@ -7012,11 +7014,37 @@ function boot(){
     } catch (e) {}
   }
 
+  function rememberSidBeforeMakeShiny(pid, tid, sid) {
+    sidBeforeMakeShiny = {
+      mode: currentEncounterMode,
+      pid: pid >>> 0,
+      tid: tid & 0xFFFF,
+      sid: sid & 0xFFFF,
+    };
+  }
+
+  function restoreSidBeforeMakeShiny(pid, tid) {
+    if (!sidBeforeMakeShiny) return null;
+    if (sidBeforeMakeShiny.mode !== currentEncounterMode) return null;
+    if (sidBeforeMakeShiny.pid !== (pid >>> 0)) return null;
+    if (sidBeforeMakeShiny.tid !== (tid & 0xFFFF)) return null;
+
+    const restoredSid = sidBeforeMakeShiny.sid & 0xFFFF;
+    sidBeforeMakeShiny = null;
+    return restoredSid;
+  }
+
+  function clearSidBeforeMakeShiny() {
+    sidBeforeMakeShiny = null;
+  }
+
   // Handle shiny checkbox
   const shinyCheckbox = $('#shiny');
   if (shinyCheckbox) {
     $('#tid').addEventListener('input', updateShinyCheckboxState);
     $('#sid').addEventListener('input', updateShinyCheckboxState);
+    $('#tid').addEventListener('input', clearSidBeforeMakeShiny);
+    $('#sid').addEventListener('input', clearSidBeforeMakeShiny);
     updateShinyCheckboxState(); // Initial check
     
     // When shiny checkbox is clicked
@@ -7048,16 +7076,15 @@ function boot(){
           // We want xor = 0 for most reliable shiny (square shiny in later gens)
           const pidHigh = (pid >>> 16) & 0xFFFF;
           const pidLow = pid & 0xFFFF;
+          const currentSid = Number($('#sid').value) & 0xFFFF;
+          rememberSidBeforeMakeShiny(pid, tid, currentSid);
           const newSid = (pidHigh ^ pidLow ^ tid) & 0xFFFF;
           $('#sid').value = String(newSid);
         } else {
-          // Calculate SID to make this PID non-shiny
-          // For non-shiny: (pidHigh ^ pidLow ^ tid ^ sid) >= 8
           const pidHigh = (pid >>> 16) & 0xFFFF;
           const pidLow = pid & 0xFFFF;
-          const xorBase = pidHigh ^ pidLow ^ tid;
-          // Add a value >= 8 to ensure non-shiny
-          const newSid = (xorBase ^ 8) & 0xFFFF;
+          const restoredSid = restoreSidBeforeMakeShiny(pid, tid);
+          const newSid = restoredSid ?? ((pidHigh ^ pidLow ^ tid ^ 8) & 0xFFFF);
           $('#sid').value = String(newSid);
         }
       } else {
@@ -7104,6 +7131,7 @@ function boot(){
   const pidInput = $('#pid');
   if (pidInput) {
     pidInput.addEventListener('input', () => {
+      clearSidBeforeMakeShiny();
       updateGenderFromPID();
       checkShiny();
       updateMakeShinyButton();
@@ -7150,6 +7178,7 @@ function boot(){
 
       if (!isShiny) {
         // Make shiny: set SID so xor = 0 (pidHigh ^ pidLow ^ tid ^ newSid) = 0
+        rememberSidBeforeMakeShiny(pid, tid, sid);
         const newSid = (pidHigh ^ pidLow ^ tid) & 0xFFFF;
         $('#sid').value = String(newSid);
         if (makeShinyStatus) {
@@ -7157,12 +7186,13 @@ function boot(){
           makeShinyStatus.style.color = 'var(--emerald, #10b981)';
         }
       } else {
-        // Undo shiny: set SID so xor >= 8
-        const xorBase = pidHigh ^ pidLow ^ tid;
-        const newSid = (xorBase ^ 8) & 0xFFFF;
+        const restoredSid = restoreSidBeforeMakeShiny(pid, tid);
+        const newSid = restoredSid ?? ((pidHigh ^ pidLow ^ tid ^ 8) & 0xFFFF);
         $('#sid').value = String(newSid);
         if (makeShinyStatus) {
-          makeShinyStatus.textContent = `SID set to ${newSid}`;
+          makeShinyStatus.textContent = restoredSid == null
+            ? `SID set to ${newSid}`
+            : `SID restored to ${newSid}`;
           makeShinyStatus.style.color = 'var(--text-muted, #94a3b8)';
         }
       }
@@ -7196,6 +7226,7 @@ function boot(){
         updateLegalityStatus();
         return;
       }
+      clearSidBeforeMakeShiny();
       applyPresetIfSimple();
       
       // Always uncheck shiny when nature changes
@@ -7336,6 +7367,7 @@ function boot(){
   if(genderEl) {
     genderEl.addEventListener('change', () => {
       if (currentEncounterMode === 'imported') return;
+      clearSidBeforeMakeShiny();
       const currentGender = genderEl.value;
       const actuallyChanged = currentGender !== previousGender;
       
@@ -7386,6 +7418,7 @@ function boot(){
   if(abilityEl) {
     abilityEl.addEventListener('change', () => {
       if (currentEncounterMode === 'imported') return;
+      clearSidBeforeMakeShiny();
       const currentAbility = abilityEl.value;
       const actuallyChanged = currentAbility !== previousAbility;
       
