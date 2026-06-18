@@ -21,6 +21,13 @@ const DATA  = path.join(__dirname, '..', 'src', 'data');
 const OUT   = path.join(DATA, 'wildEncounters.gen3.js');
 const ZUBAT_SPECIES_ID = 41;
 const EMERALD_ALTERING_CAVE_LOCATION_ID = 210;
+const FEEBAS_SPECIES_ID = 328;
+const ROUTE_119_LOCATION_ID = 34;
+const HOENN_MAIN_GAME_IDS = [1, 2, 3]; // Sapphire, Ruby, Emerald
+const KANTO_SAFARI_ZONE_LOCATION_ID = 136;
+const TANOBY_UNOWN_PLACEHOLDER_SPECIES_ID = 439;
+const TANOBY_CHAMBER_LOCATION_IDS = [188, 189, 190, 191, 192, 193, 194];
+const FRLG_GAME_IDS = [4, 5]; // FireRed, LeafGreen
 
 // ── 1. Load JSON encounter files ──────────────────────────────────────────────
 const emerald = JSON.parse(fs.readFileSync(path.join(DATA, 'wild_encounters emerald.json'), 'utf8'));
@@ -382,6 +389,25 @@ const MAP_TO_LOC = {
 // ── 4. Game detection ─────────────────────────────────────────────────────────
 // Game IDs: 1=Sapphire, 2=Ruby, 3=Emerald, 4=FireRed, 5=LeafGreen
 
+const SAFARI_ZONE_MAPS = new Set([
+  'MAP_SAFARI_ZONE_CENTER',
+  'MAP_SAFARI_ZONE_EAST',
+  'MAP_SAFARI_ZONE_NORTH',
+  'MAP_SAFARI_ZONE_NORTHEAST',
+  'MAP_SAFARI_ZONE_NORTHWEST',
+  'MAP_SAFARI_ZONE_SOUTH',
+  'MAP_SAFARI_ZONE_SOUTHEAST',
+  'MAP_SAFARI_ZONE_SOUTHWEST',
+  'MAP_SAFARI_ZONE_WEST',
+]);
+
+function getLocationIdForMap(map, sourceFile) {
+  if (sourceFile === 'frlg' && SAFARI_ZONE_MAPS.has(map)) {
+    return KANTO_SAFARI_ZONE_LOCATION_ID;
+  }
+  return MAP_TO_LOC[map];
+}
+
 function detectGame(baseLabel, sourceFile) {
   if (sourceFile === 'emerald') return [3]; // Emerald only
   if (baseLabel.endsWith('_Ruby'))      return [2];
@@ -408,7 +434,7 @@ function processFile(data, sourceFile) {
   const encounters = data.wild_encounter_groups[0].encounters;
   for (const entry of encounters) {
     const map = entry.map;
-    const locId = MAP_TO_LOC[map];
+    const locId = getLocationIdForMap(map, sourceFile);
     if (locId === undefined) {
       unmappedMaps.add(map);
       continue;
@@ -448,6 +474,32 @@ function processFile(data, sourceFile) {
 processFile(emerald, 'emerald');
 processFile(rs, 'rs');
 processFile(frlg, 'frlg');
+
+// Feebas appears only on randomized Route 119 tiles in R/S/E, so the upstream
+// wild encounter dumps omit it from the normal per-route table.
+for (const gameId of HOENN_MAIN_GAME_IDS) {
+  if (!result[FEEBAS_SPECIES_ID]) result[FEEBAS_SPECIES_ID] = {};
+  if (!result[FEEBAS_SPECIES_ID][gameId]) result[FEEBAS_SPECIES_ID][gameId] = {};
+  if (!result[FEEBAS_SPECIES_ID][gameId][ROUTE_119_LOCATION_ID]) {
+    result[FEEBAS_SPECIES_ID][gameId][ROUTE_119_LOCATION_ID] = [];
+  }
+  result[FEEBAS_SPECIES_ID][gameId][ROUTE_119_LOCATION_ID].push([20, 25]);
+}
+
+// Preserve the existing generated placeholder used for Tanoby Ruins Unown
+// encounter-chain validation.
+for (const gameId of FRLG_GAME_IDS) {
+  if (!result[TANOBY_UNOWN_PLACEHOLDER_SPECIES_ID]) result[TANOBY_UNOWN_PLACEHOLDER_SPECIES_ID] = {};
+  if (!result[TANOBY_UNOWN_PLACEHOLDER_SPECIES_ID][gameId]) {
+    result[TANOBY_UNOWN_PLACEHOLDER_SPECIES_ID][gameId] = {};
+  }
+  for (const locId of TANOBY_CHAMBER_LOCATION_IDS) {
+    if (!result[TANOBY_UNOWN_PLACEHOLDER_SPECIES_ID][gameId][locId]) {
+      result[TANOBY_UNOWN_PLACEHOLDER_SPECIES_ID][gameId][locId] = [];
+    }
+    result[TANOBY_UNOWN_PLACEHOLDER_SPECIES_ID][gameId][locId].push([25, 25]);
+  }
+}
 
 // ── 5b. Merge overlapping ranges per location ────────────────────────────────
 function mergeRanges(ranges) {
@@ -500,13 +552,21 @@ let lines = [
 ];
 
 const sortedSpecies = Object.keys(result).map(Number).sort((a, b) => a - b);
+function compareLocationForStableOutput(a, b) {
+  const locA = Number(a[0]);
+  const locB = Number(b[0]);
+  if (locA === KANTO_SAFARI_ZONE_LOCATION_ID && locB !== KANTO_SAFARI_ZONE_LOCATION_ID) return -1;
+  if (locB === KANTO_SAFARI_ZONE_LOCATION_ID && locA !== KANTO_SAFARI_ZONE_LOCATION_ID) return 1;
+  return locA - locB;
+}
+
 for (const spId of sortedSpecies) {
   const games = result[spId];
   const gameParts = [];
   for (const gId of Object.keys(games).map(Number).sort((a, b) => a - b)) {
     const locs = games[gId];
     const locParts = [];
-    for (const [lId, ranges] of Object.entries(locs).sort((a, b) => Number(a[0]) - Number(b[0]))) {
+    for (const [lId, ranges] of Object.entries(locs).sort(compareLocationForStableOutput)) {
       const rangeStr = ranges.map(r => r[0] === r[1] ? `[${r[0]}]` : `[${r[0]},${r[1]}]`).join(',');
       locParts.push(`${lId}:[${rangeStr}]`);
     }
