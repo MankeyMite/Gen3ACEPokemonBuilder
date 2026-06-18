@@ -29,6 +29,7 @@ import { GENDER_THRESHOLDS, getGenderThreshold } from './data/genderThresholds.g
 import { isPristineImportedRoundTripState, tryBuildPristineImportedOutputs, shouldMarkImportedDirtyFromEvent, resolvePokerusStateForBuild } from './lib/gen3/importIsolation.js';
 import { parseBase64BoxOutput, renderBoxNamePreview } from './lib/gen3/gbaTextPreview.js';
 import { getLegalSheenRangeGen3 } from './lib/gen3/contestSheen.js';
+import { adjustShinySidForRSTrainerId, generateValidRSTrainerId, isValidRSTrainerId } from './lib/gen3/rsTrainerId.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -808,6 +809,9 @@ let pidFinderMysteryTag = '';
 let unlockPidFinderFieldsFn = null;
 // When true, the Manual Override checkbox is active — all field locks are bypassed
 let manualOverrideActive = false;
+const RS_ORIGIN_GAME_IDS = new Set([1, 2]); // Sapphire, Ruby
+const RS_TRAINER_ID_LEGALITY_MESSAGE = 'Ruby/Sapphire trainer IDs must be obtainable from the R/S RNG. This TID/SID pair is not possible.';
+let rsTrainerIdValidationCache = { tid: null, sid: null, valid: null };
 // Per-encounter-mode field snapshots to prevent cross-mode value bleed.
 const encounterModeStateCache = {};
 // Raw imported bytes for exact round-trip output in imported mode.
@@ -827,6 +831,55 @@ let suppressUserChangeMark = false;
 let mysteryPresetAppliedFor = 0;
 // Whether the user has modified fields (other than nickname) since the preset was applied
 let mysteryUserModifiedSincePreset = false;
+
+function isRubySapphireOriginGame(gameId) {
+  return RS_ORIGIN_GAME_IDS.has(Number(gameId));
+}
+
+function shouldValidateRSTrainerId() {
+  if (manualOverrideActive) return false;
+  return isRubySapphireOriginGame(Number($('#originGame')?.value || 0));
+}
+
+function getRSTrainerIdValidation() {
+  if (!shouldValidateRSTrainerId()) {
+    return { applies: false, valid: true };
+  }
+
+  const tid = Number($('#tid')?.value) & 0xffff;
+  const sid = Number($('#sid')?.value) & 0xffff;
+  if (rsTrainerIdValidationCache.tid !== tid || rsTrainerIdValidationCache.sid !== sid) {
+    rsTrainerIdValidationCache = {
+      tid,
+      sid,
+      valid: isValidRSTrainerId(tid, sid),
+    };
+  }
+
+  return {
+    applies: true,
+    valid: rsTrainerIdValidationCache.valid,
+    tid,
+    sid,
+  };
+}
+
+function updateRSTidSidWarning() {
+  const warningEl = document.getElementById('rsTidSidWarning');
+  if (!warningEl) return;
+
+  const validation = getRSTrainerIdValidation();
+  warningEl.style.display = validation.applies && !validation.valid ? '' : 'none';
+}
+
+function adjustShinySidForOriginGame(tid, pid, sid) {
+  const originGame = Number($('#originGame')?.value || 0);
+  if (!isRubySapphireOriginGame(originGame)) {
+    return { sid: Number(sid) & 0xffff, adjusted: false, direction: 0, valid: true };
+  }
+
+  return adjustShinySidForRSTrainerId(tid, pid, sid);
+}
 
 function setControlLockState(el, shouldLock, options = {}) {
   if (!el) return;
@@ -2474,6 +2527,8 @@ function highlightMissingFields({ scrollToFirst = true } = {}) {
   const move3El = $('#move3');
   const move4El = $('#move4');
   const otNameEl = $('#otName');
+  const tidEl = $('#tid');
+  const sidEl = $('#sid');
   const pidFinderBtn = $('#pidFinderBtn');
 
   const speciesValue = speciesEl.value;
@@ -2497,6 +2552,8 @@ function highlightMissingFields({ scrollToFirst = true } = {}) {
   move3ErrorTarget.classList.remove('field-error');
   move4ErrorTarget.classList.remove('field-error');
   otNameEl.classList.remove('field-error');
+  tidEl?.classList.remove('field-error');
+  sidEl?.classList.remove('field-error');
   if (pidFinderBtn) pidFinderBtn.classList.remove('field-error');
   
   let missingFields = [];
@@ -2537,6 +2594,17 @@ function highlightMissingFields({ scrollToFirst = true } = {}) {
 
   if (!hasRequiredMysteryGiftPidFinderSelection()) {
     markMissing('Find Legal Encounter', pidFinderBtn);
+  }
+
+  const rsTrainerIdValidation = getRSTrainerIdValidation();
+  if (rsTrainerIdValidation.applies && !rsTrainerIdValidation.valid) {
+    tidEl?.classList.add('field-error');
+    sidEl?.classList.add('field-error');
+    missingFields.push('Valid Ruby/Sapphire Trainer ID');
+    if (!firstMissingTarget) {
+      firstMissingTarget = tidEl || sidEl;
+      firstMissingFocusTarget = tidEl || sidEl;
+    }
   }
 
   if (scrollToFirst && firstMissingTarget) {
@@ -2770,6 +2838,7 @@ function boot(){
                     (move3Value && move3Value !== '0') || 
                     (move4Value && move4Value !== '0');
     const hasMysteryGiftLegalPid = hasRequiredMysteryGiftPidFinderSelection();
+    const hasLegalRSTrainerId = getRSTrainerIdValidation().valid;
 
     if (pidFinderBtn && hasMysteryGiftLegalPid) {
       pidFinderBtn.classList.remove('field-error');
@@ -2777,7 +2846,7 @@ function boot(){
     
     // Enable generate button only if all conditions are met
     const generateBtn = $('#generateBtn');
-    if (hasSpecies && hasNature && hasMove && hasOTName && hasMysteryGiftLegalPid) {
+    if (hasSpecies && hasNature && hasMove && hasOTName && hasMysteryGiftLegalPid && hasLegalRSTrainerId) {
       generateBtn.setAttribute('data-disabled', 'false');
     } else {
       generateBtn.setAttribute('data-disabled', 'true');
@@ -2835,6 +2904,11 @@ function boot(){
 
     if (speciesId === MILOTIC_SPECIES_ID && clampContestByte($('#contestBeauty')?.value) < MILOTIC_MIN_BEAUTY) {
       errors.push(`Milotic must have at least ${MILOTIC_MIN_BEAUTY} Beauty`);
+    }
+
+    const rsTrainerIdValidation = getRSTrainerIdValidation();
+    if (rsTrainerIdValidation.applies && !rsTrainerIdValidation.valid) {
+      errors.push(RS_TRAINER_ID_LEGALITY_MESSAGE);
     }
 
     const metLocationId = Number($('#metLocation')?.value || 0);
@@ -3405,6 +3479,7 @@ function boot(){
    * Update legality status display
    */
   function updateLegalityStatus() {
+    try { updateRSTidSidWarning(); } catch (e) {}
     const result = checkLegality();
     // If a mystery preset is active and the user modified fields since the
     // preset was applied (except nickname), present 'unknown' (grey) status
@@ -3869,6 +3944,12 @@ function boot(){
     const refreshPreview = () => {
       try { updateGbaTextPreview(); } catch (err) {}
     };
+    const refreshOriginDependentLegality = () => {
+      try { updateRSTidSidWarning(); } catch (err) {}
+      try { validateForm(); } catch (err) {}
+      updateLegalityStatus();
+      refreshPreview();
+    };
 
     // In roamer mode, re-apply roamer preset for the new game
     if (currentEncounterMode === 'roamer') {
@@ -3883,8 +3964,7 @@ function boot(){
       // Refresh move list — FRLG have different level-up learnsets
       const sp = Number($('#species').value) || 0;
       if (sp) updateMovesForSpecies(sp, { preserveValue: true });
-      updateLegalityStatus();
-      refreshPreview();
+      refreshOriginDependentLegality();
       return;
     }
 
@@ -3895,8 +3975,7 @@ function boot(){
       // Refresh move list — FRLG have different level-up learnsets
       if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
       try { updateBallLocking(); } catch (e) {}
-      updateLegalityStatus();
-      refreshPreview();
+      refreshOriginDependentLegality();
       return;
     }
 
@@ -3906,8 +3985,7 @@ function boot(){
       const speciesId = Number($('#species').value) || 0;
       if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
 
-      updateLegalityStatus();
-      refreshPreview();
+      refreshOriginDependentLegality();
       return;
     }
 
@@ -3917,8 +3995,7 @@ function boot(){
       const speciesId = Number($('#species').value) || 0;
       if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
 
-      updateLegalityStatus();
-      refreshPreview();
+      refreshOriginDependentLegality();
       return;
     }
 
@@ -3928,8 +4005,7 @@ function boot(){
       const speciesId = Number($('#species').value) || 0;
       if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
 
-      updateLegalityStatus();
-      refreshPreview();
+      refreshOriginDependentLegality();
       return;
     }
 
@@ -3941,8 +4017,7 @@ function boot(){
 
       try { updateBallLocking(); } catch (e) {}
       try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
-      updateLegalityStatus();
-      refreshPreview();
+      refreshOriginDependentLegality();
       return;
     }
 
@@ -3960,8 +4035,7 @@ function boot(){
     try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
 
     // Update legality status when origin game changes
-    updateLegalityStatus();
-    refreshPreview();
+    refreshOriginDependentLegality();
   });
 
   // Global listener to mark user modifications after a mystery preset is applied.
@@ -4408,6 +4482,8 @@ function boot(){
         }
       } catch (e) {}
       try { validateForm(); } catch (e) {}
+      try { updateRSTidSidWarning(); } catch (e) {}
+      try { updateLegalityStatus(); } catch (e) {}
     });
 
     syncLegalModeToggle();
@@ -6295,6 +6371,7 @@ function boot(){
     updateHiddenPower();
     try { validateForm(); } catch (e) {}
     try { updateGCTidSidWarning(); } catch (e) {}
+    try { updateRSTidSidWarning(); } catch (e) {}
     try { updateMakeShinyVisibility(enc); } catch (e) {}
   }
 
@@ -6371,6 +6448,29 @@ function boot(){
     const valid = isValidGCTidSid(tid, sid);
     warningEl.style.display = valid ? 'none' : '';
   }
+
+  const generateRsTidSidBtn = document.getElementById('generateRsTidSidBtn');
+  if (generateRsTidSidBtn) {
+    generateRsTidSidBtn.addEventListener('click', () => {
+      const { tid, sid } = generateValidRSTrainerId();
+      const tidEl = $('#tid');
+      const sidEl = $('#sid');
+      if (tidEl) tidEl.value = String(tid);
+      if (sidEl) sidEl.value = String(sid);
+      tidEl?.classList.remove('field-error');
+      sidEl?.classList.remove('field-error');
+
+      try { checkShiny(); } catch (e) {}
+      try { updateMakeShinyButton(); } catch (e) {}
+      try { updateGCTidSidWarning(); } catch (e) {}
+      try { updateRSTidSidWarning(); } catch (e) {}
+      try { updatePidTidSidWarning(); } catch (e) {}
+      try { validateForm(); } catch (e) {}
+      try { updateLegalityStatus(); } catch (e) {}
+    });
+  }
+
+  try { updateRSTidSidWarning(); } catch (e) {}
 
   /**
    * Show warning when PID Finder result is active but TID/SID has been changed
@@ -6992,6 +7092,8 @@ function boot(){
       // Clear GC TID/SID warning, PID/TID/SID warning and shadow encounter dropdown
       const gcWarn = document.getElementById('gcTidSidWarning');
       if (gcWarn) gcWarn.style.display = 'none';
+      const rsWarn = document.getElementById('rsTidSidWarning');
+      if (rsWarn) rsWarn.style.display = 'none';
       const pidWarn = document.getElementById('pidTidSidWarning');
       if (pidWarn) pidWarn.style.display = 'none';
       const shadowEnc = document.getElementById('shadowEncounter');
@@ -7260,7 +7362,10 @@ function boot(){
       // Update shiny indicator
       checkShiny();
       try { updateGCTidSidWarning(); } catch (e) {}
+      try { updateRSTidSidWarning(); } catch (e) {}
       try { updatePidTidSidWarning(); } catch (e) {}
+      try { validateForm(); } catch (e) {}
+      try { updateLegalityStatus(); } catch (e) {}
       
       // Update previous values so changes are detected
       if (typeof previousNature !== 'undefined') previousNature = String(natureIndex);
@@ -7321,11 +7426,22 @@ function boot(){
       if (!isShiny) {
         // Make shiny: set SID so xor = 0 (pidHigh ^ pidLow ^ tid ^ newSid) = 0
         rememberSidBeforeMakeShiny(pid, tid, sid);
-        const newSid = (pidHigh ^ pidLow ^ tid) & 0xFFFF;
+        const preferredSid = (pidHigh ^ pidLow ^ tid) & 0xFFFF;
+        const sidAdjustment = adjustShinySidForOriginGame(tid, pid, preferredSid);
+        const newSid = sidAdjustment.sid;
         $('#sid').value = String(newSid);
         if (makeShinyStatus) {
-          makeShinyStatus.textContent = `SID set to ${newSid}`;
-          makeShinyStatus.style.color = 'var(--emerald, #10b981)';
+          if (sidAdjustment.adjusted) {
+            const sign = sidAdjustment.direction > 0 ? '+1' : '-1';
+            makeShinyStatus.textContent = `SID set to ${newSid} (R/S legal ${sign})`;
+            makeShinyStatus.style.color = 'var(--emerald, #10b981)';
+          } else if (!sidAdjustment.valid) {
+            makeShinyStatus.textContent = `SID set to ${newSid} (R/S legality warning)`;
+            makeShinyStatus.style.color = 'var(--warning, #f59e0b)';
+          } else {
+            makeShinyStatus.textContent = `SID set to ${newSid}`;
+            makeShinyStatus.style.color = 'var(--emerald, #10b981)';
+          }
         }
       } else {
         const restoredSid = restoreSidBeforeMakeShiny(pid, tid);
@@ -7342,7 +7458,10 @@ function boot(){
       checkShiny();
       updateMakeShinyButton();
       try { updateGCTidSidWarning(); } catch (e) {}
+      try { updateRSTidSidWarning(); } catch (e) {}
       try { updatePidTidSidWarning(); } catch (e) {}
+      try { validateForm(); } catch (e) {}
+      try { updateLegalityStatus(); } catch (e) {}
     });
 
     // Keep button state in sync when TID/SID change
@@ -7719,13 +7838,21 @@ function boot(){
   $('#tid').addEventListener('input', (e) => {
     clampIdField(e);
     try { updateGCTidSidWarning(); } catch (ex) {}
+    try { updateRSTidSidWarning(); } catch (ex) {}
     try { updatePidTidSidWarning(); } catch (ex) {}
+    try { validateForm(); } catch (ex) {}
+    try { updateLegalityStatus(); } catch (ex) {}
+    e.target.classList.remove('field-error');
   });
 
   $('#sid').addEventListener('input', (e) => {
     clampIdField(e);
     try { updateGCTidSidWarning(); } catch (ex) {}
+    try { updateRSTidSidWarning(); } catch (ex) {}
     try { updatePidTidSidWarning(); } catch (ex) {}
+    try { validateForm(); } catch (ex) {}
+    try { updateLegalityStatus(); } catch (ex) {}
+    e.target.classList.remove('field-error');
   });
 
   // Friendship: cap at 0-255
@@ -9159,6 +9286,7 @@ function initPidFinder() {
 
     checkShiny();
     try { updateGCTidSidWarning(); } catch (e) {}
+    try { updateRSTidSidWarning(); } catch (e) {}
     try { updatePidTidSidWarning(); } catch (e) {}
     try { updateMakeShinyButton(); } catch (e) {}
 
@@ -9184,6 +9312,7 @@ function initPidFinder() {
           : `PID set (${statusMethod === 'CXD' ? 'CXD' : 'Method ' + statusMethod}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
     }
     try { _validateForm?.(); } catch (e) {}
+    try { updateLegalityStatus(); } catch (e) {}
     closeModal();
   }
 }
