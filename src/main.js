@@ -40,6 +40,8 @@ const EMERALD_ALTERING_CAVE_LOCATION_ID = 210;
 const DEOXYS_SPECIES_ID = 410;
 const CELEBI_SPECIES_ID = 251;
 const SHEDINJA_SPECIES_ID = 303;
+const MILOTIC_SPECIES_ID = 329;
+const MILOTIC_MIN_BEAUTY = 170;
 const DEFAULT_TID = '12345';
 const DEFAULT_SID = '54321';
 const DEFAULT_OT_GENDER = 'male';
@@ -93,6 +95,7 @@ let _setEncounterModeDescription = null;
 let _updateSpeciesListForMode = null;
 let _validateForm = null;
 let _updateContestSheenAuto = null;
+let _applyContestSpeciesRequirements = null;
 let _syncLegalModeToggle = null;
 
 // Ensure a safe no-op exists early so callers from earlier code don't throw
@@ -2830,6 +2833,10 @@ function boot(){
       errors.push('Current level cannot be lower than met level');
     }
 
+    if (speciesId === MILOTIC_SPECIES_ID && clampContestByte($('#contestBeauty')?.value) < MILOTIC_MIN_BEAUTY) {
+      errors.push(`Milotic must have at least ${MILOTIC_MIN_BEAUTY} Beauty`);
+    }
+
     const metLocationId = Number($('#metLocation')?.value || 0);
     if (
       mode !== 'imported' &&
@@ -3568,6 +3575,7 @@ function boot(){
         const tag = document.getElementById('mysteryEvent')?.value || '';
         if (tag) applyMysteryPresetForSpecies(speciesId);
       }
+      try { updateContestSheenAuto({ markImportedDirty: true }); } catch (e) {}
       try { updateShinyCheckboxState(); } catch (e) {}
       // Validate form
       validateForm();
@@ -5003,15 +5011,44 @@ function boot(){
     } catch (e) {}
   }
 
+  function clampContestByte(value) {
+    return clampNumber(value, 0, 255, 0);
+  }
+
   function getContestStatsFromUI() {
     return {
-      cool: Math.max(0, Math.min(255, Number($('#contestCool')?.value || 0))),
-      beauty: Math.max(0, Math.min(255, Number($('#contestBeauty')?.value || 0))),
-      cute: Math.max(0, Math.min(255, Number($('#contestCute')?.value || 0))),
-      smart: Math.max(0, Math.min(255, Number($('#contestSmart')?.value || 0))),
-      tough: Math.max(0, Math.min(255, Number($('#contestTough')?.value || 0))),
-      sheen: Math.max(0, Math.min(255, Number($('#contestSheen')?.value || 0))),
+      cool: clampContestByte($('#contestCool')?.value),
+      beauty: clampContestByte($('#contestBeauty')?.value),
+      cute: clampContestByte($('#contestCute')?.value),
+      smart: clampContestByte($('#contestSmart')?.value),
+      tough: clampContestByte($('#contestTough')?.value),
+      sheen: clampContestByte($('#contestSheen')?.value),
     };
+  }
+
+  function isSelectedMilotic() {
+    return Number($('#species')?.value || 0) === MILOTIC_SPECIES_ID;
+  }
+
+  function markImportedContestDirty(options = {}) {
+    if (options.markImportedDirty && currentEncounterMode === 'imported') {
+      importedRoundTripDirty = true;
+    }
+  }
+
+  function enforceMiloticBeautyMinimum(options = {}) {
+    if (!isSelectedMilotic()) return false;
+    const beautyEl = $('#contestBeauty');
+    if (!beautyEl) return false;
+
+    const currentBeauty = clampContestByte(beautyEl.value);
+    const nextBeauty = Math.max(currentBeauty, MILOTIC_MIN_BEAUTY);
+    const nextValue = String(nextBeauty);
+    if (beautyEl.value === nextValue) return false;
+
+    beautyEl.value = nextValue;
+    markImportedContestDirty(options);
+    return true;
   }
 
   function getSelectedNature() {
@@ -5089,6 +5126,65 @@ function boot(){
     statusEl.style.border = warning ? '1px solid rgba(245, 158, 11, 0.35)' : '';
   }
 
+  function applyContestSpeciesRequirements(options = {}) {
+    if (!isSelectedMilotic()) {
+      const beautyEl = $('#contestBeauty');
+      if (beautyEl) beautyEl.min = '0';
+
+      const sheenEl = $('#contestSheen');
+      if (sheenEl) {
+        const autoEnabled = getAutoSheenEnabled();
+        sheenEl.disabled = autoEnabled;
+        sheenEl.style.pointerEvents = autoEnabled ? 'none' : '';
+        sheenEl.style.opacity = autoEnabled ? '0.6' : '';
+        sheenEl.style.cursor = autoEnabled ? 'not-allowed' : '';
+        sheenEl.title = autoEnabled ? 'Sheen is automatically calculated from the contest stats.' : '';
+      }
+
+      if (options.updateStatus !== false) {
+        if (getAutoSheenEnabled()) {
+          setContestSheenStatus('Sheen is automatically adjusted so the contest stats stay legal.');
+        } else {
+          validateManualSheen();
+        }
+      }
+
+      return { applied: false, beautyChanged: false, sheenChanged: false };
+    }
+
+    const beautyEl = $('#contestBeauty');
+    if (beautyEl) beautyEl.min = String(MILOTIC_MIN_BEAUTY);
+
+    const sheenEl = $('#contestSheen');
+    if (sheenEl) {
+      sheenEl.disabled = true;
+      sheenEl.style.pointerEvents = 'none';
+      sheenEl.style.opacity = '0.6';
+      sheenEl.style.cursor = 'not-allowed';
+      sheenEl.title = 'Milotic requires at least 170 Beauty, so Sheen is automatically calculated.';
+    }
+
+    const beautyChanged = enforceMiloticBeautyMinimum(options);
+    const stats = getContestStatsFromUI();
+    const nature = getSelectedNature();
+    const initial = getEncounterInitialContestStatsOrZero();
+    const { minSheen, maxSheen } = getLegalSheenRangeGen3(stats, nature, initial);
+    const sheenChanged = setSheenInputValue(minSheen, options);
+
+    if (options.updateStatus !== false) {
+      setContestSheenStatus(`Milotic requires at least ${MILOTIC_MIN_BEAUTY} Beauty. Legal Sheen range: ${minSheen}-${maxSheen}. Auto set to ${minSheen}.`);
+    }
+
+    return {
+      applied: true,
+      beautyChanged,
+      sheenChanged,
+      minSheen,
+      maxSheen,
+      sheen: minSheen,
+    };
+  }
+
   function getAutoSheenEnabled() {
     const autoEl = $('#autoSheenEnabled');
     return autoEl ? Boolean(autoEl.checked) : true;
@@ -5113,14 +5209,25 @@ function boot(){
   }
 
   function updateContestSheenAuto(options = {}) {
+    const forceAutoSheen = isSelectedMilotic();
     const autoEnabled = getAutoSheenEnabled();
+    const beautyEl = $('#contestBeauty');
+    if (beautyEl) beautyEl.min = forceAutoSheen ? String(MILOTIC_MIN_BEAUTY) : '0';
+
     const sheenEl = $('#contestSheen');
     if (sheenEl) {
-      sheenEl.disabled = autoEnabled;
-      sheenEl.style.pointerEvents = autoEnabled ? 'none' : '';
-      sheenEl.style.opacity = autoEnabled ? '0.6' : '';
-      sheenEl.style.cursor = autoEnabled ? 'not-allowed' : '';
-      sheenEl.title = autoEnabled ? 'Sheen is automatically calculated from the contest stats.' : '';
+      const shouldLockSheen = autoEnabled || forceAutoSheen;
+      sheenEl.disabled = shouldLockSheen;
+      sheenEl.style.pointerEvents = shouldLockSheen ? 'none' : '';
+      sheenEl.style.opacity = shouldLockSheen ? '0.6' : '';
+      sheenEl.style.cursor = shouldLockSheen ? 'not-allowed' : '';
+      sheenEl.title = forceAutoSheen
+        ? 'Milotic requires at least 170 Beauty, so Sheen is automatically calculated.'
+        : autoEnabled ? 'Sheen is automatically calculated from the contest stats.' : '';
+    }
+
+    if (forceAutoSheen) {
+      return applyContestSpeciesRequirements(options);
     }
 
     if (!autoEnabled) {
@@ -5152,6 +5259,7 @@ function boot(){
     } catch (e) {}
   }
   _updateContestSheenAuto = updateContestSheenAuto;
+  _applyContestSpeciesRequirements = applyContestSpeciesRequirements;
 
   // In hatched mode, only a subset of ribbons are editable unless Manual Override is enabled.
   function updateRibbonLocking() {
@@ -6069,6 +6177,8 @@ function boot(){
     } catch (e) {}
     // For 'wild' mode, use normal PID generation (already working)
     
+    try { updateContestSheenAuto({ markImportedDirty: true }); } catch (e) {}
+
     // Update legality status after mode change
     updateLegalityStatus();
   }
@@ -9982,6 +10092,7 @@ function applySmogonImport(parsed) {
 
   // Update species-specific UI
   if (_postImportUpdate) _postImportUpdate(parsed.speciesId);
+  try { _applyContestSpeciesRequirements?.({ markImportedDirty: true }); } catch (e) {}
 
   suppressPresetApply = false;
 }
@@ -10182,6 +10293,7 @@ function onLoadFromHex(hexString){
     // Re-arm snapshot after all UI updates so untouched Generate is exact 1:1 raw output.
     setImportedRoundTripFromBytes(rawBytes);
     importedRoundTripDirty = false;
+    try { _applyContestSpeciesRequirements?.({ markImportedDirty: true }); } catch (e) {}
 
     // Re-enable preset application for explicit user actions after import.
     suppressPresetApply = false;
@@ -10484,6 +10596,7 @@ function onImportPk3(event) {
       // Re-arm pristine snapshot at end so untouched Generate/export are byte-perfect.
       setImportedRoundTripFromBytes(rawBytes);
       importedRoundTripDirty = false;
+      try { _applyContestSpeciesRequirements?.({ markImportedDirty: true }); } catch (e) {}
 
       // Finished programmatic updates; re-enable preset application.
       // Keep manualOverrideActive = true so user can freely edit imported values.
