@@ -9,7 +9,7 @@
  * Message IN  → { startSeed, endSeed, nature, ability, genderThreshold,
  *                 targetGender, tid, sid, wantShiny, minIVs:[6],
  *                 methods:[3 bools], maxResults, targetSpecies,
- *                 slotTables: { l:[[...]], w:[[...]], ... } | null }
+ *                 slotTables: { l:[[...]], w:[[...]], swarm_fish_50:[[...]], ... } | null }
  *
  * Message OUT → { type:'progress', done, total }
  *            → { type:'done', results:[ {seed,pid,method,ivs,hpt,hpp,initSeed} ] }
@@ -53,9 +53,19 @@ const SLOT_CUM = {
   s: [40,80,95,99,100]                           // super_rod   5 slots
 };
 
-function getSlotIndex(rand100, cum) {
-  for (let i = 0; i < cum.length; i++) if (rand100 < cum[i]) return i;
-  return cum.length - 1;
+function getSlotIndexForType(type, rand100) {
+  if (type === 'swarm_fish_50') {
+    return rand100 < 50 ? 0 : -1;
+  }
+
+  const cum = SLOT_CUM[type];
+  if (!cum) return -1;
+
+  for (let i = 0; i < cum.length; i++) {
+    if (rand100 < cum[i]) return i;
+  }
+
+  return -1;
 }
 
 /**
@@ -188,9 +198,8 @@ function checkSlotWithLevel(slotState, speciesSlots, allSlotTables, targetSpecie
   const levelRand = advance(slotState) >>> 16;   // next RNG call = level
 
   for (const type of Object.keys(speciesSlots)) {
-    const cum = SLOT_CUM[type];
-    if (!cum) continue;
-    const si = getSlotIndex(slotRand, cum);
+    const si = getSlotIndexForType(type, slotRand);
+    if (si < 0) continue;
     if (!speciesSlots[type].has(si)) continue;
 
     // Slot matches — compute level from every sub-area table containing the species
