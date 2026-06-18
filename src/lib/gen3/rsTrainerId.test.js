@@ -1,5 +1,6 @@
 import {
   adjustShinySidForRSTrainerId,
+  findNearestValidRSTrainerSid,
   generateValidRSTrainerId,
   isValidRSTrainerId,
 } from './rsTrainerId.js';
@@ -39,6 +40,17 @@ const alreadyValid = adjustShinySidForRSTrainerId(12346, 0, 43244);
 assert(alreadyValid.valid === true, 'already-valid R/S SID remains valid');
 assert(alreadyValid.adjusted === false, 'already-valid R/S SID is not adjusted');
 assert(alreadyValid.sid === 43244, 'already-valid R/S SID is preserved');
+
+const nearestAlreadyValid = findNearestValidRSTrainerSid(12346, 43244);
+assert(nearestAlreadyValid.valid === true, 'nearest SID lookup accepts an already-valid pair');
+assert(nearestAlreadyValid.adjusted === false, 'nearest SID lookup preserves an already-valid SID');
+assert(nearestAlreadyValid.sid === 43244, 'nearest SID lookup preserves SID 43244 for TID 12346');
+
+const nearestFixed = findNearestValidRSTrainerSid(12345, 43244);
+assert(nearestFixed.valid === true, 'nearest SID lookup finds a valid SID for fixed TID');
+assert(nearestFixed.adjusted === true, 'nearest SID lookup adjusts invalid SID');
+assert(isValidRSTrainerId(12345, nearestFixed.sid) === true, 'nearest SID lookup result is R/S valid');
+assert(nearestFixed.sid !== 43244, 'nearest SID lookup changes only the invalid SID value');
 
 for (let i = 0; i < 64; i++) {
   const { tid, sid, seed } = generateValidRSTrainerId();

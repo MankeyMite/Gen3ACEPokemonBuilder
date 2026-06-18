@@ -1,8 +1,14 @@
 const MULT = 0x41C64E6D;
 const ADD = 0x6073;
+const RMULT = 0xEEB9EB65;
+const RADD = 0x0A3561A1;
 
 function advance(seed) {
   return (Math.imul(seed, MULT) + ADD) >>> 0;
+}
+
+function reverse(seed) {
+  return (Math.imul(seed, RMULT) + RADD) >>> 0;
 }
 
 export function isValidRSTrainerId(tid, sid) {
@@ -33,6 +39,44 @@ export function generateValidRSTrainerId() {
   const tid = state2 >>> 16;
 
   return { tid, sid, seed };
+}
+
+function getValidSidsForTid(tid) {
+  tid = Number(tid) & 0xffff;
+
+  const validSids = new Set();
+  const state2High = tid << 16;
+  for (let low = 0; low <= 0xffff; low++) {
+    const state2 = (state2High | low) >>> 0;
+    const state1 = reverse(state2);
+    validSids.add(state1 >>> 16);
+  }
+
+  return validSids;
+}
+
+export function findNearestValidRSTrainerSid(tid, sid) {
+  tid = Number(tid) & 0xffff;
+  sid = Number(sid) & 0xffff;
+
+  const validSids = getValidSidsForTid(tid);
+  if (validSids.has(sid)) {
+    return { sid, adjusted: false, distance: 0, direction: 0, valid: true };
+  }
+
+  for (let distance = 1; distance <= 0xffff; distance++) {
+    const lower = sid - distance;
+    if (lower >= 0 && validSids.has(lower)) {
+      return { sid: lower, adjusted: true, distance, direction: -1, valid: true };
+    }
+
+    const upper = sid + distance;
+    if (upper <= 0xffff && validSids.has(upper)) {
+      return { sid: upper, adjusted: true, distance, direction: 1, valid: true };
+    }
+  }
+
+  return { sid, adjusted: false, distance: 0, direction: 0, valid: false };
 }
 
 function isShinyForTidSid(pid, tid, sid) {

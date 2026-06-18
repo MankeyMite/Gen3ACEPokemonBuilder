@@ -29,7 +29,7 @@ import { GENDER_THRESHOLDS, getGenderThreshold } from './data/genderThresholds.g
 import { isPristineImportedRoundTripState, tryBuildPristineImportedOutputs, shouldMarkImportedDirtyFromEvent, resolvePokerusStateForBuild } from './lib/gen3/importIsolation.js';
 import { parseBase64BoxOutput, renderBoxNamePreview } from './lib/gen3/gbaTextPreview.js';
 import { getLegalSheenRangeGen3 } from './lib/gen3/contestSheen.js';
-import { adjustShinySidForRSTrainerId, generateValidRSTrainerId, isValidRSTrainerId } from './lib/gen3/rsTrainerId.js';
+import { adjustShinySidForRSTrainerId, findNearestValidRSTrainerSid, isValidRSTrainerId } from './lib/gen3/rsTrainerId.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -6452,11 +6452,12 @@ function boot(){
   const generateRsTidSidBtn = document.getElementById('generateRsTidSidBtn');
   if (generateRsTidSidBtn) {
     generateRsTidSidBtn.addEventListener('click', () => {
-      const { tid, sid } = generateValidRSTrainerId();
       const tidEl = $('#tid');
       const sidEl = $('#sid');
-      if (tidEl) tidEl.value = String(tid);
-      if (sidEl) sidEl.value = String(sid);
+      const tid = Number(tidEl?.value) & 0xffff;
+      const sid = Number(sidEl?.value) & 0xffff;
+      const nearest = findNearestValidRSTrainerSid(tid, sid);
+      if (sidEl) sidEl.value = String(nearest.sid);
       tidEl?.classList.remove('field-error');
       sidEl?.classList.remove('field-error');
 
