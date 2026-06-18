@@ -35,6 +35,7 @@ const $ = sel => document.querySelector(sel);
 
 // Set of species IDs that can appear in wild mode (wild + their evolutions)
 const wildPlusEvos = buildWildWithEvolutions(WILD_ENCOUNTERS);
+const WILD_ORIGIN_GAME_PRIORITY = [3, 4, 5, 2, 1]; // Emerald, FR/LG, Ruby/Sapphire
 const EVOLVED_UNHATCHED_EGG_EXCEPTIONS = new Set([183, 202]); // Marill, Wobbuffet
 const ZUBAT_SPECIES_ID = 41;
 const EMERALD_ALTERING_CAVE_LOCATION_ID = 210;
@@ -2222,6 +2223,14 @@ function rangesToLabel(ranges) {
   return ranges.map(r => r.length > 1 && r[0] !== r[1] ? `${r[0]}\u2013${r[1]}` : `${r[0]}`).join(', ');
 }
 
+function getPreferredWildOriginGame(availableGames) {
+  const available = new Set((availableGames || []).map(Number));
+  for (const gameId of WILD_ORIGIN_GAME_PRIORITY) {
+    if (available.has(gameId)) return gameId;
+  }
+  return availableGames && availableGames.length ? Number(availableGames[0]) : 0;
+}
+
 /**
  * Update Origin Game, Met Location, and Met Level in wild mode based on
  * the selected species' wild encounter data.
@@ -2231,16 +2240,17 @@ function rangesToLabel(ranges) {
  *
  * Flow:
  *   1. Disable Origin Game options where the species has no wild encounters.
- *   2. If the currently selected game has no encounters, auto-select the
- *      first available game.
+ *   2. Auto-select the priority default when requested, or if the current
+ *      game has no encounters.
  *   3. Filter Met Location to only the locations for this species + game.
  *   4. Snap Met Level to the closest valid level within the ranges.
  *
  * Called when: species changes, mode changes to wild, origin game changes,
  * or met location changes.
  */
-function updateWildEncounterFilters(speciesId) {
+function updateWildEncounterFilters(speciesId, options = {}) {
   if (currentEncounterMode !== 'wild') return;
+  const preferDefaultGame = options.preferDefaultGame === true;
 
   // For evolved forms not directly in the wild, resolve to their wild ancestor
   const wildId = WILD_ENCOUNTERS[speciesId] ? speciesId : getWildAncestor(speciesId, WILD_ENCOUNTERS);
@@ -2251,8 +2261,8 @@ function updateWildEncounterFilters(speciesId) {
 
   // â”€â”€ 1. Filter Origin Game options â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const availableGames = encounterData ? Object.keys(encounterData).map(Number) : [];
-  const options = Array.from(originGameSelect.options);
-  for (const opt of options) {
+  const gameOptions = Array.from(originGameSelect.options);
+  for (const opt of gameOptions) {
     const gId = Number(opt.value);
     // Colosseum/XD (15) — always disabled/greyed in wild mode (no data yet)
     if (gId === 15) { opt.disabled = true; continue; }
@@ -2260,13 +2270,12 @@ function updateWildEncounterFilters(speciesId) {
     opt.hidden   = !availableGames.includes(gId);
   }
 
-  // â”€â”€ 2. Auto-select first available game if current is disabled â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ 2. Auto-select default game if requested or current is disabled â”€â”€â”€
   let currentGame = Number(originGameSelect.value);
-  if (!availableGames.includes(currentGame)) {
-    if (availableGames.length) {
-      originGameSelect.value = String(availableGames[0]);
-      currentGame = availableGames[0];
-    }
+  const preferredGame = getPreferredWildOriginGame(availableGames);
+  if (availableGames.length && (preferDefaultGame || !availableGames.includes(currentGame))) {
+    originGameSelect.value = String(preferredGame);
+    currentGame = preferredGame;
   }
 
   // â”€â”€ 3. Filter Met Location to valid locations for species + game â”€â”€â”€â”€â”€â”€â”€â”€
@@ -6179,7 +6188,7 @@ function boot(){
       }
 
       // Apply wild encounter filtering for origin game, met location, met level
-      updateWildEncounterFilters(speciesId);
+      updateWildEncounterFilters(speciesId, { preferDefaultGame: true });
 
       // Re-check ball locking after location was set (may now be Safari Zone)
       try { updateBallLocking(); } catch (e) {}
