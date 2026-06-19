@@ -1,5 +1,6 @@
 Patch Notes - (V.0.4.0) - June 19, 2026.
 - Added a "How it works" box at the top with a link to the setup guide.
+- Refined the dark theme palette so the page background, cards, inner panels, and inputs have clearer visual separation.
 - Changed the "unlock all fields for editing" checkbox to a "legal mode" button.
 - Implemented Ruby/Sapphire TID/SID legality validation as a separate rule. Make Shiny button now gives a valid SID.
 - Implemented Auto-calculate legal Sheen for contest stats.
@@ -15,7 +16,6 @@ Patch Notes - (V.0.4.0) - June 19, 2026.
 - Added Feebas to Wild encounter type, as it was missing due to being a special encounter.
 - Make Shiny undo state is now remembered per encounter type instead of carrying into other modes.
 - Hatched mode now uses the Make Shiny button under the PID field instead of the shiny checkbox.
-
 
 Patch Notes - (V.0.3.9) - June 17, 2026.
 - Implemented auto-scrolling to missing required fields if the generate button is clicked while being locked.
