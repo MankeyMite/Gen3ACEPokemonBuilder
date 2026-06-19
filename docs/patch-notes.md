@@ -1,5 +1,6 @@
 Patch Notes - (V.0.3.9) - June 17, 2026.
 - Implemented auto-scrolling to missing required fields if the generate button is clicked while being locked.
+- Hatched mode now enforces species-specific minimum levels from evolution data, such as Charizard at level 36.
 - Added MyBoy support to the interactive setup guide for Base64 for Emerald and FR/LG.
 - UI changes for more clarity.
 - Made the import button clearly appear as optional.

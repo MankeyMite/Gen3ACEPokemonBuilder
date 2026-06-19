@@ -19,7 +19,7 @@ import { LEARNSETS } from './data/learnsets.gen3.js';
 import { LEARNSETS_FRLG } from './data/learnsets.frlg.js';
 import { WILD_ENCOUNTERS } from './data/wildEncounters.gen3.js';
 import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
-import { buildWildWithEvolutions, getWildAncestor, PRE_EVOLUTIONS } from './data/evolutions.gen3.js';
+import { buildWildWithEvolutions, getMinimumHatchedLevel, getWildAncestor, PRE_EVOLUTIONS } from './data/evolutions.gen3.js';
 import { PROFANITY_LIST } from './data/profanity.gen3.js';
 import { createProfanityFilter } from './lib/profanityFilter.js';
 import { CXD_SHADOW_ENCOUNTERS, CXD_SHADOW_SPECIES, getShadowEncountersForSpecies, isValidGCTidSid } from './data/shadowEncounters.gen3.js';
@@ -909,7 +909,11 @@ function getCurrentLevelFloor() {
   floor = Math.max(floor, metLevel);
 
   if (currentEncounterMode === 'hatched') {
-    floor = Math.max(floor, IS_EGG_OVERRIDE_LEVEL);
+    const speciesId = Number($('#species')?.value || 0);
+    const hatchedFloor = manualOverrideActive
+      ? IS_EGG_OVERRIDE_LEVEL
+      : getHatchedLevelFloor(speciesId);
+    floor = Math.max(floor, hatchedFloor);
   } else if (currentEncounterMode === 'mystery') {
     const tag = String(document.getElementById('mysteryEvent')?.value || '').toUpperCase();
     if (tag === '10ANNI') floor = Math.max(floor, 70);
@@ -1156,6 +1160,12 @@ function shouldApplyIsEggOverrides() {
 function canSpeciesBeUnhatchedEgg(speciesId) {
   const id = Number(speciesId) || 0;
   return id > 0 && (PRE_EVOLUTIONS[id] == null || EVOLVED_UNHATCHED_EGG_EXCEPTIONS.has(id));
+}
+
+function getHatchedLevelFloor(speciesId) {
+  return getMinimumHatchedLevel(speciesId, {
+    directHatchSpeciesIds: EVOLVED_UNHATCHED_EGG_EXCEPTIONS,
+  });
 }
 
 function canSelectedSpeciesBeUnhatchedEgg() {
@@ -2934,8 +2944,10 @@ function boot(){
     
     if (mode === 'hatched') {
       // Hatched mode rules
-      if (level < 5) {
-        errors.push('Hatched Pokémon must be at least level 5');
+      const hatchedMinLevel = getHatchedLevelFloor(speciesId);
+      if (level < hatchedMinLevel) {
+        const speciesName = SPECIES.find(s => Number(s[0]) === speciesId)?.[1] || 'Pokémon';
+        errors.push(`Hatched ${speciesName} must be at least level ${hatchedMinLevel}`);
       }
       
       if (metLevel !== 0) {
@@ -5073,12 +5085,12 @@ function boot(){
         return;
       }
       if (currentEncounterMode === 'hatched') {
-        // set min attribute for better UX
-        try { levelEl.min = '5'; } catch (e) {}
-        // if current value is below 5, snap it up
+        const floor = getCurrentLevelFloor();
+        // Set min attribute for better UX and snap stale values up.
+        try { levelEl.min = String(floor); } catch (e) {}
         const cur = Number(levelEl.value) || 0;
-        if (cur < 5) {
-          levelEl.value = '5';
+        if (cur < floor) {
+          levelEl.value = String(floor);
           try { computeAndSetExpFromLevel(); } catch (e) {}
           try { updateLegalityStatus(); } catch (e) {}
         }
@@ -6911,10 +6923,10 @@ function boot(){
     try {
       let val = Number(e.target.value) || 0;
       if (val < 1) val = 1;
-      // Enforce hatched minimum: snap up to 5 if in hatched mode
+      // Enforce mode-specific minimums when leaving the field.
       try {
-        if (currentEncounterMode === 'hatched' && val < 5) {
-          val = 5;
+        if (currentEncounterMode === 'hatched') {
+          val = Math.max(val, getCurrentLevelFloor());
         }
       } catch (eee) {}
       if (val > 100) val = 100;
@@ -9496,7 +9508,10 @@ function collect(){
     }
   };
 
-  const outputLevelFloor = Math.min(100, out.metLevel);
+  let outputLevelFloor = Math.min(100, out.metLevel);
+  if (currentEncounterMode === 'hatched' && !manualOverrideActive && !out.isEgg) {
+    outputLevelFloor = Math.max(outputLevelFloor, getHatchedLevelFloor(out.speciesId));
+  }
   if (out.level < outputLevelFloor) {
     out.level = outputLevelFloor;
     const growthGroup = EXP_GROUPS[out.speciesId] ?? GROUP.MEDIUM_FAST;
