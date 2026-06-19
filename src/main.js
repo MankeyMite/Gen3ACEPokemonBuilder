@@ -8,7 +8,7 @@ import { MOVES } from './data/moves.gen3.js';
 import { BALLS } from './data/balls.gen3.js';
 import { LOCATIONS } from './data/locations.gen3.js';
 import { PID_PRESETS } from './data/pid_presets.gen3.js';
-import { STATIC_ENCOUNTERS, isLegendary, isBreedable, isGiftPokemon, STATIC_CATEGORIES, STATIC_ENCOUNTER_LIST, STATIC_SPECIES_SET, getEncountersByCategory, getSpeciesForCategory, getGamesForStaticSpecies, getEncountersForSpeciesGame, getEncounterForSpecies } from './data/staticEncounters.gen3.js';
+import { STATIC_ENCOUNTERS, isLegendary, isBreedable, isGiftPokemon, STATIC_CATEGORIES, STATIC_ENCOUNTER_LIST, STATIC_SPECIES_SET, getEncountersByCategory, getSpeciesForCategory, getGamesForStaticSpecies, getPreferredStaticOriginGame, getEncountersForSpeciesGame, getEncounterForSpecies } from './data/staticEncounters.gen3.js';
 import { getLegendaryPreset, isColosseumXDLegendary } from './data/legendaryPresets.gen3.js';
 import { buildPokemonBytes, toHexString, toFormattedHex, toBase64Emerald, coreSource, parsePokemonBytes, parseBase64Emerald, buildDecryptedPokemonFile, convertPk3CanonicalToEk3Raw, convertEk3RawToPk3Canonical, getPokerusStateFromStatus, getPokerusStatusFromState } from './lib/gen3/builder.js';
 import { GROUP, expForLevel, levelForExp } from './lib/exp.js';
@@ -994,11 +994,12 @@ function getStaticAllowedOriginGames(speciesId) {
   return fallbackGame ? [fallbackGame] : [];
 }
 
-function updateStaticOriginGameLocking(speciesId) {
+function updateStaticOriginGameLocking(speciesId, options = {}) {
   if (currentEncounterMode !== 'static') return Number($('#originGame')?.value || 0);
 
   const originGameSelect = $('#originGame');
   if (!originGameSelect) return 0;
+  const preferDefaultGame = options.preferDefaultGame === true;
 
   if (manualOverrideActive) {
     resetOriginGameOptions();
@@ -1020,8 +1021,8 @@ function updateStaticOriginGameLocking(speciesId) {
   }
 
   let currentGame = Number(originGameSelect.value) || 0;
-  if (!allowedGames.includes(currentGame)) {
-    currentGame = allowedGames[0];
+  if (preferDefaultGame || !allowedGames.includes(currentGame)) {
+    currentGame = getPreferredStaticOriginGame(speciesId) || allowedGames[0];
     originGameSelect.value = String(currentGame);
   }
 
@@ -6210,7 +6211,7 @@ function boot(){
     if (mode === 'static' && STATIC_ENCOUNTERS[speciesId]) {
       // Static mode should only lock gender when the species itself is fixed/genderless.
       // (Handled above by species gender-threshold options.)
-      if (!pidFinderResultActive) applyStaticEncounterPreset(speciesId);
+      if (!pidFinderResultActive) applyStaticEncounterPreset(speciesId, { preferDefaultGame: true });
     } else if (mode === 'roamer') {
       // ── Roamer encounter mode ────────────────────────────────────
       // Lock gender (roamers are all genderless)
@@ -6652,7 +6653,7 @@ function boot(){
    * Uses both the legacy STATIC_ENCOUNTERS keyed object (for fixed events)
    * and the new STATIC_ENCOUNTER_LIST (for per-game/category aware defaults).
    */
-  function applyStaticEncounterPreset(speciesId) {
+  function applyStaticEncounterPreset(speciesId, options = {}) {
     const encounter = STATIC_ENCOUNTERS[speciesId];
     if (!encounter) return;
 
@@ -6666,7 +6667,9 @@ function boot(){
 
     // Look up the detailed encounter entry from the new list.
     // Prefer matching by current origin game so that level/location are correct.
-    const currentGame = updateStaticOriginGameLocking(speciesId);
+    const currentGame = updateStaticOriginGameLocking(speciesId, {
+      preferDefaultGame: options.preferDefaultGame === true,
+    });
     const detailedEnc = getEncounterForSpecies(speciesId, currentGame);
 
     // Check if this is a fixed event (like WISHMKR Jirachi)

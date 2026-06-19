@@ -30,6 +30,7 @@ const SAP = 1, RUB = 2, EME = 3, FR = 4, LG = 5;
 const RSE  = [SAP, RUB, EME];
 const RS   = [SAP, RUB];
 const FRLG = [FR, LG];
+const STATIC_ORIGIN_GAME_PRIORITY = [EME, FR, LG, RUB, SAP];
 
 // ─── Categories ───────────────────────────────────────────────────
 export const STATIC_CATEGORIES = [
@@ -214,6 +215,15 @@ export function getGamesForStaticSpecies(speciesId) {
     for (const gameId of e.games || []) set.add(Number(gameId));
   }
   return [...set];
+}
+
+/** Pick the default origin game for a static species. */
+export function getPreferredStaticOriginGame(speciesId) {
+  const available = new Set(getGamesForStaticSpecies(speciesId));
+  for (const gameId of STATIC_ORIGIN_GAME_PRIORITY) {
+    if (available.has(gameId)) return gameId;
+  }
+  return available.size ? [...available][0] : 0;
 }
 
 /**
