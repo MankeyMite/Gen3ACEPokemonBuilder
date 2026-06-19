@@ -37,7 +37,9 @@ const $ = sel => document.querySelector(sel);
 const wildPlusEvos = buildWildWithEvolutions(WILD_ENCOUNTERS);
 const WILD_ORIGIN_GAME_PRIORITY = [3, 4, 5, 2, 1]; // Emerald, FR/LG, Ruby/Sapphire
 const EVOLVED_UNHATCHED_EGG_EXCEPTIONS = new Set([183, 202]); // Marill, Wobbuffet
+const METAPOD_SPECIES_ID = 11;
 const ZUBAT_SPECIES_ID = 41;
+const HARDEN_MOVE_ID = 106;
 const EMERALD_ALTERING_CAVE_LOCATION_ID = 210;
 const DEOXYS_SPECIES_ID = 410;
 const CELEBI_SPECIES_ID = 251;
@@ -2451,7 +2453,7 @@ function resetOriginGameOptions() {
  * new filtered list (used for mystery-gift preset moves & imports).
  */
 function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
-  const effectivePreserveValue = preserveValue || currentEncounterMode === 'imported';
+  let effectivePreserveValue = preserveValue || currentEncounterMode === 'imported';
   const data = LEARNSETS[speciesId];
   let baseMoves;
 
@@ -2512,6 +2514,10 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
   } else {
     // No learnset data â†’ show everything
     baseMoves = MOVES;
+  }
+  if (currentEncounterMode === 'wild' && Number(speciesId) === METAPOD_SPECIES_ID) {
+    baseMoves = MOVES.filter(([id]) => id === 0 || id === HARDEN_MOVE_ID);
+    effectivePreserveValue = false;
   }
   baseMoves = sortMoveListAlphabetically(baseMoves);
 

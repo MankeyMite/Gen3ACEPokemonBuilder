@@ -1,12 +1,24 @@
+Patch Notes - (V.0.4.0) - June 19, 2026.
+- Added a "How it works" box at the top with a link to the setup guide.
+- Changed the "unlock all fields for editing" checkbox to a "legal mode" button.
+- Implemented Ruby/Sapphire TID/SID legality validation as a separate rule. Make Shiny button now gives a valid SID.
+- Implemented Auto-calculate legal Sheen for contest stats.
+- "Undo Shiny" now restores the previous SID set.
+- Hatched and Wild mode now enforces species-specific minimum levels from evolution data, such as Charizard at level 36.
+- Made 70 the default happiness for all encounter types.
+- Move dropdowns now list available moves alphabetically.
+- Added a priority to Game Origin to default to Emerald in cases where Ruby or Sapphire also were an option, as Emerald has fewer limites to RNG legality.
+- Static encounters now lock unavailable Origin Game options based on the selected Pokémon.
+- Moved Origin Game to the top of the Encounter details section.
+- Wild Metapod move selection is now restricted to Harden only.
+- Choosing Milotic now forces Beauty stat to 170, and adjusts Sheen to a legal minimum.
+- Added Feebas to Wild encounter type, as it was missing due to being a special encounter.
+- Make Shiny undo state is now remembered per encounter type instead of carrying into other modes.
+- Hatched mode now uses the Make Shiny button under the PID field instead of the shiny checkbox.
+
+
 Patch Notes - (V.0.3.9) - June 17, 2026.
 - Implemented auto-scrolling to missing required fields if the generate button is clicked while being locked.
-- Hatched mode now enforces species-specific minimum levels from evolution data, such as Charizard at level 36.
-- Move dropdowns now list available moves alphabetically.
-- Static encounters now lock unavailable Origin Game options based on the selected Pokémon.
-- Static encounters now default to Emerald over Ruby/Sapphire when Emerald is available for that Pokémon.
-- Moved Origin Game to the top of the Encounter details section.
-- Hatched mode now uses the Make Shiny button under the PID field instead of the shiny checkbox.
-- Make Shiny undo state is now remembered per encounter type instead of carrying into other modes.
 - Added MyBoy support to the interactive setup guide for Base64 for Emerald and FR/LG.
 - UI changes for more clarity.
 - Made the import button clearly appear as optional.
