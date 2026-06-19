@@ -1823,6 +1823,16 @@ function toNameId(entry) {
   return [String(a), Number(b)];
 }
 
+function sortMoveListAlphabetically(list) {
+  return [...list].sort((a, b) => {
+    const [nameA, idA] = toNameId(a);
+    const [nameB, idB] = toNameId(b);
+    if (idA === 0 && idB !== 0) return -1;
+    if (idB === 0 && idA !== 0) return 1;
+    return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' }) || idA - idB;
+  });
+}
+
 function fillSelect(el, list, opts = {}) {
   el.innerHTML = '';
   const placeholder = opts.placeholder ?? '— Select —';
@@ -2451,6 +2461,7 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
     // No learnset data â†’ show everything
     baseMoves = MOVES;
   }
+  baseMoves = sortMoveListAlphabetically(baseMoves);
 
   // For each slot, exclude moves already chosen in other slots to
   // prevent the same move from being selected twice.
@@ -3685,10 +3696,11 @@ function boot(){
     return !((id >= 259 && id <= 288) || (id >= 339 && id <= 376));
   });
   createAutocomplete($('#item'), filteredItems, { placeholder: '— None —' });
-  moveAutocompletes[0] = createAutocomplete($('#move1'), MOVES, { placeholder: '— Empty —', onSelect: validateForm, masterList: MOVES });
-  moveAutocompletes[1] = createAutocomplete($('#move2'), MOVES, { placeholder: '— Empty —', onSelect: validateForm, masterList: MOVES });
-  moveAutocompletes[2] = createAutocomplete($('#move3'), MOVES, { placeholder: '— Empty —', onSelect: validateForm, masterList: MOVES });
-  moveAutocompletes[3] = createAutocomplete($('#move4'), MOVES, { placeholder: '— Empty —', onSelect: validateForm, masterList: MOVES });
+  const alphabetizedMoves = sortMoveListAlphabetically(MOVES);
+  moveAutocompletes[0] = createAutocomplete($('#move1'), alphabetizedMoves, { placeholder: '— Empty —', onSelect: validateForm, masterList: MOVES });
+  moveAutocompletes[1] = createAutocomplete($('#move2'), alphabetizedMoves, { placeholder: '— Empty —', onSelect: validateForm, masterList: MOVES });
+  moveAutocompletes[2] = createAutocomplete($('#move3'), alphabetizedMoves, { placeholder: '— Empty —', onSelect: validateForm, masterList: MOVES });
+  moveAutocompletes[3] = createAutocomplete($('#move4'), alphabetizedMoves, { placeholder: '— Empty —', onSelect: validateForm, masterList: MOVES });
   createAutocomplete($('#ball'), BALLS);
   
   // Set default ball to Poké Ball (ID 4)
