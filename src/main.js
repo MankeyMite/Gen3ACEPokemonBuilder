@@ -766,6 +766,8 @@ function updateStatGraph() {
           // Show PID Finder row and Make Shiny row for Channel Jirachi
           const pfRow = document.getElementById('pidFinderRow');
           if (pfRow) pfRow.style.display = 'flex';
+          const makeShinyRow = document.getElementById('makeShinyRow');
+          if (makeShinyRow) makeShinyRow.style.display = 'flex';
           // Hide simple shiny row (replaced by Make Shiny btn)
           try {
             const shinyExtRows = document.querySelectorAll('.shiny-external');
@@ -823,7 +825,7 @@ let outputCodeTarget = 'console';
 let gbaTextPreviewRenderId = 0;
 let importedPokerusState = null;
 let pokerusDropdownDirty = false;
-let sidBeforeMakeShiny = null;
+const makeShinyUndoStateByMode = {};
 // When true, skip applying simple-mode PID presets (used during imports)
 let suppressPresetApply = false;
 // When true, suppress marking user-change events while programmatically applying presets
@@ -3711,6 +3713,7 @@ function boot(){
       updateUnownFormVisibility(speciesId);
       // Uncheck shiny since species changed (gender ratios may differ)
       if (!importedMode) {
+        clearMakeShinyUndoState();
         const shinyCheckbox = document.querySelector('#shiny');
         if (shinyCheckbox && shinyCheckbox.checked) {
           shinyCheckbox.checked = false;
@@ -3747,6 +3750,7 @@ function boot(){
       }
       try { updateContestSheenAuto({ markImportedDirty: true }); } catch (e) {}
       try { updateShinyCheckboxState(); } catch (e) {}
+      try { updateMakeShinyButton(); } catch (e) {}
       // Validate form
       validateForm();
     }
@@ -3860,6 +3864,7 @@ function boot(){
   
   // Attach validation to relevant fields
   $('#species').addEventListener('change', () => {
+    clearMakeShinyUndoState();
     validateForm();
     updateLegalityStatus();
     // Recompute total EXP when species changes (exp group may differ)
@@ -3872,11 +3877,14 @@ function boot(){
     updateSpeciesSprite(Number($('#species').value) || 0);
     // Update Unown form visibility (covers imports / mode changes)
     updateUnownFormVisibility(Number($('#species').value) || 0);
+    try { updateMakeShinyButton(); } catch (e) {}
   });
   $('#species').addEventListener('input', () => {
+    clearMakeShinyUndoState();
     validateForm();
     updateLegalityStatus();
     try { computeAndSetExpFromLevel(); } catch (e) {}
+    try { updateMakeShinyButton(); } catch (e) {}
     $('#species').parentElement.classList.remove('field-error');
   });
   $('#species').addEventListener('focus', () => {
@@ -4371,7 +4379,6 @@ function boot(){
     encounterModeSelect.addEventListener('change', (e) => {
       const previousMode = currentEncounterMode;
       const nextMode = String(e.target.value || 'hatched');
-      sidBeforeMakeShiny = null;
       // Save current mode edits before switching away
       try {
         encounterModeStateCache[previousMode] = captureCurrentEncounterModeState();
@@ -4379,6 +4386,7 @@ function boot(){
       const savedNextModeState = encounterModeStateCache[nextMode] || null;
       // For first-time mode visits, hard reset to a clean slate
       if (!savedNextModeState) {
+        try { clearMakeShinyUndoState(nextMode); } catch (ee) {}
         try { resetAllModeState(); } catch (ee) {}
       }
       // Restore Origin Game dropdown options when leaving wild mode
@@ -4415,10 +4423,14 @@ function boot(){
       const shinyIndicatorBtnEl = document.getElementById('shinyIndicatorBtn');
       if (shinyIndicatorBtnEl) shinyIndicatorBtnEl.style.display = '';
       const makeShinyStatusEl = document.getElementById('makeShinyStatus');
-      if (makeShinyStatusEl) makeShinyStatusEl.style.display = '';
+      if (makeShinyStatusEl) {
+        makeShinyStatusEl.style.display = '';
+        makeShinyStatusEl.textContent = '';
+      }
       currentEncounterMode = nextMode;
       try { clearGeneratedOutputs(); } catch (e) {}
       // Add body classes for special encounter modes so CSS/JS can adjust visibility
+      document.body.classList.toggle('encounter-hatched', currentEncounterMode === 'hatched');
       document.body.classList.toggle('encounter-wild', currentEncounterMode === 'wild');
       document.body.classList.toggle('encounter-static', currentEncounterMode === 'static');
       document.body.classList.toggle('encounter-roamer', currentEncounterMode === 'roamer');
@@ -4503,6 +4515,7 @@ function boot(){
       try { applyBoxEventMysteryLocationConstraints({ preserveCurrentNonEgg: true }); } catch (e) {}
       try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
       try { updateItemLockingForEgg(); } catch (e) {}
+      try { updateMakeShinyButton(); } catch (e) {}
       try { updateGbaTextPreview(); } catch (e) {}
     });
   }
@@ -5799,6 +5812,8 @@ function boot(){
         // Remove Channel-specific inline display overrides
         const pfRow = document.getElementById('pidFinderRow');
         if (pfRow) pfRow.style.removeProperty('display');
+        const makeShinyRow = document.getElementById('makeShinyRow');
+        if (makeShinyRow) makeShinyRow.style.removeProperty('display');
         try {
           const shinyExtRows = document.querySelectorAll('.shiny-external');
           for (const r of shinyExtRows) r.style.removeProperty('display');
@@ -6496,7 +6511,7 @@ function boot(){
    * Show or hide the Make Shiny button for CXD shadow mode.
    * XD shadows are shiny-locked — hide the button.
    * Colosseum shadows are NOT shiny-locked — show the button.
-   * For non-CXD modes, visibility is handled by the CSS `wild-or-legend` class.
+   * For non-CXD modes, visibility is handled by encounter-mode body classes.
    */
   function updateMakeShinyVisibility(enc) {
     const row = document.getElementById('makeShinyRow');
@@ -6506,7 +6521,7 @@ function boot(){
     const makeShinyStatusLocal = document.getElementById('makeShinyStatus');
     if (!row) return;
     if (currentEncounterMode !== 'cxd_shadow') {
-      // Non-CXD modes: let CSS handle visibility (wild-or-legend class)
+      // Non-CXD modes: let CSS handle visibility.
       row.style.display = '';
       if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
       if (makeShinyBtnLocal) makeShinyBtnLocal.style.display = '';
@@ -7229,7 +7244,10 @@ function boot(){
       const shinyIndicatorBtn = document.getElementById('shinyIndicatorBtn');
       if (shinyIndicatorBtn) shinyIndicatorBtn.style.display = '';
       const makeShinyStatus = document.getElementById('makeShinyStatus');
-      if (makeShinyStatus) makeShinyStatus.style.display = '';
+      if (makeShinyStatus) {
+        makeShinyStatus.style.display = '';
+        makeShinyStatus.textContent = '';
+      }
       try { updatePidLocking(); } catch (e) {}
     } catch (e) {}
   }
@@ -7383,7 +7401,8 @@ function boot(){
   }
 
   function rememberSidBeforeMakeShiny(pid, tid, sid) {
-    sidBeforeMakeShiny = {
+    makeShinyUndoStateByMode[currentEncounterMode] = {
+      kind: 'sid',
       mode: currentEncounterMode,
       pid: pid >>> 0,
       tid: tid & 0xFFFF,
@@ -7391,19 +7410,51 @@ function boot(){
     };
   }
 
-  function restoreSidBeforeMakeShiny(pid, tid) {
-    if (!sidBeforeMakeShiny) return null;
-    if (sidBeforeMakeShiny.mode !== currentEncounterMode) return null;
-    if (sidBeforeMakeShiny.pid !== (pid >>> 0)) return null;
-    if (sidBeforeMakeShiny.tid !== (tid & 0xFFFF)) return null;
+  function rememberPidBeforeMakeShiny(pid, tid, sid) {
+    makeShinyUndoStateByMode[currentEncounterMode] = {
+      kind: 'pid',
+      mode: currentEncounterMode,
+      pid: pid >>> 0,
+      tid: tid & 0xFFFF,
+      sid: sid & 0xFFFF,
+    };
+  }
 
-    const restoredSid = sidBeforeMakeShiny.sid & 0xFFFF;
-    sidBeforeMakeShiny = null;
+  function getMakeShinyUndoState(mode = currentEncounterMode) {
+    return makeShinyUndoStateByMode[mode] || null;
+  }
+
+  function hasUndoableMakeShinyState(pid, tid, sid, isShiny) {
+    const state = getMakeShinyUndoState();
+    if (!state || !isShiny) return false;
+    if (state.mode !== currentEncounterMode) return false;
+    if (state.kind === 'sid') {
+      return state.pid === (pid >>> 0) && state.tid === (tid & 0xFFFF);
+    }
+    if (state.kind === 'pid') {
+      return state.tid === (tid & 0xFFFF) && state.sid === (sid & 0xFFFF);
+    }
+    return false;
+  }
+
+  function restoreSidBeforeMakeShiny(pid, tid) {
+    const state = getMakeShinyUndoState();
+    if (!state || state.kind !== 'sid') return null;
+    if (state.mode !== currentEncounterMode) return null;
+    if (state.pid !== (pid >>> 0)) return null;
+    if (state.tid !== (tid & 0xFFFF)) return null;
+
+    const restoredSid = state.sid & 0xFFFF;
+    clearMakeShinyUndoState();
     return restoredSid;
   }
 
+  function clearMakeShinyUndoState(mode = currentEncounterMode) {
+    delete makeShinyUndoStateByMode[mode];
+  }
+
   function clearSidBeforeMakeShiny() {
-    sidBeforeMakeShiny = null;
+    clearMakeShinyUndoState();
   }
 
   // Handle shiny checkbox
@@ -7485,6 +7536,7 @@ function boot(){
       
       // Update shiny indicator
       checkShiny();
+      try { updateMakeShinyButton(); } catch (e) {}
       try { updateGCTidSidWarning(); } catch (e) {}
       try { updateRSTidSidWarning(); } catch (e) {}
       try { updatePidTidSidWarning(); } catch (e) {}
@@ -7510,7 +7562,7 @@ function boot(){
     });
   }
 
-  /* â”€â”€ Make Shiny button (adjusts SID to match current PID) â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* â”€â”€ Make Shiny button (hatched: PID, other modes: SID) â”€â”€â”€â”€â”€â”€â”€ */
   const makeShinyBtn = document.getElementById('makeShinyBtn');
   const makeShinyStatus = document.getElementById('makeShinyStatus');
   const shinyIndicatorBtn = document.getElementById('shinyIndicatorBtn');
@@ -7524,8 +7576,9 @@ function boot(){
     const pidLow = pid & 0xFFFF;
     const xor = (pidHigh ^ pidLow) ^ (tid ^ sid);
     const isShiny = xor < 8;
+    const undoActive = hasUndoableMakeShinyState(pid, tid, sid, isShiny);
 
-    if (isShiny) {
+    if (undoActive) {
       makeShinyBtn.textContent = '\u2728 Undo Shiny';
       makeShinyBtn.classList.add('is-shiny');
     } else {
@@ -7546,8 +7599,37 @@ function boot(){
       const pidLow = pid & 0xFFFF;
       const xor = (pidHigh ^ pidLow) ^ (tid ^ sid);
       const isShiny = xor < 8;
+      const undoActive = hasUndoableMakeShinyState(pid, tid, sid, isShiny);
 
-      if (!isShiny) {
+      if (currentEncounterMode === 'hatched') {
+        const shinyCheckbox = $('#shiny');
+        if (undoActive) {
+          clearMakeShinyUndoState();
+        } else if (!isShiny) {
+          rememberPidBeforeMakeShiny(pid, tid, sid);
+        } else {
+          if (makeShinyStatus) {
+            makeShinyStatus.textContent = 'Already shiny';
+            makeShinyStatus.style.color = 'var(--text-muted, #94a3b8)';
+          }
+          updateMakeShinyButton();
+          return;
+        }
+        if (shinyCheckbox) {
+          shinyCheckbox.checked = !undoActive;
+          shinyCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (makeShinyStatus) {
+          makeShinyStatus.textContent = undoActive ? 'PID set to non-shiny' : 'PID set to shiny';
+          makeShinyStatus.style.color = isShiny
+            ? 'var(--text-muted, #94a3b8)'
+            : 'var(--emerald, #10b981)';
+        }
+        updateMakeShinyButton();
+        return;
+      }
+
+      if (!undoActive && !isShiny) {
         // Make shiny: set SID so xor = 0 (pidHigh ^ pidLow ^ tid ^ newSid) = 0
         rememberSidBeforeMakeShiny(pid, tid, sid);
         const preferredSid = (pidHigh ^ pidLow ^ tid) & 0xFFFF;
@@ -7567,7 +7649,7 @@ function boot(){
             makeShinyStatus.style.color = 'var(--emerald, #10b981)';
           }
         }
-      } else {
+      } else if (undoActive) {
         const restoredSid = restoreSidBeforeMakeShiny(pid, tid);
         const newSid = restoredSid ?? ((pidHigh ^ pidLow ^ tid ^ 8) & 0xFFFF);
         $('#sid').value = String(newSid);
@@ -7575,6 +7657,11 @@ function boot(){
           makeShinyStatus.textContent = restoredSid == null
             ? `SID set to ${newSid}`
             : `SID restored to ${newSid}`;
+          makeShinyStatus.style.color = 'var(--text-muted, #94a3b8)';
+        }
+      } else {
+        if (makeShinyStatus) {
+          makeShinyStatus.textContent = 'Already shiny';
           makeShinyStatus.style.color = 'var(--text-muted, #94a3b8)';
         }
       }
@@ -10005,6 +10092,7 @@ function enterImportedModeSilently() {
   currentEncounterMode = 'imported';
 
   document.body.classList.toggle('encounter-wild', false);
+  document.body.classList.toggle('encounter-hatched', false);
   document.body.classList.toggle('encounter-static', false);
   document.body.classList.toggle('encounter-roamer', false);
   document.body.classList.toggle('encounter-mystery', false);
@@ -10018,7 +10106,10 @@ function enterImportedModeSilently() {
   const shinyIndicatorBtn = document.getElementById('shinyIndicatorBtn');
   if (shinyIndicatorBtn) shinyIndicatorBtn.style.display = '';
   const makeShinyStatus = document.getElementById('makeShinyStatus');
-  if (makeShinyStatus) makeShinyStatus.style.display = '';
+  if (makeShinyStatus) {
+    makeShinyStatus.style.display = '';
+    makeShinyStatus.textContent = '';
+  }
 
   try { _updateSpeciesListForMode?.(); } catch (e) {}
   if (speciesAutocomplete) {
@@ -10052,9 +10143,12 @@ function switchToImportedMode() {
   const shinyIndicatorBtn = document.getElementById('shinyIndicatorBtn');
   if (shinyIndicatorBtn) shinyIndicatorBtn.style.display = '';
   const makeShinyStatus = document.getElementById('makeShinyStatus');
-  if (makeShinyStatus) makeShinyStatus.style.display = '';
+  if (makeShinyStatus) {
+    makeShinyStatus.style.display = '';
+    makeShinyStatus.textContent = '';
+  }
   // Apply body class
-  document.body.classList.remove('encounter-wild','encounter-static','encounter-roamer','encounter-mystery','encounter-cxd_shadow');
+  document.body.classList.remove('encounter-hatched','encounter-wild','encounter-static','encounter-roamer','encounter-mystery','encounter-cxd_shadow');
   document.body.classList.add('encounter-imported');
   // Show all species in the autocomplete (imported could be anything)
   if (speciesAutocomplete) {

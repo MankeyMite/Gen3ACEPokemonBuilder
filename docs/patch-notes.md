@@ -4,6 +4,9 @@ Patch Notes - (V.0.3.9) - June 17, 2026.
 - Move dropdowns now list available moves alphabetically.
 - Static encounters now lock unavailable Origin Game options based on the selected Pokémon.
 - Static encounters now default to Emerald over Ruby/Sapphire when Emerald is available for that Pokémon.
+- Moved Origin Game to the top of the Encounter details section.
+- Hatched mode now uses the Make Shiny button under the PID field instead of the shiny checkbox.
+- Make Shiny undo state is now remembered per encounter type instead of carrying into other modes.
 - Added MyBoy support to the interactive setup guide for Base64 for Emerald and FR/LG.
 - UI changes for more clarity.
 - Made the import button clearly appear as optional.
