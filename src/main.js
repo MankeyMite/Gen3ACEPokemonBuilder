@@ -8,7 +8,7 @@ import { MOVES } from './data/moves.gen3.js';
 import { BALLS } from './data/balls.gen3.js';
 import { LOCATIONS } from './data/locations.gen3.js';
 import { PID_PRESETS } from './data/pid_presets.gen3.js';
-import { STATIC_ENCOUNTERS, isLegendary, isBreedable, isGiftPokemon, STATIC_CATEGORIES, STATIC_ENCOUNTER_LIST, STATIC_SPECIES_SET, getEncountersByCategory, getSpeciesForCategory, getEncountersForSpeciesGame, getEncounterForSpecies } from './data/staticEncounters.gen3.js';
+import { STATIC_ENCOUNTERS, isLegendary, isBreedable, isGiftPokemon, STATIC_CATEGORIES, STATIC_ENCOUNTER_LIST, STATIC_SPECIES_SET, getEncountersByCategory, getSpeciesForCategory, getGamesForStaticSpecies, getEncountersForSpeciesGame, getEncounterForSpecies } from './data/staticEncounters.gen3.js';
 import { getLegendaryPreset, isColosseumXDLegendary } from './data/legendaryPresets.gen3.js';
 import { buildPokemonBytes, toHexString, toFormattedHex, toBase64Emerald, coreSource, parsePokemonBytes, parseBase64Emerald, buildDecryptedPokemonFile, convertPk3CanonicalToEk3Raw, convertEk3RawToPk3Canonical, getPokerusStateFromStatus, getPokerusStatusFromState } from './lib/gen3/builder.js';
 import { GROUP, expForLevel, levelForExp } from './lib/exp.js';
@@ -983,8 +983,57 @@ function getSelectedStaticEncounter() {
   return getEncounterForSpecies(speciesId, currentGame);
 }
 
+function getStaticAllowedOriginGames(speciesId) {
+  const id = Number(speciesId) || 0;
+  if (!id) return [];
+
+  const games = getGamesForStaticSpecies(id);
+  if (games.length) return games;
+
+  const fallbackGame = Number(STATIC_ENCOUNTERS[id]?.defaultOriginGame || 0);
+  return fallbackGame ? [fallbackGame] : [];
+}
+
+function updateStaticOriginGameLocking(speciesId) {
+  if (currentEncounterMode !== 'static') return Number($('#originGame')?.value || 0);
+
+  const originGameSelect = $('#originGame');
+  if (!originGameSelect) return 0;
+
+  if (manualOverrideActive) {
+    resetOriginGameOptions();
+    return Number(originGameSelect.value) || 0;
+  }
+
+  const allowedGames = getStaticAllowedOriginGames(speciesId);
+  if (!allowedGames.length) {
+    resetOriginGameOptions();
+    return Number(originGameSelect.value) || 0;
+  }
+
+  for (const opt of Array.from(originGameSelect.options || [])) {
+    const gameId = Number(opt.value);
+    const allowed = allowedGames.includes(gameId);
+    opt.disabled = !allowed;
+    opt.hidden = false;
+    opt.style.color = allowed ? '' : '#666';
+  }
+
+  let currentGame = Number(originGameSelect.value) || 0;
+  if (!allowedGames.includes(currentGame)) {
+    currentGame = allowedGames[0];
+    originGameSelect.value = String(currentGame);
+  }
+
+  return currentGame;
+}
+
 function shouldLockStaticEncounterOriginFields() {
   if (currentEncounterMode !== 'static') return false;
+  const speciesId = Number($('#species')?.value || 0);
+  const allowedGames = getStaticAllowedOriginGames(speciesId);
+  if (allowedGames.length) return allowedGames.length <= 1;
+
   const category = getSelectedStaticCategory();
   if (STATIC_LOCKED_ORIGIN_CATEGORIES.has(category)) return true;
 
@@ -3028,6 +3077,12 @@ function boot(){
     } else if (mode === 'static' && STATIC_ENCOUNTERS[speciesId]) {
       // Legendary mode rules
       const encounter = STATIC_ENCOUNTERS[speciesId];
+      const originGame = Number($('#originGame')?.value || 0);
+      const allowedOriginGames = getStaticAllowedOriginGames(speciesId);
+      const hasInvalidStaticOrigin = allowedOriginGames.length && !allowedOriginGames.includes(originGame);
+      if (hasInvalidStaticOrigin) {
+        errors.push('Selected Origin Game is not available for this static encounter');
+      }
       
       // Check if the PID matches a known preset
       const currentPID = parsePidInput($('#pid').value);
@@ -3041,8 +3096,8 @@ function boot(){
       } else {
         // Non-fixed legendaries use preset PIDs based on nature
         const natureIndex = Number($('#nature').value || 0);
-        const originGame = encounter.defaultOriginGame || 2;
-        const preset = getLegendaryPreset(natureIndex, originGame);
+        const presetOriginGame = originGame || encounter.defaultOriginGame || 2;
+        const preset = getLegendaryPreset(natureIndex, presetOriginGame);
         if (preset && preset.pid !== undefined) {
           expectedPID = preset.pid;
           isKnownPID = (currentPID === expectedPID);
@@ -3051,6 +3106,13 @@ function boot(){
       
       // If PID doesn't match any known preset, return unknown status
       if (!isKnownPID) {
+        if (hasInvalidStaticOrigin) {
+          return {
+            legal: false,
+            errors,
+            unknown: false
+          };
+        }
         return {
           legal: false,
           errors: ['Legality check does not yet support custom PIDs for the legendary mode'],
@@ -4012,6 +4074,20 @@ function boot(){
       return;
     }
 
+    if (currentEncounterMode === 'static') {
+      const speciesId = Number($('#species').value) || 0;
+      if (speciesId) {
+        updateStaticOriginGameLocking(speciesId);
+        if (!pidFinderResultActive) applyStaticEncounterPreset(speciesId);
+        updateMovesForSpecies(speciesId, { preserveValue: true });
+      }
+      try { updateTidSidLocking(); } catch (e) {}
+      try { updateMetLevelLocking(); } catch (e) {}
+      try { updateBallLocking(); } catch (e) {}
+      refreshOriginDependentLegality();
+      return;
+    }
+
     if (isPcnyWishEggsMysteryEventSelected()) {
       applyPcnyWishEggsOriginAndLocationConstraints();
 
@@ -4492,6 +4568,7 @@ function boot(){
       try { updateContestStatsLocking(); } catch (e) {}
       try { updateRibbonLocking(); } catch (e) {}
       try { updateHatchedOriginGameLocking(); } catch (e) {}
+      try { updateStaticOriginGameLocking(Number($('#species')?.value || 0)); } catch (e) {}
       try { $('#pidFinderBtn')?.classList.remove('field-error'); } catch (e) {}
       // Refresh move dropdowns — override shows all Gen 3 moves, normal re-applies learnset
       try {
@@ -4559,6 +4636,7 @@ function boot(){
   try { updateIsEggVisibility(); } catch (e) {}
   try { updatePidFinderVisibility(); } catch (e) {}
   try { updateOtGenderLocking(); } catch (e) {}
+  try { updateStaticOriginGameLocking(Number($('#species')?.value || 0)); } catch (e) {}
 
   // Lock or unlock TID/SID inputs depending on selected mystery event.
   // If in `mystery` mode and a non-BOX_EVENT tag is selected, these should
@@ -4579,6 +4657,9 @@ function boot(){
         (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesEditableOriginGame) ||
         shouldLockStaticEncounterOriginFields()
       );
+      if (currentEncounterMode === 'static') {
+        try { updateStaticOriginGameLocking(Number($('#species')?.value || 0)); } catch (e) {}
+      }
       if (tidEl) {
         tidEl.disabled = Boolean(shouldLockTidSid);
         tidEl.style.pointerEvents = shouldLockTidSid ? 'none' : '';
@@ -5659,6 +5740,7 @@ function boot(){
           const sp = Number($('#species').value) || 0;
           if (sp) {
             handleEncounterModeChange(sp);
+            try { updateStaticOriginGameLocking(sp); } catch (e) {}
             updateMovesForSpecies(sp, { preserveValue: false });
           }
           try { updateTidSidLocking(); } catch (e) {}
@@ -6280,6 +6362,7 @@ function boot(){
     }
     try { updateOtGenderLocking(); } catch (e) {}
     try { updateHatchedOriginGameLocking(); } catch (e) {}
+    try { updateStaticOriginGameLocking(speciesId); } catch (e) {}
     try {
       const changed = clampCurrentLevelToMinimum();
       if (changed) computeAndSetExpFromLevel();
@@ -6583,7 +6666,7 @@ function boot(){
 
     // Look up the detailed encounter entry from the new list.
     // Prefer matching by current origin game so that level/location are correct.
-    const currentGame = Number($('#originGame')?.value || 0);
+    const currentGame = updateStaticOriginGameLocking(speciesId);
     const detailedEnc = getEncounterForSpecies(speciesId, currentGame);
 
     // Check if this is a fixed event (like WISHMKR Jirachi)
@@ -6633,8 +6716,11 @@ function boot(){
       }
     }
 
-    // Use detailed encounter for origin game / location / level if available
-    const gameId = detailedEnc ? detailedEnc.games[0] : encounter.defaultOriginGame;
+    // Use detailed encounter for origin game / location / level if available.
+    // If the currently selected game is valid, preserve it.
+    const gameId = detailedEnc
+      ? (detailedEnc.games.includes(currentGame) ? currentGame : detailedEnc.games[0])
+      : encounter.defaultOriginGame;
 
     // Set origin game (do this BEFORE met location so the
     // location list contains the correct entries for this game)
@@ -6642,6 +6728,7 @@ function boot(){
       const originGameSelect = $('#originGame');
       if (originGameSelect) {
         originGameSelect.value = String(gameId);
+        updateStaticOriginGameLocking(speciesId);
         // Refresh location list for the new game
         if (metLocationWrapper && metLocationWrapper.updateList) {
           metLocationWrapper.updateList(getLocationsForGame(gameId));

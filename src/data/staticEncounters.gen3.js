@@ -205,6 +205,17 @@ export function getSpeciesForCategory(categoryId) {
   return [...set];
 }
 
+/** Get unique origin game IDs where a static species appears. */
+export function getGamesForStaticSpecies(speciesId) {
+  const id = Number(speciesId) || 0;
+  const set = new Set();
+  for (const e of STATIC_ENCOUNTER_LIST) {
+    if (e.species !== id) continue;
+    for (const gameId of e.games || []) set.add(Number(gameId));
+  }
+  return [...set];
+}
+
 /**
  * Get the encounter entries for a given species + game combination.
  * Returns an array because the same species can appear at multiple locations.
