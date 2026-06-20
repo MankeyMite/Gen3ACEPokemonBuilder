@@ -8,7 +8,7 @@
  *
  * Message IN  → { startSeed, endSeed, nature, ability, genderThreshold,
  *                 targetGender, tid, sid, wantShiny, minIVs:[6],
- *                 methods:[3 bools], maxResults, targetSpecies,
+ *                 methods:[3 bools], pidParityPreference, maxResults, targetSpecies,
  *                 slotTables: { l:[[...]], w:[[...]], swarm_fish_50:[[...]], ... } | null }
  *
  * Message OUT → { type:'progress', done, total }
@@ -247,9 +247,16 @@ function makePriorityBuffer(cap) {
 
 /* ── PID + shiny helpers ──────────────────────────────── */
 
-function checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny, unownForm) {
+function matchesPidParity(pid, preference) {
+  if (preference === 'even') return (pid & 1) === 0;
+  if (preference === 'odd') return (pid & 1) === 1;
+  return true;
+}
+
+function checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny, unownForm, pidParityPreference) {
   if (pid % 25 !== nature) return false;
   if (ability >= 0 && (pid & 1) !== ability) return false;
+  if (!matchesPidParity(pid, pidParityPreference)) return false;
   if (targetGender < 2) {
     const gb = pid & 0xFF;
     if (targetGender === 0 && gb >= genderThreshold) return false;
@@ -292,6 +299,7 @@ function fastSearch(params, isStopped) {
     tid, sid, wantShiny,
     minIVs, maxIVs, methods, maxResults,
     targetSpecies, slotTables, gameId,
+    pidParityPreference = 'any',
     unownForm: rawUnownForm
   } = params;
   const unownForm = (rawUnownForm != null && rawUnownForm >= 0) ? rawUnownForm : -1;
@@ -380,7 +388,7 @@ function fastSearch(params, isStopped) {
                   ? ((pidLow << 16) | pidHigh) >>> 0
                   : ((pidHigh << 16) | pidLow) >>> 0;
 
-                if (checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny, unownForm)) {
+                if (checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny, unownForm, pidParityPreference)) {
                   const seed0 = reverse(s1);
 
                   let initSeed = null, metLevels = null;
@@ -429,7 +437,7 @@ function fastSearch(params, isStopped) {
                 ? ((pidLow << 16) | pidHigh) >>> 0
                 : ((pidHigh << 16) | pidLow) >>> 0;
 
-              if (!checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny, unownForm)) continue;
+              if (!checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny, unownForm, pidParityPreference)) continue;
 
               const seed0 = reverse(s1);
               let initSeed = null, metLevels = null;
@@ -467,6 +475,7 @@ function bruteForceSearch(params, isStopped) {
     tid, sid, wantShiny,
     minIVs, maxIVs, methods, maxResults,
     targetSpecies, slotTables, gameId,
+    pidParityPreference = 'any',
     unownForm: rawUnownForm
   } = params;
   const unownForm = (rawUnownForm != null && rawUnownForm >= 0) ? rawUnownForm : -1;
@@ -509,6 +518,7 @@ function bruteForceSearch(params, isStopped) {
 
     if (pid % 25 !== nature)  continue;
     if (ability >= 0 && (pid & 1) !== ability) continue;
+    if (!matchesPidParity(pid, pidParityPreference)) continue;
     if (targetGender < 2) {
       const gb = pid & 0xFF;
       if (targetGender === 0 && gb >= genderThreshold) continue;

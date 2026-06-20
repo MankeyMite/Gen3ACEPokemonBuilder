@@ -837,6 +837,83 @@ let mysteryPresetAppliedFor = 0;
 // Whether the user has modified fields (other than nickname) since the preset was applied
 let mysteryUserModifiedSincePreset = false;
 
+const PID_PARITY_PREFERENCES = new Set(['any', 'even', 'odd']);
+const GBA_GEN3_ORIGIN_GAME_IDS = new Set([1, 2, 3, 4, 5]);
+
+function normalizePidParityPreference(value) {
+  const normalized = String(value || 'any').toLowerCase();
+  return PID_PARITY_PREFERENCES.has(normalized) ? normalized : 'any';
+}
+
+function matchesPidParity(pid, preference) {
+  const pref = normalizePidParityPreference(preference);
+  if (pref === 'even') return (pid & 1) === 0;
+  if (pref === 'odd') return (pid & 1) === 1;
+  return true;
+}
+
+function hasSingleNormalGen3Ability(speciesId) {
+  const abilities = getSpeciesAbilities(Number(speciesId) || 0);
+  return !!abilities && abilities[0] === abilities[1];
+}
+
+function pidParityContextSupportsCurrentMode() {
+  return currentEncounterMode === 'wild' ||
+    currentEncounterMode === 'hatched' ||
+    currentEncounterMode === 'static';
+}
+
+function shouldShowPidParityPreference(speciesId) {
+  const gameId = Number($('#originGame')?.value || 0);
+  return pidParityContextSupportsCurrentMode() &&
+    GBA_GEN3_ORIGIN_GAME_IDS.has(gameId) &&
+    hasSingleNormalGen3Ability(speciesId) &&
+    getGenderThreshold(Number(speciesId) || 0) !== -1;
+}
+
+function getPidParityPreferenceForSpecies(speciesId) {
+  if (!shouldShowPidParityPreference(speciesId)) return 'any';
+  return normalizePidParityPreference($('#pidParityPreference')?.value);
+}
+
+function getPidParityPreferenceForPidFinder(speciesId) {
+  if (!shouldShowPidParityPreference(speciesId)) return 'any';
+  return normalizePidParityPreference($('#pfPidParity')?.value || $('#pidParityPreference')?.value);
+}
+
+function requiresPidFinderForPidParity() {
+  if (!(currentEncounterMode === 'wild' || currentEncounterMode === 'static')) return false;
+  const speciesId = Number($('#species')?.value || 0);
+  if (!shouldShowPidParityPreference(speciesId)) return false;
+  return getPidParityPreferenceForSpecies(speciesId) !== 'any';
+}
+
+function hasRequiredPidFinderForPidParitySelection() {
+  return !requiresPidFinderForPidParity() || !!pidFinderHadSelection;
+}
+
+function syncPidParityPreferenceUi() {
+  const speciesId = Number($('#species')?.value || 0);
+  const show = shouldShowPidParityPreference(speciesId);
+  const mainWrap = document.getElementById('pidParityPreferenceWrap');
+  const mainSelect = document.getElementById('pidParityPreference');
+  const pfRow = document.getElementById('pfPidParityRow');
+  const pfSelect = document.getElementById('pfPidParity');
+
+  if (mainSelect) {
+    mainSelect.value = show ? normalizePidParityPreference(mainSelect.value) : 'any';
+    mainSelect.disabled = !show;
+  }
+  if (mainWrap) mainWrap.hidden = !show;
+
+  if (pfSelect) {
+    const preferred = show ? normalizePidParityPreference(pfSelect.value || mainSelect?.value) : 'any';
+    pfSelect.value = preferred;
+    pfSelect.disabled = !show;
+  }
+  if (pfRow) pfRow.hidden = !show;
+}
+
 function isRubySapphireOriginGame(gameId) {
   return RS_ORIGIN_GAME_IDS.has(Number(gameId));
 }
@@ -1003,17 +1080,21 @@ function updateStaticOriginGameLocking(speciesId, options = {}) {
 
   const originGameSelect = $('#originGame');
   if (!originGameSelect) return 0;
+  const finish = (gameId) => {
+    try { syncPidParityPreferenceUi(); } catch (e) {}
+    return gameId;
+  };
   const preferDefaultGame = options.preferDefaultGame === true;
 
   if (manualOverrideActive) {
     resetOriginGameOptions();
-    return Number(originGameSelect.value) || 0;
+    return finish(Number(originGameSelect.value) || 0);
   }
 
   const allowedGames = getStaticAllowedOriginGames(speciesId);
   if (!allowedGames.length) {
     resetOriginGameOptions();
-    return Number(originGameSelect.value) || 0;
+    return finish(Number(originGameSelect.value) || 0);
   }
 
   for (const opt of Array.from(originGameSelect.options || [])) {
@@ -1030,7 +1111,7 @@ function updateStaticOriginGameLocking(speciesId, options = {}) {
     originGameSelect.value = String(currentGame);
   }
 
-  return currentGame;
+  return finish(currentGame);
 }
 
 function shouldLockStaticEncounterOriginFields() {
@@ -2331,7 +2412,10 @@ function updateWildEncounterFilters(speciesId, options = {}) {
   const encounterData = wildId != null ? WILD_ENCOUNTERS[wildId] : null;
   const originGameSelect = $('#originGame');
   const metLevelInput =    $('#metLevel');
-  if (!originGameSelect) return;
+  if (!originGameSelect) {
+    try { syncPidParityPreferenceUi(); } catch (e) {}
+    return;
+  }
 
   // â”€â”€ 1. Filter Origin Game options â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const availableGames = encounterData ? Object.keys(encounterData).map(Number) : [];
@@ -2420,6 +2504,7 @@ function updateWildEncounterFilters(speciesId, options = {}) {
   if (speciesId === 201) {
     filterUnownFormsByLocation();
   }
+  try { syncPidParityPreferenceUi(); } catch (e) {}
 }
 
 /**
@@ -2684,6 +2769,10 @@ function highlightMissingFields({ scrollToFirst = true } = {}) {
     markMissing('Find Legal Encounter', pidFinderBtn);
   }
 
+  if (!hasRequiredPidFinderForPidParitySelection()) {
+    markMissing('Find Legal Encounter for PID parity', pidFinderBtn);
+  }
+
   const rsTrainerIdValidation = getRSTrainerIdValidation();
   if (rsTrainerIdValidation.applies && !rsTrainerIdValidation.valid) {
     tidEl?.classList.add('field-error');
@@ -2875,6 +2964,7 @@ function boot(){
         <option value="0">0</option>
         <option value="1">1</option>
       `;
+      try { syncPidParityPreferenceUi(); } catch (e) {}
       return;
     }
     
@@ -2902,6 +2992,7 @@ function boot(){
         abilitySelect.value = '0';
       }
     }
+    try { syncPidParityPreferenceUi(); } catch (e) {}
   }
 
   // Form validation - check if generate button should be enabled
@@ -2927,14 +3018,18 @@ function boot(){
                     (move4Value && move4Value !== '0');
     const hasMysteryGiftLegalPid = hasRequiredMysteryGiftPidFinderSelection();
     const hasLegalRSTrainerId = getRSTrainerIdValidation().valid;
+    const hasRequiredParityPid = hasRequiredPidFinderForPidParitySelection();
 
     if (pidFinderBtn && hasMysteryGiftLegalPid) {
+      pidFinderBtn.classList.remove('field-error');
+    }
+    if (pidFinderBtn && hasRequiredParityPid) {
       pidFinderBtn.classList.remove('field-error');
     }
     
     // Enable generate button only if all conditions are met
     const generateBtn = $('#generateBtn');
-    if (hasSpecies && hasNature && hasMove && hasOTName && hasMysteryGiftLegalPid && hasLegalRSTrainerId) {
+    if (hasSpecies && hasNature && hasMove && hasOTName && hasMysteryGiftLegalPid && hasLegalRSTrainerId && hasRequiredParityPid) {
       generateBtn.setAttribute('data-disabled', 'false');
     } else {
       generateBtn.setAttribute('data-disabled', 'true');
@@ -4045,6 +4140,7 @@ function boot(){
   }
   
   // Run initial validation
+  try { syncPidParityPreferenceUi(); } catch (e) {}
   validateForm();
   updateLegalityStatus();
   
@@ -4055,6 +4151,7 @@ function boot(){
       try { updateGbaTextPreview(); } catch (err) {}
     };
     const refreshOriginDependentLegality = () => {
+      try { syncPidParityPreferenceUi(); } catch (err) {}
       try { updateRSTidSidWarning(); } catch (err) {}
       try { validateForm(); } catch (err) {}
       updateLegalityStatus();
@@ -4470,6 +4567,7 @@ function boot(){
       if (savedNextModeState) {
         try { applyEncounterModeState(savedNextModeState); } catch (e) {}
       }
+      try { syncPidParityPreferenceUi(); } catch (e) {}
 
       // Default language should be English for non-mystery encounter types.
       // Keep mystery/imported behavior untouched.
@@ -7113,7 +7211,7 @@ function boot(){
 
   const ENCOUNTER_MODE_FIELD_IDS = [
     'mysteryEvent', 'staticCategory', 'species', 'shadowEncounter', 'unownForm',
-    'nickname', 'level', 'expTotal', 'pid', 'nature', 'ability', 'gender',
+    'nickname', 'level', 'expTotal', 'pid', 'nature', 'ability', 'pidParityPreference', 'gender',
     'item', 'ball', 'originGame', 'metLocation', 'metLevel',
     'tid', 'sid', 'shiny', 'otName', 'otGender', 'language', 'isEgg',
     'ivHp', 'ivAtk', 'ivDef', 'ivSpAtk', 'ivSpDef', 'ivSpe',
@@ -7518,11 +7616,11 @@ function boot(){
         
         if (e.target.checked) {
           // Calculate a shiny PID with the correct gender and ability
-          const shinyPID = calculateShinyPID(tid, sid, natureIndex, gender, speciesId, ability);
+          const shinyPID = calculateShinyPID(tid, sid, natureIndex, gender, speciesId, ability, getPidParityPreferenceForSpecies(speciesId));
           $('#pid').value = '0x' + shinyPID.toString(16).toUpperCase().padStart(8, '0');
         } else {
           // Calculate a non-shiny PID with the correct gender and ability
-          const nonShinyPID = calculateNonShinyPID(tid, sid, natureIndex, gender, speciesId, ability);
+          const nonShinyPID = calculateNonShinyPID(tid, sid, natureIndex, gender, speciesId, ability, getPidParityPreferenceForSpecies(speciesId));
           $('#pid').value = '0x' + nonShinyPID.toString(16).toUpperCase().padStart(8, '0');
         }
         
@@ -7696,6 +7794,47 @@ function boot(){
   
   const abilityEl = document.querySelector('#ability');
   let previousAbility = abilityEl ? abilityEl.value : null;
+
+  const pidParityEl = document.querySelector('#pidParityPreference');
+  if (pidParityEl) {
+    pidParityEl.addEventListener('change', () => {
+      const speciesId = Number($('#species').value) || 0;
+      syncPidParityPreferenceUi();
+      if (!shouldShowPidParityPreference(speciesId)) return;
+
+      clearSidBeforeMakeShiny();
+
+      if ((currentEncounterMode === 'wild' || currentEncounterMode === 'static') && hasPidFinderSelectionState()) {
+        unlockPidFinderFields({ clearPid: true });
+        const status = document.getElementById('pidFinderStatus');
+        if (status) status.textContent = 'PID parity changed. Select a new legal encounter.';
+      }
+
+      if (currentEncounterMode === 'hatched') {
+        const pidEl = document.querySelector('#pid');
+        const currentPid = parsePidInput(pidEl?.value || '');
+        const pref = getPidParityPreferenceForSpecies(speciesId);
+        if (pidEl && !matchesPidParity(currentPid, pref)) {
+          const tid = Number($('#tid').value) & 0xFFFF;
+          const sid = Number($('#sid').value) & 0xFFFF;
+          const natureIndex = Number($('#nature').value);
+          const gender = $('#gender').value;
+          const ability = Number($('#ability').value);
+          const isCurrentlyShiny = ((((currentPid >>> 16) ^ (currentPid & 0xFFFF)) ^ (tid ^ sid)) < 8);
+          const newPid = isCurrentlyShiny
+            ? calculateShinyPID(tid, sid, natureIndex, gender, speciesId, ability, pref)
+            : calculateNonShinyPID(tid, sid, natureIndex, gender, speciesId, ability, pref);
+          pidEl.value = '0x' + newPid.toString(16).toUpperCase().padStart(8, '0');
+          try { pidEl.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
+        }
+      }
+
+      checkShiny();
+      try { updateMakeShinyButton(); } catch (e) {}
+      try { validateForm(); } catch (e) {}
+      try { updateLegalityStatus(); } catch (e) {}
+    });
+  }
   
   if(natureEl) {
     natureEl.addEventListener('change', () => {
@@ -7832,7 +7971,7 @@ function boot(){
             const gender = $('#gender').value;
             const speciesId = Number($('#species').value) || 0;
             const ability = Number($('#ability').value);
-            const newPid = calculateNonShinyPID(tid, sid, targetNature, gender, speciesId, ability);
+            const newPid = calculateNonShinyPID(tid, sid, targetNature, gender, speciesId, ability, getPidParityPreferenceForSpecies(speciesId));
             pidEl.value = '0x' + newPid.toString(16).toUpperCase().padStart(8,'0');
           }
         }
@@ -7885,7 +8024,7 @@ function boot(){
           const sid = Number($('#sid').value) & 0xFFFF;
           const natureIndex = Number($('#nature').value);
           const ability = Number($('#ability').value);
-          const newPid = calculateNonShinyPID(tid, sid, natureIndex, currentGender, speciesId, ability);
+          const newPid = calculateNonShinyPID(tid, sid, natureIndex, currentGender, speciesId, ability, getPidParityPreferenceForSpecies(speciesId));
           pidEl.value = '0x' + newPid.toString(16).toUpperCase().padStart(8,'0');
           checkShiny();
         }
@@ -7926,7 +8065,7 @@ function boot(){
           const natureIndex = Number($('#nature').value);
           const gender = $('#gender').value;
           const speciesId = Number($('#species').value) || 0;
-          const newPid = calculateNonShinyPID(tid, sid, natureIndex, gender, speciesId, targetAbility);
+          const newPid = calculateNonShinyPID(tid, sid, natureIndex, gender, speciesId, targetAbility, getPidParityPreferenceForSpecies(speciesId));
           pidEl.value = '0x' + newPid.toString(16).toUpperCase().padStart(8,'0');
           checkShiny();
         }
@@ -8349,15 +8488,33 @@ function checkShiny() {
   updateSpeciesSprite(Number($('#species').value) || 0);
 }
 
+function getDesiredPidParityForGeneration(speciesId, ability, preference) {
+  const pref = normalizePidParityPreference(preference);
+  if (pref === 'even') return 0;
+  if (pref === 'odd') return 1;
+  if (hasSingleNormalGen3Ability(speciesId)) return null;
+  return Number(ability) & 1;
+}
+
+function enforceGenderByteParity(genderByte, desiredParity, targetGender, genderThreshold) {
+  if (desiredParity == null || (genderByte & 1) === desiredParity) return genderByte;
+  const adjusted = genderByte ^ 1;
+  if (targetGender === 'female' && adjusted >= genderThreshold) return null;
+  if (targetGender === 'male' && adjusted < genderThreshold) return null;
+  return adjusted;
+}
+
 // Calculate a shiny PID for given TID/SID, nature, and gender
-function calculateShinyPID(tid, sid, nature, targetGender, speciesId, ability) {
+function calculateShinyPID(tid, sid, nature, targetGender, speciesId, ability, pidParityPreference = 'any') {
   // For a Pokémon to be shiny in Gen 3:
   // (pidHigh ^ pidLow ^ tid ^ sid) < 8
   // Nature = PID % 25
   // Gender is determined by lowest byte compared to species gender threshold
-  // Ability = PID & 1 (0 or 1)
+  // Dual-ability species use PID & 1 for ability. Single-ability species can
+  // optionally filter PID parity without changing the stored ability slot.
   
   const genderThreshold = getGenderThreshold(speciesId);
+  const desiredParity = getDesiredPidParityForGeneration(speciesId, ability, pidParityPreference);
   
   // Handle genderless species
   if (genderThreshold === -1) {
@@ -8393,14 +8550,8 @@ function calculateShinyPID(tid, sid, nature, targetGender, speciesId, ability) {
       genderByte = Math.floor(Math.random() * 256);
     }
     
-    // Ensure genderByte matches ability (PID & 1 = ability)
-    if ((genderByte & 1) !== ability) {
-      // Flip the lowest bit to match ability
-      genderByte ^= 1;
-      // Check if this still satisfies gender constraints
-      if (targetGender === 'female' && genderByte >= genderThreshold) continue;
-      if (targetGender === 'male' && genderByte < genderThreshold) continue;
-    }
+    genderByte = enforceGenderByteParity(genderByte, desiredParity, targetGender, genderThreshold);
+    if (genderByte == null) continue;
     
     // Generate random second byte for lower 16 bits
     const byte1 = Math.floor(Math.random() * 256);
@@ -8421,6 +8572,7 @@ function calculateShinyPID(tid, sid, nature, targetGender, speciesId, ability) {
     
     // Verify all constraints are met
     if ((pid & 0xFF) !== genderByte) continue;
+    if (desiredParity != null && !matchesPidParity(pid, desiredParity === 0 ? 'even' : 'odd')) continue;
     if (pid % 25 !== nature) continue;
     
     const verifyXor = ((pid >>> 16) ^ (pid & 0xFFFF)) ^ (tid ^ sid);
@@ -8449,15 +8601,19 @@ function calculateShinyPID(tid, sid, nature, targetGender, speciesId, ability) {
     }
   }
   
+  const adjustedGenderByte = enforceGenderByteParity(genderByte, desiredParity, targetGender, genderThreshold);
+  if (adjustedGenderByte != null) genderByte = adjustedGenderByte;
+
   const pidLow = genderByte | (byte1 << 8);
   const pidHigh = Math.floor(Math.random() * 0x10000);
   
   return ((pidHigh << 16) | pidLow) >>> 0;
 }
 
-function calculateNonShinyPID(tid, sid, nature, targetGender, speciesId, ability) {
-  // Generate a PID with correct nature/gender/ability that is guaranteed NOT shiny
+function calculateNonShinyPID(tid, sid, nature, targetGender, speciesId, ability, pidParityPreference = 'any') {
+  // Generate a PID with correct nature/gender/ability/parity that is guaranteed NOT shiny
   const genderThreshold = getGenderThreshold(speciesId);
+  const desiredParity = getDesiredPidParityForGeneration(speciesId, ability, pidParityPreference);
   
   if (genderThreshold === -1) {
     targetGender = 'genderless';
@@ -8487,12 +8643,8 @@ function calculateNonShinyPID(tid, sid, nature, targetGender, speciesId, ability
       genderByte = Math.floor(Math.random() * 256);
     }
     
-    // Ensure genderByte matches ability (PID & 1 = ability)
-    if ((genderByte & 1) !== ability) {
-      genderByte ^= 1;
-      if (targetGender === 'female' && genderByte >= genderThreshold) continue;
-      if (targetGender === 'male' && genderByte < genderThreshold) continue;
-    }
+    genderByte = enforceGenderByteParity(genderByte, desiredParity, targetGender, genderThreshold);
+    if (genderByte == null) continue;
     
     // Generate random second byte
     const byte1 = Math.floor(Math.random() * 256);
@@ -8505,6 +8657,7 @@ function calculateNonShinyPID(tid, sid, nature, targetGender, speciesId, ability
     const pid = ((pidHigh << 16) | pidLow) >>> 0;
     
     // Verify it's the correct nature
+    if (desiredParity != null && !matchesPidParity(pid, desiredParity === 0 ? 'even' : 'odd')) continue;
     if (pid % 25 !== nature) continue;
     
     // Verify it's NOT shiny
@@ -8524,6 +8677,9 @@ function calculateNonShinyPID(tid, sid, nature, targetGender, speciesId, ability
   } else {
     genderByte = Math.floor(Math.random() * 256);
   }
+
+  const adjustedGenderByte = enforceGenderByteParity(genderByte, desiredParity, targetGender, genderThreshold);
+  if (adjustedGenderByte != null) genderByte = adjustedGenderByte;
   
   let byte1 = 0;
   for (let i = 0; i < 256; i++) {
@@ -8657,7 +8813,7 @@ function initPidFinder() {
   }
 
   const staleResultFilterIds = [
-    'pfGender', 'pfAbility', 'pfShiny', 'pfMinHp', 'pfMinAtk', 'pfMinDef', 'pfMinSpA', 'pfMinSpD', 'pfMinSpe',
+    'pfGender', 'pfAbility', 'pfPidParity', 'pfShiny', 'pfMinHp', 'pfMinAtk', 'pfMinDef', 'pfMinSpA', 'pfMinSpD', 'pfMinSpe',
     'pfMaxHp', 'pfMaxAtk', 'pfMaxDef', 'pfMaxSpA', 'pfMaxSpD', 'pfMaxSpe', 'pfHpType', 'pfHpPower'
   ];
   const staleResultMsg = 'Filters changed. Select a new legal encounter.';
@@ -8746,6 +8902,17 @@ function initPidFinder() {
       pfAbilitySel.innerHTML =
         '<option value="0">Slot 0</option><option value="1">Slot 1</option><option value="-1">Any</option>';
       pfAbilitySel.disabled = false;
+    }
+
+    const pfPidParityRow = document.getElementById('pfPidParityRow');
+    const pfPidParitySel = document.getElementById('pfPidParity');
+    const showPidParity = shouldShowPidParityPreference(speciesId);
+    if (pfPidParityRow) pfPidParityRow.hidden = !showPidParity;
+    if (pfPidParitySel) {
+      pfPidParitySel.disabled = !showPidParity;
+      pfPidParitySel.value = showPidParity
+        ? normalizePidParityPreference($('#pidParityPreference')?.value)
+        : 'any';
     }
 
     /* â”€â”€ Populate TID / SID / Shiny from main form â”€â”€â”€â”€ */
@@ -8943,6 +9110,7 @@ function initPidFinder() {
     const speciesId      = Number($('#species').value) || 0;
     const nature         = Number($('#nature').value || 0);
     let   ability        = Number(document.getElementById('pfAbility').value);
+    const pidParityPreference = getPidParityPreferenceForPidFinder(speciesId);
     const pfGenderVal    = document.getElementById('pfGender').value;
     const genderThreshold = getGenderThreshold(speciesId);
     const tid = Number(document.getElementById('pfTid').value) & 0xFFFF;
@@ -9189,6 +9357,7 @@ function initPidFinder() {
           genderThreshold: genderThreshold === -1 ? -1 : genderThreshold,
           targetGender, tid, sid, wantShiny,
           minIVs, maxIVs, methods,
+          pidParityPreference,
           maxResults: Math.ceil(250 / workerCount),
           targetSpecies: slotSpecies,
           slotTables,

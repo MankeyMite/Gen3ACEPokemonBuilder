@@ -188,6 +188,37 @@
       padding-top: 0.7rem;
     }
 
+    .ability-control-group {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .pid-parity-control {
+      display: flex;
+      flex-direction: column;
+      gap: 0.18rem;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .pid-parity-control[hidden] {
+      display: none !important;
+    }
+
+    .pid-parity-control span {
+      color: var(--label);
+      font-weight: 600;
+    }
+
+    .pid-parity-control select {
+      min-width: 230px;
+      padding: 0.5rem 0.65rem;
+    }
+
     .encounter-type-control {
       display: grid;
       gap: 0;
@@ -1658,12 +1689,22 @@
         <select id="nature"></select>
       </div>
 
-      <div class="row">
+      <div class="row ability-row">
         <label for="ability">Ability</label>
-        <select id="ability">
-          <option value="0">0</option>
-          <option value="1">1</option>
-        </select>
+        <div class="ability-control-group">
+          <select id="ability">
+            <option value="0">0</option>
+            <option value="1">1</option>
+          </select>
+          <label id="pidParityPreferenceWrap" class="pid-parity-control" for="pidParityPreference" hidden>
+            <span>PID parity</span>
+            <select id="pidParityPreference">
+              <option value="any" selected>Any PID parity</option>
+              <option value="even">Even PID / future slot 1</option>
+              <option value="odd">Odd PID / future slot 2 after transfer/evolution</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       <div class="row">
@@ -2436,6 +2477,14 @@ Trailing = padding is restored automatically.</pre>
                 <option value="0">Slot 0</option>
                 <option value="1">Slot 1</option>
                 <option value="-1">Any</option>
+              </select>
+            </div>
+            <div id="pfPidParityRow" hidden>
+              <label for="pfPidParity" style="font-size:0.85rem;color:#94a3b8;">PID parity</label>
+              <select id="pfPidParity" style="width:auto; min-width:230px;">
+                <option value="any" selected>Any PID parity</option>
+                <option value="even">Even PID / future slot 1</option>
+                <option value="odd">Odd PID / future slot 2 after transfer/evolution</option>
               </select>
             </div>
             <div>

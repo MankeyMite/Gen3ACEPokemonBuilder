@@ -9,6 +9,8 @@ import {
   toHexString,
 } from './builder.js';
 
+const ZIGZAGOON_ID = 288;
+
 let passed = 0;
 let failed = 0;
 
@@ -161,6 +163,21 @@ section('pokerus exact imported byte can be preserved');
   assert(getPokerusStatusFromState(0x00) === 'none', '0x00 displays No Pokerus');
   assert(getPokerusStatusFromState(0x11) === 'active', '0x11 displays Has Pokerus');
   assert(getPokerusStatusFromState(0x10) === 'cured', '0x10 displays Cured Pokerus');
+}
+
+section('single-ability PID parity does not alter stored Gen 3 ability slot');
+{
+  const cfg = {
+    ...makeSampleCfg(),
+    speciesId: ZIGZAGOON_ID,
+    pid: 0x12345679,
+    abilityBit: 0,
+  };
+  const raw = buildPokemonBytes(cfg).bytes;
+  const parsed = parsePokemonBytes(toHexString(raw));
+
+  assert((parsed.pid & 1) === 1, 'Zigzagoon test fixture should use an odd PID');
+  assert(parsed.abilityBit === 0, 'Zigzagoon should keep stored Gen 3 ability slot 0 even with an odd PID');
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
