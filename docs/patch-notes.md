@@ -1,3 +1,6 @@
+Patch Notes - (V.0.4.1) - June 20, 2026.
+- Corrected Larvitar, Pupitar, Tyranitar, Rhyhorn, and Rhydon to use the 50/50 gender threshold for PID generation.
+
 Patch Notes - (V.0.4.0) - June 19, 2026.
 - Added a "How it works" box at the top with a link to the setup guide.
 - Refined the dark theme palette so the page background, cards, inner panels, and inputs have clearer visual separation.

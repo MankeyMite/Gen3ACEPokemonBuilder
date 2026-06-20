@@ -71,8 +71,6 @@ const MALE_87_5 = _resolve({
 const MALE_75 = _resolve({
   Machop: 63, Machoke: 63, Machamp: 63,
   Cubone: 63, Marowak: 63,
-  Rhyhorn: 63, Rhydon: 63,
-  Larvitar: 63, Pupitar: 63, Tyranitar: 63,
 });
 
 // 75 % female  (threshold 191)
