@@ -209,9 +209,16 @@
       display: none !important;
     }
 
-    .pid-parity-control span {
+    .pid-parity-label-text {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.15rem;
       color: var(--label);
       font-weight: 600;
+    }
+
+    .pid-parity-control .tooltip-icon {
+      margin-left: 0.15rem;
     }
 
     .pid-parity-control select {
@@ -1697,7 +1704,13 @@
             <option value="1">1</option>
           </select>
           <label id="pidParityPreferenceWrap" class="pid-parity-control" for="pidParityPreference" hidden>
-            <span>PID parity</span>
+            <span class="pid-parity-label-text">
+              PID parity
+              <span class="inline-tooltip">
+                <button type="button" class="tooltip-icon tooltip-toggle" aria-label="PID parity info" aria-describedby="pidParityInfoTooltip" aria-expanded="false">?</button>
+                <span id="pidParityInfoTooltip" class="inline-tooltip-content" role="tooltip">Controls future ability slots for Gen 3 Pokémon. Even PID = original ability, Odd PID = second ability, Any = no preference. Some Pokémon with one ability can have a second ability in Gen 4+, but must evolve in a game where that ability exists.</span>
+              </span>
+            </span>
             <select id="pidParityPreference">
               <option value="any" selected>Any PID parity</option>
               <option value="even">Even PID / future slot 1</option>
@@ -2480,7 +2493,15 @@ Trailing = padding is restored automatically.</pre>
               </select>
             </div>
             <div id="pfPidParityRow" hidden>
-              <label for="pfPidParity" style="font-size:0.85rem;color:#94a3b8;">PID parity</label>
+              <label for="pfPidParity" style="font-size:0.85rem;color:#94a3b8;">
+                <span class="pid-parity-label-text">
+                  PID parity
+                  <span class="inline-tooltip">
+                    <button type="button" class="tooltip-icon tooltip-toggle" aria-label="PID parity filter info" aria-describedby="pfPidParityInfoTooltip" aria-expanded="false">?</button>
+                    <span id="pfPidParityInfoTooltip" class="inline-tooltip-content" role="tooltip">PID is a hidden number saved on every Pokémon. Most users should choose Any. Even or Odd filters legal PID results without changing the current Gen 3 ability. Use Odd only if you specifically want future slot 2 behavior after transfer/evolution.</span>
+                  </span>
+                </span>
+              </label>
               <select id="pfPidParity" style="width:auto; min-width:230px;">
                 <option value="any" selected>Any PID parity</option>
                 <option value="even">Even PID / future slot 1</option>
