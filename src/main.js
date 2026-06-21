@@ -2009,6 +2009,7 @@ function createAutocomplete(selectEl, list, opts = {}) {
   const placeholder = opts.placeholder ?? '— Select —';
   const allowEmpty = opts.placeholder !== null;
   const onSelect = opts.onSelect || null;
+  const blurOnSelect = opts.blurOnSelect === true;
   const isItemDisabled = typeof opts.isItemDisabled === 'function'
     ? opts.isItemDisabled
     : () => false;
@@ -2153,6 +2154,12 @@ function createAutocomplete(selectEl, list, opts = {}) {
     // Trigger change event for compatibility
     const event = new Event('change', { bubbles: true });
     wrapper.dispatchEvent(event);
+
+    if (blurOnSelect) {
+      requestAnimationFrame(() => {
+        try { input.blur(); } catch (e) {}
+      });
+    }
   }
   
   function showDropdown() {
@@ -3741,6 +3748,7 @@ function boot(){
 
   // Create autocomplete fields for searchable dropdowns
   speciesAutocomplete = createAutocomplete($('#species'), SPECIES, {
+    blurOnSelect: true,
     onSelect: (item) => {
       const speciesId = Number(item.id);
       const importedMode = currentEncounterMode === 'imported';
