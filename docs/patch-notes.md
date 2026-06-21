@@ -3,6 +3,7 @@ Patch Notes - (V.0.4.1) - June 20, 2026.
 - Added a PID parity selector for single-ability GBA Pokemon in Hatched, Wild, and Static modes so users can filter future transfer/evolution ability-slot behavior without changing the legal Gen 3 stored ability slot. Wild and Static mode now require Find Legal Encounter when Even or Odd PID parity is selected.
 - Added a tooltip for the PID parity setting.
 - Selecting a Pokémon now autocompletes the selector. Makes it easier to re-select another species.
+- Fixed a bug where the "make shiny" button would get stuck on shiny if the PID parity was changed. 
 
 Patch Notes - (V.0.4.0) - June 19, 2026.
 - Added a "How it works" box at the top with a link to the setup guide.

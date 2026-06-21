@@ -7717,23 +7717,20 @@ function boot(){
         const shinyCheckbox = $('#shiny');
         if (undoActive) {
           clearMakeShinyUndoState();
-        } else if (!isShiny) {
-          rememberPidBeforeMakeShiny(pid, tid, sid);
         } else {
-          if (makeShinyStatus) {
-            makeShinyStatus.textContent = 'Already shiny';
-            makeShinyStatus.style.color = 'var(--text-muted, #94a3b8)';
-          }
-          updateMakeShinyButton();
-          return;
+          rememberPidBeforeMakeShiny(pid, tid, sid);
         }
         if (shinyCheckbox) {
           shinyCheckbox.checked = !undoActive;
           shinyCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
         }
         if (makeShinyStatus) {
-          makeShinyStatus.textContent = undoActive ? 'PID set to non-shiny' : 'PID set to shiny';
-          makeShinyStatus.style.color = isShiny
+          makeShinyStatus.textContent = undoActive
+            ? 'PID set to non-shiny'
+            : isShiny
+              ? 'Shiny PID rerolled'
+              : 'PID set to shiny';
+          makeShinyStatus.style.color = undoActive
             ? 'var(--text-muted, #94a3b8)'
             : 'var(--emerald, #10b981)';
         }
