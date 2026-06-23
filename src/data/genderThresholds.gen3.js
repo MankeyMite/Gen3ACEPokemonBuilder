@@ -87,7 +87,10 @@ const FEMALE_ONLY = _resolve({
   'Nidoran\u2640': 255, Nidorina: 255, Nidoqueen: 255,
   Chansey: 255, Blissey: 255,
   Smoochum: 255, Jynx: 255,
+  Kangaskhan: 255,
+  Miltank: 255,
   Illumise: 255,
+  Latias: 255,
 });
 
 // Always male  (threshold 0)
@@ -96,6 +99,7 @@ const MALE_ONLY = _resolve({
   Hitmonlee: 0, Hitmonchan: 0, Tyrogue: 0, Hitmontop: 0,
   Tauros: 0,
   Volbeat: 0,
+  Latios: 0,
 });
 
 // Genderless  (threshold -1)
@@ -121,8 +125,6 @@ const GENDERLESS = _resolve({
   Regirock: -1, Regice: -1, Registeel: -1,
   // Weather trio
   Kyogre: -1, Groudon: -1, Rayquaza: -1,
-  // Eon duo
-  Latias: -1, Latios: -1,
   // Event legendaries
   Jirachi: -1, Deoxys: -1,
 });

@@ -2,12 +2,16 @@ import assert from 'node:assert/strict';
 import { getGenderThreshold } from './genderThresholds.gen3.js';
 
 const SPECIES = {
+  Kangaskhan: 115,
   Machop: 66,
   Rhyhorn: 111,
   Rhydon: 112,
+  Miltank: 241,
   Larvitar: 246,
   Pupitar: 247,
   Tyranitar: 248,
+  Latias: 407,
+  Latios: 408,
 };
 
 function isFemalePidLowByte(pid, speciesId) {
@@ -28,5 +32,10 @@ assert.equal(
 );
 
 assert.equal(getGenderThreshold(SPECIES.Machop), 63, 'Machop should keep the true 75% male threshold');
+
+assert.equal(getGenderThreshold(SPECIES.Kangaskhan), 255, 'Kangaskhan should be female-only');
+assert.equal(getGenderThreshold(SPECIES.Miltank), 255, 'Miltank should be female-only');
+assert.equal(getGenderThreshold(SPECIES.Latias), 255, 'Latias should be female-only');
+assert.equal(getGenderThreshold(SPECIES.Latios), 0, 'Latios should be male-only');
 
 console.log('All Gen 3 gender threshold tests passed.');
