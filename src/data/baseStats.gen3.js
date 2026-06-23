@@ -1,5 +1,4 @@
 // Gen 3 base stats keyed by internal species ID.
-// Generated from Pokemon Showdown's current pokedex plus Gen 5 overrides for pre-Gen-6 stat values.
 export const BASE_STATS = {
   1: { hp: 45, atk: 49, def: 49, spa: 65, spd: 65, spe: 45 }, // Bulbasaur
   2: { hp: 60, atk: 62, def: 63, spa: 80, spd: 80, spe: 60 }, // Ivysaur
@@ -24,7 +23,7 @@ export const BASE_STATS = {
   21: { hp: 40, atk: 60, def: 30, spa: 31, spd: 31, spe: 70 }, // Spearow
   22: { hp: 65, atk: 90, def: 65, spa: 61, spd: 61, spe: 100 }, // Fearow
   23: { hp: 35, atk: 60, def: 44, spa: 40, spd: 54, spe: 55 }, // Ekans
-  24: { hp: 60, atk: 95, def: 69, spa: 65, spd: 79, spe: 80 }, // Arbok
+  24: { hp: 60, atk: 85, def: 69, spa: 65, spd: 79, spe: 80 }, // Arbok
   25: { hp: 35, atk: 55, def: 30, spa: 50, spd: 40, spe: 90 }, // Pikachu
   26: { hp: 60, atk: 90, def: 55, spa: 90, spd: 80, spe: 100 }, // Raichu
   27: { hp: 50, atk: 75, def: 85, spa: 20, spd: 30, spe: 40 }, // Sandshrew
@@ -51,7 +50,7 @@ export const BASE_STATS = {
   48: { hp: 60, atk: 55, def: 50, spa: 40, spd: 55, spe: 45 }, // Venonat
   49: { hp: 70, atk: 65, def: 60, spa: 90, spd: 75, spe: 90 }, // Venomoth
   50: { hp: 10, atk: 55, def: 25, spa: 35, spd: 45, spe: 95 }, // Diglett
-  51: { hp: 35, atk: 100, def: 50, spa: 50, spd: 70, spe: 120 }, // Dugtrio
+  51: { hp: 35, atk: 80, def: 50, spa: 50, spd: 70, spe: 120 }, // Dugtrio
   52: { hp: 40, atk: 45, def: 35, spa: 40, spd: 40, spe: 90 }, // Meowth
   53: { hp: 65, atk: 70, def: 60, spa: 65, spd: 65, spe: 115 }, // Persian
   54: { hp: 50, atk: 52, def: 48, spa: 65, spd: 50, spe: 55 }, // Psyduck
@@ -83,9 +82,9 @@ export const BASE_STATS = {
   80: { hp: 95, atk: 75, def: 110, spa: 100, spd: 80, spe: 30 }, // Slowbro
   81: { hp: 25, atk: 35, def: 70, spa: 95, spd: 55, spe: 45 }, // Magnemite
   82: { hp: 50, atk: 60, def: 95, spa: 120, spd: 70, spe: 70 }, // Magneton
-  83: { hp: 52, atk: 90, def: 55, spa: 58, spd: 62, spe: 60 }, // Farfetch'd
+  83: { hp: 52, atk: 65, def: 55, spa: 58, spd: 62, spe: 60 }, // Farfetch'd
   84: { hp: 35, atk: 85, def: 45, spa: 35, spd: 35, spe: 75 }, // Doduo
-  85: { hp: 60, atk: 110, def: 70, spa: 60, spd: 60, spe: 110 }, // Dodrio
+  85: { hp: 60, atk: 110, def: 70, spa: 60, spd: 60, spe: 100 }, // Dodrio
   86: { hp: 65, atk: 45, def: 55, spa: 45, spd: 70, spe: 45 }, // Seel
   87: { hp: 90, atk: 70, def: 80, spa: 70, spd: 95, spe: 70 }, // Dewgong
   88: { hp: 80, atk: 80, def: 50, spa: 40, spd: 50, spe: 25 }, // Grimer
@@ -101,9 +100,9 @@ export const BASE_STATS = {
   98: { hp: 30, atk: 105, def: 90, spa: 25, spd: 25, spe: 50 }, // Krabby
   99: { hp: 55, atk: 130, def: 115, spa: 50, spd: 50, spe: 75 }, // Kingler
   100: { hp: 40, atk: 30, def: 50, spa: 55, spd: 55, spe: 100 }, // Voltorb
-  101: { hp: 60, atk: 50, def: 70, spa: 80, spd: 80, spe: 150 }, // Electrode
+  101: { hp: 60, atk: 50, def: 70, spa: 80, spd: 80, spe: 140 }, // Electrode
   102: { hp: 60, atk: 40, def: 80, spa: 60, spd: 45, spe: 40 }, // Exeggcute
-  103: { hp: 95, atk: 95, def: 85, spa: 125, spd: 75, spe: 55 }, // Exeggutor
+  103: { hp: 95, atk: 95, def: 85, spa: 125, spd: 65, spe: 55 }, // Exeggutor
   104: { hp: 50, atk: 50, def: 95, spa: 40, spd: 50, spe: 35 }, // Cubone
   105: { hp: 60, atk: 80, def: 110, spa: 50, spd: 80, spe: 45 }, // Marowak
   106: { hp: 50, atk: 120, def: 53, spa: 35, spd: 110, spe: 87 }, // Hitmonlee
@@ -164,11 +163,11 @@ export const BASE_STATS = {
   161: { hp: 35, atk: 46, def: 34, spa: 35, spd: 45, spe: 20 }, // Sentret
   162: { hp: 85, atk: 76, def: 64, spa: 45, spd: 55, spe: 90 }, // Furret
   163: { hp: 60, atk: 30, def: 30, spa: 36, spd: 56, spe: 50 }, // Hoothoot
-  164: { hp: 100, atk: 50, def: 50, spa: 86, spd: 96, spe: 70 }, // Noctowl
+  164: { hp: 100, atk: 50, def: 50, spa: 76, spd: 96, spe: 70 }, // Noctowl
   165: { hp: 40, atk: 20, def: 30, spa: 40, spd: 80, spe: 55 }, // Ledyba
   166: { hp: 55, atk: 35, def: 50, spa: 55, spd: 110, spe: 85 }, // Ledian
   167: { hp: 40, atk: 60, def: 40, spa: 40, spd: 40, spe: 30 }, // Spinarak
-  168: { hp: 70, atk: 90, def: 70, spa: 60, spd: 70, spe: 40 }, // Ariados
+  168: { hp: 70, atk: 90, def: 70, spa: 60, spd: 60, spe: 40 }, // Ariados
   169: { hp: 85, atk: 90, def: 80, spa: 70, spd: 80, spe: 130 }, // Crobat
   170: { hp: 75, atk: 38, def: 38, spa: 56, spd: 56, spe: 67 }, // Chinchou
   171: { hp: 125, atk: 58, def: 58, spa: 76, spd: 76, spe: 67 }, // Lanturn
@@ -211,7 +210,7 @@ export const BASE_STATS = {
   208: { hp: 75, atk: 85, def: 200, spa: 55, spd: 65, spe: 30 }, // Steelix
   209: { hp: 60, atk: 80, def: 50, spa: 40, spd: 40, spe: 30 }, // Snubbull
   210: { hp: 90, atk: 120, def: 75, spa: 60, spd: 60, spe: 45 }, // Granbull
-  211: { hp: 65, atk: 95, def: 85, spa: 55, spd: 55, spe: 85 }, // Qwilfish
+  211: { hp: 65, atk: 95, def: 75, spa: 55, spd: 55, spe: 85 }, // Qwilfish
   212: { hp: 70, atk: 130, def: 100, spa: 55, spd: 80, spe: 65 }, // Scizor
   213: { hp: 20, atk: 10, def: 230, spa: 10, spd: 230, spe: 5 }, // Shuckle
   214: { hp: 80, atk: 125, def: 75, spa: 40, spd: 95, spe: 85 }, // Heracross
@@ -219,14 +218,14 @@ export const BASE_STATS = {
   216: { hp: 60, atk: 80, def: 50, spa: 50, spd: 50, spe: 40 }, // Teddiursa
   217: { hp: 90, atk: 130, def: 75, spa: 75, spd: 75, spe: 55 }, // Ursaring
   218: { hp: 40, atk: 40, def: 40, spa: 70, spd: 40, spe: 20 }, // Slugma
-  219: { hp: 60, atk: 50, def: 120, spa: 90, spd: 80, spe: 30 }, // Magcargo
+  219: { hp: 50, atk: 50, def: 120, spa: 80, spd: 80, spe: 30 }, // Magcargo
   220: { hp: 50, atk: 50, def: 40, spa: 30, spd: 30, spe: 50 }, // Swinub
   221: { hp: 100, atk: 100, def: 80, spa: 60, spd: 60, spe: 50 }, // Piloswine
-  222: { hp: 65, atk: 55, def: 95, spa: 65, spd: 95, spe: 35 }, // Corsola
+  222: { hp: 55, atk: 55, def: 85, spa: 65, spd: 85, spe: 35 }, // Corsola
   223: { hp: 35, atk: 65, def: 35, spa: 65, spd: 35, spe: 65 }, // Remoraid
   224: { hp: 75, atk: 105, def: 75, spa: 105, spd: 75, spe: 45 }, // Octillery
   225: { hp: 45, atk: 55, def: 45, spa: 65, spd: 45, spe: 75 }, // Delibird
-  226: { hp: 85, atk: 40, def: 70, spa: 80, spd: 140, spe: 70 }, // Mantine
+  226: { hp: 65, atk: 40, def: 70, spa: 80, spd: 140, spe: 70 }, // Mantine
   227: { hp: 65, atk: 80, def: 140, spa: 40, spd: 70, spe: 70 }, // Skarmory
   228: { hp: 45, atk: 60, def: 30, spa: 80, spd: 50, spe: 65 }, // Houndour
   229: { hp: 75, atk: 90, def: 50, spa: 110, spd: 80, spe: 95 }, // Houndoom
@@ -280,18 +279,18 @@ export const BASE_STATS = {
   302: { hp: 61, atk: 90, def: 45, spa: 50, spd: 50, spe: 160 }, // Ninjask
   303: { hp: 1, atk: 90, def: 45, spa: 30, spd: 30, spe: 40 }, // Shedinja
   304: { hp: 40, atk: 55, def: 30, spa: 30, spd: 30, spe: 85 }, // Taillow
-  305: { hp: 60, atk: 85, def: 60, spa: 75, spd: 50, spe: 125 }, // Swellow
+  305: { hp: 60, atk: 85, def: 60, spa: 50, spd: 50, spe: 125 }, // Swellow
   306: { hp: 60, atk: 40, def: 60, spa: 40, spd: 60, spe: 35 }, // Shroomish
   307: { hp: 60, atk: 130, def: 80, spa: 60, spd: 60, spe: 70 }, // Breloom
   308: { hp: 60, atk: 60, def: 60, spa: 60, spd: 60, spe: 60 }, // Spinda
   309: { hp: 40, atk: 30, def: 30, spa: 55, spd: 30, spe: 85 }, // Wingull
-  310: { hp: 60, atk: 50, def: 100, spa: 95, spd: 70, spe: 65 }, // Pelipper
+  310: { hp: 60, atk: 50, def: 100, spa: 85, spd: 70, spe: 65 }, // Pelipper
   311: { hp: 40, atk: 30, def: 32, spa: 50, spd: 52, spe: 65 }, // Surskit
-  312: { hp: 70, atk: 60, def: 62, spa: 100, spd: 82, spe: 80 }, // Masquerain
+  312: { hp: 70, atk: 60, def: 62, spa: 80, spd: 82, spe: 60 }, // Masquerain
   313: { hp: 130, atk: 70, def: 35, spa: 70, spd: 35, spe: 60 }, // Wailmer
   314: { hp: 170, atk: 90, def: 45, spa: 90, spd: 45, spe: 60 }, // Wailord
   315: { hp: 50, atk: 45, def: 45, spa: 35, spd: 35, spe: 50 }, // Skitty
-  316: { hp: 70, atk: 65, def: 65, spa: 55, spd: 55, spe: 90 }, // Delcatty
+  316: { hp: 70, atk: 65, def: 65, spa: 55, spd: 55, spe: 70 }, // Delcatty
   317: { hp: 60, atk: 90, def: 70, spa: 60, spd: 120, spe: 40 }, // Kecleon
   318: { hp: 40, atk: 40, def: 55, spa: 40, spd: 70, spe: 55 }, // Baltoy
   319: { hp: 60, atk: 70, def: 105, spa: 70, spd: 120, spe: 75 }, // Claydol
@@ -323,8 +322,8 @@ export const BASE_STATS = {
   345: { hp: 70, atk: 115, def: 60, spa: 115, spd: 60, spe: 55 }, // Cacturne
   346: { hp: 50, atk: 50, def: 50, spa: 50, spd: 50, spe: 50 }, // Snorunt
   347: { hp: 80, atk: 80, def: 80, spa: 80, spd: 80, spe: 80 }, // Glalie
-  348: { hp: 90, atk: 55, def: 65, spa: 95, spd: 85, spe: 70 }, // Lunatone
-  349: { hp: 90, atk: 95, def: 85, spa: 55, spd: 65, spe: 70 }, // Solrock
+  348: { hp: 70, atk: 55, def: 65, spa: 95, spd: 85, spe: 70 }, // Lunatone
+  349: { hp: 70, atk: 95, def: 85, spa: 55, spd: 65, spe: 70 }, // Solrock
   350: { hp: 50, atk: 20, def: 40, spa: 20, spd: 40, spe: 20 }, // Azurill
   351: { hp: 60, atk: 25, def: 35, spa: 70, spd: 80, spe: 60 }, // Spoink
   352: { hp: 80, atk: 45, def: 65, spa: 90, spd: 110, spe: 80 }, // Grumpig
@@ -361,8 +360,8 @@ export const BASE_STATS = {
   383: { hp: 60, atk: 90, def: 140, spa: 50, spd: 50, spe: 40 }, // Lairon
   384: { hp: 70, atk: 110, def: 180, spa: 60, spd: 60, spe: 50 }, // Aggron
   385: { hp: 70, atk: 70, def: 70, spa: 70, spd: 70, spe: 70 }, // Castform
-  386: { hp: 65, atk: 73, def: 75, spa: 47, spd: 85, spe: 85 }, // Volbeat
-  387: { hp: 65, atk: 47, def: 75, spa: 73, spd: 85, spe: 85 }, // Illumise
+  386: { hp: 65, atk: 73, def: 55, spa: 47, spd: 75, spe: 85 }, // Volbeat
+  387: { hp: 65, atk: 47, def: 55, spa: 73, spd: 75, spe: 85 }, // Illumise
   388: { hp: 66, atk: 41, def: 77, spa: 61, spd: 87, spe: 23 }, // Lileep
   389: { hp: 86, atk: 81, def: 97, spa: 81, spd: 107, spe: 43 }, // Cradily
   390: { hp: 45, atk: 95, def: 50, spa: 40, spd: 50, spe: 75 }, // Anorith
@@ -386,7 +385,7 @@ export const BASE_STATS = {
   408: { hp: 80, atk: 90, def: 80, spa: 130, spd: 110, spe: 110 }, // Latios
   409: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 }, // Jirachi
   410: { hp: 50, atk: 150, def: 50, spa: 150, spd: 50, spe: 150 }, // Deoxys
-  411: { hp: 75, atk: 50, def: 80, spa: 95, spd: 90, spe: 65 }, // Chimecho
+  411: { hp: 65, atk: 50, def: 70, spa: 95, spd: 80, spe: 65 }, // Chimecho
 };
 
 export const DEOXYS_FORM_BASE_STATS = {

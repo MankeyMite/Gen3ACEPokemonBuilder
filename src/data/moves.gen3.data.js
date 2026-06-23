@@ -329,7 +329,7 @@ export default [
     "Category": "Physical",
     "PP": 35,
     "Power": 35,
-    "Accuracy": "100%",
+    "Accuracy": "95%",
     "Gen": "I"
   },
   {
@@ -1258,7 +1258,7 @@ export default [
     "Type": "Fire",
     "Category": "Special",
     "PP": 5,
-    "Power": 110,
+    "Power": 120,
     "Accuracy": "85%",
     "Gen": "I"
   },
@@ -1408,7 +1408,7 @@ export default [
     "Type": "Bug",
     "Category": "Physical",
     "PP": 15,
-    "Power": 80,
+    "Power": 20,
     "Accuracy": "100%",
     "Gen": "I"
   },
@@ -1855,7 +1855,7 @@ export default [
   {
     "": 186,
     "Move": "Sweet Kiss",
-    "Type": "Fairy",
+    "Type": "Normal",
     "Category": "Status",
     "PP": 10,
     "Power": "—",
@@ -2035,7 +2035,7 @@ export default [
   {
     "": 204,
     "Move": "Charm",
-    "Type": "Fairy",
+    "Type": "Normal",
     "Category": "Status",
     "PP": 20,
     "Power": "—",
@@ -2288,7 +2288,7 @@ export default [
     "Type": "Normal",
     "Category": "Physical",
     "PP": 40,
-    "Power": 50,
+    "Power": 20,
     "Accuracy": "100%",
     "Gen": "II"
   },
@@ -2355,7 +2355,7 @@ export default [
   {
     "": 236,
     "Move": "Moonlight",
-    "Type": "Fairy",
+    "Type": "Normal",
     "Category": "Status",
     "PP": 5,
     "Power": "—",
@@ -2818,7 +2818,7 @@ export default [
     "Type": "Dark",
     "Category": "Physical",
     "PP": 20,
-    "Power": 65,
+    "Power": 20,
     "Accuracy": "100%",
     "Gen": "III"
   },
@@ -3428,7 +3428,7 @@ export default [
     "Type": "Normal",
     "Category": "Physical",
     "PP": 40,
-    "Power": 60,
+    "Power": 40,
     "Accuracy": "100%",
     "Gen": "III"
   },
