@@ -8,7 +8,7 @@ import { MOVES } from './data/moves.gen3.js';
 import { BALLS } from './data/balls.gen3.js';
 import { LOCATIONS } from './data/locations.gen3.js';
 import { PID_PRESETS } from './data/pid_presets.gen3.js';
-import { STATIC_ENCOUNTERS, isLegendary, isBreedable, isGiftPokemon, STATIC_CATEGORIES, STATIC_ENCOUNTER_LIST, STATIC_SPECIES_SET, getEncountersByCategory, getSpeciesForCategory, getGamesForStaticSpecies, getPreferredStaticOriginGame, getEncountersForSpeciesGame, getEncounterForSpecies } from './data/staticEncounters.gen3.js';
+import { STATIC_ENCOUNTERS, isLegendary, isRegiSpeciesId, isBreedable, isGiftPokemon, STATIC_CATEGORIES, STATIC_ENCOUNTER_LIST, STATIC_SPECIES_SET, getEncountersByCategory, getSpeciesForCategory, getGamesForStaticSpecies, getPreferredStaticOriginGame, getEncountersForSpeciesGame, getEncounterForSpecies } from './data/staticEncounters.gen3.js';
 import { getLegendaryPreset, isColosseumXDLegendary } from './data/legendaryPresets.gen3.js';
 import { buildPokemonBytes, toHexString, toFormattedHex, toBase64Emerald, coreSource, parsePokemonBytes, parseBase64Emerald, buildDecryptedPokemonFile, convertPk3CanonicalToEk3Raw, convertEk3RawToPk3Canonical, getPokerusStateFromStatus, getPokerusStatusFromState } from './lib/gen3/builder.js';
 import { GROUP, expForLevel, levelForExp } from './lib/exp.js';
@@ -3352,8 +3352,8 @@ function boot(){
           errors.push('Jirachi and Celebi must have Ruby or Sapphire as origin game');
         }
       }
-      // Regis: Regirock (377), Regice (378), Registeel (379)
-      else if ([377, 378, 379].includes(speciesId)) {
+      // Regis: Regirock (401), Regice (402), Registeel (403)
+      else if (isRegiSpeciesId(speciesId)) {
         if (![1, 2, 3].includes(currentOriginGame)) {
           errors.push('Regi legendaries must have Emerald, Ruby, or Sapphire as origin game');
         }

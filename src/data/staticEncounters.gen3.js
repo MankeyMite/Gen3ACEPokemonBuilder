@@ -255,9 +255,14 @@ const LEGENDARY_IDS = new Set([
   243, 244, 245, 249, 250, 251,  // Johto
   401, 402, 403, 404, 405, 406, 407, 408, 409, 410, // Hoenn
 ]);
+const REGI_SPECIES_IDS = new Set([401, 402, 403]);
 
 function isLegendary(speciesId) {
   return LEGENDARY_IDS.has(speciesId);
+}
+
+function isRegiSpeciesId(speciesId) {
+  return REGI_SPECIES_IDS.has(Number(speciesId) || 0);
 }
 
 function isBreedable(speciesId) {
@@ -329,7 +334,9 @@ STATIC_ENCOUNTERS[251] = {
 
 export {
   STATIC_ENCOUNTERS,
+  REGI_SPECIES_IDS,
   isLegendary,
+  isRegiSpeciesId,
   isBreedable,
   isGiftPokemon,
 };
