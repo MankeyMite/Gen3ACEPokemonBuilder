@@ -29,6 +29,7 @@ import { GENDER_THRESHOLDS, getGenderThreshold } from './data/genderThresholds.g
 import { isPristineImportedRoundTripState, tryBuildPristineImportedOutputs, shouldMarkImportedDirtyFromEvent, resolvePokerusStateForBuild } from './lib/gen3/importIsolation.js';
 import { parseBase64BoxOutput, renderBoxNamePreview } from './lib/gen3/gbaTextPreview.js';
 import { getLegalSheenRangeGen3 } from './lib/gen3/contestSheen.js';
+import { getAllowedLevelUpMoveIdsForEncounter, shouldCapHatchedLevelUpMoves } from './lib/gen3/hatchedMoveLegality.js';
 import { adjustShinySidForRSTrainerId, findNearestValidRSTrainerSid, isValidRSTrainerId } from './lib/gen3/rsTrainerId.js';
 
 const $ = sel => document.querySelector(sel);
@@ -2536,7 +2537,7 @@ function resetOriginGameOptions() {
  * legally learn, taking the current encounter mode and level into account.
  *
  * Mode rules:
- *   hatched     — all categories: level-up (any level) + egg + TM/HM + tutor
+ *   hatched     — level-up (any level for normal breeding, capped by level for genderless Ditto-only species) + egg + TM/HM + tutor
  *   wild /
  *   legendaries — level-up (≤ pokémon level) + TM/HM + tutor  (NO egg moves)
  *   mystery     — level-up (≤ pokémon level) + TM/HM + tutor  (NO egg moves)
@@ -2545,7 +2546,10 @@ function resetOriginGameOptions() {
  * new filtered list (used for mystery-gift preset moves & imports).
  */
 function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
-  let effectivePreserveValue = preserveValue || currentEncounterMode === 'imported';
+  const clearOutOfLevelHatchedMoves = !manualOverrideActive &&
+    shouldCapHatchedLevelUpMoves(speciesId, currentEncounterMode);
+  let effectivePreserveValue = (preserveValue || currentEncounterMode === 'imported') &&
+    !clearOutOfLevelHatchedMoves;
   const data = LEARNSETS[speciesId];
   let baseMoves;
 
@@ -2574,13 +2578,14 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
       }
     }
 
-    // Level-up moves — in hatched mode allow all, otherwise cap by level
+    // Level-up moves. Normal hatched breeding can inherit late level-up moves
+    // from both parents; genderless Ditto-only species are capped by level.
     if (levelUpMoves) {
-      for (const [mid, learnLvl] of levelUpMoves) {
-        if (mode === 'hatched' || learnLvl <= level) {
-          idSet.add(mid);
-        }
-      }
+      for (const mid of getAllowedLevelUpMoveIdsForEncounter(levelUpMoves, {
+        speciesId,
+        encounterMode: mode,
+        pokemonLevel: level,
+      })) idSet.add(mid);
     }
     // TM/HM & tutor moves — always allowed (no level restriction)
     if (data.t) for (const mid of data.t) idSet.add(mid);
