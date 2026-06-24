@@ -53,6 +53,7 @@ const DEFAULT_OT_GENDER = 'male';
 const DEFAULT_POKERUS_STATUS = 'none';
 const DEFAULT_AUTO_SHEEN_ENABLED = true;
 const DEFAULT_FRIENDSHIP = '70';
+const DEFAULT_PP_UPS = '3';
 const STATIC_DEFAULT_CATEGORY_ID = 'starters';
 const STATIC_LOCKED_ORIGIN_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner', 'stationary']);
 const STATIC_LOCKED_MET_FIELD_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner', 'stationary', 'legends']);
@@ -7315,7 +7316,11 @@ function boot(){
         evDef: '0',
         evSpAtk: '0',
         evSpDef: '0',
-        evSpe: '0'
+        evSpe: '0',
+        pp1: DEFAULT_PP_UPS,
+        pp2: DEFAULT_PP_UPS,
+        pp3: DEFAULT_PP_UPS,
+        pp4: DEFAULT_PP_UPS
       };
 
       for (const id of ENCOUNTER_MODE_FIELD_IDS) {
