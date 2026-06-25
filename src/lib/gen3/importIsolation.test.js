@@ -96,7 +96,7 @@ section('ignored controls remain non-dirty');
 
 section('output controls remain non-dirty');
 {
-  for (const targetId of ['codeTargetConsole', 'codeTargetSwitch', 'showGbaTextPreview', 'gbaTextPreviewFont']) {
+  for (const targetId of ['codeTargetConsole', 'codeTargetSwitch']) {
     const shouldDirty = shouldMarkImportedDirtyFromEvent({
       event: { isTrusted: true },
       suppressImportedDirtyTracking: false,

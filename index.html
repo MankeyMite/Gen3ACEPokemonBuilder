@@ -775,32 +775,6 @@
       line-height: 1.4;
     }
 
-    .gba-preview-toggle-row {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      gap: 1rem;
-      flex-wrap: wrap;
-      margin-bottom: 0.65rem;
-    }
-
-    .gba-preview-toggle-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      min-width: 0;
-      color: var(--muted);
-      font-size: 0.88rem;
-      cursor: pointer;
-    }
-
-    .gba-preview-toggle-label input {
-      width: 1rem;
-      height: 1rem;
-      min-height: 0;
-      margin: 0;
-    }
-
     .box-code-output-grid {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
@@ -808,18 +782,48 @@
       align-items: start;
     }
 
-    .box-code-output-grid.preview-active {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      align-items: start;
+    .box-code-output-main {
+      min-width: 0;
     }
 
-    .box-code-output-main {
+    .base64-output-wrap {
+      position: relative;
       min-width: 0;
     }
 
     .box-code-output-main #base64Output {
       min-width: 0;
       box-sizing: border-box;
+      cursor: text;
+    }
+
+    .base64-character-inspector {
+      position: absolute;
+      z-index: 1000;
+      max-width: calc(100% - 1rem);
+      padding: 0.36rem 0.55rem;
+      border: 1px solid rgba(88, 183, 255, 0.45);
+      border-radius: 8px;
+      background: rgba(8, 21, 37, 0.96);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+      color: var(--text);
+      font-size: 0.84rem;
+      line-height: 1.25;
+      pointer-events: auto;
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .base64-character-inspector strong {
+      color: #f8fafc;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 0.95em;
+    }
+
+    .base64-character-kind {
+      color: #bfdbfe;
+      font-weight: 800;
     }
 
     .output-action-row {
@@ -840,85 +844,12 @@
       border: 1px solid var(--border-soft);
       border-radius: 8px;
       background: var(--card-2);
-      overflow: auto;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
 
     .gba-text-preview-panel[hidden] {
       display: none !important;
-    }
-
-    .gba-preview-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 0.15rem;
-      line-height: 1;
-    }
-
-    .gba-preview-font-control {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      min-width: 0;
-      color: var(--muted);
-      font-size: 0.78rem;
-      white-space: nowrap;
-    }
-
-    .gba-preview-font-control select {
-      width: auto;
-      min-height: 1.75rem;
-      padding: 0.2rem 1.6rem 0.2rem 0.45rem;
-      font-size: 0.78rem;
-      line-height: 1.1;
-      background-color: var(--input);
-    }
-
-    .gba-preview-warning {
-      margin-bottom: 0.65rem;
-      padding: 0.5rem 0.65rem;
-      border-radius: 8px;
-      background: rgba(245, 158, 11, 0.12);
-      border: 1px solid rgba(245, 158, 11, 0.35);
-      color: #fbbf24;
-      font-size: 0.82rem;
-    }
-
-    #gbaTextPreviewList {
-      display: grid;
-      gap: 0;
-    }
-
-    .gba-preview-row {
-      display: grid;
-      grid-template-columns: 4rem auto;
-      gap: 0.4rem;
-      align-items: center;
-      justify-content: start;
-      min-height: 18px;
-      margin-bottom: 0;
-    }
-
-    .gba-preview-row:last-child {
-      margin-bottom: 0;
-    }
-
-    .gba-preview-label {
-      color: var(--muted);
-      font-size: 0.78rem;
-      line-height: 1;
-      white-space: nowrap;
-    }
-
-    .gba-preview-canvas {
-      display: block;
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
-      max-width: 100%;
-      background: #f8fafc;
-      border: 0;
-      border-radius: 0;
     }
 
     /* Shiny indicator */
@@ -1513,14 +1444,6 @@
       .output-tabs .tab-btn,
       .code-target-btn {
         white-space: nowrap;
-      }
-
-      .box-code-output-grid.preview-active {
-        grid-template-columns: 1fr;
-      }
-
-      .gba-preview-toggle-row {
-        justify-content: flex-start;
       }
 
       textarea,
@@ -2328,33 +2251,16 @@
 
       <!-- Tab content -->
       <div class="tab-content active" data-tab-content="base64">
-        <div class="gba-preview-toggle-row">
-          <label class="gba-preview-font-control" for="gbaTextPreviewFont">
-            <span>Preview font</span>
-            <select id="gbaTextPreviewFont">
-              <option value="auto" selected>Auto</option>
-              <option value="emerald">Emerald</option>
-              <option value="frlg">FireRed / LeafGreen</option>
-            </select>
-          </label>
-          <label class="gba-preview-toggle-label" for="showGbaTextPreview">
-            <input id="showGbaTextPreview" type="checkbox" checked>
-            <span>Show in-game text preview</span>
-          </label>
-        </div>
         <div class="box-code-output-grid">
           <div class="box-code-output-main">
             <div id="profanityWarning" class="profanity-warning" style="display:none;"></div>
             <div id="substitutionWarning" class="profanity-warning" style="display:none;"></div>
-            <textarea id="base64Output" rows="15" spellcheck="false" readonly></textarea>
-          </div>
-          <aside id="gbaTextPreviewPanel" class="gba-text-preview-panel" hidden>
-            <div class="gba-preview-header">
-              <strong>In-game text preview</strong>
+            <div class="base64-output-wrap">
+              <textarea id="base64Output" rows="15" spellcheck="false" readonly title="Click a box-name character to identify whether it is uppercase, lowercase, a number, or a symbol."></textarea>
+              <div id="base64CharacterInspector" class="base64-character-inspector" role="status" aria-live="polite" hidden></div>
             </div>
-            <div id="gbaTextPreviewWarnings" class="gba-preview-warning" hidden></div>
-            <div id="gbaTextPreviewList"></div>
-          </aside>
+          </div>
+          <aside id="gbaTextPreviewPanel" class="gba-text-preview-panel" hidden></aside>
         </div>
       </div>
       <div class="tab-content" data-tab-content="hex">

@@ -27,7 +27,7 @@ import { COLO_SHADOW_LOCKS, XD_SHADOW_LOCKS, COLO_NO_LOCK_SPECIES, XD_NO_LOCK_SP
 import { getSpritePath, getUnownFormIndex, getUnownFormChar, getUnownFormSuffix, getUnownSpritePath, getOnlineSpriteUrl, getOnlineUnownSpriteUrl, UNOWN_FORMS, TANOBY_FORMS_BY_LOCATION, getTanobyFormsForLocation, getTanobyLocationsForForm } from './data/nationalDex.gen3.js';
 import { GENDER_THRESHOLDS, getGenderThreshold } from './data/genderThresholds.gen3.js';
 import { isPristineImportedRoundTripState, tryBuildPristineImportedOutputs, shouldMarkImportedDirtyFromEvent, resolvePokerusStateForBuild } from './lib/gen3/importIsolation.js';
-import { parseBase64BoxOutput, renderBoxNamePreview } from './lib/gen3/gbaTextPreview.js';
+import { findNearestBoxNameCharacterAtTextOffset } from './lib/gen3/gbaTextPreview.js';
 import { getLegalSheenRangeGen3 } from './lib/gen3/contestSheen.js';
 import { getAllowedLevelUpMoveIdsForEncounter, shouldCapHatchedLevelUpMoves } from './lib/gen3/hatchedMoveLegality.js';
 import { adjustShinySidForRSTrainerId, findNearestValidRSTrainerSid, isValidRSTrainerId } from './lib/gen3/rsTrainerId.js';
@@ -826,7 +826,6 @@ let importedRoundTripBytes = null;
 let importedRoundTripDirty = true;
 let suppressImportedDirtyTracking = false;
 let outputCodeTarget = 'console';
-let gbaTextPreviewRenderId = 0;
 let importedPokerusState = null;
 let pokerusDropdownDirty = false;
 const makeShinyUndoStateByMode = {};
@@ -4161,15 +4160,11 @@ function boot(){
   // Update locations when origin game changes
   $('#originGame').addEventListener('change', (e) => {
     const newGame = e.target.value;
-    const refreshPreview = () => {
-      try { updateGbaTextPreview(); } catch (err) {}
-    };
     const refreshOriginDependentLegality = () => {
       try { syncPidParityPreferenceUi(); } catch (err) {}
       try { updateRSTidSidWarning(); } catch (err) {}
       try { validateForm(); } catch (err) {}
       updateLegalityStatus();
-      refreshPreview();
     };
 
     // In roamer mode, re-apply roamer preset for the new game
@@ -4634,7 +4629,6 @@ function boot(){
       try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
       try { updateItemLockingForEgg(); } catch (e) {}
       try { updateMakeShinyButton(); } catch (e) {}
-      try { updateGbaTextPreview(); } catch (e) {}
     });
   }
 
@@ -8304,19 +8298,13 @@ function boot(){
     copy($('#base64Output').value);
     showCopyConfirmation('copyBase64Check');
   });
-  $('#showGbaTextPreview')?.addEventListener('change', (event) => {
-    setGbaTextPreviewVisible(Boolean(event.target.checked));
+  const base64Output = $('#base64Output');
+  base64Output?.addEventListener('click', inspectBase64OutputCharacter);
+  base64Output?.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') hideBase64CharacterInspector();
   });
-  $('#gbaTextPreviewFont')?.addEventListener('change', (event) => {
-    if (event?.isTrusted && event.target?.dataset) {
-      delete event.target.dataset.autoResolved;
-    }
-    updateGbaTextPreview();
-  });
-  window.addEventListener('resize', syncGbaTextPreviewPanelHeight);
-  const gbaTextPreviewToggle = $('#showGbaTextPreview');
-  if (gbaTextPreviewToggle) gbaTextPreviewToggle.checked = true;
-  setGbaTextPreviewVisible(isGbaTextPreviewEnabled());
+  document.getElementById('base64CharacterInspector')?.addEventListener('click', hideBase64CharacterInspector);
+  document.addEventListener('click', hideBase64CharacterInspectorFromOutsideClick, true);
   $('#loadFromHexBtn')?.addEventListener('click', onLoadFromHex);
   // Wire export/import buttons: keep .ek3 export, add .pk3 (decrypted) export,
   // and a unified Import Pokémon button that accepts .ek3 or .pk3 files.
@@ -9985,37 +9973,6 @@ function isNintendoSwitchCodeTarget() {
   return outputCodeTarget !== 'console';
 }
 
-const FRLG_PREVIEW_ORIGIN_GAME_IDS = new Set([4, 5]);
-
-function resolveAutoGbaTextPreviewFontProfileId() {
-  const originGameId = Number(document.getElementById('originGame')?.value || 0);
-  return FRLG_PREVIEW_ORIGIN_GAME_IDS.has(originGameId) ? 'frlg' : 'emerald';
-}
-
-function getSelectedGbaTextPreviewFontProfileId() {
-  const select = document.getElementById('gbaTextPreviewFont');
-  const selected = String(select?.value || 'auto').toLowerCase();
-
-  if (select?.dataset?.autoResolved === '1') {
-    const resolved = resolveAutoGbaTextPreviewFontProfileId();
-    if (selected !== resolved) select.value = resolved;
-    return resolved;
-  }
-
-  if (selected === 'emerald' || selected === 'frlg') return selected;
-  return resolveAutoGbaTextPreviewFontProfileId();
-}
-
-function showResolvedGbaTextPreviewFontProfile() {
-  const select = document.getElementById('gbaTextPreviewFont');
-  const resolved = resolveAutoGbaTextPreviewFontProfileId();
-  if (select && (String(select.value || '').toLowerCase() === 'auto' || select.dataset.autoResolved === '1')) {
-    select.value = resolved;
-    select.dataset.autoResolved = '1';
-  }
-  return resolved;
-}
-
 function hideBase64SafetyWarnings() {
   const profanityBanner = document.getElementById('profanityWarning');
   if (profanityBanner) {
@@ -10064,8 +10021,6 @@ function setOutputCodeTarget(target, options = {}) {
   } else if (!isNintendoSwitchCodeTarget()) {
     hideBase64SafetyWarnings();
   }
-
-  updateGbaTextPreview();
 }
 
 function setOutputTroubleshootingVisible(visible) {
@@ -10076,77 +10031,125 @@ function setOutputTroubleshootingVisible(visible) {
   helper.style.display = show ? 'inline-flex' : 'none';
 }
 
-function isGbaTextPreviewEnabled() {
-  return Boolean(document.getElementById('showGbaTextPreview')?.checked);
+function hideBase64CharacterInspector() {
+  const inspector = document.getElementById('base64CharacterInspector');
+  if (!inspector) return;
+  inspector.hidden = true;
+  inspector.textContent = '';
 }
 
-function syncGbaTextPreviewPanelHeight() {
-  const panel = document.getElementById('gbaTextPreviewPanel');
+function hideBase64CharacterInspectorFromOutsideClick(event) {
+  const inspector = document.getElementById('base64CharacterInspector');
+  if (!inspector || inspector.hidden) return;
+
   const output = document.getElementById('base64Output');
-  if (!panel || !output || panel.hidden) return;
-  const height = output.offsetHeight || 0;
-  if (height > 0) panel.style.height = `${height}px`;
+  if (event.target === output) return;
+
+  hideBase64CharacterInspector();
 }
 
-function setGbaTextPreviewVisible(visible) {
-  const panel = document.getElementById('gbaTextPreviewPanel');
-  const grid = document.querySelector('.box-code-output-grid');
-  if (!panel) return;
+function getTextareaCharacterWidth(textarea, style) {
+  const canvas = getTextareaCharacterWidth.canvas || document.createElement('canvas');
+  getTextareaCharacterWidth.canvas = canvas;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return 8;
 
-  panel.hidden = !visible;
-  grid?.classList.toggle('preview-active', visible);
+  ctx.font = [
+    style.fontStyle,
+    style.fontVariant,
+    style.fontWeight,
+    style.fontSize,
+    style.fontFamily,
+  ].filter(Boolean).join(' ');
 
-  if (visible) {
-    syncGbaTextPreviewPanelHeight();
-    updateGbaTextPreview();
-  } else {
-    clearGbaTextPreview();
-  }
+  return ctx.measureText('M').width || 8;
 }
 
-function clearGbaTextPreview() {
-  gbaTextPreviewRenderId++;
+function getTextareaTextOffsetFromPointer(textarea, event) {
+  const value = textarea.value || '';
+  if (!value) return -1;
 
-  const list = document.getElementById('gbaTextPreviewList');
-  if (list) list.textContent = '';
+  const style = getComputedStyle(textarea);
+  const rect = textarea.getBoundingClientRect();
+  const paddingLeft = parseFloat(style.paddingLeft) || 0;
+  const paddingTop = parseFloat(style.paddingTop) || 0;
+  const borderLeft = parseFloat(style.borderLeftWidth) || 0;
+  const borderTop = parseFloat(style.borderTopWidth) || 0;
+  const x = event.clientX - rect.left - borderLeft - paddingLeft + textarea.scrollLeft;
+  const y = event.clientY - rect.top - borderTop - paddingTop + textarea.scrollTop;
+  if (x < 0 || y < 0) return -1;
 
-  const panel = document.getElementById('gbaTextPreviewPanel');
-  if (panel) panel.style.height = '';
+  const fontSize = parseFloat(style.fontSize) || 13;
+  const parsedLineHeight = parseFloat(style.lineHeight);
+  const lineHeight = Number.isFinite(parsedLineHeight) ? parsedLineHeight : fontSize * 1.4;
+  const lineIndex = Math.floor(y / lineHeight);
+  const lines = value.split('\n');
+  if (lineIndex < 0 || lineIndex >= lines.length) return -1;
 
-  const warning = document.getElementById('gbaTextPreviewWarnings');
-  if (warning) {
-    warning.hidden = true;
-    warning.textContent = '';
+  const line = lines[lineIndex].endsWith('\r') ? lines[lineIndex].slice(0, -1) : lines[lineIndex];
+  if (!line.length) return -1;
+
+  const charWidth = getTextareaCharacterWidth(textarea, style);
+  const column = Math.max(0, Math.min(line.length - 1, Math.floor(x / charWidth)));
+  let offset = 0;
+  for (let i = 0; i < lineIndex; i++) {
+    offset += lines[i].length + 1;
   }
+
+  return offset + column;
 }
 
-async function updateGbaTextPreview() {
-  if (!isGbaTextPreviewEnabled()) return null;
+function formatInspectorCharacter(ch) {
+  return ch === ' ' ? 'space' : ch;
+}
 
-  const list = document.getElementById('gbaTextPreviewList');
-  const warning = document.getElementById('gbaTextPreviewWarnings');
-  const output = document.getElementById('base64Output')?.value || '';
-  if (!list) return null;
+function showBase64CharacterInspector(info, event) {
+  const inspector = document.getElementById('base64CharacterInspector');
+  if (!inspector || !info) return;
+  const wrapper = inspector.closest('.base64-output-wrap');
+  if (!wrapper) return;
 
-  const renderId = ++gbaTextPreviewRenderId;
-  const rows = parseBase64BoxOutput(output);
+  inspector.textContent = '';
+  const character = document.createElement('strong');
+  character.textContent = `"${formatInspectorCharacter(info.character)}"`;
 
-  try {
-    const result = await renderBoxNamePreview(list, rows, {
-      warningElement: warning,
-      scale: 1,
-      fontProfile: getSelectedGbaTextPreviewFontProfileId(),
-    });
-    syncGbaTextPreviewPanelHeight();
-    return renderId === gbaTextPreviewRenderId ? result : null;
-  } catch (err) {
-    if (renderId !== gbaTextPreviewRenderId) return null;
-    if (warning) {
-      warning.hidden = false;
-      warning.textContent = err?.message || 'Could not render the in-game text preview.';
-    }
-    return null;
+  const kind = document.createElement('span');
+  kind.className = 'base64-character-kind';
+  kind.textContent = info.kind.label.toLowerCase();
+
+  inspector.append(`${info.boxLabel}: `, character, ' is ', kind);
+  inspector.hidden = false;
+
+  const margin = 8;
+  const wrapperRect = wrapper.getBoundingClientRect();
+  let left = event.clientX - wrapperRect.left + 12;
+  let top = event.clientY - wrapperRect.top + 12;
+  inspector.style.left = `${left}px`;
+  inspector.style.top = `${top}px`;
+
+  requestAnimationFrame(() => {
+    const box = inspector.getBoundingClientRect();
+    left = Math.min(left, wrapper.clientWidth - box.width - margin);
+    top = Math.min(top, wrapper.clientHeight - box.height - margin);
+    inspector.style.left = `${Math.max(margin, left)}px`;
+    inspector.style.top = `${Math.max(margin, top)}px`;
+  });
+}
+
+function inspectBase64OutputCharacter(event) {
+  const textarea = event.currentTarget;
+  if (!textarea || typeof textarea.value !== 'string') return;
+
+  const caretOffset = typeof textarea.selectionStart === 'number' ? textarea.selectionStart : -1;
+  const pointerOffset = getTextareaTextOffsetFromPointer(textarea, event);
+  const info = findNearestBoxNameCharacterAtTextOffset(textarea.value, caretOffset)
+    || findNearestBoxNameCharacterAtTextOffset(textarea.value, pointerOffset);
+  if (!info) {
+    hideBase64CharacterInspector();
+    return;
   }
+
+  showBase64CharacterInspector(info, event);
 }
 
 function clearGeneratedOutputs() {
@@ -10173,7 +10176,7 @@ function clearGeneratedOutputs() {
   const copyB64 = document.getElementById('copyBase64Check');
   if (copyB64) copyB64.classList.remove('show');
 
-  clearGbaTextPreview();
+  hideBase64CharacterInspector();
   setOutputTroubleshootingVisible(true);
 }
 
@@ -10240,9 +10243,8 @@ function onGenerate(){
     $('#hexOutput').value = pristineOutput.hex;
     $('#base64Output').value = pristineOutput.base64Text;
     setOutputTroubleshootingVisible(true);
-    showResolvedGbaTextPreviewFontProfile();
     updateBase64SafetyWarnings(pristineOutput.base64Text, pristineOutput.substitutionUsed);
-    updateGbaTextPreview();
+    hideBase64CharacterInspector();
     return;
   }
 
@@ -10264,9 +10266,8 @@ function onGenerate(){
   $('#hexOutput').value = hex;
   $('#base64Output').value = b64Result.text;
   setOutputTroubleshootingVisible(true);
-  showResolvedGbaTextPreviewFontProfile();
   updateBase64SafetyWarnings(b64Result.text, b64Result.substitutionUsed);
-  updateGbaTextPreview();
+  hideBase64CharacterInspector();
 }
 
 function enterImportedModeSilently() {

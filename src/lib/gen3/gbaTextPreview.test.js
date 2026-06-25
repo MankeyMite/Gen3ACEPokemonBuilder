@@ -1,46 +1,51 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import {
   charToGen3Code,
-  getGlyphIndexForChar,
-  parseBase64BoxOutput,
-  resolveGbaTextPreviewFontProfile,
+  findBoxNameCharacterAtTextOffset,
+  findNearestBoxNameCharacterAtTextOffset,
+  getCharacterKind,
 } from './gbaTextPreview.js';
-import { FRLG_FONT_NORMAL_COPY_1_WIDTHS, GBA_FONT_NORMAL_WIDTHS } from '../../data/gbaFontNormalWidths.js';
 
-assert.equal(GBA_FONT_NORMAL_WIDTHS.length, 512);
-assert.equal(FRLG_FONT_NORMAL_COPY_1_WIDTHS.length, 512);
-assert.equal(resolveGbaTextPreviewFontProfile('emerald').fontId, 'FONT_NORMAL');
-assert.equal(resolveGbaTextPreviewFontProfile('frlg').fontId, 'FONT_NORMAL_COPY_1');
-assert.equal(resolveGbaTextPreviewFontProfile('unknown').id, 'emerald');
-assert(existsSync(fileURLToPath(resolveGbaTextPreviewFontProfile('emerald').imagePath)), 'missing Emerald preview font image');
-assert(existsSync(fileURLToPath(resolveGbaTextPreviewFontProfile('frlg').imagePath)), 'missing FRLG preview font image');
+assert.equal(getCharacterKind('A').id, 'uppercase');
+assert.equal(getCharacterKind('Z').label, 'Uppercase letter');
+assert.equal(getCharacterKind('a').id, 'lowercase');
+assert.equal(getCharacterKind('z').label, 'Lowercase letter');
+assert.equal(getCharacterKind('0').id, 'number');
+assert.equal(getCharacterKind('9').label, 'Number');
+assert.equal(getCharacterKind('?').id, 'symbol');
+assert.equal(getCharacterKind(' ').label, 'Symbol');
 
-const rows = parseBase64BoxOutput(`Box names (BASE64):
+const output = `Box names (BASE64):
   Box 1:  (AbC123!?)
-  Box 2:  (.-\u2026\u201C\u201D\u2018\u2019)
-  Box 14: (xyZ) [lowercase y]`);
+  Box 2:  (xyZ) [lowercase y]`;
 
-assert.deepEqual(rows, [
-  { label: 'Box 1', text: 'AbC123!?' },
-  { label: 'Box 2', text: '.-\u2026\u201C\u201D\u2018\u2019' },
-  { label: 'Box 14', text: 'xyZ' },
-]);
+const uppercaseOffset = output.indexOf('(AbC') + 1;
+assert.deepEqual(findBoxNameCharacterAtTextOffset(output, uppercaseOffset), {
+  character: 'A',
+  offset: uppercaseOffset,
+  boxNumber: 1,
+  boxLabel: 'Box 1',
+  kind: getCharacterKind('A'),
+});
+
+const lowercaseOffset = output.indexOf('b');
+assert.equal(findBoxNameCharacterAtTextOffset(output, lowercaseOffset).kind.id, 'lowercase');
+
+const numberOffset = output.indexOf('2');
+assert.equal(findBoxNameCharacterAtTextOffset(output, numberOffset).kind.id, 'number');
+
+const symbolOffset = output.indexOf('?');
+assert.equal(findBoxNameCharacterAtTextOffset(output, symbolOffset).kind.id, 'symbol');
+assert.equal(findNearestBoxNameCharacterAtTextOffset(output, symbolOffset + 1).character, '?');
+
+assert.equal(findBoxNameCharacterAtTextOffset(output, output.indexOf('Box names')), null);
+assert.equal(findBoxNameCharacterAtTextOffset(output, output.indexOf('[lowercase y]')), null);
 
 const requiredChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/?!= ():';
 for (const ch of requiredChars) {
-  assert.notEqual(charToGen3Code(ch, { fontProfile: 'emerald' }), undefined, `missing Emerald code for ${JSON.stringify(ch)}`);
-  assert.notEqual(charToGen3Code(ch, { fontProfile: 'frlg' }), undefined, `missing FRLG code for ${JSON.stringify(ch)}`);
+  assert.notEqual(charToGen3Code(ch), undefined, `missing Gen 3 code for ${JSON.stringify(ch)}`);
 }
 
-assert.equal(charToGen3Code('+', { fontProfile: 'emerald' }), 0x2F);
-assert.equal(charToGen3Code('+', { fontProfile: 'frlg' }), 0x2E);
+assert.equal(charToGen3Code('+'), 0x2F);
 
-const switchSubstitutionChars = ['.', '-', '\u2026', '\u201C', '\u201D', '\u2018', '\u2019', '\u2642', '\u2640', ',', '/'];
-for (const ch of switchSubstitutionChars) {
-  assert.notEqual(getGlyphIndexForChar(ch, { fontProfile: 'emerald' }), undefined, `missing Emerald Switch substitution glyph for ${JSON.stringify(ch)}`);
-  assert.notEqual(getGlyphIndexForChar(ch, { fontProfile: 'frlg' }), undefined, `missing FRLG Switch substitution glyph for ${JSON.stringify(ch)}`);
-}
-
-console.log('gbaTextPreview tests passed');
+console.log('gbaTextPreview character inspector tests passed');
