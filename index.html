@@ -540,11 +540,14 @@
     /* CXD Shadow-specific elements */
     .show-when-cxd { display: none; }
     body.encounter-cxd_shadow .show-when-cxd { display: flex; }
+    .show-when-cxd-trade { display: none; }
+    body.encounter-cxd_trade .show-when-cxd-trade { display: flex; }
     #makeShinyRow { display: none; }
     body.encounter-hatched #makeShinyRow,
     body.encounter-wild #makeShinyRow,
     body.encounter-static #makeShinyRow,
     body.encounter-cxd_shadow #makeShinyRow,
+    body.encounter-cxd_trade #makeShinyRow,
     body.encounter-roamer #makeShinyRow {
       display: flex;
     }
@@ -552,6 +555,7 @@
     body.encounter-wild .shiny-external,
     body.encounter-static .shiny-external,
     body.encounter-cxd_shadow .shiny-external,
+    body.encounter-cxd_trade .shiny-external,
     body.encounter-roamer .shiny-external {
       display: none;
     }
@@ -1220,6 +1224,7 @@
       body.encounter-static .show-when-static,
       body.encounter-roamer .show-when-roamer,
       body.encounter-cxd_shadow .show-when-cxd,
+      body.encounter-cxd_trade .show-when-cxd-trade,
       body.encounter-wild .wild-or-legend,
       body.encounter-static .wild-or-legend,
       body.encounter-cxd_shadow .wild-or-legend,
@@ -1244,6 +1249,7 @@
       body.encounter-static .show-when-static,
       body.encounter-roamer .show-when-roamer,
       body.encounter-cxd_shadow .show-when-cxd,
+      body.encounter-cxd_trade .show-when-cxd-trade,
       body.encounter-wild .wild-or-legend,
       body.encounter-static .wild-or-legend,
       body.encounter-cxd_shadow .wild-or-legend,
@@ -1252,6 +1258,7 @@
       body.encounter-wild #makeShinyRow,
       body.encounter-static #makeShinyRow,
       body.encounter-cxd_shadow #makeShinyRow,
+      body.encounter-cxd_trade #makeShinyRow,
       body.encounter-roamer #makeShinyRow {
         display: grid;
       }
@@ -1263,6 +1270,7 @@
       body.encounter-wild .shiny-external,
       body.encounter-static .shiny-external,
       body.encounter-cxd_shadow .shiny-external,
+      body.encounter-cxd_trade .shiny-external,
       body.encounter-roamer .shiny-external,
       body.encounter-hatched .shiny-external {
         display: none;
@@ -1568,6 +1576,7 @@
             <option value="wild">Wild</option>
             <option value="mystery">Mystery Gifts</option>
             <option value="cxd_shadow">XD / Colosseum</option>
+            <option value="cxd_trade">XD In-Game Trade</option>
           </select>
           <div id="encounterModeDescription" class="mode-desc" aria-live="polite"></div>
         </div>
@@ -1592,6 +1601,11 @@
       <div class="row show-when-cxd">
         <label for="shadowEncounter">Encounter</label>
         <select id="shadowEncounter"></select>
+      </div>
+
+      <div class="row show-when-cxd-trade">
+        <label for="cxdTradeEncounter">Trade</label>
+        <select id="cxdTradeEncounter"></select>
       </div>
 
       <div class="row" id="unownFormRow" style="display:none;">

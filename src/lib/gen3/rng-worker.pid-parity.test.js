@@ -48,6 +48,8 @@ function samePidList(left, right) {
 async function main() {
   const thresholdsPath = path.join(__dirname, '..', '..', 'data', 'genderThresholds.gen3.js');
   const { getGenderThreshold } = await import(pathToFileURL(thresholdsPath).href);
+  const generatorPath = path.join(__dirname, 'cxd-generator.js');
+  const { generateCXDPokemon } = await import(pathToFileURL(generatorPath).href);
 
   const baseGbaSearch = {
     nature: 0,
@@ -138,6 +140,27 @@ async function main() {
     samePidList(cxdAnyResults, cxdOddResults),
     'CXD generation should be unaffected by pidParityPreference'
   );
+
+  const cxdShinyResults = runSearch('cxd-worker.js', {
+    ...baseCxdSearch,
+    tid: 41400,
+    sid: 54321,
+    wantShiny: true,
+    noShiny: false,
+    maxResults: 20,
+  });
+  assert(cxdShinyResults.length > 0, 'CXD trades should allow shiny results');
+  assert(
+    cxdShinyResults.every((result) => (((result.pid >>> 16) ^ (result.pid & 0xFFFF) ^ (41400 ^ 54321)) < 8)),
+    'CXD shiny results should match the player TID/SID'
+  );
+
+  for (const result of cxdAnyResults.slice(0, 5)) {
+    const expected = generateCXDPokemon(result.seed, false, 0, 0);
+    assert(result.pid === expected.pid, 'CXD worker PID should match the shared generator');
+    assert(JSON.stringify(result.ivs) === JSON.stringify(expected.ivs), 'CXD worker IVs should match the shared generator');
+    assert(result.abilityBit === expected.ability, 'CXD worker should preserve the RNG-derived ability slot');
+  }
 
   if (failed > 0) {
     console.error(`\n${failed} failed, ${passed} passed`);

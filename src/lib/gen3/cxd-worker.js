@@ -421,6 +421,7 @@ function fastSearch(params, isStopped) {
             pb.tryAdd({
               seed: seed0,
               pid,
+              abilityBit,
               method: 'CXD',
               ivs,
               hpt: hpType(ivs),
@@ -509,6 +510,7 @@ function bruteForceSearch(params, isStopped) {
     pb.tryAdd({
       seed: seed >>> 0,
       pid,
+      abilityBit,
       method: 'CXD',
       ivs,
       hpt: hpType(ivs),
