@@ -921,6 +921,7 @@ function isRubySapphireOriginGame(gameId) {
 
 function shouldValidateRSTrainerId() {
   if (manualOverrideActive) return false;
+  if (currentEncounterMode === 'mystery') return false;
   return isRubySapphireOriginGame(Number($('#originGame')?.value || 0));
 }
 
