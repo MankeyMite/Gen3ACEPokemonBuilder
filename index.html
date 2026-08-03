@@ -801,6 +801,15 @@
       cursor: text;
     }
 
+    .box-code-output-main #base64Output[hidden] {
+      display: none !important;
+    }
+
+    .box-code-output-main #base64CodeDisplay {
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
     .base64-character-inspector {
       position: absolute;
       z-index: 1000;
@@ -2270,7 +2279,8 @@
             <div id="profanityWarning" class="profanity-warning" style="display:none;"></div>
             <div id="substitutionWarning" class="profanity-warning" style="display:none;"></div>
             <div class="base64-output-wrap">
-              <textarea id="base64Output" rows="15" spellcheck="false" readonly title="Click a box-name character to identify whether it is uppercase, lowercase, a number, or a symbol."></textarea>
+              <textarea id="base64Output" spellcheck="false" readonly hidden aria-hidden="true"></textarea>
+              <pre id="base64CodeDisplay" class="base64-code-display" tabindex="0" role="textbox" aria-readonly="true" aria-label="Generated Base64 box-name code" title="Click a box-name character to identify whether it is uppercase, lowercase, a number, or a symbol."></pre>
               <div id="base64CharacterInspector" class="base64-character-inspector" role="status" aria-live="polite" hidden></div>
             </div>
           </div>

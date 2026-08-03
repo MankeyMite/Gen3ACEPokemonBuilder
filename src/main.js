@@ -8598,7 +8598,7 @@ function boot(){
     showCopyConfirmation('copyHexCheck');
   });
   $('#copyBase64Btn').addEventListener('click', ()=> {
-    copy($('#base64Output').value);
+    copy(getBase64OutputText());
     showCopyConfirmation('copyBase64Check');
   });
   const base64Output = $('#base64Output');
@@ -8606,6 +8606,12 @@ function boot(){
   base64Output?.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') hideBase64CharacterInspector();
   });
+  const base64CodeDisplay = $('#base64CodeDisplay');
+  base64CodeDisplay?.addEventListener('click', inspectBase64DisplayCharacter);
+  base64CodeDisplay?.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') hideBase64CharacterInspector();
+  });
+  renderBase64CodeDisplay(base64Output?.value || '');
   document.getElementById('base64CharacterInspector')?.addEventListener('click', hideBase64CharacterInspector);
   document.addEventListener('click', hideBase64CharacterInspectorFromOutsideClick, true);
   $('#loadFromHexBtn')?.addEventListener('click', onLoadFromHex);
@@ -10349,7 +10355,7 @@ function setOutputCodeTarget(target, options = {}) {
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
 
-  if (options.regenerate && $('#base64Output')?.value) {
+  if (options.regenerate && getBase64OutputText()) {
     onGenerate();
     return;
   } else if (!isNintendoSwitchCodeTarget()) {
@@ -10377,7 +10383,9 @@ function hideBase64CharacterInspectorFromOutsideClick(event) {
   if (!inspector || inspector.hidden) return;
 
   const output = document.getElementById('base64Output');
-  if (event.target === output) return;
+  const display = document.getElementById('base64CodeDisplay');
+  if (output && output.contains(event.target)) return;
+  if (display && display.contains(event.target)) return;
 
   hideBase64CharacterInspector();
 }
@@ -10486,12 +10494,108 @@ function inspectBase64OutputCharacter(event) {
   showBase64CharacterInspector(info, event);
 }
 
+function getBase64OutputText() {
+  return document.getElementById('base64Output')?.value || '';
+}
+
+function setBase64OutputText(text) {
+  const value = String(text || '');
+  const output = document.getElementById('base64Output');
+  if (output) output.value = value;
+  renderBase64CodeDisplay(value);
+}
+
+function getAceCodeCharacterClass(ch) {
+  if (ch === '.' || ch === ',') return 'code-char-flexible';
+  if (ch === '-' || ch === '\u2010' || ch === '\u2011' || ch === '\u2012' || ch === '\u2013' || ch === '\u2014') {
+    return 'code-char-hyphen';
+  }
+  if (ch === '_') return 'code-char-underscore';
+  if ('()[]{}'.includes(ch)) return 'code-char-bracket';
+  if ((ch >= 'A' && ch <= 'Z') || ch === '\u00C4' || ch === '\u00D6' || ch === '\u00DC') return 'code-char-upper';
+  if (ch === 'q') return 'code-char-lower code-char-lower-q';
+  if ((ch >= 'a' && ch <= 'z') || ch === '\u00E4' || ch === '\u00F6' || ch === '\u00FC') return 'code-char-lower';
+  if (ch >= '0' && ch <= '9') return 'code-char-number';
+  return 'code-char-symbol';
+}
+
+function appendColorizedCodeText(parent, text, rawStartOffset = null) {
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const span = document.createElement('span');
+    span.className = getAceCodeCharacterClass(ch);
+    span.textContent = ch;
+    if (rawStartOffset !== null) span.dataset.base64Offset = String(rawStartOffset + i);
+    parent.appendChild(span);
+  }
+}
+
+function renderBase64CodeDisplay(text) {
+  const display = document.getElementById('base64CodeDisplay');
+  if (!display) return;
+
+  const value = String(text || '');
+  display.textContent = '';
+  if (!value) return;
+
+  const lines = value.split('\n');
+  let lineStartOffset = 0;
+
+  lines.forEach((rawLine) => {
+    const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
+    const lineEl = document.createElement('span');
+    lineEl.className = 'base64-code-line';
+
+    const boxMatch = line.match(/^(\s*)(Box\s+\d+:)(\s*)(\([^)]*\))(.*)$/i);
+    if (boxMatch) {
+      const [, leading, prefixText, prefixSpace, codeText, annotationText] = boxMatch;
+
+      const prefix = document.createElement('span');
+      prefix.className = 'code-box-prefix';
+      prefix.textContent = prefixText;
+      lineEl.appendChild(prefix);
+
+      const code = document.createElement('span');
+      code.className = 'code-box-main';
+      appendColorizedCodeText(code, codeText, lineStartOffset + leading.length + prefixText.length + prefixSpace.length);
+      lineEl.appendChild(code);
+
+      if (annotationText) {
+        const annotation = document.createElement('span');
+        annotation.className = 'code-box-annotation';
+        annotation.textContent = annotationText;
+        lineEl.appendChild(annotation);
+      }
+    } else {
+      lineEl.classList.add('base64-code-header');
+      lineEl.textContent = line;
+    }
+
+    display.appendChild(lineEl);
+    lineStartOffset += rawLine.length + 1;
+  });
+}
+
+function inspectBase64DisplayCharacter(event) {
+  const display = event.currentTarget;
+  if (!display) return;
+
+  const offsetElement = event.target.closest?.('[data-base64-offset]');
+  const offset = offsetElement ? Number(offsetElement.dataset.base64Offset) : -1;
+  const info = findNearestBoxNameCharacterAtTextOffset(getBase64OutputText(), offset);
+  if (!info) {
+    hideBase64CharacterInspector();
+    return;
+  }
+
+  showBase64CharacterInspector(info, event);
+}
+
 function clearGeneratedOutputs() {
   const hexOut = document.getElementById('hexOutput');
   if (hexOut) hexOut.value = '';
 
-  const b64Out = document.getElementById('base64Output');
-  if (b64Out) b64Out.value = '';
+  setBase64OutputText('');
 
   const profanityBanner = document.getElementById('profanityWarning');
   if (profanityBanner) {
@@ -10575,7 +10679,7 @@ function onGenerate(){
   });
   if (pristineOutput) {
     $('#hexOutput').value = pristineOutput.hex;
-    $('#base64Output').value = pristineOutput.base64Text;
+    setBase64OutputText(pristineOutput.base64Text);
     setOutputTroubleshootingVisible(true);
     updateBase64SafetyWarnings(pristineOutput.base64Text, pristineOutput.substitutionUsed);
     hideBase64CharacterInspector();
@@ -10598,7 +10702,7 @@ function onGenerate(){
   const hex = toFormattedHex(result.bytes);
   const b64Result = toBase64Emerald(result.bytes, { switchSafe: isNintendoSwitchCodeTarget() });
   $('#hexOutput').value = hex;
-  $('#base64Output').value = b64Result.text;
+  setBase64OutputText(b64Result.text);
   setOutputTroubleshootingVisible(true);
   updateBase64SafetyWarnings(b64Result.text, b64Result.substitutionUsed);
   hideBase64CharacterInspector();

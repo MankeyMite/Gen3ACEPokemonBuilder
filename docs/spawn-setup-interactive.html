@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Spawn setup — Interactive</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;500;700&display=swap');
+
     :root{--bg:#0b1220;--card:#0f2438;--fg:#e8f4f8;--muted:#9fb7c9;--accent:#4a9eff;--done:#3a4552}
     html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#071021 0%,#0b1220 100%);color:var(--fg)}
     .container{max-width:1100px;margin:32px auto;padding:24px}
@@ -18,28 +20,28 @@
     .tab{background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);padding:8px 12px;border-radius:8px;cursor:pointer}
     .tab.active{background:linear-gradient(90deg,var(--accent),#48d597);color:#02121a;font-weight:700;box-shadow:0 6px 18px rgba(74,158,255,0.12)}
     .tab[disabled]{opacity:0.5;pointer-events:none}
-    pre{background:rgba(0,0,0,0.25);padding:12px;border-radius:8px;overflow:auto;color:var(--fg);font-family:ui-monospace,Menlo,Consolas,monospace;position:relative}
+    pre{background:rgba(0,0,0,0.25);padding:12px;border-radius:8px;overflow:auto;color:var(--fg);font:14px/2 "Atkinson Hyperlegible Mono",Consolas,monospace;font-variant-ligatures:none;position:relative}
     .line{display:grid;grid-template-columns:1fr 320px 120px;align-items:center;gap:12px;padding:6px 4px;border-radius:6px}
     .line:hover{background:rgba(255,255,255,0.02)}
     .text{white-space:pre-wrap}
-    .note{color:var(--muted);font-size:0.95rem}
-    .note.locked{opacity:0.85;color:rgba(159,183,201,0.85);font-style:italic;cursor:not-allowed}
-    .controls{justify-self:end;display:flex;gap:6px}
-    .controls button{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--fg);padding:4px 8px;border-radius:6px;cursor:pointer}
-    .controls button.active{background:linear-gradient(90deg,var(--accent),#48d597);color:#02121a;border-color:rgba(74,158,255,0.12);font-weight:700;box-shadow:0 6px 12px rgba(74,158,255,0.06)}
     .char-red{color:#ff6b6b;font-weight:700}
-    .char-lower{color:rgba(232,244,248,0.68)}
-    .char-upper{color:var(--fg)}
-    .panel-inner{display:flex;gap:12px}
-    .codes-box{flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);padding:14px;border-radius:8px;display:flex;flex-direction:column;gap:8px}
-    .codes-box .code-line{height:44px;box-sizing:border-box;padding:8px 6px;font-family:ui-monospace,Menlo,Consolas,monospace;display:flex;align-items:center;white-space:nowrap;overflow:hidden}
-    .codes-box .code-line .code-text{display:inline-block}
-    .notes-col{width:320px;display:flex;flex-direction:column;gap:8px;padding:14px;box-sizing:border-box}
-    .notes-col .note{height:44px;box-sizing:border-box;padding:10px 8px;overflow:auto}
-    .controls-col{width:120px;display:flex;flex-direction:column;gap:8px;padding:14px;box-sizing:border-box;align-items:stretch}
-    .controls-col .controls{display:flex;gap:8px;justify-content:flex-end;align-items:center;height:44px;box-sizing:border-box}
-    .highlight{background:rgba(198,40,40,0.12);color:#ffdcdc}
-    .done{opacity:0.5;text-decoration:line-through;color:var(--muted)}
+    .panel-inner{display:block}
+    .codes-box{min-width:0;background:#081525;border:1px solid rgba(255,255,255,0.03);padding:21px;border-radius:14px;display:flex;flex-direction:column;gap:8px;color:#f5f7f2}
+    .codes-box .code-line{min-height:44px;box-sizing:border-box;padding:8px 6px;font:14px/2 "Atkinson Hyperlegible Mono",Consolas,monospace;font-variant-ligatures:none;display:grid;grid-template-columns:8ch 17ch minmax(0,1fr);column-gap:1ch;align-items:center;white-space:normal;overflow:visible}
+    .code-box-prefix{display:block;width:8ch;color:#f5f7f2;font-weight:800;white-space:nowrap}
+    .code-box-prefix-warning{color:#f2c94c;font-weight:800}
+    .code-box-main{display:block;width:17ch;color:#f5f7f2;white-space:pre}
+    .code-box-annotation{display:block;min-width:0;color:#b7c5bf;white-space:normal;overflow-wrap:break-word}
+    .code-char-upper{color:#8ed8f8;font-weight:700}
+    .code-char-lower{color:#f4b183}
+    .code-char-lower-q{font-family:Consolas,monospace}
+    .code-char-number,
+    .code-char-symbol{color:#b7e27a;font-weight:700}
+    .code-char-flexible{color:#f5f7f2;font-weight:700}
+    .code-char-bracket{color:#f5f7f2;font-weight:800}
+    .code-char-underscore{color:#f5f7f2;font-weight:900}
+    .code-char-hyphen{color:#b7e27a;font-weight:900}
+    @media (max-width:520px){.codes-box{padding:16px}.codes-box .code-line{grid-template-columns:8ch minmax(8ch,17ch) minmax(0,1fr);column-gap:.5ch}.code-box-main{width:auto}}
     .kbd{background:rgba(255,255,255,0.04);padding:0 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.02);font-family:ui-monospace,Menlo,Consolas}
     .footer{margin-top:12px;color:var(--muted);font-size:0.95rem}
     .panel-tip{margin-top:10px;color:var(--muted);font-size:0.9rem}
@@ -382,13 +384,13 @@
       }
 
       function fmtBox(n){
-        return n < 10 ? 'Box  ' + n + ':    ' : 'Box ' + n + ':    ';
+        return n < 10 ? 'Box  ' + n + ':' : 'Box ' + n + ':';
       }
 
-      function fmtBoxRed(n){
+      function fmtBoxWarning(n){
         return n < 10
-          ? 'Box  <span class="char-red">' + n + '</span>:    '
-          : 'Box <span class="char-red">' + n + '</span>:    ';
+          ? 'Box  <span class="code-box-prefix-warning">' + n + '</span>:'
+          : 'Box <span class="code-box-prefix-warning">' + n + '</span>:';
       }
 
       function getCode1Rows(){
@@ -428,31 +430,34 @@
          PANEL BUILDERS
          ============================================================ */
 
+      function compactCodeText(text){
+        var trailingMatch = text.match(/ +$/);
+        var trailing = trailingMatch ? trailingMatch[0] : '';
+        var body = trailing ? text.slice(0, -trailing.length) : text;
+        var compact = '';
+        var inTag = false;
+        for(var i = 0; i < body.length; i++){
+          var ch = body[i];
+          if(ch === '<') inTag = true;
+          if(ch !== ' ' || inTag) compact += ch;
+          if(ch === '>') inTag = false;
+        }
+        return compact + trailing;
+      }
+
+      function buildCodeLineHTML(box, text, useHTML, highlightBoxNum, note){
+        var prefixHTML = highlightBoxNum ? fmtBoxWarning(box) : escHTML(fmtBox(box));
+        var compactText = compactCodeText(text);
+        var hasHTML = compactText.indexOf('<') >= 0;
+        var codeHTML = useHTML && hasHTML ? compactText : escHTML(compactText);
+        var noteHTML = '<span class="code-box-annotation">' + escHTML(note || '') + '</span>';
+        return '<div class="code-line"><span class="code-box-prefix">' + prefixHTML + '</span><span class="code-box-main">' + codeHTML + '</span>' + noteHTML + '</div>';
+      }
+
       function buildPanelHTML(rows, useHTML){
         var html = '<div class="panel-inner"><div class="codes-box">';
         rows.forEach(function(r){
-          var lineHTML;
-          var hasHTML = !!r.hasHTML || r.text.indexOf('<') >= 0;
-          if(r.highlightBoxNum){
-            lineHTML = fmtBoxRed(r.box) + ((useHTML && hasHTML) ? r.text : escHTML(r.text));
-          } else if(useHTML && hasHTML){
-            lineHTML = fmtBox(r.box) + r.text;
-          } else {
-            lineHTML = escHTML(fmtBox(r.box) + r.text);
-          }
-          html += '<div class="code-line"><span class="code-text">' + lineHTML + '</span></div>';
-        });
-        html += '</div><div class="notes-col">';
-        rows.forEach(function(r){
-          if(r.note){
-            html += '<div class="note" contenteditable="false" tabindex="-1">' + escHTML(r.note) + '</div>';
-          } else {
-            html += '<div class="note locked" contenteditable="false" tabindex="-1"></div>';
-          }
-        });
-        html += '</div><div class="controls-col">';
-        rows.forEach(function(){
-          html += '<div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>';
+          html += buildCodeLineHTML(r.box, r.text, useHTML, !!r.highlightBoxNum, r.note);
         });
         html += '</div></div>';
         return html;
@@ -471,11 +476,7 @@
 
       function buildTestPanelHTML(includeImages){
         var htmlT = '<div class="panel-inner"><div class="codes-box">';
-        htmlT += '<div class="code-line"><span class="code-text">Box  1:    A Q D ? P w _ _</span></div>';
-        htmlT += '</div><div class="notes-col">';
-        htmlT += '<div class="note" contenteditable="false" tabindex="-1">two spaces at the end!</div>';
-        htmlT += '</div><div class="controls-col">';
-        htmlT += '<div class="controls"><button data-action="toggle">Highlight</button><button data-action="done">Done</button></div>';
+        htmlT += buildCodeLineHTML(1, 'A Q D ? P w _ _  ', false, false, 'two spaces at the end!');
         htmlT += '</div></div>';
         htmlT += '<div class="panel-tip">Execute this code to confirm WELDR is working:';
         htmlT += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
@@ -538,7 +539,6 @@
         html1 += '<li>After this code, a bad egg should have appeared in Box 10 Slot 22. Don\'t look at its summary!</li>';
         html1 += '</ul></div>';
         p1.innerHTML = html1;
-        wirePanel(p1);
 
         var myBoyFollowups = [
           {id: 'code2', rows: myBoyCode2Rows, extra: buildMyBoyContinueTip(3)},
@@ -550,12 +550,10 @@
         myBoyFollowups.forEach(function(code){
           var panel = document.getElementById(code.id);
           panel.innerHTML = buildPanelHTML(code.rows, true) + code.extra;
-          wirePanel(panel);
         });
 
         var pT = document.getElementById('codeTest');
         pT.innerHTML = buildTestPanelHTML(false);
-        wirePanel(pT);
 
         wrapCaseChars();
       }
@@ -590,7 +588,6 @@
           html1 += '</div>';
         }
         p1.innerHTML = html1;
-        wirePanel(p1);
 
         // --- Code 2 ---
         var p2 = document.getElementById('code2');
@@ -607,7 +604,6 @@
         html2 += '<li>After executing this code, no visible change will happen to the egg. Keep going with code 3!</li>';
         html2 += '</ul></div>';
         p2.innerHTML = html2;
-        wirePanel(p2);
 
         // --- Code 3 ---
         var p3 = document.getElementById('code3');
@@ -648,48 +644,33 @@
         }
         html3 += '</div>';
         p3.innerHTML = html3;
-        wirePanel(p3);
 
         // --- Test code ---
         var pT = document.getElementById('codeTest');
         var htmlT = buildTestPanelHTML(true);
         pT.innerHTML = htmlT;
-        wirePanel(pT);
 
         // Apply character wrapping
         wrapCaseChars();
       }
 
       /* ============================================================
-         WIRING – highlight / done buttons + notes
-         ============================================================ */
-      function wirePanel(panel){
-        var codes = panel.querySelectorAll('.codes-box .code-line');
-        var controls = panel.querySelectorAll('.controls-col .controls');
-        controls.forEach(function(ctrl, i){
-          var btns = ctrl.querySelectorAll('button');
-          btns.forEach(function(btn){
-            btn.addEventListener('click', function(){
-              var action = btn.dataset.action;
-              var codeEl = codes[i];
-              if(!codeEl) return;
-              if(action==='toggle'){
-                codeEl.classList.toggle('highlight');
-                btn.classList.toggle('active');
-              } else if(action==='done'){
-                codeEl.classList.toggle('done');
-                btn.classList.toggle('active');
-              }
-            });
-          });
-        });
-      }
-
-      /* ============================================================
          CHARACTER WRAPPING – lowercase dimmed
          ============================================================ */
+      function getCodeCharacterClass(ch){
+        if(ch === '.' || ch === ',') return 'code-char-flexible';
+        if(ch === '-' || ch === '\u2010' || ch === '\u2011' || ch === '\u2012' || ch === '\u2013' || ch === '\u2014') return 'code-char-hyphen';
+        if(ch === '_') return 'code-char-underscore';
+        if('()[]{}'.indexOf(ch) >= 0) return 'code-char-bracket';
+        if((ch >= 'A' && ch <= 'Z') || ch === '\u00C4' || ch === '\u00D6' || ch === '\u00DC') return 'code-char-upper';
+        if(ch === 'q') return 'code-char-lower code-char-lower-q';
+        if((ch >= 'a' && ch <= 'z') || ch === '\u00E4' || ch === '\u00F6' || ch === '\u00FC') return 'code-char-lower';
+        if(ch >= '0' && ch <= '9') return 'code-char-number';
+        return 'code-char-symbol';
+      }
+
       function wrapCaseChars(){
-        document.querySelectorAll('.code-text').forEach(function(el){
+        document.querySelectorAll('.code-box-main').forEach(function(el){
           var children = Array.from(el.childNodes);
           children.forEach(function(node){
             if(node.nodeType !== 3) return;
@@ -698,19 +679,10 @@
             var frag = document.createDocumentFragment();
             for(var ci = 0; ci < text.length; ci++){
               var ch = text[ci];
-              if(/[a-z]/.test(ch)){
-                var s = document.createElement('span');
-                s.className = 'char-lower';
-                s.textContent = ch;
-                frag.appendChild(s);
-              } else if(/[A-Z]/.test(ch)){
-                var s2 = document.createElement('span');
-                s2.className = 'char-upper';
-                s2.textContent = ch;
-                frag.appendChild(s2);
-              } else {
-                frag.appendChild(document.createTextNode(ch));
-              }
+              var charSpan = document.createElement('span');
+              charSpan.className = getCodeCharacterClass(ch);
+              charSpan.textContent = ch;
+              frag.appendChild(charSpan);
             }
             el.replaceChild(frag, node);
           });
