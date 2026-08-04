@@ -58,6 +58,7 @@ import {
   createNicknameState,
   shouldSynchronizeSpeciesNickname,
 } from './domain/nicknameLocalization.js';
+import { getSeedDerivedMysteryOtGender } from './domain/mysteryGiftOtGender.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -1865,18 +1866,6 @@ function parseSeedLike(value) {
   return parsed >>> 0;
 }
 
-function nextGen3LCRNG(seed) {
-  return (Math.imul(seed >>> 0, 0x41C64E6D) + 0x6073) >>> 0;
-}
-
-function getRandS7OtGenderFromOriginSeed(originSeed) {
-  let s = originSeed >>> 0;
-  for (let i = 0; i < 5; i++) s = nextGen3LCRNG(s);
-  const rand16 = s >>> 16;
-  const female = ((((rand16 >>> 7) & 1) ^ 1) === 1);
-  return female ? 'female' : 'male';
-}
-
 function resolveMysteryBacdOtGender(result) {
   if (currentEncounterMode !== 'mystery') return '';
   if (!isMysteryBACDMethod(String(result?.method || '').toUpperCase())) return '';
@@ -1919,20 +1908,7 @@ function resolveMysteryBacdOtGender(result) {
   const method = String(result?.method || '').toUpperCase();
   if (tag === 'POKEMON_ROCKS_METANG') return 'male';
 
-  const usesRandS7 = (
-    tag === '10ANNI' ||
-    tag === 'AURA_MEW' ||
-    tag === 'DOEL_DEOXYS' ||
-    tag === 'SPACE_CENTER_DEOXYS' ||
-    tag === 'JOURNEY_ACROSS_AMERICA' ||
-    tag === 'PARTY_OF_THE_DECADE'
-  );
-
-  if ((method === 'BACD_R_A' || method === 'BACD_A') && usesRandS7 && resultSeed !== null) {
-    return getRandS7OtGenderFromOriginSeed(resultSeed);
-  }
-
-  return '';
+  return getSeedDerivedMysteryOtGender(tag, method, resultSeed);
 }
 
 function updatePidFinderVisibility() {
