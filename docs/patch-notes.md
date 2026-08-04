@@ -1,3 +1,11 @@
+Patch Notes - (V.0.4.3) - August 5, 2026.
+- Added all 386 nicknames for all pokémon in all languages. Selecting a language will now load the default nickname from the chosen language, unless edited first.
+- Removed all unreleased Pokémon from Altering Cave from all gen 3 games. Zubat should now be the only encounterable Pokémon in Altering Cave.
+- Unlocked japanese language option on all non-fixed language pokemon.
+- Locked OT gender field on several mystery gift pokemon.
+- Wild-caught Metapod, Kakuna, Silcoon, and Cascoon are now limited to Harden
+- Fixed Mitsurin Celebi not calculating the correct OT gender from the seed-derived RandS7 handling.
+
 Patch Notes - (V.0.4.2) - August 4, 2026.
 - Reworked the flow UI of the site, so you choose Pokémon first. Also allowed evolutions of specific encounters to be chosen for that encounter type.
 - The level-up move filter now caps genderless Hatched species by current level, while normal Hatched species still allow late level-up inheritance.
@@ -5,15 +13,15 @@ Patch Notes - (V.0.4.2) - August 4, 2026.
 - Removed additional preview of the box names, and replaced it with the option to click a character to see if it's a upper case, lower case, or a symbol.
 - Removed the R/S warning of impossible TID/SID combinations from the mystery gift event section, as these Pokémon have pre-created/fixed TID/SID's.
 - Added the XD in-game trade Pokémon
-- changed the UI and font of the base64 codes and interactive guide codes color coded with blue for upper case, red for lowercase, and green for symbols and numbers - just like it is with the background in-game.
-- fixed a bug for phones where the trade field would show up in non xd in-game trade encounter types.
+- Changed the UI and font of the base64 codes and interactive guide codes color coded with blue for upper case, red for lowercase, and green for symbols and numbers - just like it is with the background in-game.
+- Fixed a bug for phones where the trade field would show up in non xd in-game trade encounter types.
 
 Patch Notes - (V.0.4.1) - June 20, 2026.
 - Added a PID parity selector for single-ability GBA Pokemon in Hatched, Wild, and Static modes so users can filter future transfer/evolution ability-slot behavior without changing the legal Gen 3 stored ability slot. Wild and Static mode now require Find Legal Encounter when Even or Odd PID parity is selected.
 - Added a tooltip for the PID parity setting.
 - Selecting a Pokémon now autocompletes the selector. Makes it easier to re-select another species.
 - Fixed a bug where the "make shiny" button would get stuck on shiny if the PID parity was changed. 
-- fixed some mistakes in the lists for gender thresholds.
+- Fixed some mistakes in the lists for gender thresholds.
 - Corrected stats and move data across all lists.
 
 
