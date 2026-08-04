@@ -32,6 +32,7 @@ import { isPristineImportedRoundTripState, tryBuildPristineImportedOutputs, shou
 import { findNearestBoxNameCharacterAtTextOffset } from './lib/gen3/gbaTextPreview.js';
 import { getLegalSheenRangeGen3 } from './lib/gen3/contestSheen.js';
 import { getAllowedLevelUpMoveIdsForEncounter, shouldCapHatchedLevelUpMoves } from './lib/gen3/hatchedMoveLegality.js';
+import { getDirectWildMoveOverride } from './lib/gen3/wildMoveLegality.js';
 import { adjustShinySidForRSTrainerId, findNearestValidRSTrainerSid, isValidRSTrainerId } from './lib/gen3/rsTrainerId.js';
 import {
   ROAMER_GAMES_FOR_SPECIES,
@@ -66,9 +67,7 @@ const $ = sel => document.querySelector(sel);
 
 const WILD_ORIGIN_GAME_PRIORITY = [3, 4, 5, 2, 1]; // Emerald, FR/LG, Ruby/Sapphire
 const EVOLVED_UNHATCHED_EGG_EXCEPTIONS = new Set([183, 202]); // Marill, Wobbuffet
-const METAPOD_SPECIES_ID = 11;
 const ZUBAT_SPECIES_ID = 41;
-const HARDEN_MOVE_ID = 106;
 const EMERALD_ALTERING_CAVE_LOCATION_ID = 210;
 const DEOXYS_SPECIES_ID = 410;
 const CELEBI_SPECIES_ID = 251;
@@ -2732,8 +2731,14 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
     // No learnset data â†’ show everything
     baseMoves = MOVES;
   }
-  if (currentEncounterMode === 'wild' && Number(speciesId) === METAPOD_SPECIES_ID) {
-    baseMoves = MOVES.filter(([id]) => id === 0 || id === HARDEN_MOVE_ID);
+  const directWildMoveOverride = getDirectWildMoveOverride(
+    speciesId,
+    currentEncounterMode,
+    Boolean(WILD_ENCOUNTERS[speciesId])
+  );
+  if (directWildMoveOverride) {
+    const allowedMoveIds = new Set(directWildMoveOverride);
+    baseMoves = MOVES.filter(([id]) => id === 0 || allowedMoveIds.has(id));
     effectivePreserveValue = false;
   }
   baseMoves = sortMoveListAlphabetically(baseMoves);
