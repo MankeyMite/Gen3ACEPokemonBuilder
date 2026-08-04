@@ -62,5 +62,15 @@ assert.match(
   /return t === 'WISHMKR_BEST' \|\| t === 'WISHMKR_SHINY';/,
   'both WISHMKR distributions should use the fixed OT gender rule',
 );
+assert.match(mainSource, /getOtGenderLockPolicy\(\{/);
+
+const isEggListenerStart = mainSource.indexOf("isEggCheckbox.addEventListener('change'");
+const isEggListenerEnd = mainSource.indexOf('updateLegalityStatus();', isEggListenerStart);
+assert.ok(isEggListenerStart >= 0 && isEggListenerEnd > isEggListenerStart);
+assert.match(
+  mainSource.slice(isEggListenerStart, isEggListenerEnd),
+  /updateOtGenderLocking\(\)/,
+  'changing Pokémon Box egg state should refresh OT gender locking',
+);
 
 console.log('origin selection markup tests passed');

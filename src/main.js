@@ -60,6 +60,7 @@ import {
 } from './domain/nicknameLocalization.js';
 import { getSeedDerivedMysteryOtGender } from './domain/mysteryGiftOtGender.js';
 import { canSelectJapaneseLanguage } from './domain/languageAvailability.js';
+import { getOtGenderLockPolicy } from './domain/otGenderLocking.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -4593,6 +4594,7 @@ function boot(){
       }
       try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
       try { updateItemLockingForEgg(); } catch (e) {}
+      try { updateOtGenderLocking(); } catch (e) {}
       updateLegalityStatus();
     });
   }
@@ -5398,21 +5400,23 @@ function boot(){
     } catch (e) {}
   }
 
-  // Lock OT gender to Male for Colosseum/XD shadow encounters and WISHMKR
-  // mystery events unless Manual Override is enabled. Preserve unrelated OT
-  // gender locks by only unlocking when this rule previously applied the lock.
+  // Lock fixed Mystery Gift and Colosseum/XD OT genders in Legal Mode. Event
+  // rows and PID/RNG results may still update the value programmatically.
   function updateOtGenderLocking() {
     try {
       const otGenderEl = $('#otGender');
       if (!otGenderEl) return;
 
-      const shouldLockToMale = !manualOverrideActive && (
-        currentEncounterMode === 'cxd_shadow' ||
-        currentEncounterMode === 'cxd_trade' ||
-        isWishmkrMysteryEventSelected()
-      );
-      if (shouldLockToMale) {
-        otGenderEl.value = 'male';
+      const { tag, event } = getSelectedMysteryEvent();
+      const policy = getOtGenderLockPolicy({
+        encounterMode: currentEncounterMode,
+        manualOverride: manualOverrideActive,
+        mysteryTag: tag,
+        mysteryUsesHatcherTrainerData: Boolean(event?.usesHatcherTrainerData),
+        isEgg: shouldApplyIsEggOverrides(),
+      });
+      if (policy.locked) {
+        if (policy.forcedGender) otGenderEl.value = policy.forcedGender;
         otGenderEl.disabled = true;
         otGenderEl.style.pointerEvents = 'none';
         otGenderEl.style.opacity = '0.6';
