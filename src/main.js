@@ -8,7 +8,7 @@ import { MOVES } from './data/moves.gen3.js';
 import { BALLS } from './data/balls.gen3.js';
 import { LOCATIONS } from './data/locations.gen3.js';
 import { PID_PRESETS } from './data/pid_presets.gen3.js';
-import { STATIC_ENCOUNTERS, isLegendary, isRegiSpeciesId, isBreedable, isGiftPokemon, STATIC_CATEGORIES, STATIC_ENCOUNTER_LIST, STATIC_SPECIES_SET, getEncountersByCategory, getSpeciesForCategory, getGamesForStaticSpecies, getPreferredStaticOriginGame, getEncountersForSpeciesGame, getEncounterForSpecies } from './data/staticEncounters.gen3.js';
+import { STATIC_ENCOUNTERS, isRegiSpeciesId, STATIC_CATEGORIES } from './data/staticEncounters.gen3.js';
 import { getLegendaryPreset, isColosseumXDLegendary } from './data/legendaryPresets.gen3.js';
 import { buildPokemonBytes, toHexString, toFormattedHex, toBase64Emerald, coreSource, parsePokemonBytes, parseBase64Emerald, buildDecryptedPokemonFile, convertPk3CanonicalToEk3Raw, convertEk3RawToPk3Canonical, getPokerusStateFromStatus, getPokerusStatusFromState } from './lib/gen3/builder.js';
 import { GROUP, expForLevel, levelForExp } from './lib/exp.js';
@@ -19,12 +19,12 @@ import { LEARNSETS } from './data/learnsets.gen3.js';
 import { LEARNSETS_FRLG } from './data/learnsets.frlg.js';
 import { WILD_ENCOUNTERS } from './data/wildEncounters.gen3.js';
 import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
-import { buildWildWithEvolutions, getMinimumHatchedLevel, getWildAncestor, PRE_EVOLUTIONS } from './data/evolutions.gen3.js';
+import { getMinimumHatchedLevel, getWildAncestor, PRE_EVOLUTIONS } from './data/evolutions.gen3.js';
 import { PROFANITY_LIST } from './data/profanity.gen3.js';
 import { createProfanityFilter } from './lib/profanityFilter.js';
-import { CXD_SHADOW_ENCOUNTERS, CXD_SHADOW_SPECIES, getShadowEncountersForSpecies, isValidGCTidSid } from './data/shadowEncounters.gen3.js';
+import { isValidGCTidSid } from './data/shadowEncounters.gen3.js';
 import { COLO_SHADOW_LOCKS, XD_SHADOW_LOCKS, COLO_NO_LOCK_SPECIES, XD_NO_LOCK_SPECIES } from './data/cxdLocks.gen3.js';
-import { CXD_TRADE_SPECIES, getCXDTradeLocalizedText, getCXDTradesForSpecies } from './data/cxdTrades.gen3.js';
+import { getCXDTradeLocalizedText } from './data/cxdTrades.gen3.js';
 import { getSpritePath, getUnownFormIndex, getUnownFormChar, getUnownFormSuffix, getUnownSpritePath, getOnlineSpriteUrl, getOnlineUnownSpriteUrl, UNOWN_FORMS, TANOBY_FORMS_BY_LOCATION, getTanobyFormsForLocation, getTanobyLocationsForForm } from './data/nationalDex.gen3.js';
 import { GENDER_THRESHOLDS, getGenderThreshold } from './data/genderThresholds.gen3.js';
 import { isPristineImportedRoundTripState, tryBuildPristineImportedOutputs, shouldMarkImportedDirtyFromEvent, resolvePokerusStateForBuild } from './lib/gen3/importIsolation.js';
@@ -32,11 +32,29 @@ import { findNearestBoxNameCharacterAtTextOffset } from './lib/gen3/gbaTextPrevi
 import { getLegalSheenRangeGen3 } from './lib/gen3/contestSheen.js';
 import { getAllowedLevelUpMoveIdsForEncounter, shouldCapHatchedLevelUpMoves } from './lib/gen3/hatchedMoveLegality.js';
 import { adjustShinySidForRSTrainerId, findNearestValidRSTrainerSid, isValidRSTrainerId } from './lib/gen3/rsTrainerId.js';
+import {
+  ROAMER_GAMES_FOR_SPECIES,
+  ROAMER_SPECIES,
+  ROAMER_SPECIES_SET,
+  getRoamerMetLocation,
+  roamerHasTruncatedIVs,
+} from './data/roamers.gen3.js';
+import {
+  getAvailableOriginsForSpecies,
+  getMinimumLevelForEncounterEvolution,
+  getMysteryEventsForSpecies,
+  getOriginDefinition,
+  getOriginTransitionForSpecies,
+  getShadowEncountersForSpecies,
+  getSpeciesLineage,
+  getStaticEncountersForSpecies,
+  getSupportedSpecies,
+  getXDTradesForSpecies,
+  reconcileOriginForSpecies,
+} from './domain/encounterAvailability.js';
 
 const $ = sel => document.querySelector(sel);
 
-// Set of species IDs that can appear in wild mode (wild + their evolutions)
-const wildPlusEvos = buildWildWithEvolutions(WILD_ENCOUNTERS);
 const WILD_ORIGIN_GAME_PRIORITY = [3, 4, 5, 2, 1]; // Emerald, FR/LG, Ruby/Sapphire
 const EVOLVED_UNHATCHED_EGG_EXCEPTIONS = new Set([183, 202]); // Marill, Wobbuffet
 const METAPOD_SPECIES_ID = 11;
@@ -104,6 +122,7 @@ let _validateForm = null;
 let _updateContestSheenAuto = null;
 let _applyContestSpeciesRequirements = null;
 let _syncLegalModeToggle = null;
+let _syncPokemonFirstOriginUi = null;
 
 // Ensure a safe no-op exists early so callers from earlier code don't throw
 function updateMysterySpeciesOptions(/*tag*/) { return; }
@@ -801,14 +820,14 @@ function updateStatGraph() {
       try { checkShiny(); } catch (e) {}
       try { updateLegalityStatus(); } catch (e) {}
     }
-let currentEncounterMode = 'hatched';
+let currentEncounterMode = '';
 
 /** Return the selected XD in-game trade, or null outside trade mode. */
 function getSelectedCXDTrade() {
   if (currentEncounterMode !== 'cxd_trade') return null;
   const sel = document.getElementById('cxdTradeEncounter');
   if (!sel) return null;
-  const encounters = getCXDTradesForSpecies(Number($('#species').value) || 0);
+  const encounters = getXDTradesForSpecies(Number($('#species').value) || 0);
   return encounters[Number(sel.value) || 0] || null;
 }
 
@@ -848,6 +867,31 @@ let suppressUserChangeMark = false;
 let mysteryPresetAppliedFor = 0;
 // Whether the user has modified fields (other than nickname) since the preset was applied
 let mysteryUserModifiedSincePreset = false;
+let preserveSpeciesOnNextModeChange = false;
+let deferExactPresetOnNextModeChange = false;
+let selectedStaticEncounterDetail = null;
+
+function isCurrentOriginSelectionResolved() {
+  const speciesId = Number($('#species')?.value || 0);
+  if (!speciesId) return false;
+  if (currentEncounterMode === 'imported') return true;
+  const originMode = String($('#pokemonOrigin')?.value || '');
+  if (!originMode || originMode !== currentEncounterMode) return false;
+  const definition = getOriginDefinition(originMode);
+  if (!definition) return false;
+  if (!definition.requiresExactEncounter) return true;
+  if (originMode === 'mystery') return Boolean($('#mysteryEvent')?.value);
+  if (originMode === 'static') {
+    const availableEncounters = getStaticEncountersForSpecies(speciesId);
+    return Boolean(
+      $('#staticEncounter')?.value &&
+      availableEncounters.includes(selectedStaticEncounterDetail?.encounter) &&
+      Number(selectedStaticEncounterDetail.gameId) === Number($('#originGame')?.value || 0)
+    );
+  }
+  if (originMode === 'cxd_shadow') return Boolean($('#shadowEncounter')?.value);
+  return true;
+}
 
 const PID_PARITY_PREFERENCES = new Set(['any', 'even', 'odd']);
 const GBA_GEN3_ORIGIN_GAME_IDS = new Set([1, 2, 3, 4, 5]);
@@ -1003,6 +1047,42 @@ function setControlLockState(el, shouldLock, options = {}) {
   }
 }
 
+function getSelectedMysteryAvailability(speciesId = Number($('#species')?.value || 0)) {
+  const selectedTag = String(document.getElementById('mysteryEvent')?.value || '');
+  if (!speciesId || !selectedTag) return null;
+  const normalizedTag = selectedTag.toUpperCase();
+  return getMysteryEventsForSpecies(speciesId, MYSTERY_EVENTS, MYSTERY_GIFTS)
+    .find(candidate => String(candidate.tag || '').toUpperCase() === normalizedTag) || null;
+}
+
+function getCurrentOriginSourceSpeciesId(speciesId = Number($('#species')?.value || 0)) {
+  const targetId = Number(speciesId) || 0;
+  if (!targetId) return 0;
+
+  if (currentEncounterMode === 'wild') {
+    return getWildAncestor(targetId, WILD_ENCOUNTERS) || targetId;
+  }
+  if (currentEncounterMode === 'static') {
+    return Number(getSelectedStaticEncounter()?.species) || targetId;
+  }
+  if (currentEncounterMode === 'roamer') {
+    return getSpeciesLineage(targetId).find(sourceId => Boolean(ROAMER_SPECIES[sourceId])) || targetId;
+  }
+  if (currentEncounterMode === 'mystery') {
+    return Number(getSelectedMysteryAvailability(targetId)?.sourceSpeciesIds?.[0]) || targetId;
+  }
+  if (currentEncounterMode === 'cxd_shadow') {
+    const select = document.getElementById('shadowEncounter');
+    const encounters = getShadowEncountersForSpecies(targetId);
+    const encounter = select?.value === '' ? null : encounters[Number(select?.value) || 0];
+    return Number(encounter?.species) || targetId;
+  }
+  if (currentEncounterMode === 'cxd_trade') {
+    return Number(getSelectedCXDTrade()?.species) || targetId;
+  }
+  return targetId;
+}
+
 function getCurrentLevelFloor() {
   let floor = 1;
   const metLevel = Math.max(0, Math.min(100, Number($('#metLevel')?.value || 0)));
@@ -1029,6 +1109,19 @@ function getCurrentLevelFloor() {
     const speciesId = Number($('#species')?.value || 0);
     if (speciesId === 151) floor = Math.max(floor, 30);
     if (getSelectedStaticEncounter()?.isEgg) floor = Math.max(floor, IS_EGG_OVERRIDE_LEVEL);
+  }
+
+  const speciesId = Number($('#species')?.value || 0);
+  const sourceSpeciesId = getCurrentOriginSourceSpeciesId(speciesId);
+  if (speciesId && sourceSpeciesId && sourceSpeciesId !== speciesId) {
+    const selectedStatic = currentEncounterMode === 'static' ? getSelectedStaticEncounter() : null;
+    const sourceLevel = selectedStatic?.isEgg
+      ? Math.max(IS_EGG_OVERRIDE_LEVEL, 5)
+      : Math.max(1, metLevel);
+    floor = Math.max(
+      floor,
+      getMinimumLevelForEncounterEvolution(speciesId, sourceSpeciesId, sourceLevel)
+    );
   }
 
   try {
@@ -1079,18 +1172,37 @@ function getSelectedStaticEncounter() {
   if (currentEncounterMode !== 'static') return null;
   const speciesId = Number($('#species')?.value || 0);
   if (!speciesId) return null;
+  const exactSelect = document.getElementById('staticEncounter');
+  if (exactSelect && !exactSelect.value) return null;
+  const availableEncounters = getStaticEncountersForSpecies(speciesId);
+  if (availableEncounters.includes(selectedStaticEncounterDetail?.encounter)) {
+    return selectedStaticEncounterDetail.encounter;
+  }
   const currentGame = Number($('#originGame')?.value || 0);
-  return getEncounterForSpecies(speciesId, currentGame);
+  return availableEncounters.find(encounter =>
+    Array.isArray(encounter.games) && encounter.games.map(Number).includes(currentGame)
+  ) || availableEncounters[0] || null;
 }
 
 function getStaticAllowedOriginGames(speciesId) {
   const id = Number(speciesId) || 0;
   if (!id) return [];
 
-  const games = getGamesForStaticSpecies(id);
+  if (
+    getStaticEncountersForSpecies(id).includes(selectedStaticEncounterDetail?.encounter) &&
+    Number(selectedStaticEncounterDetail?.gameId)
+  ) {
+    return [Number(selectedStaticEncounterDetail.gameId)];
+  }
+  const selected = getSelectedStaticEncounter();
+  const encounters = selected ? [selected] : getStaticEncountersForSpecies(id);
+  const games = [...new Set(encounters.flatMap(encounter =>
+    Array.isArray(encounter.games) ? encounter.games.map(Number) : []
+  ))];
   if (games.length) return games;
 
-  const fallbackGame = Number(STATIC_ENCOUNTERS[id]?.defaultOriginGame || 0);
+  const sourceSpeciesId = Number(selected?.species || id);
+  const fallbackGame = Number(STATIC_ENCOUNTERS[sourceSpeciesId]?.defaultOriginGame || 0);
   return fallbackGame ? [fallbackGame] : [];
 }
 
@@ -1126,7 +1238,8 @@ function updateStaticOriginGameLocking(speciesId, options = {}) {
 
   let currentGame = Number(originGameSelect.value) || 0;
   if (preferDefaultGame || !allowedGames.includes(currentGame)) {
-    currentGame = getPreferredStaticOriginGame(speciesId) || allowedGames[0];
+    const preferredOrder = [3, 4, 5, 2, 1];
+    currentGame = preferredOrder.find(gameId => allowedGames.includes(gameId)) || allowedGames[0];
     originGameSelect.value = String(currentGame);
   }
 
@@ -1737,7 +1850,9 @@ function resolveMysteryBacdOtGender(result) {
   const seededGender = normalizeOtGenderValue(result?.otGender);
   if (seededGender) return seededGender;
 
-  const entries = Array.isArray(MYSTERY_GIFTS[tag]) ? MYSTERY_GIFTS[tag] : [];
+  const originSpeciesId = getCurrentOriginSourceSpeciesId();
+  const entries = (Array.isArray(MYSTERY_GIFTS[tag]) ? MYSTERY_GIFTS[tag] : [])
+    .filter(entry => entry?.species === undefined || Number(entry.species) === originSpeciesId);
   const resultPid = parseSeedLike(result?.pid);
   const resultSeed = parseSeedLike(result?.originSeed ?? result?.seed);
 
@@ -1815,40 +1930,6 @@ function updatePidFinderVisibility() {
   }
 
   try { updateBerryFixOtPreferenceUi(); } catch (e) {}
-}
-
-// ── Roamer encounter definitions ─────────────────────────────────
-// Maps each roamer species to its allowed games, level, and whether IVs are truncated.
-// Game IDs: 1=Sapphire, 2=Ruby, 3=Emerald, 4=FireRed, 5=LeafGreen
-const ROAMER_SPECIES = {
-  408: { name: 'Latios',  games: [2, 3], level: 40 },       // Ruby, Emerald
-  407: { name: 'Latias',  games: [1, 3], level: 40 },       // Sapphire, Emerald
-  243: { name: 'Raikou',  games: [4, 5], level: 50 },       // FRLG
-  244: { name: 'Entei',   games: [4, 5], level: 50 },       // FRLG
-  245: { name: 'Suicune', games: [4, 5], level: 50 },       // FRLG
-};
-// Roamer species that have the IV truncation bug (non-Emerald)
-// Emerald roamers do NOT truncate IVs.
-function roamerHasTruncatedIVs(speciesId, gameId) {
-  return !!(ROAMER_SPECIES[speciesId] && gameId !== 3);
-}
-// Maps game ID → which roamer species are available in that game
-const ROAMER_SPECIES_BY_GAME = {
-  1: [407],        // Sapphire: Latias
-  2: [408],        // Ruby: Latios
-  3: [407, 408],   // Emerald: Latias or Latios
-  4: [243, 244, 245], // FireRed: beasts
-  5: [243, 244, 245], // LeafGreen: beasts
-};
-// Maps species → which games allow that roamer
-const ROAMER_GAMES_FOR_SPECIES = {};
-for (const [sid, info] of Object.entries(ROAMER_SPECIES)) {
-  ROAMER_GAMES_FOR_SPECIES[Number(sid)] = info.games;
-}
-const ROAMER_SPECIES_SET = new Set(Object.keys(ROAMER_SPECIES).map(Number));
-// Roamer met location: 16 for RSE roamers, 101 for FRLG roamers
-function getRoamerMetLocation(speciesId) {
-  return [243, 244, 245].includes(speciesId) ? 101 : 16;
 }
 
 // Gender thresholds are now imported from ./data/genderThresholds.gen3.js
@@ -2734,6 +2815,8 @@ function highlightMissingFields({ scrollToFirst = true } = {}) {
   const tidEl = $('#tid');
   const sidEl = $('#sid');
   const pidFinderBtn = $('#pidFinderBtn');
+  const originSelect = document.getElementById('pokemonOrigin');
+  const originRow = document.getElementById('pokemonOriginRow');
 
   const speciesValue = speciesEl.value;
   const natureValue = natureEl.value;
@@ -2758,6 +2841,10 @@ function highlightMissingFields({ scrollToFirst = true } = {}) {
   otNameEl.classList.remove('field-error');
   tidEl?.classList.remove('field-error');
   sidEl?.classList.remove('field-error');
+  originRow?.classList.remove('field-error');
+  document.getElementById('mysteryEventRow')?.classList.remove('field-error');
+  document.getElementById('staticEncounterRow')?.classList.remove('field-error');
+  document.getElementById('shadowEncounter')?.closest('.row')?.classList.remove('field-error');
   if (pidFinderBtn) pidFinderBtn.classList.remove('field-error');
   
   let missingFields = [];
@@ -2776,6 +2863,19 @@ function highlightMissingFields({ scrollToFirst = true } = {}) {
   // Check each required field
   if (!speciesValue || speciesValue.trim() === '') {
     markMissing('Species', speciesErrorTarget, getFieldFocusTarget(speciesEl));
+  } else if (!isCurrentOriginSelectionResolved()) {
+    if (!originSelect?.value) {
+      markMissing('Origin', originRow, originSelect);
+    } else if (currentEncounterMode === 'mystery') {
+      const row = document.getElementById('mysteryEventRow');
+      markMissing('Distribution', row, document.getElementById('mysteryEvent'));
+    } else if (currentEncounterMode === 'static') {
+      const row = document.getElementById('staticEncounterRow');
+      markMissing('Encounter', row, document.getElementById('staticEncounter'));
+    } else if (currentEncounterMode === 'cxd_shadow') {
+      const field = document.getElementById('shadowEncounter');
+      markMissing('Trainer / Location', field?.closest('.row'), field);
+    }
   }
   
   if (!natureValue || natureValue.trim() === '') {
@@ -3030,6 +3130,236 @@ function boot(){
     try { syncPidParityPreferenceUi(); } catch (e) {}
   }
 
+  const ENCOUNTER_BODY_CLASSES = [
+    'encounter-hatched',
+    'encounter-wild',
+    'encounter-static',
+    'encounter-roamer',
+    'encounter-mystery',
+    'encounter-cxd_shadow',
+    'encounter-cxd_trade',
+    'encounter-imported',
+  ];
+
+  function syncEncounterModeBodyClasses(mode) {
+    for (const className of ENCOUNTER_BODY_CLASSES) {
+      document.body.classList.toggle(className, className === `encounter-${mode}`);
+    }
+  }
+
+  function getMysteryEventLabel(tag) {
+    const labels = {
+      '10ANNI': 'TOP 10 DISTRIBUTION POKÉMON',
+      MITSURIN_CELEBI: 'MITSURIN CELEBI',
+      AGETO_CELEBI: 'AGETO CELEBI',
+      WISHMKR_BEST: 'WISHMKR JIRACHI',
+      WISHMKR_SHINY: 'WISHMKR JIRACHI - ALL SHINY VERSIONS',
+      CHANNEL_JIRACHI: 'CHANNEL JIRACHI',
+      BOX_EVENT: 'POKÉMON BOX RUBY & SAPPHIRE',
+    };
+    const upperTag = String(tag || '').toUpperCase();
+    return labels[upperTag] || String(tag || '').replace(/_/g, ' ');
+  }
+
+  function getOriginGameLabel(gameId) {
+    const option = Array.from(document.querySelector('#originGame')?.options || [])
+      .find(candidate => Number(candidate.value) === Number(gameId));
+    return option?.textContent?.trim() || `Game ${gameId}`;
+  }
+
+  function getLocationLabel(locationId) {
+    return LOCATIONS.find(([id]) => Number(id) === Number(locationId))?.[1] || `Location ${locationId}`;
+  }
+
+  function clearExactEncounterSelections() {
+    selectedStaticEncounterDetail = null;
+    const mysterySelect = document.getElementById('mysteryEvent');
+    if (mysterySelect) mysterySelect.value = '';
+    const staticSelect = document.getElementById('staticEncounter');
+    if (staticSelect) staticSelect.innerHTML = '<option value="">— Select encounter —</option>';
+    const shadowSelect = document.getElementById('shadowEncounter');
+    if (shadowSelect) shadowSelect.innerHTML = '<option value="">— Select trainer / location —</option>';
+    const tradeSelect = document.getElementById('cxdTradeEncounter');
+    if (tradeSelect) tradeSelect.innerHTML = '';
+    mysteryPresetAppliedFor = 0;
+    mysteryUserModifiedSincePreset = false;
+  }
+
+  function populateMysteryEventsForSpecies(speciesId, selectedTag = '') {
+    const select = document.getElementById('mysteryEvent');
+    if (!select) return;
+    const events = getMysteryEventsForSpecies(speciesId, MYSTERY_EVENTS, MYSTERY_GIFTS);
+    select.innerHTML = '<option value="">— Select distribution —</option>';
+    for (const { tag, sourceSpeciesIds = [] } of events) {
+      const option = document.createElement('option');
+      option.value = tag;
+      const sourceNames = sourceSpeciesIds
+        .filter(sourceId => Number(sourceId) !== Number(speciesId))
+        .map(sourceId => SPECIES.find(([id]) => Number(id) === Number(sourceId))?.[1])
+        .filter(Boolean);
+      option.textContent = `${getMysteryEventLabel(tag)}${sourceNames.length ? ` — from ${sourceNames.join(' / ')}` : ''}`;
+      select.appendChild(option);
+    }
+    select.value = events.some(event => event.tag === selectedTag) ? selectedTag : '';
+  }
+
+  function populateStaticEncountersForSpecies(speciesId, selectedValue = '') {
+    const select = document.getElementById('staticEncounter');
+    if (!select) return;
+    const encounters = getStaticEncountersForSpecies(speciesId);
+    select.innerHTML = '<option value="">— Select encounter —</option>';
+    encounters.forEach((encounter, encounterIndex) => {
+      for (const gameId of encounter.games || []) {
+        const option = document.createElement('option');
+        option.value = `${encounterIndex}:${Number(gameId)}`;
+        const category = STATIC_CATEGORIES.find(item => item.id === encounter.category)?.label || 'Static';
+        const sourceName = SPECIES.find(([id]) => Number(id) === Number(encounter.species))?.[1] || 'Pokémon';
+        const sourcePrefix = Number(encounter.species) === Number(speciesId) ? '' : `${sourceName} — `;
+        option.textContent = `${sourcePrefix}${category} — ${getOriginGameLabel(gameId)} — ${getLocationLabel(encounter.location)} — Lv${encounter.level}`;
+        select.appendChild(option);
+      }
+    });
+    select.value = Array.from(select.options).some(option => option.value === selectedValue) ? selectedValue : '';
+    if (!select.value) {
+      selectedStaticEncounterDetail = null;
+      const categorySelect = document.getElementById('staticCategory');
+      if (categorySelect) categorySelect.value = '';
+    }
+  }
+
+  function getSelectedStaticOriginEncounter() {
+    if (currentEncounterMode !== 'static') return null;
+    const select = document.getElementById('staticEncounter');
+    if (!select?.value) return null;
+    const [encounterIndexText, gameIdText] = String(select.value).split(':');
+    const encounters = getStaticEncountersForSpecies(Number($('#species')?.value || 0));
+    const encounter = encounters[Number(encounterIndexText)];
+    const gameId = Number(gameIdText);
+    if (!encounter || !(encounter.games || []).map(Number).includes(gameId)) return null;
+    return { encounter, gameId };
+  }
+
+  function hasResolvedOriginSelection() {
+    return isCurrentOriginSelectionResolved();
+  }
+
+  function syncPokemonFirstOriginUi(speciesId, options = {}) {
+    const originRow = document.getElementById('pokemonOriginRow');
+    const originSelect = document.getElementById('pokemonOrigin');
+    const internalModeSelect = document.getElementById('encounterMode');
+    const description = document.getElementById('encounterModeDescription');
+    if (!originRow || !originSelect) return;
+
+    const id = Number(speciesId) || 0;
+    if (currentEncounterMode === 'imported') {
+      originRow.hidden = !id;
+      originSelect.disabled = true;
+      originSelect.innerHTML = '<option value="imported">Imported / Custom</option>';
+      originSelect.value = 'imported';
+      if (internalModeSelect) internalModeSelect.value = 'imported';
+      if (description) description.hidden = false;
+      setEncounterModeDescription('imported');
+      return;
+    }
+
+    originSelect.disabled = false;
+    originRow.hidden = !id;
+    const availableOrigins = id
+      ? getAvailableOriginsForSpecies(id, { mysteryEvents: MYSTERY_EVENTS, mysteryGifts: MYSTERY_GIFTS })
+      : [];
+    const requestedMode = options.preserveCurrent === false
+      ? ''
+      : reconcileOriginForSpecies(id, String(options.mode ?? currentEncounterMode), {
+          mysteryEvents: MYSTERY_EVENTS,
+          mysteryGifts: MYSTERY_GIFTS,
+        });
+
+    originSelect.innerHTML = '<option value="">— Select origin —</option>';
+    for (const origin of availableOrigins) {
+      const option = document.createElement('option');
+      option.value = origin.mode;
+      option.textContent = origin.label;
+      originSelect.appendChild(option);
+    }
+    originSelect.value = requestedMode;
+    if (internalModeSelect) internalModeSelect.value = requestedMode;
+    if (description) description.hidden = !requestedMode;
+    if (requestedMode) setEncounterModeDescription(requestedMode);
+
+    if (requestedMode === 'mystery') {
+      populateMysteryEventsForSpecies(id, options.preserveExact ? String($('#mysteryEvent')?.value || '') : '');
+    } else if (requestedMode === 'static') {
+      populateStaticEncountersForSpecies(id, options.preserveExact ? String($('#staticEncounter')?.value || '') : '');
+    }
+  }
+
+  _syncPokemonFirstOriginUi = syncPokemonFirstOriginUi;
+
+  function prepareOriginForSpeciesChange(speciesId, importedMode) {
+    if (importedMode) return { deferExact: false, applyAutomaticPreset: false };
+
+    const previousMode = String($('#pokemonOrigin')?.value || currentEncounterMode || '');
+    const transition = getOriginTransitionForSpecies(speciesId, previousMode, {
+      mysteryEvents: MYSTERY_EVENTS,
+      mysteryGifts: MYSTERY_GIFTS,
+      manualOverride: manualOverrideActive,
+    });
+    const nextMode = transition.mode;
+
+    for (const key of Object.keys(encounterModeStateCache)) delete encounterModeStateCache[key];
+    if (hasPidFinderSelectionState()) unlockPidFinderFields({ clearPid: true });
+
+    if (!manualOverrideActive) {
+      resetAllModeState();
+      $('#species').value = String(speciesId);
+    } else {
+      clearGeneratedOutputs();
+    }
+
+    currentEncounterMode = nextMode;
+    const internalModeSelect = document.getElementById('encounterMode');
+    if (internalModeSelect) internalModeSelect.value = nextMode;
+    syncEncounterModeBodyClasses(nextMode);
+    clearExactEncounterSelections();
+    return {
+      deferExact: transition.requiresExactEncounter,
+      applyAutomaticPreset: transition.applyAutomaticPreset,
+      nextMode,
+    };
+  }
+
+  function syncBuilderProgressiveDisclosure(resolved = isCurrentOriginSelectionResolved()) {
+    const speciesId = Number($('#species')?.value || 0);
+    const originMode = String($('#pokemonOrigin')?.value || '');
+    const stage = document.getElementById('builderSetupStage');
+    const guidance = document.getElementById('builderSetupGuidance');
+    const basicsCard = document.getElementById('basicsCard');
+
+    document.body.classList.toggle('builder-setup-pending', !resolved);
+    stage?.classList.toggle('is-complete', resolved);
+    guidance?.classList.toggle('is-complete', resolved);
+    basicsCard?.setAttribute('data-setup-complete', resolved ? 'true' : 'false');
+
+    if (!guidance) return;
+    if (resolved && currentEncounterMode === 'imported') {
+      guidance.textContent = 'Imported Pokémon loaded. Review or customize its details below.';
+    } else if (resolved) {
+      guidance.textContent = 'Setup complete. You can now customize the Pokémon below.';
+    } else if (!speciesId) {
+      guidance.textContent = 'Start by choosing the Pokémon you want to create.';
+    } else if (!originMode) {
+      guidance.textContent = 'Now choose how this Pokémon was obtained.';
+    } else if (originMode === 'mystery') {
+      guidance.textContent = 'Choose the exact distribution to continue.';
+    } else if (originMode === 'static') {
+      guidance.textContent = 'Choose the exact encounter to continue.';
+    } else if (originMode === 'cxd_shadow') {
+      guidance.textContent = 'Choose the trainer and location to continue.';
+    } else {
+      guidance.textContent = 'Finish the origin setup to continue.';
+    }
+  }
+
   // Form validation - check if generate button should be enabled
   function validateForm() {
     const speciesValue = $('#species').value;
@@ -3055,6 +3385,8 @@ function boot(){
     const hasLegalRSTrainerId = getRSTrainerIdValidation().valid;
     const hasRequiredParityPid = hasRequiredPidFinderForPidParitySelection();
     const hasRequiredCXDTradePid = hasRequiredCXDTradePidFinderSelection();
+    const hasResolvedOrigin = hasResolvedOriginSelection();
+    syncBuilderProgressiveDisclosure(hasResolvedOrigin);
 
     if (pidFinderBtn && hasMysteryGiftLegalPid) {
       pidFinderBtn.classList.remove('field-error');
@@ -3068,7 +3400,7 @@ function boot(){
     
     // Enable generate button only if all conditions are met
     const generateBtn = $('#generateBtn');
-    if (hasSpecies && hasNature && hasMove && hasOTName && hasMysteryGiftLegalPid && hasLegalRSTrainerId && hasRequiredParityPid && hasRequiredCXDTradePid) {
+    if (hasSpecies && hasResolvedOrigin && hasNature && hasMove && hasOTName && hasMysteryGiftLegalPid && hasLegalRSTrainerId && hasRequiredParityPid && hasRequiredCXDTradePid) {
       generateBtn.setAttribute('data-disabled', 'false');
     } else {
       generateBtn.setAttribute('data-disabled', 'true');
@@ -3083,6 +3415,7 @@ function boot(){
     if (currentEncounterMode === 'imported') {
       updateSpeciesSprite(speciesId);
       updateUnownFormVisibility(speciesId);
+      syncPokemonFirstOriginUi(speciesId, { mode: 'imported' });
       validateForm();
       return;
     }
@@ -3106,10 +3439,10 @@ function boot(){
     const mode = currentEncounterMode;
     
     // Return unknown status if essential fields are not set
-    if (!speciesId || natureValue === null || natureValue === undefined || natureValue === '') {
+    if (!speciesId || !isCurrentOriginSelectionResolved() || natureValue === null || natureValue === undefined || natureValue === '') {
       return {
         legal: false,
-        errors: ['Please select a Pokémon and Nature to check legality'],
+        errors: ['Please select a Pokémon, its origin, any required encounter, and a Nature to check legality'],
         unknown: true
       };
     }
@@ -3122,6 +3455,10 @@ function boot(){
     // Level must be at or above met level (applies to all modes)
     if (level < metLevel) {
       errors.push('Current level cannot be lower than met level');
+    }
+    const originLevelFloor = getCurrentLevelFloor();
+    if (level < originLevelFloor && mode !== 'imported') {
+      errors.push(`Current level must be at least ${originLevelFloor} for this Pokémon to have evolved from the selected origin`);
     }
 
     if (speciesId === MILOTIC_SPECIES_ID && clampContestByte($('#contestBeauty')?.value) < MILOTIC_MIN_BEAUTY) {
@@ -3220,7 +3557,7 @@ function boot(){
     } else if (mode === 'cxd_trade') {
       const trade = getSelectedCXDTrade();
       const tradeName = SPECIES.find(entry => Number(entry[0]) === speciesId)?.[1] || 'Pokémon';
-      if (!trade || trade.species !== speciesId) {
+      if (!trade || !getXDTradesForSpecies(speciesId).includes(trade)) {
         errors.push('Select a valid Pokémon XD in-game trade');
       } else {
         const originGame = Number($('#originGame')?.value || 0);
@@ -3253,9 +3590,15 @@ function boot(){
           errors.push('XD in-game trade Pokémon cannot be shiny');
         }
       }
-    } else if (mode === 'static' && STATIC_ENCOUNTERS[speciesId]) {
+    } else if (
+      mode === 'static' &&
+      getSelectedStaticEncounter() &&
+      STATIC_ENCOUNTERS[Number(getSelectedStaticEncounter().species)]
+    ) {
       // Legendary mode rules
-      const encounter = STATIC_ENCOUNTERS[speciesId];
+      const detailedStaticEncounter = getSelectedStaticEncounter();
+      const originSpeciesId = Number(detailedStaticEncounter.species);
+      const encounter = STATIC_ENCOUNTERS[originSpeciesId];
       const originGame = Number($('#originGame')?.value || 0);
       const allowedOriginGames = getStaticAllowedOriginGames(speciesId);
       const hasInvalidStaticOrigin = allowedOriginGames.length && !allowedOriginGames.includes(originGame);
@@ -3300,8 +3643,9 @@ function boot(){
       }
       
       // Check met level
-      if (encounter.defaultMetLevel && metLevel !== encounter.defaultMetLevel) {
-        errors.push(`Met level must be ${encounter.defaultMetLevel} for this legendary`);
+      const expectedStaticMetLevel = Number(detailedStaticEncounter.level ?? encounter.defaultMetLevel);
+      if (Number.isFinite(expectedStaticMetLevel) && metLevel !== expectedStaticMetLevel) {
+        errors.push(`Met level must be ${expectedStaticMetLevel} for this static encounter`);
       }
       
       // Check EVs if level equals met level with base EXP (same logic as hatched mode)
@@ -3340,7 +3684,7 @@ function boot(){
       } else {
         // Non-fixed legendaries use preset IVs based on nature
         const natureIndex = Number($('#nature').value || 0);
-        const originGame = encounter.defaultOriginGame || 2;
+        const originGame = Number($('#originGame')?.value || encounter.defaultOriginGame || 2);
         const preset = getLegendaryPreset(natureIndex, originGame);
         if (preset && preset.ivs) {
           expectedIVs = preset.ivs;
@@ -3485,7 +3829,10 @@ function boot(){
       }
       // For other legendaries, check against default origin game
       else if (encounter.defaultOriginGame !== undefined) {
-        if (currentOriginGame !== encounter.defaultOriginGame) {
+        const exactGames = Array.isArray(detailedStaticEncounter.games)
+          ? detailedStaticEncounter.games.map(Number)
+          : [Number(encounter.defaultOriginGame)];
+        if (!exactGames.includes(currentOriginGame)) {
           errors.push('Origin game cannot be changed for this legendary Pokémon');
         }
       }
@@ -3815,11 +4162,12 @@ function boot(){
   });
 
   // Create autocomplete fields for searchable dropdowns
-  speciesAutocomplete = createAutocomplete($('#species'), SPECIES, {
+  speciesAutocomplete = createAutocomplete($('#species'), getSupportedSpecies(), {
     blurOnSelect: true,
     onSelect: (item) => {
       const speciesId = Number(item.id);
       const importedMode = currentEncounterMode === 'imported';
+      const originTransition = prepareOriginForSpeciesChange(speciesId, importedMode);
       // Keep imported nickname bytes authoritative unless user edits nickname directly.
       if (!importedMode) {
         const species = SPECIES.find(s => s[0] === speciesId);
@@ -3900,7 +4248,15 @@ function boot(){
       // Reset PID Finder locks when species changes (result is no longer valid)
       if (!importedMode && hasPidFinderSelectionState()) unlockPidFinderFields({ clearPid: true });
       // Always update gender dropdown for selected species
-      if (!importedMode) handleEncounterModeChange(speciesId);
+      if (!importedMode && currentEncounterMode) {
+        const previousSuppressPresetApply = suppressPresetApply;
+        if (!originTransition.applyAutomaticPreset) suppressPresetApply = true;
+        try {
+          handleEncounterModeChange(speciesId);
+        } finally {
+          suppressPresetApply = previousSuppressPresetApply;
+        }
+      }
       if (!importedMode && currentEncounterMode === 'static') {
         try { updateTidSidLocking(); } catch (e) {}
         try { updateMetLevelLocking(); } catch (e) {}
@@ -3925,6 +4281,11 @@ function boot(){
         const tag = document.getElementById('mysteryEvent')?.value || '';
         if (tag) applyMysteryPresetForSpecies(speciesId);
       }
+      syncPokemonFirstOriginUi(speciesId, {
+        mode: currentEncounterMode,
+        preserveCurrent: true,
+        preserveExact: false,
+      });
       try { updateContestSheenAuto({ markImportedDirty: true }); } catch (e) {}
       try { updateShinyCheckboxState(); } catch (e) {}
       try { updateMakeShinyButton(); } catch (e) {}
@@ -3933,7 +4294,7 @@ function boot(){
     }
   });
   
-  // Apply initial species filter for default mode (breedable)
+  // Keep the searchable Pokémon selector independent of encounter origin.
   updateSpeciesListForMode();
   // Filter out items with IDs 259-288 and 339-376
   const filteredItems = ITEMS.filter(([id, name]) => {
@@ -4065,6 +4426,14 @@ function boot(){
   });
   $('#species').addEventListener('input', () => {
     clearMakeShinyUndoState();
+    if (currentEncounterMode !== 'imported' && !$('#species').value) {
+      currentEncounterMode = '';
+      const internalModeSelect = document.getElementById('encounterMode');
+      if (internalModeSelect) internalModeSelect.value = '';
+      syncEncounterModeBodyClasses('');
+      clearExactEncounterSelections();
+      syncPokemonFirstOriginUi(0, { preserveCurrent: false });
+    }
     validateForm();
     updateLegalityStatus();
     try { computeAndSetExpFromLevel(); } catch (e) {}
@@ -4269,12 +4638,33 @@ function boot(){
       const speciesId = Number($('#species').value) || 0;
       if (speciesId) {
         updateStaticOriginGameLocking(speciesId);
-        if (!pidFinderResultActive) applyStaticEncounterPreset(speciesId);
+        let selected = getSelectedStaticOriginEncounter();
+        const selectedGameId = Number(newGame);
+        if (selected && selected.gameId !== selectedGameId) {
+          const staticSelect = document.getElementById('staticEncounter');
+          const encounterIndex = String(staticSelect?.value || '').split(':')[0];
+          const replacementValue = `${encounterIndex}:${selectedGameId}`;
+          if ((selected.encounter.games || []).map(Number).includes(selectedGameId) &&
+              Array.from(staticSelect?.options || []).some(option => option.value === replacementValue)) {
+            staticSelect.value = replacementValue;
+            selected = { encounter: selected.encounter, gameId: selectedGameId };
+          } else {
+            if (staticSelect) staticSelect.value = '';
+            selected = null;
+          }
+        }
+        selectedStaticEncounterDetail = selected;
+        if (!pidFinderResultActive && !manualOverrideActive && selected) {
+          applyStaticEncounterPreset(speciesId, {
+            detailedEncounter: selected.encounter,
+            gameId: selected.gameId,
+          });
+        }
         updateMovesForSpecies(speciesId, { preserveValue: true });
       }
-      try { updateTidSidLocking(); } catch (e) {}
-      try { updateMetLevelLocking(); } catch (e) {}
-      try { updateBallLocking(); } catch (e) {}
+      updateTidSidLocking();
+      updateMetLevelLocking();
+      updateBallLocking();
       refreshOriginDependentLegality();
       return;
     }
@@ -4555,21 +4945,97 @@ function boot(){
   // Simple/advanced mode selector removed: keep PID lock state refreshed.
   try { updatePidLocking(); } catch (e) {}
 
-  // Setup encounter mode dropdown (was radio buttons)
+  const pokemonOriginSelect = document.querySelector('#pokemonOrigin');
+  if (pokemonOriginSelect) {
+    pokemonOriginSelect.addEventListener('change', () => {
+      const speciesId = Number($('#species')?.value || 0);
+      const nextMode = String(pokemonOriginSelect.value || '');
+      if (!speciesId || !nextMode) {
+        currentEncounterMode = '';
+        const internalModeSelect = document.getElementById('encounterMode');
+        if (internalModeSelect) internalModeSelect.value = '';
+        syncEncounterModeBodyClasses('');
+        clearExactEncounterSelections();
+        const description = document.getElementById('encounterModeDescription');
+        if (description) description.hidden = true;
+        validateForm();
+        return;
+      }
+
+      const available = getAvailableOriginsForSpecies(speciesId, {
+        mysteryEvents: MYSTERY_EVENTS,
+        mysteryGifts: MYSTERY_GIFTS,
+      });
+      const selectedOrigin = available.find(origin => origin.mode === nextMode);
+      if (!selectedOrigin) {
+        pokemonOriginSelect.value = '';
+        validateForm();
+        return;
+      }
+
+      clearExactEncounterSelections();
+      if (selectedOrigin.requiresExactEncounter) delete encounterModeStateCache[nextMode];
+      preserveSpeciesOnNextModeChange = true;
+      deferExactPresetOnNextModeChange = selectedOrigin.requiresExactEncounter;
+      const internalModeSelect = document.getElementById('encounterMode');
+      if (internalModeSelect) {
+        internalModeSelect.value = nextMode;
+        internalModeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      syncPokemonFirstOriginUi(speciesId, {
+        mode: nextMode,
+        preserveCurrent: true,
+        preserveExact: false,
+      });
+      validateForm();
+      updateLegalityStatus();
+    });
+  }
+
+  // The legacy encounter-mode control remains as the internal mode switch.
   const encounterModeSelect = document.querySelector('#encounterMode');
   if (encounterModeSelect) {
     encounterModeSelect.addEventListener('change', (e) => {
       const previousMode = currentEncounterMode;
-      const nextMode = String(e.target.value || 'hatched');
+      const nextMode = String(e.target.value || '');
+      const selectedSpeciesId = Number($('#species')?.value || 0);
+      const preservedSpeciesIdentity = {
+        nickname: String($('#nickname')?.value || ''),
+        otName: String($('#otName')?.value || ''),
+        language: String($('#language')?.value || ''),
+      };
+      const shouldPreserveSpecies = preserveSpeciesOnNextModeChange;
+      const shouldDeferExactPreset = deferExactPresetOnNextModeChange;
+      const shouldPreserveManualValues = shouldPreserveSpecies && manualOverrideActive;
+      preserveSpeciesOnNextModeChange = false;
+      deferExactPresetOnNextModeChange = false;
       // Save current mode edits before switching away
       try {
-        encounterModeStateCache[previousMode] = captureCurrentEncounterModeState();
+        if (previousMode) encounterModeStateCache[previousMode] = captureCurrentEncounterModeState();
       } catch (ee) {}
-      const savedNextModeState = encounterModeStateCache[nextMode] || null;
+      const cachedNextModeState = encounterModeStateCache[nextMode] || null;
+      const savedNextModeState = cachedNextModeState && (
+        !shouldPreserveSpecies || Number(cachedNextModeState.fields?.species || 0) === selectedSpeciesId
+      ) ? cachedNextModeState : null;
+      const restorePreservedSelection = () => {
+        if (shouldPreserveSpecies && selectedSpeciesId) $('#species').value = String(selectedSpeciesId);
+        if (shouldPreserveSpecies && $('#nickname')) $('#nickname').value = preservedSpeciesIdentity.nickname;
+        if (shouldPreserveSpecies && $('#otName')) $('#otName').value = preservedSpeciesIdentity.otName;
+        if (shouldPreserveSpecies && preservedSpeciesIdentity.language && $('#language')) {
+          $('#language').value = preservedSpeciesIdentity.language;
+        }
+        if (shouldPreserveManualValues) {
+          manualOverrideActive = true;
+          const override = document.getElementById('manualOverride');
+          if (override) override.checked = true;
+          _syncLegalModeToggle?.();
+        }
+      };
       // For first-time mode visits, hard reset to a clean slate
-      if (!savedNextModeState) {
+      if (!savedNextModeState && !shouldPreserveManualValues) {
         try { clearMakeShinyUndoState(nextMode); } catch (ee) {}
         try { resetAllModeState(); } catch (ee) {}
+        restorePreservedSelection();
       }
       // Restore Origin Game dropdown options when leaving wild mode
       try { resetOriginGameOptions(); } catch (ee) {}
@@ -4611,15 +5077,7 @@ function boot(){
       }
       currentEncounterMode = nextMode;
       try { clearGeneratedOutputs(); } catch (e) {}
-      // Add body classes for special encounter modes so CSS/JS can adjust visibility
-      document.body.classList.toggle('encounter-hatched', currentEncounterMode === 'hatched');
-      document.body.classList.toggle('encounter-wild', currentEncounterMode === 'wild');
-      document.body.classList.toggle('encounter-static', currentEncounterMode === 'static');
-      document.body.classList.toggle('encounter-roamer', currentEncounterMode === 'roamer');
-      document.body.classList.toggle('encounter-mystery', currentEncounterMode === 'mystery');
-      document.body.classList.toggle('encounter-cxd_shadow', currentEncounterMode === 'cxd_shadow');
-      document.body.classList.toggle('encounter-cxd_trade', currentEncounterMode === 'cxd_trade');
-      document.body.classList.toggle('encounter-imported', currentEncounterMode === 'imported');
+      syncEncounterModeBodyClasses(currentEncounterMode);
       
       // Filter species list based on encounter mode
       updateSpeciesListForMode();
@@ -4632,16 +5090,23 @@ function boot(){
       // Restore saved edits for this mode (if any), else keep the clean reset.
       if (savedNextModeState) {
         try { applyEncounterModeState(savedNextModeState); } catch (e) {}
-      } else {
+      } else if (!shouldPreserveManualValues) {
         try { resetAllModeState(); } catch (e) {}
       }
+      restorePreservedSelection();
       
       // When changing encounter mode, update the Pokémon if needed
       const speciesId = Number($('#species').value) || 0;
       try { updateAbilitySelect(speciesId); } catch (e) {}
       try { updateUnownFormVisibility(speciesId); } catch (e) {}
       try { updateSpeciesSprite(speciesId); } catch (e) {}
-      handleEncounterModeChange(speciesId);
+      const previousSuppressPresetApply = suppressPresetApply;
+      if (shouldDeferExactPreset || shouldPreserveManualValues) suppressPresetApply = true;
+      try {
+        handleEncounterModeChange(speciesId);
+      } finally {
+        suppressPresetApply = previousSuppressPresetApply;
+      }
 
       // Second pass restore so mode presets/handlers don't overwrite saved edits.
       if (savedNextModeState) {
@@ -4672,6 +5137,11 @@ function boot(){
       }
       // Update human-readable description under the selector
       try { setEncounterModeDescription(currentEncounterMode); } catch (e) {}
+      syncPokemonFirstOriginUi(finalSpeciesId, {
+        mode: currentEncounterMode,
+        preserveCurrent: true,
+        preserveExact: !shouldDeferExactPreset,
+      });
       try { updateIsEggVisibility(); } catch (e) {}
       try { updateMetLevelLocking(); } catch (e) {}
       try {
@@ -4784,7 +5254,13 @@ function boot(){
           } else {
             // Re-apply mode-specific gender locking
             const speciesId = Number($('#species').value) || 0;
-            handleEncounterModeChange(speciesId);
+            const previousSuppressPresetApply = suppressPresetApply;
+            suppressPresetApply = true;
+            try {
+              handleEncounterModeChange(speciesId);
+            } finally {
+              suppressPresetApply = previousSuppressPresetApply;
+            }
           }
         }
       } catch (e) {}
@@ -4801,12 +5277,12 @@ function boot(){
     const el = document.getElementById('encounterModeDescription');
     if (!el) return;
     const map = {
-      hatched: {label: 'Hatched', color: '#10b981', text: 'Pokémon that came from eggs, and not met in the wild. This mode is recommended for any Pokemon that can be obtained through breeding, as it allows full customization for IVs, shinyness, TID and SID.'},
-      static: {label: 'Static', color: '#f59e0b', text: 'All static encounters: starters, fossils, gifts, game corner, stationary, legends, and events. Use the Find Legal Encounter button in Encounter details to create a legal Pokémon with your preferred PID, IVs, and shininess.'},
+      hatched: {label: 'Hatched / evolved from an Egg', color: '#10b981', text: 'Use this for Pokémon hatched from an Egg or evolved from one. Egg-origin met data and legality rules are applied; customizable trainer and PID fields remain available where legal.'},
+      static: {label: 'Static encounter', color: '#f59e0b', text: 'Choose the exact starter, fossil, gift, Game Corner, stationary, legendary, or ticket encounter. Its game, location, level, ball, and other fixed values are applied by the existing static preset logic.'},
       roamer: {label: 'Roamer', color: '#e879f9', text: 'Roaming legendaries (Latios, Latias, Raikou, Entei, Suicune). Uses Method 1 PID generation. Non-Emerald roamers have the IV truncation bug (only HP and partial ATK IVs are kept; DEF/SPE/SPA/SPD are forced to 0).'},
-      wild: {label: 'Wild', color: '#60a5fa', text: 'Wild encounters (in the overworld). Recommended only if you prefer it looking like it was RNG manipulated. Uses Method H-1, H-2, and H-4 encounter slots to aim for best IVs per nature for each species. Use the Find Legal Encounter button in Encounter details to create a legal Pokémon with your preferred PID, IVs, and shininess.'},
-      mystery: {label: 'Mystery Gifts', color: '#ef476f', text: 'Get Distribution Event Pokémon with event-accurate legality rules. Illegal fields are locked automatically, and only unlocked fields can be edited. Most events require selecting a result from Find Legal Encounter before generating a code.'},
-      cxd_shadow: {label: 'XD / Colosseum', color: '#a78bfa', text: 'Shadow Pokémon from Pokémon XD: Gale of Darkness and Pokémon Colosseum. Choose a species and encounter location, then use the PID Finder with CXD method. TID and SID must be a valid GameCube RNG pair.'},
+      wild: {label: 'Wild-caught / evolved from wild', color: '#60a5fa', text: 'Use this for a wild-caught Pokémon or one evolved from a wild ancestor. Origin game, location, level, encounter-slot, and Method H filtering continue to use the existing wild encounter data.'},
+      mystery: {label: 'Mystery Gift', color: '#ef476f', text: 'Choose the exact distribution for this Pokémon. Fixed OT, IDs, language, level, ball, fateful flag, moves, PID method, and shiny rules are applied from the existing event data.'},
+      cxd_shadow: {label: 'Pokémon Colosseum / XD', color: '#a78bfa', text: 'Choose the exact trainer and location for this Shadow Pokémon. Game, level, moves, fateful flag, shiny lock, and CXD PID requirements continue to use the existing encounter preset.'},
       cxd_trade: {label: 'XD In-Game Trade', color: '#38bdf8', text: 'Pokémon received from an in-game trade in Pokémon XD. Fixed trade data is applied automatically; use the PID Finder with CXD method for a correlated PID, IV spread, and ability slot.'},
       imported: {label: 'Imported', color: '#94a3b8', text: 'Pokémon imported from external data. Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from UI fields. This matters for glitched bytes the UI cannot safely represent.'}
     };
@@ -5258,9 +5734,7 @@ function boot(){
             setBallLockState(true);
           } else if (currentEncounterMode === 'wild' || currentEncounterMode === 'static' || currentEncounterMode === 'roamer') {
             // Check if this static encounter has a fixed ball (starters, gifts, fossils, game corner)
-            const speciesId = Number($('#species')?.value || 0);
-            const currentGame = Number($('#originGame')?.value || 0);
-            const detEnc = currentEncounterMode === 'static' ? getEncounterForSpecies(speciesId, currentGame) : null;
+            const detEnc = currentEncounterMode === 'static' ? getSelectedStaticEncounter() : null;
             if (detEnc && detEnc.fixedBall) {
               // Fixed ball: force it and lock
               if (ballEl.updateList) ballEl.updateList(BALLS);
@@ -5508,9 +5982,10 @@ function boot(){
     try {
       if (currentEncounterMode === 'mystery') {
         const tag = document.getElementById('mysteryEvent')?.value || '';
+        const originSpeciesId = getCurrentOriginSourceSpeciesId(speciesId);
         if (tag && MYSTERY_EVENTS[tag]) candidates.push(MYSTERY_EVENTS[tag]);
         if (tag && MYSTERY_GIFTS[tag]) {
-          candidates.push((MYSTERY_GIFTS[tag] || []).find(entry => Number(entry.species) === speciesId));
+          candidates.push((MYSTERY_GIFTS[tag] || []).find(entry => Number(entry.species) === originSpeciesId));
         }
       }
     } catch (e) {}
@@ -5885,74 +6360,56 @@ function boot(){
         // Populate event select from events object keys (fallback to tags found in pokemon)
         const eventSel = document.getElementById('mysteryEvent');
         if (eventSel) {
-          eventSel.innerHTML = '';
-          const placeholderOpt = document.createElement('option');
-          placeholderOpt.value = '';
-          placeholderOpt.textContent = '— Select event —';
-          eventSel.appendChild(placeholderOpt);
+          populateMysteryEventsForSpecies(Number($('#species')?.value || 0));
 
-          const keys = Object.keys(MYSTERY_EVENTS).length ? Object.keys(MYSTERY_EVENTS) : Object.keys(MYSTERY_GIFTS);
-          const tags = keys.sort();
-          for (const t of tags) {
-            const o = document.createElement('option');
-            o.value = t;
-            // Friendly display: replace underscores with spaces, with special-case
-            // rename for legacy 10ANNI tag.
-            if (String(t).toUpperCase() === '10ANNI') {
-              o.textContent = 'TOP 10 DISTRIBUTION POKÉMON';
-            } else if (String(t).toUpperCase() === 'MITSURIN_CELEBI') {
-              o.textContent = 'MITSURIN CELEBI';
-            } else if (String(t).toUpperCase() === 'AGETO_CELEBI') {
-              o.textContent = 'AGETO CELEBI';
-            } else if (String(t).toUpperCase() === 'WISHMKR_BEST') {
-              o.textContent = 'WISHMKR JIRACHI';
-            } else if (String(t).toUpperCase() === 'WISHMKR_SHINY') {
-              o.textContent = 'WISHMKR JIRACHI - ALL SHINY VERSIONS';
-            } else if (String(t).toUpperCase() === 'CHANNEL_JIRACHI') {
-              o.textContent = "CHANNEL JIRACHI";
-            } else if (String(t).toUpperCase() === 'BOX_EVENT') {
-              o.textContent = 'POKÉMON BOX RUBY & SAPPHIRE';
-            } else {
-              o.textContent = t.replace(/_/g,' ');
-            }
-            eventSel.appendChild(o);
-          }
+          if (eventSel.dataset.originSelectionListener !== '1') {
+            eventSel.addEventListener('change', () => {
+              const tag = eventSel.value;
+              console.log('Mystery event selected:', tag);
+              // Unlock any PID Finder result from the previous event
+              if (hasPidFinderSelectionState()) try { unlockPidFinderFields({ clearPid: true }); } catch (e) {}
+              if (!manualOverrideActive) {
+                // Clear any previous event-specific UI state (ribbons, language disables)
+                try { clearMysteryEventState(); } catch (e) {}
+                // Apply event-level defaults
+                applyEventDefaults(tag);
+              } else {
+                mysteryPresetAppliedFor = 0;
+                mysteryUserModifiedSincePreset = false;
+              }
+              try { updatePidFinderVisibility(); } catch (e) {}
+              try { updateMetLevelLocking(); } catch (e) {}
+              try { updateLevelLocking(); } catch (e) {}
+              try { updateFatefulLocking(); } catch (e) {}
+              try { updateBallLocking(); } catch (e) {}
+              try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
 
-          eventSel.addEventListener('change', () => {
-            const tag = eventSel.value;
-            console.log('Mystery event selected:', tag);
-            // Unlock any PID Finder result from the previous event
-            if (hasPidFinderSelectionState()) try { unlockPidFinderFields({ clearPid: true }); } catch (e) {}
-            // Clear any previous event-specific UI state (ribbons, language disables)
-            try { clearMysteryEventState(); } catch (e) {}
-            // Apply event-level defaults
-            applyEventDefaults(tag);
-            try { updatePidFinderVisibility(); } catch (e) {}
-            try { updateMetLevelLocking(); } catch (e) {}
-            try { updateLevelLocking(); } catch (e) {}
-            try { updateFatefulLocking(); } catch (e) {}
-            try { updateBallLocking(); } catch (e) {}
-            try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
-
-            // Update available species/options for this event
-            updateSpeciesListForMode();
-            // Also try to apply preset for selected species
-            const sp = Number($('#species').value) || 0;
-            if (sp) {
-              // Update move dropdowns for the species learnset (preserve preset moves)
-              updateMovesForSpecies(sp, { preserveValue: true });
-              applyMysteryPresetForSpecies(sp);
-            }
-            try { updateShinyCheckboxState(); } catch (e) {}
-            // Update mystery species options (noop if selector removed)
-            updateMysterySpeciesOptions(tag);
-            try { updateTidSidLocking(); } catch (e) {}
+              // Update available species/options for this event
+              updateSpeciesListForMode();
+              // Also try to apply preset for selected species
+              const sp = Number($('#species').value) || 0;
+              if (sp) {
+                // Update move dropdowns for the species learnset (preserve preset moves)
+                updateMovesForSpecies(sp, { preserveValue: true });
+                if (!manualOverrideActive) applyMysteryPresetForSpecies(sp);
+              }
+              try { updateShinyCheckboxState(); } catch (e) {}
+              // Update mystery species options (noop if selector removed)
+              updateMysterySpeciesOptions(tag);
+              try { updateTidSidLocking(); } catch (e) {}
               try { enforceJapaneseOption(tag); } catch (e) {}
               try { lockLanguageForMewLegend(); } catch (e) {}
-            try { lockLanguageForMewLegend(); } catch (e) {}
-            validateForm();
-          });
+              validateForm();
+              updateLegalityStatus();
+            });
+            eventSel.dataset.originSelectionListener = '1';
+          }
         }
+        syncPokemonFirstOriginUi(Number($('#species')?.value || 0), {
+          mode: currentEncounterMode,
+          preserveCurrent: true,
+          preserveExact: true,
+        });
       } catch (e) {
         console.warn('Failed to load mystery gifts JSON', e);
       }
@@ -5991,6 +6448,36 @@ function boot(){
           validateForm();
         });
       }
+    }
+
+    const staticEncounterSelect = document.getElementById('staticEncounter');
+    if (staticEncounterSelect) {
+      staticEncounterSelect.addEventListener('change', () => {
+        if (currentEncounterMode !== 'static') return;
+        const selected = getSelectedStaticOriginEncounter();
+        selectedStaticEncounterDetail = selected;
+        if (!selected) {
+          validateForm();
+          updateLegalityStatus();
+          return;
+        }
+
+        if (hasPidFinderSelectionState()) unlockPidFinderFields({ clearPid: true });
+        const categorySelect = document.getElementById('staticCategory');
+        if (categorySelect) categorySelect.value = selected.encounter.category;
+        if (!manualOverrideActive) {
+          applyStaticEncounterPreset(Number($('#species')?.value || 0), {
+            detailedEncounter: selected.encounter,
+            gameId: selected.gameId,
+          });
+        }
+        updateStaticOriginGameLocking(Number($('#species')?.value || 0));
+        updateTidSidLocking();
+        updateMetLevelLocking();
+        updateBallLocking();
+        validateForm();
+        updateLegalityStatus();
+      });
     }
 
     // Clear UI state that may have been set by a previously-selected mystery event
@@ -6061,6 +6548,8 @@ function boot(){
       suppressUserChangeMark = true;
       const rawTag = document.getElementById('mysteryEvent')?.value || '';
       if (!rawTag) { suppressUserChangeMark = false; return; }
+      const targetSpeciesId = Number(speciesId) || 0;
+      const originSpeciesId = Number(getSelectedMysteryAvailability(targetSpeciesId)?.sourceSpeciesIds?.[0]) || targetSpeciesId;
 
       // Resolve common mismatches between event keys and per-pokemon tags.
       let tag = rawTag;
@@ -6160,6 +6649,10 @@ function boot(){
           } catch (e) {}
         }
       }
+      const matchingSpeciesCandidates = candidates.filter(candidate =>
+        candidate?.species === undefined || Number(candidate.species) === originSpeciesId
+      );
+      if (matchingSpeciesCandidates.length) candidates = matchingSpeciesCandidates;
       console.log('Mystery preset candidates count for', rawTag, candidates.length);
       const targetCanon = String(natureName || '').toLowerCase().replace(/[^a-z]/g, '');
       const entry = candidates.find(e => {
@@ -6226,7 +6719,7 @@ function boot(){
           }
         }
         if (ms && ms.moves) {
-          const speciesObj = SPECIES.find(s => Number(s[0]) === Number(speciesId));
+          const speciesObj = SPECIES.find(s => Number(s[0]) === originSpeciesId);
           const speciesName = speciesObj ? String(speciesObj[1]) : null;
           // Try direct lookup by species name, then fallback to normalized name matching
           const normalizeName = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -6293,6 +6786,10 @@ function boot(){
           try { updateTidSidLocking(); } catch (e) {}
       // Mark which species the preset was applied for and update legality
       mysteryPresetAppliedFor = Number(speciesId) || 0;
+      try {
+        const changed = clampCurrentLevelToMinimum();
+        if (changed) computeAndSetExpFromLevel();
+      } catch (e) {}
       try { updateLegalityStatus(); } catch (e) {}
       // Re-enable marking of user changes after programmatic updates
       suppressUserChangeMark = false;
@@ -6310,70 +6807,7 @@ function boot(){
    */
   function updateSpeciesListForMode() {
     if (!speciesAutocomplete) return;
-    
-    let filteredSpecies;
-    switch(currentEncounterMode) {
-      case 'hatched':
-        // Exclude legendaries (only breedable pokemon), Ditto, and Unown (cannot be bred)
-        // Also exclude placeholder/unknown species entries (names with '?')
-        filteredSpecies = SPECIES.filter(s => !isLegendary(s[0]) && s[0] !== 132 && s[0] !== 201 && !String(s[1]||'').includes('?'));
-        break;
-      case 'static': {
-        // Filter species by selected category
-        const catSel = document.getElementById('staticCategory');
-        const catVal = catSel?.value || STATIC_DEFAULT_CATEGORY_ID;
-        if (catSel && !catSel.value) catSel.value = catVal;
-        if (catVal) {
-          const catSpecies = new Set(getSpeciesForCategory(catVal));
-          filteredSpecies = SPECIES.filter(s => catSpecies.has(s[0]));
-        } else {
-          // No category selected — show all static encounter species
-          filteredSpecies = SPECIES.filter(s => STATIC_SPECIES_SET.has(s[0]));
-        }
-        break;
-      }
-      case 'wild':
-        // Species with wild encounter data OR evolutions of wild species,
-        // excluding placeholder/unknown species entries (names with '?')
-        filteredSpecies = SPECIES.filter(s => wildPlusEvos.has(s[0]) && !String(s[1]||'').includes('?'));
-        break;
-      case 'mystery':
-        // Only show species available in the selected mystery event (if specified)
-        const selectedTag = document.getElementById('mysteryEvent')?.value || '';
-        if (selectedTag && MYSTERY_EVENTS[selectedTag] && Array.isArray(MYSTERY_EVENTS[selectedTag].species)) {
-          const allowed = new Set(MYSTERY_EVENTS[selectedTag].species.map(n => Number(n)));
-          filteredSpecies = SPECIES.filter(s => allowed.has(s[0]));
-        } else if (selectedTag && MYSTERY_GIFTS[selectedTag]) {
-          const allowed = new Set();
-          for (const e of MYSTERY_GIFTS[selectedTag]) if (e.species) allowed.add(Number(e.species));
-          if (allowed.size) filteredSpecies = SPECIES.filter(s => allowed.has(s[0]));
-          else filteredSpecies = SPECIES.filter(s => isGiftPokemon(s[0]));
-        } else {
-          // Fallback: show all gift event species
-          filteredSpecies = SPECIES.filter(s => isGiftPokemon(s[0]));
-        }
-        break;
-      case 'cxd_shadow':
-        // Only show species with CXD shadow encounter data
-        filteredSpecies = SPECIES.filter(s => CXD_SHADOW_SPECIES.has(s[0]));
-        break;
-      case 'cxd_trade':
-        // Only show species with XD in-game trade data
-        filteredSpecies = SPECIES.filter(s => CXD_TRADE_SPECIES.has(s[0]));
-        break;
-      case 'roamer':
-        // Only roamer species (Latios, Latias, Raikou, Entei, Suicune)
-        filteredSpecies = SPECIES.filter(s => ROAMER_SPECIES_SET.has(s[0]));
-        break;
-      case 'imported':
-        // All valid species
-        filteredSpecies = SPECIES.filter(s => s[0] > 0 && !String(s[1]||'').includes('?'));
-        break;
-      default:
-        filteredSpecies = SPECIES;
-    }
-    
-    speciesAutocomplete.updateList(filteredSpecies);
+    speciesAutocomplete.updateList(getSupportedSpecies(), { preserveValue: true });
   }
 
   _updateSpeciesListForMode = updateSpeciesListForMode;
@@ -6392,6 +6826,7 @@ function boot(){
       mysteryUserModifiedSincePreset = false;
     }
     const genderSelect = $('#gender');
+    const previousGender = String(genderSelect?.value || '');
     // Set gender options based on species gender threshold
     if (genderSelect) {
       const threshold = getGenderThreshold(speciesId);
@@ -6449,9 +6884,16 @@ function boot(){
         genderSelect.style.cursor = 'not-allowed';
         genderSelect.disabled = true;
       }
+      if (
+        suppressPresetApply &&
+        previousGender &&
+        Array.from(genderSelect.options || []).some(option => option.value === previousGender)
+      ) {
+        genderSelect.value = previousGender;
+      }
     try { updateTidSidLocking(); } catch (e) {}
     }
-    if (mode === 'static' && STATIC_ENCOUNTERS[speciesId]) {
+    if (mode === 'static' && getStaticEncountersForSpecies(speciesId).length) {
       // Static mode should only lock gender when the species itself is fixed/genderless.
       // (Handled above by species gender-threshold options.)
       if (!pidFinderResultActive) applyStaticEncounterPreset(speciesId, { preferDefaultGame: true });
@@ -6459,9 +6901,9 @@ function boot(){
       // ── Roamer encounter mode ────────────────────────────────────
       // Lock gender (roamers are all genderless)
       if (genderSelect) {
-        genderSelect.style.pointerEvents = 'none';
-        genderSelect.style.opacity = '0.6';
-        genderSelect.style.cursor = 'not-allowed';
+        genderSelect.style.pointerEvents = manualOverrideActive ? '' : 'none';
+        genderSelect.style.opacity = manualOverrideActive ? '' : '0.6';
+        genderSelect.style.cursor = manualOverrideActive ? '' : 'not-allowed';
       }
       // Apply roamer-specific defaults
       if (!pidFinderResultActive) applyRoamerPreset(speciesId);
@@ -6478,6 +6920,7 @@ function boot(){
         genderSelect.style.opacity = '';
         genderSelect.style.cursor = '';
       }
+      if (!suppressPresetApply) {
       // Reset met location to Mauville City (location ID 9)
       if (metLocationSelect) {
         metLocationSelect.value = '9';
@@ -6529,6 +6972,7 @@ function boot(){
       
       // Update experience to match level 100
       computeAndSetExpFromLevel();
+      }
     } else if (mode === 'wild') {
       // For wild mode, re-enable gender selection and apply encounter filters
       if (genderSelect) {
@@ -6537,15 +6981,16 @@ function boot(){
         genderSelect.style.cursor = '';
       }
 
-      // Apply wild encounter filtering for origin game, met location, met level
-      updateWildEncounterFilters(speciesId, { preferDefaultGame: true });
+      if (!suppressPresetApply) {
+        // Apply wild encounter filtering for origin game, met location, met level
+        updateWildEncounterFilters(speciesId, { preferDefaultGame: true });
 
-      // Re-check ball locking after location was set (may now be Safari Zone)
-      try { updateBallLocking(); } catch (e) {}
+        // Re-check ball locking after location was set (may now be Safari Zone)
+        try { updateBallLocking(); } catch (e) {}
 
-      // Auto-select ability slot 0 for wild encounters
-      const abilitySelect = $('#ability');
-      if (abilitySelect) abilitySelect.value = '0';
+        // Auto-select ability slot 0 for wild encounters
+        const abilitySelect = $('#ability');
+        if (abilitySelect) abilitySelect.value = '0';
 
         // Re-apply nature preset so PID/IV reflect the selected nature for wild mode
         // Skip during imports (suppressPresetApply) and when
@@ -6557,8 +7002,9 @@ function boot(){
           }
         }
 
-      // Ensure ability is visibly selected after all preset logic
-      if (abilitySelect && !abilitySelect.value) abilitySelect.value = '0';
+        // Ensure ability is visibly selected after all preset logic
+        if (abilitySelect && !abilitySelect.value) abilitySelect.value = '0';
+      }
     } else if (mode === 'cxd_shadow') {
       // CXD Shadow mode: populate shadow encounter sub-selector and auto-apply
       // Gender is NOT locked — user can choose gender freely
@@ -6569,33 +7015,22 @@ function boot(){
       }
       // Lock origin game (always game ID 15 for CXD)
       const originGameEl = $('#originGame');
-      if (originGameEl) {
-        originGameEl.disabled = true;
-        originGameEl.style.pointerEvents = 'none';
-        originGameEl.style.opacity = '0.6';
-        originGameEl.style.cursor = 'not-allowed';
-      }
+      if (originGameEl) setControlLockState(originGameEl, !manualOverrideActive);
       // Lock met location (set by the shadow encounter preset)
       const metLocEl = $('#metLocation');
-      if (metLocEl) {
-        metLocEl.disabled = true;
-        metLocEl.style.pointerEvents = 'none';
-        metLocEl.style.opacity = '0.6';
-        metLocEl.style.cursor = 'not-allowed';
-      }
+      if (metLocEl) setControlLockState(metLocEl, !manualOverrideActive);
       // Lock met level (set by the shadow encounter preset)
       const metLvlEl = $('#metLevel');
-      if (metLvlEl) {
-        metLvlEl.disabled = true;
-        metLvlEl.style.pointerEvents = 'none';
-        metLvlEl.style.opacity = '0.6';
-        metLvlEl.style.cursor = 'not-allowed';
-      }
+      if (metLvlEl) setControlLockState(metLvlEl, !manualOverrideActive);
       // Update shiny checkbox state (CXD tooltip)
       try { updateShinyCheckboxState(); } catch (e) {}
       // Always populate the shadow encounter dropdown and auto-apply the preset.
       // Only skip auto-apply when PID Finder result is active.
-      applyCXDShadowEncounterForSpecies(speciesId, !pidFinderResultActive);
+      applyCXDShadowEncounterForSpecies(
+        speciesId,
+        !pidFinderResultActive && !suppressPresetApply,
+        { requireSelection: suppressPresetApply, preserveSelection: true }
+      );
     } else if (mode === 'cxd_trade') {
       // XD in-game trades use fixed encounter metadata but CXD-correlated
       // PID/IV/ability generation through the PID Finder.
@@ -6610,7 +7045,7 @@ function boot(){
       if (metLocEl) setControlLockState(metLocEl, !manualOverrideActive);
       const metLvlEl = $('#metLevel');
       if (metLvlEl) setControlLockState(metLvlEl, !manualOverrideActive);
-      applyCXDTradeEncounterForSpecies(speciesId, !pidFinderResultActive);
+      applyCXDTradeEncounterForSpecies(speciesId, !pidFinderResultActive && !suppressPresetApply);
       try { updateShinyCheckboxState(); } catch (e) {}
     } else {
       // Fallback: re-enable gender selection
@@ -6645,7 +7080,7 @@ function boot(){
   function getSelectedCXDEncounter() {
     if (currentEncounterMode !== 'cxd_shadow') return null;
     const sel = document.getElementById('shadowEncounter');
-    if (!sel) return null;
+    if (!sel?.value) return null;
     const speciesId = Number($('#species').value) || 0;
     const encounters = getShadowEncountersForSpecies(speciesId);
     const idx = Number(sel.value) || 0;
@@ -6656,11 +7091,21 @@ function boot(){
    * Populate the #shadowEncounter dropdown with all encounters for the given
    * species, and auto-apply the first one.
    */
-  function applyCXDShadowEncounterForSpecies(speciesId, applyPreset = true) {
+  function applyCXDShadowEncounterForSpecies(speciesId, applyPreset = true, options = {}) {
     const encounters = getShadowEncountersForSpecies(speciesId);
     const sel = document.getElementById('shadowEncounter');
     if (!sel) return;
+    const previousValue = options.preserveSelection === true ? String(sel.value || '') : '';
     sel.innerHTML = '';
+
+    const hasPreviousSelection = previousValue !== '' && encounters[Number(previousValue)];
+    const requireSelection = options.requireSelection === true && !hasPreviousSelection;
+    if (requireSelection) {
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = '— Select trainer / location —';
+      sel.appendChild(placeholder);
+    }
 
     if (!encounters.length) {
       sel.innerHTML = '<option value="">— No encounters —</option>';
@@ -6673,18 +7118,20 @@ function boot(){
       const enc = encounters[i];
       const locPad = String(enc.location).padStart(3, '0');
       const gameLabel = enc.game === 'colo' ? 'Colo' : 'XD';
+      const sourceName = SPECIES.find(([id]) => Number(id) === Number(enc.species))?.[1] || 'Pokémon';
+      const sourcePrefix = Number(enc.species) === Number(speciesId) ? '' : `${sourceName} — `;
       const opt = document.createElement('option');
       opt.value = String(i);
-      opt.textContent = `${enc.trainer} @ ${enc.locationName} [${locPad}] (${gameLabel}, Lv${enc.level})`;
+      opt.textContent = `${sourcePrefix}${enc.trainer} @ ${enc.locationName} [${locPad}] (${gameLabel}, Lv${enc.level})`;
       sel.appendChild(opt);
     }
-    sel.value = '0';
-    // Apply the first encounter (or just update visibility when override is active)
-    if (applyPreset) {
-      applyCXDShadowPreset(encounters[0]);
+    sel.value = hasPreviousSelection ? previousValue : (requireSelection ? '' : '0');
+    const selectedEncounter = sel.value === '' ? null : encounters[Number(sel.value)] || null;
+    // Apply the selected encounter (or just update visibility when override is active).
+    if (applyPreset && selectedEncounter) {
+      applyCXDShadowPreset(selectedEncounter);
     } else {
-      // Still update Make Shiny button visibility based on selected encounter
-      try { updateMakeShinyVisibility(encounters[0]); } catch (e) {}
+      try { updateMakeShinyVisibility(selectedEncounter); } catch (e) {}
     }
   }
 
@@ -6714,8 +7161,10 @@ function boot(){
     // Met level and level
     const metLevelInput = $('#metLevel');
     const levelInput = $('#level');
+    const targetSpeciesId = Number($('#species')?.value || enc.species);
+    const currentLevel = getMinimumLevelForEncounterEvolution(targetSpeciesId, enc.species, enc.level);
     if (metLevelInput) metLevelInput.value = String(enc.level);
-    if (levelInput) levelInput.value = String(enc.level);
+    if (levelInput) levelInput.value = String(currentLevel);
     computeAndSetExpFromLevel();
 
     // Moves
@@ -6725,7 +7174,7 @@ function boot(){
       if (moveEl) moveEl.value = String(moveIds[i] || 0);
     }
     // Show all moves in dropdown for this species so shadow moves are available
-    updateMovesForSpecies(enc.species, { preserveValue: true });
+    updateMovesForSpecies(targetSpeciesId, { preserveValue: true });
 
     // Fateful encounter — only XD shadow Pokémon have the fateful flag.
     // Colosseum shadow Pokémon do NOT have fateful encounter set.
@@ -6800,7 +7249,7 @@ function boot(){
   }
 
   function applyCXDTradeEncounterForSpecies(speciesId, applyPreset = true) {
-    const encounters = getCXDTradesForSpecies(speciesId);
+    const encounters = getXDTradesForSpecies(speciesId);
     const sel = document.getElementById('cxdTradeEncounter');
     if (!sel) return;
     sel.innerHTML = '';
@@ -6813,7 +7262,9 @@ function boot(){
     for (let i = 0; i < encounters.length; i++) {
       const opt = document.createElement('option');
       opt.value = String(i);
-      opt.textContent = encounters[i].label;
+      const sourceName = SPECIES.find(([id]) => Number(id) === Number(encounters[i].species))?.[1] || 'Pokémon';
+      const sourcePrefix = Number(encounters[i].species) === Number(speciesId) ? '' : `${sourceName} — `;
+      opt.textContent = `${sourcePrefix}${encounters[i].label}`;
       sel.appendChild(opt);
     }
     sel.value = '0';
@@ -6836,8 +7287,10 @@ function boot(){
 
     const metLevelInput = $('#metLevel');
     const levelInput = $('#level');
+    const targetSpeciesId = Number($('#species')?.value || enc.species);
+    const currentLevel = getMinimumLevelForEncounterEvolution(targetSpeciesId, enc.species, enc.level);
     if (metLevelInput) metLevelInput.value = String(enc.level);
-    if (levelInput && Number(levelInput.value || 0) < enc.level) levelInput.value = String(enc.level);
+    if (levelInput && Number(levelInput.value || 0) < currentLevel) levelInput.value = String(currentLevel);
     computeAndSetExpFromLevel();
 
     const ballEl = $('#ball');
@@ -6846,7 +7299,7 @@ function boot(){
     const fatefulCheckbox = $('#fatefulEncounter');
     if (fatefulCheckbox) fatefulCheckbox.checked = Boolean(enc.fateful);
 
-    updateMovesForSpecies(enc.species, { preserveValue: true });
+    updateMovesForSpecies(targetSpeciesId, { preserveValue: true });
     for (let i = 0; i < 4; i++) {
       const moveEl = $(`#move${i + 1}`);
       if (moveEl) moveEl.value = String(enc.moves[i] || 0);
@@ -6912,6 +7365,11 @@ function boot(){
       if (makeShinyStatusLocal) makeShinyStatusLocal.style.display = '';
       return;
     }
+    if (currentEncounterMode === 'cxd_shadow' && !enc) {
+      row.style.display = 'none';
+      if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
+      return;
+    }
     // CXD mode: XD shadows are locked; Colosseum shadows and XD trades allow shininess.
     row.style.display = '';
     const isTrade = currentEncounterMode === 'cxd_trade';
@@ -6941,13 +7399,22 @@ function boot(){
   if (shadowEncounterSel) {
     shadowEncounterSel.addEventListener('change', () => {
       if (currentEncounterMode !== 'cxd_shadow') return;
+      if (!shadowEncounterSel.value) {
+        updateMakeShinyVisibility(null);
+        validateForm();
+        updateLegalityStatus();
+        return;
+      }
       const speciesId = Number($('#species').value) || 0;
+      if (hasPidFinderSelectionState()) unlockPidFinderFields({ clearPid: true });
       const encounters = getShadowEncountersForSpecies(speciesId);
       const idx = Number(shadowEncounterSel.value) || 0;
       if (encounters[idx]) {
-        applyCXDShadowPreset(encounters[idx]);
+        if (!manualOverrideActive) applyCXDShadowPreset(encounters[idx]);
         updateMakeShinyVisibility(encounters[idx]);
       }
+      validateForm();
+      updateLegalityStatus();
     });
   }
 
@@ -7066,12 +7533,9 @@ function boot(){
   /**
    * Apply static encounter preset for a species.
    * Uses both the legacy STATIC_ENCOUNTERS keyed object (for fixed events)
-   * and the new STATIC_ENCOUNTER_LIST (for per-game/category aware defaults).
-   */
+  * and the new STATIC_ENCOUNTER_LIST (for per-game/category aware defaults).
+  */
   function applyStaticEncounterPreset(speciesId, options = {}) {
-    const encounter = STATIC_ENCOUNTERS[speciesId];
-    if (!encounter) return;
-
     // Do not apply static encounter presets while Mystery Gifts mode is active;
     // event defaults should take precedence for mystery events.
     if (currentEncounterMode === 'mystery') return;
@@ -7082,10 +7546,20 @@ function boot(){
 
     // Look up the detailed encounter entry from the new list.
     // Prefer matching by current origin game so that level/location are correct.
+    const requestedEncounter = options.detailedEncounter || null;
+    const sourceSpeciesId = Number(requestedEncounter?.species || getSelectedStaticEncounter()?.species || speciesId);
+    const encounter = STATIC_ENCOUNTERS[sourceSpeciesId];
+    if (!encounter) return;
+    const requestedGameId = Number(options.gameId) || 0;
+    if (requestedEncounter && requestedGameId && $('#originGame')) {
+      $('#originGame').value = String(requestedGameId);
+    }
     const currentGame = updateStaticOriginGameLocking(speciesId, {
-      preferDefaultGame: options.preferDefaultGame === true,
+      preferDefaultGame: requestedEncounter ? false : options.preferDefaultGame === true,
     });
-    const detailedEnc = getEncounterForSpecies(speciesId, currentGame);
+    const detailedEnc = requestedEncounter || getStaticEncountersForSpecies(speciesId).find(candidate =>
+      Array.isArray(candidate.games) && candidate.games.map(Number).includes(currentGame)
+    ) || null;
 
     // Check if this is a fixed event (like WISHMKR Jirachi)
     if (encounter.fixedEvent) {
@@ -7136,7 +7610,9 @@ function boot(){
 
     // Use detailed encounter for origin game / location / level if available.
     // If the currently selected game is valid, preserve it.
-    const gameId = detailedEnc
+    const gameId = requestedEncounter && requestedGameId
+      ? requestedGameId
+      : detailedEnc
       ? (detailedEnc.games.includes(currentGame) ? currentGame : detailedEnc.games[0])
       : encounter.defaultOriginGame;
 
@@ -7178,7 +7654,8 @@ function boot(){
     if (metLevel !== undefined) {
       const metLevelInput = $('#metLevel');
       const levelInput = $('#level');
-      const currentLevel = detailedEnc?.isEgg ? IS_EGG_OVERRIDE_LEVEL : Math.max(1, metLevel);
+      const sourceLevel = detailedEnc?.isEgg ? Math.max(IS_EGG_OVERRIDE_LEVEL, 5) : Math.max(1, metLevel);
+      const currentLevel = getMinimumLevelForEncounterEvolution(speciesId, sourceSpeciesId, sourceLevel);
       if (metLevelInput) {
         metLevelInput.value = String(metLevel);
       }
@@ -7251,7 +7728,7 @@ function boot(){
     // Update legality status after applying preset
     updateLegalityStatus();
 
-    console.log(`Applied legendary preset for species ${speciesId}`);
+    console.log(`Applied static preset for species ${speciesId} from encounter species ${sourceSpeciesId}`);
   }
 
   /**
@@ -7506,7 +7983,7 @@ function boot(){
   ]);
 
   const ENCOUNTER_MODE_FIELD_IDS = [
-    'mysteryEvent', 'staticCategory', 'species', 'shadowEncounter', 'cxdTradeEncounter', 'unownForm',
+    'mysteryEvent', 'staticCategory', 'staticEncounter', 'species', 'shadowEncounter', 'cxdTradeEncounter', 'unownForm',
     'nickname', 'level', 'expTotal', 'pid', 'nature', 'ability', 'pidParityPreference', 'gender',
     'item', 'ball', 'originGame', 'metLocation', 'metLevel',
     'tid', 'sid', 'shiny', 'otName', 'otGender', 'language', 'isEgg',
@@ -7583,6 +8060,7 @@ function boot(){
   // Reset all mode-specific state to defaults to avoid carryover between modes
   function resetAllModeState() {
     try {
+      selectedStaticEncounterDetail = null;
       clearImportedRoundTripState();
       // First-time mode visit defaults: clear values so nothing bleeds across modes.
       const defaults = {
@@ -8186,7 +8664,8 @@ function boot(){
         // wild/roamer use the selected origin game (fallback to 2).
         let originGame = 2;
         if (currentEncounterMode === 'static') {
-          const encounter = STATIC_ENCOUNTERS[speciesId];
+          const sourceSpeciesId = Number(getSelectedStaticEncounter()?.species || speciesId);
+          const encounter = STATIC_ENCOUNTERS[sourceSpeciesId];
           // Fixed-event statics must keep their predetermined PID/IVs.
           if (encounter?.fixedEvent && encounter.fixedPID !== undefined) {
             const fixedPid = encounter.fixedPID >>> 0;

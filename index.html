@@ -180,12 +180,82 @@
       line-height: 1.45;
     }
 
-    .builder-origin-row {
-      align-items: flex-start;
+    .builder-setup-guidance {
+      margin: -0.1rem 0 0.75rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
     }
 
-    .builder-origin-row label {
-      padding-top: 0.7rem;
+    .builder-setup-guidance.is-complete {
+      color: #86efac;
+    }
+
+    .builder-setup-stage {
+      width: min(100%, 820px);
+      padding: 0.9rem 1rem;
+      border: 1px solid rgba(88, 183, 255, 0.28);
+      border-radius: 10px;
+      background: rgba(8, 21, 37, 0.42);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+    }
+
+    .builder-setup-stage.is-complete {
+      border-color: rgba(34, 197, 94, 0.42);
+      background: rgba(8, 35, 35, 0.34);
+    }
+
+    body.builder-setup-pending #builderDetailsCard,
+    body.builder-setup-pending #outputCard {
+      display: none !important;
+    }
+
+    .row.builder-species-row {
+      display: block;
+      margin: 0.5rem 0 0.75rem;
+    }
+
+    .builder-species-row > label {
+      display: block;
+      width: auto;
+      min-width: 0;
+      margin-bottom: 0.45rem;
+    }
+
+    .builder-species-control {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+
+    .builder-exact-row > label {
+      width: auto;
+      min-width: 0;
+    }
+
+    body.encounter-mystery #mysteryEventRow,
+    body.encounter-static #staticEncounterRow,
+    body.encounter-cxd_shadow #shadowEncounterRow {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.45rem;
+      margin-top: 0.75rem;
+    }
+
+    .row.builder-origin-row {
+      display: block;
+      margin: 0.75rem 0;
+    }
+
+    .builder-origin-row > label {
+      display: block;
+      width: auto;
+      min-width: 0;
+      margin-bottom: 0.45rem;
+      padding-top: 0;
     }
 
     .ability-control-group {
@@ -233,9 +303,19 @@
       min-width: 0;
     }
 
+    #pokemonOrigin {
+      width: min(100%, 240px);
+    }
+
     #encounterMode {
       min-width: 210px;
       width: min(100%, 260px);
+    }
+
+    .internal-builder-control,
+    .row[hidden],
+    .mode-desc[hidden] {
+      display: none !important;
     }
 
     .mode-desc {
@@ -1499,7 +1579,7 @@
     }
   </style>
 </head>
-<body class="encounter-hatched">
+<body class="builder-setup-pending">
   <!-- Pokéball shadow background -->
   <div class="bg-scene" aria-hidden="true">
     <svg class="bg-pokeballs" xmlns="http://www.w3.org/2000/svg">
@@ -1576,47 +1656,73 @@
 
       <h3 class="form-section-title">Basic setup</h3>
 
-      <div class="row builder-origin-row" id="encounterModeToggle">
-        <label for="encounterMode">Encounter Type</label>
-        <div class="encounter-type-control">
-          <select id="encounterMode">
-            <option value="hatched" selected>Hatched</option>
-            <option value="static">Static</option>
-            <option value="roamer">Roamer</option>
-            <option value="wild">Wild</option>
-            <option value="mystery">Mystery Gifts</option>
-            <option value="cxd_shadow">XD / Colosseum</option>
-            <option value="cxd_trade">XD In-Game Trade</option>
-          </select>
-          <div id="encounterModeDescription" class="mode-desc" aria-live="polite"></div>
+      <p id="builderSetupGuidance" class="builder-setup-guidance" aria-live="polite">
+        Start by choosing the Pokémon you want to create.
+      </p>
+
+      <div id="builderSetupStage" class="builder-setup-stage">
+
+      <div class="row builder-species-row">
+        <label for="species-input">Pokémon</label>
+        <div class="builder-species-control">
+          <select id="species"></select>
+          <img id="speciesSprite" class="species-sprite" alt="" />
         </div>
       </div>
 
-      <div class="row show-when-mystery">
-        <label for="mysteryEvent">Event</label>
+      <div class="row builder-origin-row" id="pokemonOriginRow" hidden>
+        <label for="pokemonOrigin">How was this Pokémon obtained?</label>
+        <div class="encounter-type-control">
+          <select id="pokemonOrigin">
+            <option value="">— Select origin —</option>
+          </select>
+          <div id="encounterModeDescription" class="mode-desc" aria-live="polite" hidden></div>
+        </div>
+      </div>
+
+      <div class="internal-builder-control" id="encounterModeToggle" aria-hidden="true">
+        <select id="encounterMode" tabindex="-1">
+          <option value="" selected>Unresolved</option>
+          <option value="hatched">Hatched</option>
+          <option value="static">Static</option>
+          <option value="roamer">Roamer</option>
+          <option value="wild">Wild</option>
+          <option value="mystery">Mystery Gifts</option>
+          <option value="cxd_shadow">XD / Colosseum</option>
+          <option value="cxd_trade">XD In-Game Trade</option>
+          <option value="imported">Imported</option>
+        </select>
+      </div>
+
+      <div class="row builder-exact-row show-when-mystery" id="mysteryEventRow">
+        <label for="mysteryEvent">Distribution</label>
         <select id="mysteryEvent"></select>
       </div>
 
-      <div class="row show-when-static">
-        <label for="staticCategory">Category</label>
-        <select id="staticCategory"></select>
+      <div class="internal-builder-control" aria-hidden="true">
+        <select id="staticCategory" tabindex="-1"></select>
       </div>
 
-      <div class="row">
-        <label for="species-input">Pokémon</label>
-        <select id="species"></select>
-        <img id="speciesSprite" class="species-sprite" alt="" />
+      <div class="row builder-exact-row show-when-static" id="staticEncounterRow">
+        <label for="staticEncounter">Encounter</label>
+        <select id="staticEncounter"></select>
       </div>
 
-      <div class="row show-when-cxd">
-        <label for="shadowEncounter">Encounter</label>
+      <div class="row builder-exact-row show-when-cxd" id="shadowEncounterRow">
+        <label for="shadowEncounter">Trainer / Location</label>
         <select id="shadowEncounter"></select>
       </div>
 
-      <div class="row show-when-cxd-trade">
-        <label for="cxdTradeEncounter">Trade</label>
-        <select id="cxdTradeEncounter"></select>
+      <div class="internal-builder-control" aria-hidden="true">
+        <select id="cxdTradeEncounter" tabindex="-1"></select>
       </div>
+
+      </div>
+
+    </section>
+
+    <section class="card" id="builderDetailsCard" aria-labelledby="builderDetailsTitle">
+      <h2 id="builderDetailsTitle">Customize Your Pokémon</h2>
 
       <div class="row" id="unownFormRow" style="display:none;">
         <label for="unownForm">Form</label>
