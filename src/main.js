@@ -5517,14 +5517,17 @@ function boot(){
   unlockPidFinderFieldsFn = unlockPidFinderFields;
 
   // By default, Japanese (language id '1') is not selectable outside modes that
-  // can legally use it. Hatched mode and unhatched egg overrides allow manual
+  // can legally use it. Hatched, wild, and unhatched egg origins allow manual
   // Japanese selection; Japanese-specific events may still set it explicitly.
   function enforceJapaneseOption(tag) {
     try {
       if (currentEncounterMode === 'imported') return;
       const langSel = $('#language');
       if (!langSel || !langSel.options) return;
-      let allowJapanese = manualOverrideActive || currentEncounterMode === 'hatched' || shouldApplyIsEggOverrides();
+      let allowJapanese = manualOverrideActive ||
+        currentEncounterMode === 'hatched' ||
+        currentEncounterMode === 'wild' ||
+        shouldApplyIsEggOverrides();
       if (!allowJapanese) {
         const t = String(tag || '').toUpperCase();
         if (t && MYSTERY_EVENTS && MYSTERY_EVENTS[t]) {

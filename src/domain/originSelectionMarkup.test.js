@@ -46,5 +46,10 @@ assert.match(mainSource, /const hasResolvedOrigin = hasResolvedOriginSelection\(
 assert.match(mainSource, /const shadowEncounter = getSelectedCXDEncounter\(\);\s*const cxdEncounter = trade \|\| shadowEncounter;/);
 assert.match(mainSource, /originGameEl\.value = String\(fixedOriginGame\);/);
 assert.match(mainSource, /shouldLockStaticEncounterOriginFields\(\) \|\|\s*Boolean\(cxdEncounter\)/);
+assert.match(
+  mainSource,
+  /currentEncounterMode === 'hatched' \|\|\s*currentEncounterMode === 'wild' \|\|\s*shouldApplyIsEggOverrides\(\)/,
+  'wild-caught origins should allow Japanese language selection',
+);
 
 console.log('origin selection markup tests passed');
