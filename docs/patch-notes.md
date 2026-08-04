@@ -1,5 +1,14 @@
-Patch Notes - (V.0.4.1) - June 20, 2026.
+Patch Notes - (V.0.4.2) - August 4, 2026.
+- Reworked the flow UI of the site, so you choose Pokémon first. Also allowed evolutions of specific encounters to be chosen for that encounter type.
+- The level-up move filter now caps genderless Hatched species by current level, while normal Hatched species still allow late level-up inheritance.
+- All modes now default to 3 PP UP for selected moves.
+- Removed additional preview of the box names, and replaced it with the option to click a character to see if it's a upper case, lower case, or a symbol.
+- Removed the R/S warning of impossible TID/SID combinations from the mystery gift event section, as these Pokémon have pre-created/fixed TID/SID's.
+- Added the XD in-game trade Pokémon
+- changed the UI and font of the base64 codes and interactive guide codes color coded with blue for upper case, red for lowercase, and green for symbols and numbers - just like it is with the background in-game.
+- fixed a bug for phones where the trade field would show up in non xd in-game trade encounter types.
 
+Patch Notes - (V.0.4.1) - June 20, 2026.
 - Added a PID parity selector for single-ability GBA Pokemon in Hatched, Wild, and Static modes so users can filter future transfer/evolution ability-slot behavior without changing the legal Gen 3 stored ability slot. Wild and Static mode now require Find Legal Encounter when Even or Odd PID parity is selected.
 - Added a tooltip for the PID parity setting.
 - Selecting a Pokémon now autocompletes the selector. Makes it easier to re-select another species.
