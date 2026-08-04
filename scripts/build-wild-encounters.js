@@ -19,8 +19,7 @@ const path = require('path');
 
 const DATA  = path.join(__dirname, '..', 'src', 'data');
 const OUT   = path.join(DATA, 'wildEncounters.gen3.js');
-const ZUBAT_SPECIES_ID = 41;
-const EMERALD_ALTERING_CAVE_LOCATION_ID = 210;
+const { shouldExcludeAlteringCaveSpecies } = require('./encounter-exclusions.js');
 const FEEBAS_SPECIES_ID = 328;
 const ROUTE_119_LOCATION_ID = 34;
 const HOENN_MAIN_GAME_IDS = [1, 2, 3]; // Sapphire, Ruby, Emerald
@@ -451,11 +450,7 @@ function processFile(data, sourceFile) {
           unmappedSpecies.add(mon.species);
           continue;
         }
-        if (
-          sourceFile === 'emerald' &&
-          locId === EMERALD_ALTERING_CAVE_LOCATION_ID &&
-          spId !== ZUBAT_SPECIES_ID
-        ) {
+        if (shouldExcludeAlteringCaveSpecies(sourceFile, locId, spId)) {
           continue;
         }
         for (const g of games) {

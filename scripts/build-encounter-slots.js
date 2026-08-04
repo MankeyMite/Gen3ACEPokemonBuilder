@@ -23,8 +23,7 @@ const path = require('path');
 
 const DATA = path.join(__dirname, '..', 'src', 'data');
 const OUT  = path.join(DATA, 'encounterSlots.gen3.js');
-const ZUBAT_SPECIES_ID = 41;
-const EMERALD_ALTERING_CAVE_LOCATION_ID = 210;
+const { shouldExcludeAlteringCaveTable } = require('./encounter-exclusions.js');
 const FEEBAS_SPECIES_ID = 328;
 const ROUTE_119_LOCATION_ID = 34;
 const HOENN_MAIN_GAME_IDS = [1, 2, 3]; // Sapphire, Ruby, Emerald
@@ -219,9 +218,7 @@ function ensureEntry(gameId, locId) {
 }
 
 function shouldSkipTable(sourceFile, locId, table) {
-  return sourceFile === 'emerald' &&
-    locId === EMERALD_ALTERING_CAVE_LOCATION_ID &&
-    table.some(([speciesId]) => speciesId !== ZUBAT_SPECIES_ID);
+  return shouldExcludeAlteringCaveTable(sourceFile, locId, table);
 }
 
 function processFile(data, sourceFile) {
