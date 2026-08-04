@@ -59,6 +59,7 @@ import {
   shouldSynchronizeSpeciesNickname,
 } from './domain/nicknameLocalization.js';
 import { getSeedDerivedMysteryOtGender } from './domain/mysteryGiftOtGender.js';
+import { canSelectJapaneseLanguage } from './domain/languageAvailability.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -5516,26 +5517,25 @@ function boot(){
 
   unlockPidFinderFieldsFn = unlockPidFinderFields;
 
-  // By default, Japanese (language id '1') is not selectable outside modes that
-  // can legally use it. Hatched, wild, and unhatched egg origins allow manual
-  // Japanese selection; Japanese-specific events may still set it explicitly.
+  // Japanese (language id '1') is selectable for normal in-game origins.
+  // Mystery Gifts remain limited by their existing distribution metadata.
   function enforceJapaneseOption(tag) {
     try {
       if (currentEncounterMode === 'imported') return;
       const langSel = $('#language');
       if (!langSel || !langSel.options) return;
-      let allowJapanese = manualOverrideActive ||
-        currentEncounterMode === 'hatched' ||
-        currentEncounterMode === 'wild' ||
-        shouldApplyIsEggOverrides();
-      if (!allowJapanese) {
-        const t = String(tag || '').toUpperCase();
-        if (t && MYSTERY_EVENTS && MYSTERY_EVENTS[t]) {
-          const evt = MYSTERY_EVENTS[t] || {};
-          if (evt.defaultLanguage === 1) allowJapanese = true;
-          if (evt.ot_names && evt.ot_names['1']) allowJapanese = true;
-        }
-      }
+      const mysteryTag = String(
+        tag || (currentEncounterMode === 'mystery' ? $('#mysteryEvent')?.value : '') || ''
+      ).toUpperCase();
+      const mysteryEvent = mysteryTag && MYSTERY_EVENTS
+        ? MYSTERY_EVENTS[mysteryTag] || null
+        : null;
+      const allowJapanese = canSelectJapaneseLanguage({
+        encounterMode: currentEncounterMode,
+        manualOverride: manualOverrideActive,
+        isEgg: shouldApplyIsEggOverrides(),
+        mysteryEvent,
+      });
       for (const o of Array.from(langSel.options)) {
         if (String(o.value) === '1') {
           o.disabled = !allowJapanese;
