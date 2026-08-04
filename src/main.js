@@ -2,6 +2,7 @@
 const ivIds = ['#ivHp','#ivAtk','#ivDef','#ivSpAtk','#ivSpDef','#ivSpe'];
 import { NATURES, LANGUAGES } from './lib/gen3/constants.js';
 import { SPECIES } from './data/species.gen3.js';
+import { getLocalizedSpeciesName } from './data/localizedSpeciesNames.gen3.js';
 import { BASE_STATS, DEOXYS_FORM_BASE_STATS } from './data/baseStats.gen3.js';
 import { ITEMS } from './data/items.gen3.js';
 import { MOVES } from './data/moves.gen3.js';
@@ -52,6 +53,11 @@ import {
   getXDTradesForSpecies,
   reconcileOriginForSpecies,
 } from './domain/encounterAvailability.js';
+import {
+  NICKNAME_SOURCE,
+  createNicknameState,
+  shouldSynchronizeSpeciesNickname,
+} from './domain/nicknameLocalization.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -255,7 +261,7 @@ function updateStatGraph() {
 
       // Event nickname default (if provided)
       if (evt.nickname !== undefined) {
-        const nick = $('#nickname'); if (nick) nick.value = String(evt.nickname);
+        setTrackedNickname(evt.nickname, NICKNAME_SOURCE.PRESET);
       }
 
       // OT gender if provided
@@ -547,7 +553,7 @@ function updateStatGraph() {
       // and restrict selectable languages to EN/FR/IT/DE/ES.
       try {
         if (String(tag).toUpperCase() === 'AURA_MEW') {
-          const nickEl = $('#nickname'); if (nickEl) nickEl.value = 'MEW';
+          setTrackedNickname('MEW', NICKNAME_SOURCE.PRESET);
 
           const allowed = new Set(['2','3','4','5','7']); // EN, FR, IT, DE, ES
           const langSel = $('#language');
@@ -870,6 +876,42 @@ let mysteryUserModifiedSincePreset = false;
 let preserveSpeciesOnNextModeChange = false;
 let deferExactPresetOnNextModeChange = false;
 let selectedStaticEncounterDetail = null;
+let nicknameLocalizationState = createNicknameState();
+
+function setTrackedNickname(value, source, speciesId = Number($('#species')?.value || 0)) {
+  const nicknameEl = $('#nickname');
+  if (!nicknameEl) return false;
+  nicknameEl.value = String(value ?? '');
+  nicknameLocalizationState = createNicknameState(source, speciesId);
+  return true;
+}
+
+function setLocalizedSpeciesNickname(speciesId, languageId, { force = false } = {}) {
+  const id = Number(speciesId) || 0;
+  if (!id || currentEncounterMode === 'imported') return false;
+  if (!force && !shouldSynchronizeSpeciesNickname(nicknameLocalizationState, id, currentEncounterMode)) {
+    return false;
+  }
+  const localizedName = getLocalizedSpeciesName(id, languageId);
+  if (!localizedName) return false;
+  return setTrackedNickname(localizedName, NICKNAME_SOURCE.SPECIES_DEFAULT, id);
+}
+
+function markNicknameAsUserEdited() {
+  nicknameLocalizationState = createNicknameState(
+    NICKNAME_SOURCE.USER,
+    Number($('#species')?.value || 0)
+  );
+}
+
+function markNicknameAsImported(speciesId = Number($('#species')?.value || 0)) {
+  nicknameLocalizationState = createNicknameState(NICKNAME_SOURCE.IMPORTED, speciesId);
+}
+
+function restoreNicknameState(state) {
+  if (!state) return;
+  nicknameLocalizationState = createNicknameState(state.source, state.speciesId);
+}
 
 function isCurrentOriginSelectionResolved() {
   const speciesId = Number($('#species')?.value || 0);
@@ -4172,61 +4214,38 @@ function boot(){
       if (!importedMode) {
         const species = SPECIES.find(s => s[0] === speciesId);
         if (species) {
-          // Special handling for Mew (species ID 151)
-          if (speciesId === 151) {
-            // If Aura Mew event is active in mystery mode, enforce Aura Mew rules
-            const currentTag = document.getElementById('mysteryEvent')?.value || '';
-            if (currentEncounterMode === 'mystery' && String(currentTag).toUpperCase() === 'AURA_MEW') {
-              $('#nickname').value = 'MEW';
-              $('#otName').value = 'Aura';
-              // Ensure language is within allowed set (EN/FR/IT/DE/ES)
-              const allowed = new Set(['2','3','4','5','7']);
-              const langSel = $('#language');
-              if (langSel && !allowed.has(String(langSel.value))) {
-                langSel.value = '2';
-                try { langSel.dispatchEvent(new Event('change')); } catch (e) {}
-              }
-              const fatefulCheckbox = $('#fatefulEncounter');
-              if (fatefulCheckbox) fatefulCheckbox.checked = true;
-            } else if (currentEncounterMode === 'mystery' && String(currentTag).toUpperCase() === 'MYSTRY_MEW') {
-              $('#nickname').value = 'MEW';
-              $('#otName').value = 'MYSTRY';
+          const currentTag = document.getElementById('mysteryEvent')?.value || '';
+          const normalizedTag = String(currentTag).toUpperCase();
+          if (speciesId === 151 && currentEncounterMode === 'mystery' && normalizedTag === 'AURA_MEW') {
+            setTrackedNickname('MEW', NICKNAME_SOURCE.PRESET, speciesId);
+            $('#otName').value = 'Aura';
+            const allowed = new Set(['2', '3', '4', '5', '7']);
+            const langSel = $('#language');
+            if (langSel && !allowed.has(String(langSel.value))) {
+              langSel.value = '2';
+              try { langSel.dispatchEvent(new Event('change')); } catch (e) {}
+            }
+            const fatefulCheckbox = $('#fatefulEncounter');
+            if (fatefulCheckbox) fatefulCheckbox.checked = true;
+          } else if (speciesId === 151 && currentEncounterMode === 'mystery' && normalizedTag === 'MYSTRY_MEW') {
+            setTrackedNickname('MEW', NICKNAME_SOURCE.PRESET, speciesId);
+            $('#otName').value = 'MYSTRY';
+            $('#language').value = '2';
+            const fatefulCheckbox = $('#fatefulEncounter');
+            if (fatefulCheckbox) fatefulCheckbox.checked = true;
+          } else if (speciesId === 251 && currentEncounterMode === 'mystery') {
+            const currentEvent = MYSTERY_EVENTS?.[currentTag] || null;
+            if (currentEvent?.nickname) {
+              setTrackedNickname(currentEvent.nickname, NICKNAME_SOURCE.PRESET, speciesId);
+              $('#language').value = String(currentEvent.defaultLanguage ?? 1);
+            } else if (normalizedTag === 'JOURNEY_ACROSS_AMERICA') {
+              setTrackedNickname('CELEBI', NICKNAME_SOURCE.PRESET, speciesId);
               $('#language').value = '2';
-              const fatefulCheckbox = $('#fatefulEncounter');
-              if (fatefulCheckbox) fatefulCheckbox.checked = true;
             } else {
-              $('#nickname').value = 'ミュウ'; // Mew in Japanese
-              $('#otName').value = 'ミュウ';   // OT also Mew in Japanese
-              $('#language').value = '1';      // Japanese language
-              const fatefulCheckbox = $('#fatefulEncounter');
-              if (fatefulCheckbox) {
-                fatefulCheckbox.checked = true; // Enable fateful encounter
-              }
+              setLocalizedSpeciesNickname(speciesId, Number($('#language')?.value || 2), { force: true });
             }
-          }
-          // Special handling for Celebi (species ID 251)
-          else if (speciesId === 251) {
-            const currentTag = document.getElementById('mysteryEvent')?.value || '';
-            const currentEvent = (currentEncounterMode === 'mystery' && MYSTERY_EVENTS && MYSTERY_EVENTS[currentTag])
-              ? MYSTERY_EVENTS[currentTag]
-              : null;
-            if (currentEncounterMode === 'mystery' && currentEvent && currentEvent.nickname) {
-              $('#nickname').value = String(currentEvent.nickname);
-              if (currentEvent.defaultLanguage !== undefined) {
-                $('#language').value = String(currentEvent.defaultLanguage);
-              } else {
-                $('#language').value = '1';
-              }
-            } else if (currentEncounterMode === 'mystery' && String(currentTag).toUpperCase() === 'JOURNEY_ACROSS_AMERICA') {
-              $('#nickname').value = 'CELEBI';
-              $('#language').value = '2'; // English
-            } else {
-              $('#nickname').value = 'ã‚»ãƒ¬ãƒ“ã‚£'; // Celebi in Japanese
-              $('#language').value = '1';        // Japanese language
-            }
-          }
-          else {
-            $('#nickname').value = species[1].toUpperCase();
+          } else {
+            setLocalizedSpeciesNickname(speciesId, Number($('#language')?.value || 2), { force: true });
           }
         }
         // Update ability select based on species
@@ -4342,7 +4361,7 @@ function boot(){
   
   // Set default language to English (ID 2)
   $('#language').value = '2';
-  // Disable Japanese option by default (we don't support the character set yet).
+  // Legal-mode rules decide when Japanese can be selected for an encounter.
   try {
     const langSelInit = $('#language');
     if (langSelInit && langSelInit.options) {
@@ -4353,6 +4372,11 @@ function boot(){
   } catch (e) {}
   try { enforceJapaneseOption(); } catch (e) {}
   try { lockLanguageForMewLegend(); } catch (e) {}
+
+  // A real nickname edit opts out of automatic species-name localization.
+  // Direct preset/import assignments do not emit `input`, so their state is
+  // recorded explicitly at the assignment sites below.
+  $('#nickname').addEventListener('input', markNicknameAsUserEdited);
   
   // Adjust nickname/OT maxlength based on language selection
   $('#language').addEventListener('change', () => {
@@ -4377,6 +4401,11 @@ function boot(){
       try { updateLegalityStatus(); } catch (e) {}
       return;
     }
+
+    setLocalizedSpeciesNickname(
+      Number($('#species')?.value || 0),
+      Number(languageId)
+    );
 
     // If we're in mystery mode and an event is selected, attempt to apply
     // the event-provided OT name for the chosen language.
@@ -5001,6 +5030,7 @@ function boot(){
       const selectedSpeciesId = Number($('#species')?.value || 0);
       const preservedSpeciesIdentity = {
         nickname: String($('#nickname')?.value || ''),
+        nicknameState: nicknameLocalizationState,
         otName: String($('#otName')?.value || ''),
         language: String($('#language')?.value || ''),
       };
@@ -5019,7 +5049,10 @@ function boot(){
       ) ? cachedNextModeState : null;
       const restorePreservedSelection = () => {
         if (shouldPreserveSpecies && selectedSpeciesId) $('#species').value = String(selectedSpeciesId);
-        if (shouldPreserveSpecies && $('#nickname')) $('#nickname').value = preservedSpeciesIdentity.nickname;
+        if (shouldPreserveSpecies && $('#nickname')) {
+          $('#nickname').value = preservedSpeciesIdentity.nickname;
+          restoreNicknameState(preservedSpeciesIdentity.nicknameState);
+        }
         if (shouldPreserveSpecies && $('#otName')) $('#otName').value = preservedSpeciesIdentity.otName;
         if (shouldPreserveSpecies && preservedSpeciesIdentity.language && $('#language')) {
           $('#language').value = preservedSpeciesIdentity.language;
@@ -5326,14 +5359,28 @@ function boot(){
       const usesHatcherTrainerData = isPcnyWishEggsMysteryTag(tag) || !!evt?.usesHatcherTrainerData;
       const usesEditableOriginGame = isPcnyWishEggsMysteryTag(tag);
       const trade = getSelectedCXDTrade();
+      const shadowEncounter = getSelectedCXDEncounter();
+      const cxdEncounter = trade || shadowEncounter;
       if (trade && !manualOverrideActive && tidEl) tidEl.value = String(trade.tid);
+      if (cxdEncounter && !manualOverrideActive && originGameEl) {
+        const fixedOriginGame = Number(trade?.originGame || 15);
+        const originGameChanged = Number(originGameEl.value || 0) !== fixedOriginGame;
+        originGameEl.value = String(fixedOriginGame);
+        if (originGameChanged && metLocationWrapper?.updateList) {
+          metLocationWrapper.updateList(getLocationsForGame(fixedOriginGame));
+          const metLocationEl = $('#metLocation');
+          if (metLocationEl && cxdEncounter.location !== undefined) {
+            metLocationEl.value = String(cxdEncounter.location);
+          }
+        }
+      }
       const shouldLockTid = !manualOverrideActive && Boolean(trade || (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData));
       const shouldLockSid = !manualOverrideActive && !trade && (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData);
       const shouldLockOtName = !manualOverrideActive && Boolean(trade || (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesHatcherTrainerData));
       const shouldLockOriginGame = !manualOverrideActive && (
         (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesEditableOriginGame) ||
         shouldLockStaticEncounterOriginFields() ||
-        Boolean(trade)
+        Boolean(cxdEncounter)
       );
       if (currentEncounterMode === 'static') {
         try { updateStaticOriginGameLocking(Number($('#species')?.value || 0)); } catch (e) {}
@@ -5821,7 +5868,7 @@ function boot(){
         try {
           const nickEl = $('#nickname');
           if (nickEl) {
-            nickEl.value = 'ミュウ';
+            setTrackedNickname('ミュウ', NICKNAME_SOURCE.PRESET, speciesId);
             nickEl.disabled = true;
             nickEl.style.pointerEvents = 'none';
             nickEl.style.opacity = '0.6';
@@ -7208,7 +7255,7 @@ function boot(){
     if (otName && $('#otName')) $('#otName').value = otName;
     const nicknameEl = $('#nickname');
     if (nickname && nicknameEl && (enc.nicknameLocked || !nicknameEl.value || nicknameEl.dataset.cxdTradeDefaultNickname === '1')) {
-      nicknameEl.value = nickname;
+      setTrackedNickname(nickname, NICKNAME_SOURCE.PRESET);
       if (enc.nicknameLocked) {
         delete nicknameEl.dataset.cxdTradeDefaultNickname;
       } else {
@@ -7401,6 +7448,7 @@ function boot(){
       if (currentEncounterMode !== 'cxd_shadow') return;
       if (!shadowEncounterSel.value) {
         updateMakeShinyVisibility(null);
+        try { updateTidSidLocking(); } catch (e) {}
         validateForm();
         updateLegalityStatus();
         return;
@@ -7413,6 +7461,7 @@ function boot(){
         if (!manualOverrideActive) applyCXDShadowPreset(encounters[idx]);
         updateMakeShinyVisibility(encounters[idx]);
       }
+      try { updateTidSidLocking(); } catch (e) {}
       validateForm();
       updateLegalityStatus();
     });
@@ -8028,6 +8077,7 @@ function boot(){
     }
     return {
       manualOverrideActive: Boolean(manualOverrideActive),
+      nicknameState: nicknameLocalizationState,
       fields
     };
   }
@@ -8045,6 +8095,7 @@ function boot(){
         writeEncounterModeField(id, fields[id]);
       }
     }
+    restoreNicknameState(state.nicknameState);
 
     try {
       const gameId = Number($('#originGame')?.value || 3);
@@ -8092,6 +8143,7 @@ function boot(){
           writeEncounterModeField(id, '');
         }
       }
+      nicknameLocalizationState = createNicknameState();
 
       // Reset manual override for a fresh mode unless that mode has its own saved state.
       manualOverrideActive = false;
@@ -11473,7 +11525,11 @@ function applySmogonImport(parsed) {
   $('#species').value = String(parsed.speciesId);
   const specEntry = SPECIES.find(s => s[0] === parsed.speciesId);
   if (specEntry) {
-    $('#nickname').value = specEntry[1].toUpperCase();
+    setTrackedNickname(
+      getLocalizedSpeciesName(parsed.speciesId, Number($('#language')?.value || 2)),
+      NICKNAME_SOURCE.IMPORTED,
+      parsed.speciesId
+    );
   }
 
   // Item
@@ -11653,6 +11709,7 @@ function onLoadFromHex(hexString){
     $('#otGender').value = data.otGender === 1 ? 'female' : 'male';
     $('#otName').value = data.otName;
     $('#nickname').value = data.nickname;
+    markNicknameAsImported(data.speciesId);
     $('#language').value = String(data.languageId);
     // Egg flag (misc header bit 2 -> 0x04). parsePokemonBytes now returns `isEgg`.
     if (typeof data.isEgg !== 'undefined') $('#isEgg').checked = Boolean(data.isEgg);
@@ -11941,6 +11998,7 @@ function onImportPk3(event) {
       $('#otGender').value = data.otGender === 1 ? 'female' : 'male';
       $('#otName').value = data.otName;
       $('#nickname').value = data.nickname;
+      markNicknameAsImported(data.speciesId);
       $('#language').value = String(data.languageId);
       if (typeof data.isEgg !== 'undefined') $('#isEgg').checked = Boolean(data.isEgg);
       

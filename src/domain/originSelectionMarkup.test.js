@@ -43,5 +43,8 @@ assert.match(html, /<option value="" selected>Unresolved<\/option>/);
 assert.match(mainSource, /function syncBuilderProgressiveDisclosure\(/);
 assert.match(mainSource, /document\.body\.classList\.toggle\('builder-setup-pending', !resolved\)/);
 assert.match(mainSource, /const hasResolvedOrigin = hasResolvedOriginSelection\(\);\s*syncBuilderProgressiveDisclosure\(hasResolvedOrigin\);/);
+assert.match(mainSource, /const shadowEncounter = getSelectedCXDEncounter\(\);\s*const cxdEncounter = trade \|\| shadowEncounter;/);
+assert.match(mainSource, /originGameEl\.value = String\(fixedOriginGame\);/);
+assert.match(mainSource, /shouldLockStaticEncounterOriginFields\(\) \|\|\s*Boolean\(cxdEncounter\)/);
 
 console.log('origin selection markup tests passed');
