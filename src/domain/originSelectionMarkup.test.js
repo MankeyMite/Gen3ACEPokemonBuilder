@@ -48,4 +48,19 @@ assert.match(mainSource, /originGameEl\.value = String\(fixedOriginGame\);/);
 assert.match(mainSource, /shouldLockStaticEncounterOriginFields\(\) \|\|\s*Boolean\(cxdEncounter\)/);
 assert.match(mainSource, /canSelectJapaneseLanguage\(\{/);
 
+const mysteryEventListenerStart = mainSource.indexOf("eventSel.addEventListener('change'");
+const mysteryEventListenerEnd = mainSource.indexOf("eventSel.dataset.originSelectionListener = '1'", mysteryEventListenerStart);
+assert.ok(mysteryEventListenerStart >= 0 && mysteryEventListenerEnd > mysteryEventListenerStart);
+const mysteryEventListenerSource = mainSource.slice(mysteryEventListenerStart, mysteryEventListenerEnd);
+assert.match(
+  mysteryEventListenerSource,
+  /updateOtGenderLocking\(\)/,
+  'changing an exact Mystery Gift distribution should refresh OT gender locking',
+);
+assert.match(
+  mainSource,
+  /return t === 'WISHMKR_BEST' \|\| t === 'WISHMKR_SHINY';/,
+  'both WISHMKR distributions should use the fixed OT gender rule',
+);
+
 console.log('origin selection markup tests passed');

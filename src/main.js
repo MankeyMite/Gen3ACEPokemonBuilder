@@ -6423,6 +6423,7 @@ function boot(){
               // Update mystery species options (noop if selector removed)
               updateMysterySpeciesOptions(tag);
               try { updateTidSidLocking(); } catch (e) {}
+              try { updateOtGenderLocking(); } catch (e) {}
               try { enforceJapaneseOption(tag); } catch (e) {}
               try { lockLanguageForMewLegend(); } catch (e) {}
               validateForm();
