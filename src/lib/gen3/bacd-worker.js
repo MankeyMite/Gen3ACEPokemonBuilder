@@ -1,5 +1,5 @@
 /**
- * BACD/BACD_R/BACD_R_A/BACD_RBCD/BACD_M mystery gift PID/IV search worker.
+ * BACD-family mystery gift PID/IV search worker.
  *
  * Restricted Gen 3 event methods use a 16-bit origin seed space (0x0000..0xFFFF).
  * This worker scans that space and returns best-IV results matching UI filters.
@@ -64,6 +64,51 @@ function isShinyGen3(pid, tid, sid) {
 
 function regularAntiShinyAdd(pid) {
   return ((pid + 8) & 0xFFFFFFF8) >>> 0;
+}
+
+function getSeedDerivedOtGender(seedAfterIVs, method) {
+  const normalized = String(method || '').toUpperCase();
+  if (!normalized || normalized === 'RECIPIENT') return '';
+  const state = { seed: seedAfterIVs >>> 0 };
+  let value = next16(state);
+  let bit;
+  if (normalized === 'RAND_D3') bit = Math.floor(value / 3) & 1;
+  else if (normalized === 'RAND_S3') bit = (value >>> 3) & 1;
+  else if (normalized === 'RAND_S7') bit = ((value >>> 7) & 1) ^ 1;
+  else if (normalized === 'RAND_SG15') {
+    value = next16(state);
+    bit = (value >>> 15) & 1;
+  } else return '';
+  return bit ? 'female' : 'male';
+}
+
+function getWeightedTableResult(originSeed) {
+  const state = { seed: originSeed >>> 0 };
+  const high = next16(state);
+  const low = next16(state);
+  const first = (((high << 2) & 0xFFFF) + high) >>> 0;
+  let second = (((low & 0xFFFF) << 1) + (first >>> 16)) >>> 0;
+  second = (second + high + (second >>> 16)) >>> 0;
+  const weight = Math.floor((1000 * (second & 0xFFFF)) / 0x10000);
+  const eighth = Math.floor(weight / 125);
+  return {
+    index: eighth >>> 1,
+    wish: Boolean(eighth & 1),
+    shiny: (eighth >>> 1) === 0 && (weight % 125) >= 100,
+  };
+}
+
+function tableSeedMatches(originSeed, params) {
+  const nationalSpecies = Number(params.eventNationalSpecies) || 0;
+  if (nationalSpecies === 385) return true;
+  // Non-egg BACD_TA distributions consume the same calls but do not use the
+  // PCJP weighted species/move table.
+  if (!nationalSpecies) return true;
+  const result = getWeightedTableResult(originSeed);
+  const index = (((nationalSpecies >>> 2) + 1) & 3) >>> 0;
+  return result.index === index &&
+    result.wish === Boolean(params.eventWish) &&
+    result.shiny === Boolean(params.wantShiny);
 }
 
 function getMystryMewOriginSeeds() {
@@ -155,7 +200,7 @@ function passesFilters(result, p) {
   return true;
 }
 
-function generateBACDFromSeed(originSeed, method, tid, sid, candidateMeta = null) {
+function generateBACDFromSeed(originSeed, method, tid, sid, candidateMeta = null, params = {}) {
   const state = { seed: originSeed >>> 0 };
 
   if (method === 'BACD_M') {
@@ -245,6 +290,37 @@ function generateBACDFromSeed(originSeed, method, tid, sid, candidateMeta = null
     };
   }
 
+  if (method === 'BACD_TA' || method === 'BACD_TS') {
+    next16(state);
+    next16(state);
+    const idXor = (tid ^ sid) & 0xFFFF;
+    let pid;
+    if (method === 'BACD_TS') {
+      const x = next16(state);
+      next16(state);
+      const b = next16(state);
+      const low = (((idXor ^ x) & 0xFFF8) | (b & 7)) & 0xFFFF;
+      pid = (((x & 0xFFFF) << 16) | low) >>> 0;
+    } else {
+      const a = next16(state);
+      const b = next16(state);
+      pid = ((a << 16) | b) >>> 0;
+      if (params.noShiny && isShinyGen3(pid, tid, sid)) pid = regularAntiShinyAdd(pid);
+    }
+    const c = next16(state);
+    const d = next16(state);
+    const ivs = {
+      hp: c & 31, atk: (c >>> 5) & 31, def: (c >>> 10) & 31,
+      spe: d & 31, spa: (d >>> 5) & 31, spd: (d >>> 10) & 31,
+    };
+    const otGender = getSeedDerivedOtGender(state.seed, params.otGenderMethod);
+    return {
+      seed: originSeed >>> 0, originSeed: originSeed >>> 0, pid, method, ivs,
+      hpt: hpType(ivs), hpp: hpPower(ivs), metLevels: null,
+      ...(otGender ? { otGender } : {}),
+    };
+  }
+
   const a = next16(state);
   const b = next16(state);
   const c = next16(state);
@@ -267,6 +343,7 @@ function generateBACDFromSeed(originSeed, method, tid, sid, candidateMeta = null
     spd: (d >> 10) & 31,
   };
 
+  const otGender = getSeedDerivedOtGender(state.seed, params.otGenderMethod);
   return {
     seed: originSeed >>> 0,
     originSeed: originSeed >>> 0,
@@ -276,6 +353,7 @@ function generateBACDFromSeed(originSeed, method, tid, sid, candidateMeta = null
     hpt: hpType(ivs),
     hpp: hpPower(ivs),
     metLevels: null,
+    ...(otGender ? { otGender } : {}),
   };
 }
 
@@ -358,16 +436,23 @@ function searchBACDUByIVRecovery(params) {
             const seed0 = reverse(seed1);
             const a = seed1 >>> 16;
             const b = seed2 >>> 16;
-            const pid = ((a << 16) | b) >>> 0;
+            const method = String(params.method || 'BACD_U').toUpperCase();
+            if (method === 'BACD_U_AX' && (a & ~7) === 0) continue;
+            const pidHigh = method === 'BACD_U_AX'
+              ? (a ^ ((searchParams.tid ^ searchParams.sid) ^ b)) & 0xFFFF
+              : a;
+            const pid = ((pidHigh << 16) | b) >>> 0;
             const ivs = { hp, atk, def, spa, spd, spe };
+            const otGender = getSeedDerivedOtGender(seed4, params.otGenderMethod);
             const r = {
               seed: seed0,
               originSeed: seed0,
               pid,
-              method: 'BACD_U',
+              method,
               ivs,
               hpt: hpType(ivs),
               hpp: hpPower(ivs),
+              ...(otGender ? { otGender } : {}),
             };
 
             if (!passesFilters(r, searchParams)) continue;
@@ -384,7 +469,7 @@ function searchBACDUByIVRecovery(params) {
 
 function searchBACD(params) {
   const method = String(params.method || 'BACD_R').toUpperCase();
-  if (method === 'BACD_U') {
+  if (method === 'BACD_U' || method === 'BACD_U_AX') {
     return searchBACDUByIVRecovery(params);
   }
 
@@ -448,7 +533,7 @@ function searchBACD(params) {
       }
 
       const candidate = candidates[i];
-      const r = generateBACDFromSeed(candidate.seed, method, searchParams.tid, searchParams.sid, candidate);
+      const r = generateBACDFromSeed(candidate.seed, method, searchParams.tid, searchParams.sid, candidate, params);
       if (isShinyGen3(r.pid, MYSTRY_MEW_FIXED_TID, MYSTRY_MEW_FIXED_SID)) continue;
       if (!passesFilters(r, searchParams)) continue;
 
@@ -467,7 +552,8 @@ function searchBACD(params) {
         }
       }
 
-      const r = generateBACDFromSeed(seed, method, searchParams.tid, searchParams.sid);
+      if ((method === 'BACD_TA' || method === 'BACD_TS') && !tableSeedMatches(seed, params)) continue;
+      const r = generateBACDFromSeed(seed, method, searchParams.tid, searchParams.sid, null, params);
       if (method === 'BACD_RBCD' && berryFixOtPreference !== 'ANY' && r.otName !== berryFixOtPreference) {
         continue;
       }

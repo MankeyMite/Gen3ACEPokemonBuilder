@@ -411,6 +411,10 @@ export function getSpritePath(speciesName) {
   return `src/data/Sprites/${String(dex).padStart(4, '0')}.png`;
 }
 
+export function getNationalDexNumber(speciesName) {
+  return _nameToDex[normalizeName(speciesName)] || null;
+}
+
 // ── Unown form helpers ──────────────────────────────────
 
 const UNOWN_FORMS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!?';

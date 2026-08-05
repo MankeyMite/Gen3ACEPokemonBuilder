@@ -15,6 +15,7 @@ import {
 import {
   getCXDTradesForSpecies,
 } from '../data/cxdTrades.gen3.js';
+import { getCXDSpecialEncountersForSpecies } from '../data/cxdSpecialEncounters.gen3.js';
 import { ROAMER_SPECIES } from '../data/roamers.gen3.js';
 
 export const NORMAL_ORIGIN_MODES = Object.freeze([
@@ -230,6 +231,24 @@ export function getShadowEncountersForSpecies(speciesId) {
     .flatMap(sourceId => getExistingShadowEncountersForSpecies(sourceId));
 }
 
+export function getCXDEncountersForSpecies(speciesId) {
+  return getSpeciesLineage(speciesId).flatMap(sourceId => [
+    ...getExistingShadowEncountersForSpecies(sourceId).map(encounter => ({
+      kind: 'shadow',
+      originGame: 15,
+      // XD's opening Teddiursa and Hordel's Togepi are forced into Poké Balls;
+      // other Shadow Pokémon retain the player's chosen capture Ball.
+      ball: encounter.fixedBall ?? (encounter.game === 'xd' && [1, 81].includes(Number(encounter.shadowIndex)) ? 4 : null),
+      fateful: encounter.game === 'xd',
+      nationalRibbon: true,
+      shinyLocked: encounter.game === 'xd',
+      pidType: 'CXD',
+      ...encounter,
+    })),
+    ...getCXDSpecialEncountersForSpecies(sourceId),
+  ]);
+}
+
 export function getXDTradesForSpecies(speciesId) {
   return getSpeciesLineage(speciesId)
     .flatMap(sourceId => getCXDTradesForSpecies(sourceId));
@@ -237,9 +256,9 @@ export function getXDTradesForSpecies(speciesId) {
 
 export function getGameCubeEncountersForSpecies(speciesId) {
   return [
-    ...getShadowEncountersForSpecies(speciesId).map((encounter, index) => ({
+    ...getCXDEncountersForSpecies(speciesId).map((encounter, index) => ({
       mode: 'cxd_shadow',
-      kind: 'shadow',
+      kind: encounter.kind || 'shadow',
       index,
       encounter,
     })),
@@ -268,7 +287,7 @@ export function isSpeciesAvailableForOrigin(speciesId, mode, context = {}) {
     case 'mystery':
       return getMysteryEventsForSpecies(id, context.mysteryEvents, context.mysteryGifts).length > 0;
     case 'cxd_shadow':
-      return getShadowEncountersForSpecies(id).length > 0;
+      return getCXDEncountersForSpecies(id).length > 0;
     case 'cxd_trade':
       return getXDTradesForSpecies(id).length > 0;
     case 'imported':

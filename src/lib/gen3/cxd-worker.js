@@ -15,7 +15,9 @@
  *   until non-shiny.
  *
  * XD shadows: noShiny ALWAYS true (no legal shiny XD shadows).
- * Colo shadows: noShiny also true (anti-shiny rerolling).
+ * Colosseum shadows can be shiny for the player; their NPC team generation
+ * still performs its own trainer-specific anti-shiny handling in lock checks.
+ * Colosseum e-Reader shadows use a separate fixed-IV PID-only path below.
  *
  * Message IN  → { startSeed, endSeed, nature, ability, genderThreshold,
  *                 targetGender, tid, sid, wantShiny, minIVs:[6], maxIVs:[6],
@@ -34,6 +36,52 @@ function cxdNext(s) { return (Math.imul(s, CXD_MULT) + CXD_ADD) >>> 0; }
 const CXD_INV  = 0xB9B33155;
 const CXD_RADD = 0xA170F641;
 function cxdPrev(s) { return (Math.imul(s, CXD_INV) + CXD_RADD) >>> 0; }
+
+// PKHeX's Colosseum/XD trainer-ID verifier does more than check that TID and
+// SID are consecutive XDRNG outputs. The seed before those outputs must also
+// be reachable from the player-name screen after the game's 1,000-frame jump.
+function cxdPrev1000(s) {
+  return (Math.imul(s, 0x251CC8E1) + 0x94750758) >>> 0;
+}
+
+function isValidNameScreenEndSeed(inputSeed) {
+  const threshold = 0x1999;
+  const pending = [inputSeed >>> 0];
+  const visited = new Set();
+
+  // Iterative form of PKHeX MethodCXD.IsValidNameScreenEndSeed. Each branch
+  // walks farther backwards, so the set is only a cycle guard for malformed or
+  // adversarial inputs and does not change normal results.
+  while (pending.length) {
+    const input = pending.pop() >>> 0;
+    if (visited.has(input)) continue;
+    visited.add(input);
+
+    let state = input;
+    const p1 = (state >>> 16) > threshold;
+    state = cxdPrev(state);
+    const p2 = (state >>> 16) > threshold;
+    state = cxdPrev(state);
+    const p3 = (state >>> 16) > threshold;
+    state = cxdPrev(state);
+    const p4 = (state >>> 16) > threshold;
+    if (p1 && p2 && p3 && p4) return true;
+
+    state = cxdPrev(state);
+    if ((state >>> 16) <= threshold) pending.push(cxdPrev(state));
+    state = cxdPrev(state);
+    if ((state >>> 16) <= threshold && p1) pending.push(cxdPrev(state));
+    state = cxdPrev(state);
+    if ((state >>> 16) <= threshold && p1 && p2) pending.push(cxdPrev(state));
+    state = cxdPrev(state);
+    if ((state >>> 16) <= threshold && p1 && p2 && p3) pending.push(cxdPrev(state));
+  }
+  return false;
+}
+
+function isValidStarterTrainerOrigin(origin) {
+  return isValidNameScreenEndSeed(cxdPrev1000(origin));
+}
 
 /* ── Hidden-Power helpers ─────────────────────────────── */
 const HP_TYPES = [
@@ -119,6 +167,130 @@ function checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXo
   const xv = ((pid >>> 16) ^ (pid & 0xFFFF)) ^ trainerXor;
   if (wantShiny  && xv >= 8) return false;
   return true;
+}
+
+function previousState(seed, count) {
+  let state = seed >>> 0;
+  for (let i = 0; i < count; i++) state = cxdPrev(state);
+  return state;
+}
+
+function getRegularPidAfter(state) {
+  let s = cxdNext(state);
+  const high = s >>> 16;
+  s = cxdNext(s);
+  return { pid: ((high << 16) | (s >>> 16)) >>> 0, sAfter: s };
+}
+
+function generateColoStarterPid(abilityState, trainerXor) {
+  let state = abilityState >>> 0;
+  while (true) {
+    const result = getRegularPidAfter(state);
+    state = result.sAfter;
+    const isMaleEevee = (result.pid & 0xFF) >= 31;
+    if (isMaleEevee && !isShiny3(trainerXor, result.pid)) return result;
+  }
+}
+
+function getStarterIds(origin) {
+  let state = cxdNext(origin);
+  const tid = state >>> 16;
+  state = cxdNext(state);
+  const sid = state >>> 16;
+  return { tid, sid, trainerXor: (tid ^ sid) >>> 0 };
+}
+
+function getStarterFrame(seedIV1, params) {
+  const iv2State = cxdNext(seedIV1);
+  const abilityState = cxdNext(iv2State);
+  const abilityBit = (abilityState >>> 16) & 1;
+
+  if (params.pidType === 'CXD_XD_STARTER') {
+    const origin = previousState(seedIV1, 5);
+    if (!isValidStarterTrainerOrigin(origin)) return null;
+    const ids = getStarterIds(origin);
+    const { pid } = getRegularPidAfter(abilityState);
+    return { origin, pid, abilityBit, ...ids };
+  }
+
+  if (Number(params.starterIndex) === 0) {
+    const origin = previousState(seedIV1, 5);
+    if (!isValidStarterTrainerOrigin(origin)) return null;
+    const ids = getStarterIds(origin);
+    const { pid } = generateColoStarterPid(abilityState, ids.trainerXor);
+    return { origin, pid, abilityBit, ...ids };
+  }
+
+  // Espeon follows a variable-length Umbreon PID reroll loop. The two calls
+  // directly before Espeon's fake PID are Umbreon's final (valid) PID.
+  const finalLowState = previousState(seedIV1, 3);
+  let candidateLowState = finalLowState;
+  for (let rerolls = 0; rerolls < 64; rerolls++) {
+    const candidateHighState = cxdPrev(candidateLowState);
+    const priorAbilityState = cxdPrev(candidateHighState);
+    const priorIV1State = previousState(priorAbilityState, 2);
+    const origin = previousState(priorIV1State, 5);
+    if (!isValidStarterTrainerOrigin(origin)) {
+      candidateLowState = cxdPrev(candidateHighState);
+      continue;
+    }
+    const ids = getStarterIds(origin);
+
+    let attemptLowState = candidateLowState;
+    let validSequence = true;
+    for (let attempt = rerolls; attempt >= 0; attempt--) {
+      const attemptHighState = cxdPrev(attemptLowState);
+      const priorPid = (((attemptHighState >>> 16) << 16) | (attemptLowState >>> 16)) >>> 0;
+      const validPrior = (priorPid & 0xFF) >= 31 && !isShiny3(ids.trainerXor, priorPid);
+      if ((attempt === 0) !== validPrior) { validSequence = false; break; }
+      attemptLowState = cxdNext(cxdNext(attemptLowState));
+    }
+    if (validSequence) {
+      const { pid } = generateColoStarterPid(abilityState, ids.trainerXor);
+      return { origin, pid, abilityBit, ...ids };
+    }
+    candidateLowState = cxdPrev(candidateHighState);
+  }
+  return null;
+}
+
+function getPokeSpotSlot(esv) {
+  return esv < 50 ? 0 : esv < 85 ? 1 : 2;
+}
+
+function isValidPokeSpotActivation(slot, seed) {
+  if (getPokeSpotSlot((seed >>> 16) % 100) !== Number(slot)) return false;
+  let state = cxdPrev(seed);
+  const first = state >>> 16;
+  if (first % 3 === 0) return true;
+  if (first % 100 < 10) return false;
+  state = cxdPrev(state);
+  return (state >>> 16) % 3 === 0;
+}
+
+function isValidPokeSpotAnimation(seed) {
+  let state = cxdPrev(seed);
+  let animation = (state >>> 16) % 10;
+  if (animation < 5 && animation !== 3) return true;
+  state = cxdPrev(state);
+  animation = (state >>> 16) % 10;
+  if (animation >= 5 && animation !== 8) return true;
+  state = previousState(state, 3);
+  return ((state >>> 16) % 10) === 8;
+}
+
+function findPokeSpotPid(params, isStopped) {
+  const trainerXor = (params.tid ^ params.sid) >>> 0;
+  const start = (Math.imul(params.tid & 0xFFFF, 0x10001) ^ params.sid) >>> 0;
+  for (let offset = 0; offset < 0x100000000; offset++) {
+    if ((offset & 0xFFFFF) === 0 && isStopped()) return null;
+    const seed = (start + offset) >>> 0;
+    if (!isValidPokeSpotActivation(params.pokeSpotSlot, seed)) continue;
+    const { pid } = getRegularPidAfter(seed);
+    if (!checkPid(pid, params.nature, -1, params.genderThreshold, params.targetGender, trainerXor, params.wantShiny, 0)) continue;
+    return { seed, pid };
+  }
+  return null;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -353,6 +525,61 @@ function validateTeamLocks(originSeed, teamPatterns, tsv) {
  *  (with anti-shiny rerolling + optional team-lock validation).
  * ══════════════════════════════════════════════════════════ */
 
+function pokeSpotSearch(params, isStopped) {
+  const pidFrame = findPokeSpotPid(params, isStopped);
+  if (!pidFrame) {
+    self.postMessage({ type: 'done', results: [] });
+    return;
+  }
+  const min = params.minIVs || [0, 0, 0, 0, 0, 0];
+  const max = params.maxIVs || [31, 31, 31, 31, 31, 31];
+  const levelMin = Math.max(1, Number(params.levelMin) || 1);
+  const levelMax = Math.max(levelMin, Number(params.levelMax) || levelMin);
+  const levelCount = 1 + levelMax - levelMin;
+  const maxResults = Math.max(1, Number(params.maxResults) || 50);
+  const results = [];
+
+  outer:
+  for (let hp = max[0]; hp >= min[0]; hp--) {
+    for (let atk = max[1]; atk >= min[1]; atk--) {
+      for (let def = max[2]; def >= min[2]; def--) {
+        const iv1 = hp | (atk << 5) | (def << 10);
+        for (let bit15 = 0; bit15 <= 1; bit15++) {
+          const high = ((iv1 | (bit15 << 15)) << 16) >>> 0;
+          for (let low = 0; low < 0x10000; low++) {
+            const iv1State = (high | low) >>> 0;
+            const iv2State = cxdNext(iv1State);
+            const iv2 = (iv2State >>> 16) & 0x7FFF;
+            const spe = iv2 & 31;
+            const spa = (iv2 >>> 5) & 31;
+            const spd = (iv2 >>> 10) & 31;
+            if (spa < min[3] || spa > max[3] || spd < min[4] || spd > max[4] || spe < min[5] || spe > max[5]) continue;
+            const preIV = cxdPrev(iv1State);
+            const animationSeed = previousState(preIV, 6);
+            if (!isValidPokeSpotAnimation(animationSeed)) continue;
+            // Poké Spot level is rolled two frames before the IV seed. It is
+            // part of PKHeX's IV correlation and is not always the slot max.
+            const levelState = previousState(preIV, 2);
+            const metLevel = levelMin + ((levelState >>> 16) % levelCount);
+            const abilityState = cxdNext(iv2State);
+            const abilityBit = (abilityState >>> 16) & 1;
+            if (params.ability >= 0 && abilityBit !== params.ability) continue;
+            const ivs = { hp, atk, def, spa, spd, spe };
+            results.push({
+              seed: pidFrame.seed, ivSeed: animationSeed, pid: pidFrame.pid,
+              abilityBit, method: 'POKESPOT', ivs,
+              hpt: hpType(ivs), hpp: hpPower(ivs), initSeed: null,
+              metLevels: [metLevel],
+            });
+            if (results.length >= maxResults) break outer;
+          }
+        }
+      }
+    }
+  }
+  self.postMessage({ type: 'done', results });
+}
+
 function fastSearch(params, isStopped) {
   const {
     nature, ability, genderThreshold, targetGender,
@@ -408,11 +635,15 @@ function fastSearch(params, isStopped) {
             /* ability → PID with anti-shiny rerolling */
             const seedAb = cxdNext(seedIV2);
             const abilityBit = (seedAb >>> 16) & 1;
-            const { pid } = generateCXDPid(seedAb, trainerXor, noShiny);
+            const isStarter = params.pidType === 'CXD_COLO_STARTER' || params.pidType === 'CXD_XD_STARTER';
+            const starter = isStarter ? getStarterFrame(seedIV1, params) : null;
+            if (isStarter && !starter) continue;
+            const pid = starter ? starter.pid : generateCXDPid(seedAb, trainerXor, noShiny).pid;
+            const resultTrainerXor = starter ? starter.trainerXor : trainerXor;
 
-            if (!checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny, abilityBit)) continue;
+            if (!checkPid(pid, nature, ability, genderThreshold, targetGender, resultTrainerXor, wantShiny, abilityBit)) continue;
 
-            const seed0 = cxdPrev(seedIV1);
+            const seed0 = starter ? starter.origin : cxdPrev(seedIV1);
 
             /* Team-lock validation */
             if (doLockCheck && !validateTeamLocks(seed0, teamLocks, tsv != null ? tsv : NOT_FORCED)) continue;
@@ -422,12 +653,13 @@ function fastSearch(params, isStopped) {
               seed: seed0,
               pid,
               abilityBit,
-              method: 'CXD',
+              method: params.pidType || 'CXD',
               ivs,
               hpt: hpType(ivs),
               hpp: hpPower(ivs),
               initSeed: null,
-              metLevels: null
+              metLevels: null,
+              ...(starter ? { tid: starter.tid, sid: starter.sid } : {})
             }, ivTotal);
           }
         }
@@ -436,6 +668,60 @@ function fastSearch(params, isStopped) {
   }
 
   self.postMessage({ type: 'done', results: pb.buf });
+}
+
+/*
+ * Colosseum e-Reader shadows are a special XDRNG case. Their six IVs are
+ * fixed to zero and therefore are not correlated to their PID. The PID is
+ * still generated by XDRNG and must reverse to the complete, nature/gender-
+ * locked NPC team. This mirrors EncounterShadow3Colo.SetPINGA_EReader and
+ * EncounterGenerator3GC.GetIsShadowLockValidEReader in PKHeX.
+ */
+function eReaderSearch(params, isStopped) {
+  const {
+    startSeed, endSeed,
+    nature, genderThreshold, targetGender,
+    tid, sid, wantShiny, maxResults, teamLocks
+  } = params;
+
+  const results = [];
+  const limit = Math.max(1, Number(maxResults) || 50);
+  const trainerXor = (tid ^ sid) >>> 0;
+  const TICK = 0x100000;
+  const tickMask = TICK - 1;
+  const ivs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+
+  for (let origin = startSeed; origin < endSeed; origin++) {
+    if (((origin - startSeed) & tickMask) === 0 && origin > startSeed) {
+      self.postMessage({ type: 'progress', done: origin - startSeed, total: endSeed - startSeed });
+      if (results.length > 0) self.postMessage({ type: 'snapshot', results });
+      if (isStopped()) break;
+    }
+
+    // PKHeX: D = XDRNG.Prev3(origin), E = XDRNG.Next(D), PID = D_hi | E_hi.
+    const pidHighState = previousState(origin >>> 0, 3);
+    const pidLowState = cxdNext(pidHighState);
+    const pid = (((pidHighState >>> 16) << 16) | (pidLowState >>> 16)) >>> 0;
+
+    // RefreshAbility(0) is mandatory for these encounters.
+    if (!checkPid(pid, nature, 0, genderThreshold, targetGender, trainerXor, wantShiny, 0)) continue;
+    if (!validateTeamLocks(origin >>> 0, teamLocks, NOT_FORCED)) continue;
+
+    results.push({
+      seed: origin >>> 0,
+      pid,
+      abilityBit: 0,
+      method: 'CXD_EREADER',
+      ivs: { ...ivs },
+      hpt: hpType(ivs),
+      hpp: hpPower(ivs),
+      initSeed: null,
+      metLevels: null
+    });
+    if (results.length >= limit) break;
+  }
+
+  self.postMessage({ type: 'done', results });
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -529,13 +815,23 @@ self.onmessage = function (e) {
   self.onmessage = function () { stopped = true; };
   const isStopped = () => stopped;
 
+  if (e.data.pidType === 'POKESPOT') {
+    pokeSpotSearch(e.data, isStopped);
+    return;
+  }
+
+  if (e.data.pidType === 'CXD_EREADER') {
+    eReaderSearch(e.data, isStopped);
+    return;
+  }
+
   const minIVs = e.data.minIVs;
   const maxIVs = e.data.maxIVs || [31,31,31,31,31,31];
   const iv1Count = (maxIVs[0] - minIVs[0] + 1) *
                    (maxIVs[1] - minIVs[1] + 1) *
                    (maxIVs[2] - minIVs[2] + 1);
 
-  if (iv1Count <= 4096) {
+  if (iv1Count <= 4096 || e.data.pidType === 'CXD_COLO_STARTER' || e.data.pidType === 'CXD_XD_STARTER') {
     fastSearch(e.data, isStopped);
   } else {
     bruteForceSearch(e.data, isStopped);

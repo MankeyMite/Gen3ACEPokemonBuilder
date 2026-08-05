@@ -185,29 +185,74 @@ export function getShadowEncountersForSpecies(speciesId) {
 /** Set of all species IDs available as CXD shadow encounters. */
 export const CXD_SHADOW_SPECIES = new Set(CXD_SHADOW_ENCOUNTERS.map(e => e.species));
 
+const GC_MULT = 0x343FD;
+const GC_ADD = 0x269EC3;
+const GC_INV = 0xB9B33155;
+const GC_REVERSE_ADD = 0xA170F641;
+
+function gcNext(seed) {
+  return (Math.imul(seed, GC_MULT) + GC_ADD) >>> 0;
+}
+
+function gcPrev(seed) {
+  return (Math.imul(seed, GC_INV) + GC_REVERSE_ADD) >>> 0;
+}
+
+function gcPrev1000(seed) {
+  return (Math.imul(seed, 0x251CC8E1) + 0x94750758) >>> 0;
+}
+
+/** Port of PKHeX MethodCXD.IsValidNameScreenEndSeed. */
+function isValidNameScreenEndSeed(inputSeed) {
+  const threshold = 0x1999;
+  const pending = [inputSeed >>> 0];
+  const visited = new Set();
+
+  while (pending.length) {
+    const input = pending.pop() >>> 0;
+    if (visited.has(input)) continue;
+    visited.add(input);
+
+    let state = input;
+    const p1 = (state >>> 16) > threshold;
+    state = gcPrev(state);
+    const p2 = (state >>> 16) > threshold;
+    state = gcPrev(state);
+    const p3 = (state >>> 16) > threshold;
+    state = gcPrev(state);
+    const p4 = (state >>> 16) > threshold;
+    if (p1 && p2 && p3 && p4) return true;
+
+    state = gcPrev(state);
+    if ((state >>> 16) <= threshold) pending.push(gcPrev(state));
+    state = gcPrev(state);
+    if ((state >>> 16) <= threshold && p1) pending.push(gcPrev(state));
+    state = gcPrev(state);
+    if ((state >>> 16) <= threshold && p1 && p2) pending.push(gcPrev(state));
+    state = gcPrev(state);
+    if ((state >>> 16) <= threshold && p1 && p2 && p3) pending.push(gcPrev(state));
+  }
+  return false;
+}
+
 /**
- * Validate a TID/SID pair against the GameCube RNG.
- * In Colosseum/XD, TID and SID are consecutive upper-16 outputs of the GC LCG.
- * seed = seed * 0x343FD + 0x269EC3 → TID = seed >>> 16
- * seed = seed * 0x343FD + 0x269EC3 → SID = seed >>> 16
- *
- * We check all 2^32 seeds to find if any produces the given TID then SID.
- * Uses modular inverse for O(1) lookup instead of brute force.
+ * Validate a Colosseum/XD TID/SID pair using PKHeX's full trainer-ID rule.
+ * The IDs must be consecutive upper-16 GC RNG outputs, and the state before
+ * them must be reachable from the player-name screen after its 1,000-frame
+ * advance.
  *
  * @param {number} tid - Trainer ID (0-65535)
  * @param {number} sid - Secret ID (0-65535)
- * @returns {boolean} true if the TID/SID pair is valid for GC RNG
+ * @returns {boolean} true if PKHeX can recover a valid trainer RNG seed
  */
 export function isValidGCTidSid(tid, sid) {
-  // For every possible TID output, the seed upper 16 bits are the TID.
-  // seed_after_tid has upper 16 = tid, lower 16 = any of 0..65535.
-  // Advance once more: if upper 16 of next seed = sid, valid.
   tid = tid & 0xFFFF;
   sid = sid & 0xFFFF;
   for (let low = 0; low < 0x10000; low++) {
     const seedAfterTid = ((tid << 16) | low) >>> 0;
-    const next = (Math.imul(seedAfterTid, 0x343FD) + 0x269EC3) >>> 0;
-    if ((next >>> 16) === sid) return true;
+    if ((gcNext(seedAfterTid) >>> 16) !== sid) continue;
+    const trainerOrigin = gcPrev(seedAfterTid);
+    if (isValidNameScreenEndSeed(gcPrev1000(trainerOrigin))) return true;
   }
   return false;
 }

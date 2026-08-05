@@ -128,6 +128,58 @@ assert(
   'BACD_R results should stay within 0x0000..0xFFFF'
 );
 
+const antiXResults = runSearch({
+  ...exactPerfectLonely,
+  method: 'BACD_U_AX',
+  nature: 22,
+  noShiny: true,
+  startSeed: 0,
+  endSeed: 1,
+});
+assert(
+  antiXResults.some(result =>
+    result.originSeed === expectedOriginSeed &&
+    result.pid === 0x79F9E850 &&
+    result.method === 'BACD_U_AX' &&
+    hasPerfectIVs(result)
+  ),
+  'BACD_U_AX should recover the PCNY anti-X PID transform from exact IVs'
+);
+
+const tableBase = {
+  nature: 0,
+  ability: -1,
+  genderThreshold: -1,
+  targetGender: 3,
+  tid: 0,
+  sid: 0,
+  minIVs: [0, 0, 0, 0, 0, 0],
+  maxIVs: [31, 31, 31, 31, 31, 31],
+  startSeed: 0,
+  endSeed: 0x10000,
+  maxResults: 20,
+};
+const taResults = runSearch({
+  ...tableBase,
+  method: 'BACD_TA',
+  wantShiny: false,
+  noShiny: true,
+  eventNationalSpecies: 385,
+  otGenderMethod: 'RAND_S7',
+});
+assert(taResults.length > 0, 'BACD_TA should produce table-distribution results');
+assert(taResults.every(result => result.method === 'BACD_TA' && result.otGender), 'BACD_TA should preserve its method and seed-derived OT gender');
+
+const tsResults = runSearch({
+  ...tableBase,
+  method: 'BACD_TS',
+  wantShiny: true,
+  noShiny: false,
+  eventNationalSpecies: 385,
+});
+assert(tsResults.length > 0, 'BACD_TS should produce forced-shiny table results');
+assert(tsResults.every(result => ((((result.pid >>> 16) ^ (result.pid & 0xFFFF)) ^ 0) < 8)), 'every BACD_TS result should be shiny');
+
 if (failed > 0) {
   console.error(`\n${failed} failed, ${passed} passed`);
   process.exit(1);

@@ -19,7 +19,7 @@ assert.ok(shadowIndex > originIndex, 'GameCube exact selector should follow Orig
 assert.match(html, /How was this Pokémon obtained\?/);
 assert.match(html, /<label for="mysteryEvent">Distribution<\/label>/);
 assert.match(html, /<label for="staticEncounter">Encounter<\/label>/);
-assert.match(html, /<label for="shadowEncounter">Trainer \/ Location<\/label>/);
+assert.match(html, /<label for="shadowEncounter">Encounter<\/label>/);
 assert.match(html, /class="internal-builder-control" id="encounterModeToggle"/);
 assert.match(html, /<select id="staticCategory" tabindex="-1"><\/select>/);
 assert.match(html, /<select id="cxdTradeEncounter" tabindex="-1"><\/select>/);
@@ -63,6 +63,13 @@ assert.match(
   'both WISHMKR distributions should use the fixed OT gender rule',
 );
 assert.match(mainSource, /getOtGenderLockPolicy\(\{/);
+
+const selectedCXDHelperIndex = mainSource.indexOf('function getSelectedCXDEncounter()');
+const bootFunctionIndex = mainSource.indexOf('function boot()');
+assert.ok(
+  selectedCXDHelperIndex >= 0 && selectedCXDHelperIndex < bootFunctionIndex,
+  'the selected CXD encounter helper must remain module-scoped for the PID Finder modal',
+);
 
 const isEggListenerStart = mainSource.indexOf("isEggCheckbox.addEventListener('change'");
 const isEggListenerEnd = mainSource.indexOf('updateLegalityStatus();', isEggListenerStart);

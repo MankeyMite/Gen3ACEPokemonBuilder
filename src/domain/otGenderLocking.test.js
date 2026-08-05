@@ -32,6 +32,15 @@ assert.deepEqual(
   'events using hatcher trainer data should retain editable OT gender',
 );
 assert.deepEqual(
+  getOtGenderLockPolicy({
+    encounterMode: 'mystery',
+    mysteryTag: 'PCNY_EVOLUTION_PIKACHU',
+    mysteryUsesRecipientOtGender: true,
+  }),
+  { locked: false, forcedGender: '' },
+  'PCNY direct downloads should retain the recipient trainer gender',
+);
+assert.deepEqual(
   getOtGenderLockPolicy({ encounterMode: 'mystery', mysteryTag: 'BOX_EVENT', isEgg: false }),
   { locked: false, forcedGender: '' },
   'a hatched Pokémon Box gift should use editable hatcher OT gender',

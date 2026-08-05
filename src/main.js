@@ -26,7 +26,11 @@ import { createProfanityFilter } from './lib/profanityFilter.js';
 import { isValidGCTidSid } from './data/shadowEncounters.gen3.js';
 import { COLO_SHADOW_LOCKS, XD_SHADOW_LOCKS, COLO_NO_LOCK_SPECIES, XD_NO_LOCK_SPECIES } from './data/cxdLocks.gen3.js';
 import { getCXDTradeLocalizedText } from './data/cxdTrades.gen3.js';
-import { getSpritePath, getUnownFormIndex, getUnownFormChar, getUnownFormSuffix, getUnownSpritePath, getOnlineSpriteUrl, getOnlineUnownSpriteUrl, UNOWN_FORMS, TANOBY_FORMS_BY_LOCATION, getTanobyFormsForLocation, getTanobyLocationsForForm } from './data/nationalDex.gen3.js';
+import {
+  MYSTERY_GIFT_EVENTS_SUPPLEMENTAL,
+  MYSTERY_GIFT_POKEMON_SUPPLEMENTAL,
+} from './data/mysteryGiftsSupplemental.gen3.js';
+import { getNationalDexNumber, getSpritePath, getUnownFormIndex, getUnownFormChar, getUnownFormSuffix, getUnownSpritePath, getOnlineSpriteUrl, getOnlineUnownSpriteUrl, UNOWN_FORMS, TANOBY_FORMS_BY_LOCATION, getTanobyFormsForLocation, getTanobyLocationsForForm } from './data/nationalDex.gen3.js';
 import { GENDER_THRESHOLDS, getGenderThreshold } from './data/genderThresholds.gen3.js';
 import { isPristineImportedRoundTripState, tryBuildPristineImportedOutputs, shouldMarkImportedDirtyFromEvent, resolvePokerusStateForBuild } from './lib/gen3/importIsolation.js';
 import { findNearestBoxNameCharacterAtTextOffset } from './lib/gen3/gbaTextPreview.js';
@@ -34,6 +38,7 @@ import { getLegalSheenRangeGen3 } from './lib/gen3/contestSheen.js';
 import { getAllowedLevelUpMoveIdsForEncounter, shouldCapHatchedLevelUpMoves } from './lib/gen3/hatchedMoveLegality.js';
 import { getDirectWildMoveOverride } from './lib/gen3/wildMoveLegality.js';
 import { adjustShinySidForRSTrainerId, findNearestValidRSTrainerSid, isValidRSTrainerId } from './lib/gen3/rsTrainerId.js';
+import { resolvePidFinderAbilityBit } from './domain/pidFinderAbility.js';
 import {
   ROAMER_GAMES_FOR_SPECIES,
   ROAMER_SPECIES,
@@ -47,7 +52,7 @@ import {
   getMysteryEventsForSpecies,
   getOriginDefinition,
   getOriginTransitionForSpecies,
-  getShadowEncountersForSpecies,
+  getCXDEncountersForSpecies,
   getSpeciesLineage,
   getStaticEncountersForSpecies,
   getSupportedSpecies,
@@ -239,15 +244,24 @@ function updateStatGraph() {
           return;
         }
 
-      // TID / SID
-      if (evt.fixedTID !== undefined) $('#tid').value = String(evt.fixedTID);
-      if (evt.fixedSID !== undefined) $('#sid').value = String(evt.fixedSID);
+        // TID / SID
+        if (evt.fixedTID !== undefined) $('#tid').value = String(evt.fixedTID);
+        else if (evt.defaultTID !== undefined) $('#tid').value = String(evt.defaultTID);
+        if (evt.fixedSID !== undefined) $('#sid').value = String(evt.fixedSID);
 
       // OT name: prefer event default language when provided (fallback English).
       const preferredLangId = String(evt.defaultLanguage !== undefined ? evt.defaultLanguage : 2);
       try {
         const langEl = $('#language');
         if (langEl) {
+          const allowedLanguages = Array.isArray(evt.allowedLanguages)
+            ? new Set(evt.allowedLanguages.map(value => String(value)))
+            : null;
+          if (allowedLanguages && langEl.options) {
+            for (const option of Array.from(langEl.options)) {
+              option.disabled = !allowedLanguages.has(String(option.value));
+            }
+          }
           langEl.value = preferredLangId;
           langEl.dispatchEvent(new Event('change'));
         }
@@ -261,10 +275,13 @@ function updateStatGraph() {
         $('#otName').value = evt.ot_name;
       }
 
-      // Event nickname default (if provided)
-      if (evt.nickname !== undefined) {
-        setTrackedNickname(evt.nickname, NICKNAME_SOURCE.PRESET);
-      }
+      // Fixed event nicknames stay exact. Otherwise use the localized species
+      // name for the event's receiving language (Japanese => kana, max 5).
+      setDistributionNicknameDefault({
+        nickname: evt.nickname,
+        speciesId: Number($('#species')?.value || 0),
+        languageId: Number(preferredLangId),
+      });
 
       // OT gender if provided
       if (evt.ot_gender !== undefined) {
@@ -426,7 +443,7 @@ function updateStatGraph() {
       }
 
       // If event requires fateful encounter, ensure met location is set to a "Fateful" entry
-      if (evt.defaultFatefulEncounter && !isPcnyWishEggsMysteryTag(tag) && !isBoxEventMysteryTag(tag)) {
+      if (evt.defaultFatefulEncounter && !evt.usesHatcherTrainerData && !isPcnyWishEggsMysteryTag(tag) && !isBoxEventMysteryTag(tag)) {
         try {
           const sel = $('#metLocation');
           if (sel) {
@@ -599,6 +616,21 @@ function updateStatGraph() {
       // Populate mystery species options if event-level species list exists
       updateMysterySpeciesOptions(tag);
 
+      // Data-driven event ribbons.
+      if (evt.ribbons) {
+        const ribbonMap = {
+          national: 'ribbonNational', country: 'ribbonCountry', earth: 'ribbonEarth',
+          battleChampion: 'ribbonBattleChampion', regionalChampion: 'ribbonRegionalChampion',
+          nationalChampion: 'ribbonNationalChampion', world: 'ribbonWorld',
+        };
+        for (const [key, elementId] of Object.entries(ribbonMap)) {
+          const element = document.getElementById(elementId);
+          if (element && Object.prototype.hasOwnProperty.call(evt.ribbons, key)) {
+            element.checked = Boolean(evt.ribbons[key]);
+          }
+        }
+      }
+
       // Trigger UI recalculations / derived updates
       try {
         updateGenderFromPID();
@@ -661,6 +693,14 @@ function updateStatGraph() {
             otNameEl.style.opacity = '';
             otNameEl.style.cursor = '';
           }
+        }
+      } catch (e) {}
+
+      try {
+        if (evt.usesHatcherTrainerData && !isPcnyWishEggsMysteryTag(tag)) {
+          applyMysteryEventOriginConstraints(evt, { hatcherLocations: true });
+        } else if (Array.isArray(evt.allowedOriginGames)) {
+          applyMysteryEventOriginConstraints(evt);
         }
       } catch (e) {}
 
@@ -839,6 +879,16 @@ function getSelectedCXDTrade() {
   return encounters[Number(sel.value) || 0] || null;
 }
 
+/** Return the selected Colosseum/XD encounter, including special encounters. */
+function getSelectedCXDEncounter() {
+  if (currentEncounterMode !== 'cxd_shadow') return null;
+  const sel = document.getElementById('shadowEncounter');
+  if (!sel?.value) return null;
+  const speciesId = Number($('#species').value) || 0;
+  const encounters = getCXDEncountersForSpecies(speciesId);
+  return encounters[Number(sel.value) || 0] || null;
+}
+
 // When true, the PID Finder has set the met level and it should stay locked
 let pidFinderLockedMetLevel = false;
 // When true, a PID Finder result is applied — protects PID/IVs/nature from preset overwrites
@@ -850,6 +900,9 @@ let pidFinderOriginalSid = 0;
 let pidFinderHadSelection = false;
 // Mystery event tag that the current PID Finder result belongs to.
 let pidFinderMysteryTag = '';
+// Internal ability bit returned by the active PID Finder result. Keep it
+// separate from UI repopulation; single-ability species are normalized to 0.
+let pidFinderResultAbilityBit = null;
 // Assigned from boot() so non-boot modules (PID finder modal) can clear active locks safely.
 let unlockPidFinderFieldsFn = null;
 // When true, the Manual Override checkbox is active — all field locks are bypassed
@@ -897,6 +950,38 @@ function setLocalizedSpeciesNickname(speciesId, languageId, { force = false } = 
   const localizedName = getLocalizedSpeciesName(id, languageId);
   if (!localizedName) return false;
   return setTrackedNickname(localizedName, NICKNAME_SOURCE.SPECIES_DEFAULT, id);
+}
+
+function syncLanguageTextLimits() {
+  const isJapanese = String($('#language')?.value || '') === '1';
+  const nicknameEl = $('#nickname');
+  const otNameEl = $('#otName');
+  if (nicknameEl) {
+    nicknameEl.maxLength = isJapanese ? 5 : 10;
+    if (nicknameEl.value.length > nicknameEl.maxLength) {
+      nicknameEl.value = nicknameEl.value.slice(0, nicknameEl.maxLength);
+    }
+  }
+  if (otNameEl) {
+    otNameEl.maxLength = isJapanese ? 5 : 7;
+    if (otNameEl.value.length > otNameEl.maxLength) {
+      otNameEl.value = otNameEl.value.slice(0, otNameEl.maxLength);
+    }
+  }
+}
+
+// Distribution presets may provide a genuinely fixed nickname. When they do
+// not, reset to the receiving language's species name instead of inheriting a
+// stale nickname from the previously selected event.
+function setDistributionNicknameDefault({ nickname, speciesId, languageId }) {
+  let applied;
+  if (nickname !== undefined) {
+    applied = setTrackedNickname(nickname, NICKNAME_SOURCE.PRESET, speciesId);
+  } else {
+    applied = setLocalizedSpeciesNickname(speciesId, languageId, { force: true });
+  }
+  syncLanguageTextLimits();
+  return applied;
 }
 
 function markNicknameAsUserEdited() {
@@ -992,10 +1077,11 @@ function hasRequiredPidFinderForPidParitySelection() {
   return !requiresPidFinderForPidParity() || !!pidFinderHadSelection;
 }
 
-function hasRequiredCXDTradePidFinderSelection() {
-  if (currentEncounterMode !== 'cxd_trade' || manualOverrideActive) return true;
+function hasRequiredCXDEncounterPidFinderSelection() {
+  if ((currentEncounterMode !== 'cxd_shadow' && currentEncounterMode !== 'cxd_trade') || manualOverrideActive) return true;
   return pidFinderResultActive &&
-    (Number($('#tid')?.value || 0) & 0xFFFF) === pidFinderOriginalTid;
+    (Number($('#tid')?.value || 0) & 0xFFFF) === pidFinderOriginalTid &&
+    (Number($('#sid')?.value || 0) & 0xFFFF) === pidFinderOriginalSid;
 }
 
 function syncPidParityPreferenceUi() {
@@ -1027,6 +1113,11 @@ function isRubySapphireOriginGame(gameId) {
 function shouldValidateRSTrainerId() {
   if (manualOverrideActive) return false;
   if (currentEncounterMode === 'mystery') return false;
+  if (currentEncounterMode === 'cxd_shadow') {
+    const speciesId = Number($('#species')?.value || 0);
+    const index = Number($('#shadowEncounter')?.value || 0);
+    if (getCXDEncountersForSpecies(speciesId)[index]?.fixedSID !== undefined) return false;
+  }
   return isRubySapphireOriginGame(Number($('#originGame')?.value || 0));
 }
 
@@ -1117,7 +1208,7 @@ function getCurrentOriginSourceSpeciesId(speciesId = Number($('#species')?.value
   }
   if (currentEncounterMode === 'cxd_shadow') {
     const select = document.getElementById('shadowEncounter');
-    const encounters = getShadowEncountersForSpecies(targetId);
+    const encounters = getCXDEncountersForSpecies(targetId);
     const encounter = select?.value === '' ? null : encounters[Number(select?.value) || 0];
     return Number(encounter?.species) || targetId;
   }
@@ -1586,6 +1677,46 @@ function getPcnyWishEggsHatchLocationsForGame(originGame) {
   });
 }
 
+function applyMysteryEventOriginConstraints(event, { hatcherLocations = false } = {}) {
+  if (currentEncounterMode !== 'mystery' || !event) return false;
+  const allowed = Array.isArray(event.allowedOriginGames)
+    ? event.allowedOriginGames.map(Number).filter(Number.isFinite)
+    : [];
+  if (!allowed.length) return false;
+
+  const originGameSelect = $('#originGame');
+  if (!originGameSelect) return true;
+  for (const option of Array.from(originGameSelect.options || [])) {
+    const enabled = allowed.includes(Number(option.value));
+    option.disabled = !enabled;
+    option.hidden = !enabled;
+  }
+
+  let gameId = Number(originGameSelect.value);
+  if (!allowed.includes(gameId)) {
+    gameId = allowed.includes(Number(event.defaultOriginGame))
+      ? Number(event.defaultOriginGame)
+      : allowed[0];
+    originGameSelect.value = String(gameId);
+  }
+
+  if (!hatcherLocations) return true;
+  setControlLockState(originGameSelect, false);
+  const locations = getLocationsForGame(gameId).filter(([, name]) =>
+    !String(name || '').toLowerCase().includes('fateful')
+  );
+  if (metLocationWrapper?.updateList) metLocationWrapper.updateList(locations);
+  const metLocationEl = $('#metLocation');
+  if (!metLocationEl) return true;
+  const validIds = new Set(locations.map(([id]) => Number(id)));
+  if (!validIds.has(Number(metLocationEl.value))) {
+    const preferred = Number(event.defaultMetLocationId);
+    metLocationEl.value = String(validIds.has(preferred) ? preferred : Number(locations[0]?.[0] || 0));
+  }
+  setControlLockState(metLocationEl, false);
+  return true;
+}
+
 function applyPcnyWishEggsOriginAndLocationConstraints() {
   if (!isPcnyWishEggsMysteryEventSelected()) return false;
 
@@ -1831,10 +1962,13 @@ function isMysteryBACDMethod(method) {
   return (
     method === 'BACD' ||
     method === 'BACD_U' ||
+    method === 'BACD_U_AX' ||
     method === 'BACD_R' ||
     method === 'BACD_R_A' ||
     method === 'BACD_A' ||
     method === 'BACD_RBCD' ||
+    method === 'BACD_TA' ||
+    method === 'BACD_TS' ||
     method === 'BACD_M'
   );
 }
@@ -1935,13 +2069,16 @@ function updatePidFinderVisibility() {
   if (pidFinderBtn) {
     const mysteryTag = String(document.getElementById('mysteryEvent')?.value || '').toUpperCase();
     const disableForWishmkrShiny = currentEncounterMode === 'mystery' && mysteryTag === 'WISHMKR_SHINY';
+    const selectedCXD = currentEncounterMode === 'cxd_shadow' ? getSelectedCXDEncounter() : null;
     pidFinderBtn.disabled = disableForWishmkrShiny;
     pidFinderBtn.style.pointerEvents = disableForWishmkrShiny ? 'none' : '';
     pidFinderBtn.style.opacity = disableForWishmkrShiny ? '0.6' : '';
     pidFinderBtn.style.cursor = disableForWishmkrShiny ? 'not-allowed' : '';
     pidFinderBtn.title = disableForWishmkrShiny
       ? 'Find Legal Encounter is unavailable for WISHMKR JIRACHI - ALL SHINY VERSIONS.'
-      : '';
+      : selectedCXD?.eReader
+        ? 'Find an XDRNG/team-lock-valid e-Reader PID. All six IVs remain fixed at 0.'
+        : '';
 
     if (disableForWishmkrShiny) {
       pidFinderBtn.classList.remove('field-error');
@@ -2925,7 +3062,7 @@ function highlightMissingFields({ scrollToFirst = true } = {}) {
     markMissing('Find Legal Encounter', pidFinderBtn);
   }
 
-  if (!hasRequiredCXDTradePidFinderSelection()) {
+  if (!hasRequiredCXDEncounterPidFinderSelection()) {
     markMissing('Find Legal Encounter', pidFinderBtn);
   }
 
@@ -3173,6 +3310,8 @@ function boot(){
   }
 
   function getMysteryEventLabel(tag) {
+    const configuredLabel = MYSTERY_EVENTS?.[tag]?.label;
+    if (configuredLabel) return configuredLabel;
     const labels = {
       '10ANNI': 'TOP 10 DISTRIBUTION POKÉMON',
       MITSURIN_CELEBI: 'MITSURIN CELEBI',
@@ -3203,7 +3342,7 @@ function boot(){
     const staticSelect = document.getElementById('staticEncounter');
     if (staticSelect) staticSelect.innerHTML = '<option value="">— Select encounter —</option>';
     const shadowSelect = document.getElementById('shadowEncounter');
-    if (shadowSelect) shadowSelect.innerHTML = '<option value="">— Select trainer / location —</option>';
+    if (shadowSelect) shadowSelect.innerHTML = '<option value="">— Select encounter —</option>';
     const tradeSelect = document.getElementById('cxdTradeEncounter');
     if (tradeSelect) tradeSelect.innerHTML = '';
     mysteryPresetAppliedFor = 0;
@@ -3379,7 +3518,7 @@ function boot(){
     } else if (originMode === 'static') {
       guidance.textContent = 'Choose the exact encounter to continue.';
     } else if (originMode === 'cxd_shadow') {
-      guidance.textContent = 'Choose the trainer and location to continue.';
+      guidance.textContent = 'Choose the exact Colosseum/XD encounter to continue.';
     } else {
       guidance.textContent = 'Finish the origin setup to continue.';
     }
@@ -3409,7 +3548,7 @@ function boot(){
     const hasMysteryGiftLegalPid = hasRequiredMysteryGiftPidFinderSelection();
     const hasLegalRSTrainerId = getRSTrainerIdValidation().valid;
     const hasRequiredParityPid = hasRequiredPidFinderForPidParitySelection();
-    const hasRequiredCXDTradePid = hasRequiredCXDTradePidFinderSelection();
+    const hasRequiredCXDEncounterPid = hasRequiredCXDEncounterPidFinderSelection();
     const hasResolvedOrigin = hasResolvedOriginSelection();
     syncBuilderProgressiveDisclosure(hasResolvedOrigin);
 
@@ -3419,13 +3558,13 @@ function boot(){
     if (pidFinderBtn && hasRequiredParityPid) {
       pidFinderBtn.classList.remove('field-error');
     }
-    if (pidFinderBtn && hasRequiredCXDTradePid) {
+    if (pidFinderBtn && hasRequiredCXDEncounterPid) {
       pidFinderBtn.classList.remove('field-error');
     }
     
     // Enable generate button only if all conditions are met
     const generateBtn = $('#generateBtn');
-    if (hasSpecies && hasResolvedOrigin && hasNature && hasMove && hasOTName && hasMysteryGiftLegalPid && hasLegalRSTrainerId && hasRequiredParityPid && hasRequiredCXDTradePid) {
+    if (hasSpecies && hasResolvedOrigin && hasNature && hasMove && hasOTName && hasMysteryGiftLegalPid && hasLegalRSTrainerId && hasRequiredParityPid && hasRequiredCXDEncounterPid) {
       generateBtn.setAttribute('data-disabled', 'false');
     } else {
       generateBtn.setAttribute('data-disabled', 'true');
@@ -3579,6 +3718,56 @@ function boot(){
       if (eggCheckbox && eggCheckbox.checked && !canSpeciesBeUnhatchedEgg(speciesId)) {
         errors.push('Only base-stage Pokémon and valid incense-baby exceptions can be created as unhatched Eggs');
       }
+    } else if (mode === 'cxd_shadow') {
+      const encounter = getSelectedCXDEncounter();
+      const sourceName = SPECIES.find(entry => Number(entry[0]) === Number(encounter?.species))?.[1] || 'Pokémon';
+      if (!encounter || !getCXDEncountersForSpecies(speciesId).includes(encounter)) {
+        errors.push('Select a valid Pokémon Colosseum / XD encounter');
+      } else {
+        const originGame = Number($('#originGame')?.value || 0);
+        const currentMetLocation = Number($('#metLocation')?.value || 0);
+        const currentBall = Number($('#ball')?.value || 0);
+        const currentTid = Number($('#tid')?.value || 0) & 0xFFFF;
+        const currentSid = Number($('#sid')?.value || 0) & 0xFFFF;
+        const language = Number($('#language')?.value || 0);
+
+        if (originGame !== Number(encounter.originGame ?? 15)) errors.push('Origin game does not match the selected Colosseum / XD encounter');
+        if (currentMetLocation !== Number(encounter.location)) errors.push(`${sourceName} must have its fixed Colosseum / XD met location`);
+        const encounterLevelMin = Number(encounter.levelMin ?? encounter.level);
+        const encounterLevelMax = Number(encounter.levelMax ?? encounter.level);
+        if (metLevel < encounterLevelMin || metLevel > encounterLevelMax) {
+          errors.push(`${sourceName} must be received from level ${encounterLevelMin} to ${encounterLevelMax}`);
+        }
+        if (encounter.ball !== null && encounter.ball !== undefined && currentBall !== Number(encounter.ball)) errors.push(`${sourceName} must use its fixed encounter Ball`);
+        if (Boolean($('#fatefulEncounter')?.checked) !== Boolean(encounter.fateful)) errors.push('Fateful Encounter does not match the selected Colosseum / XD encounter');
+        if (Boolean($('#ribbonNational')?.checked) !== Boolean(encounter.nationalRibbon)) errors.push('National Ribbon does not match the selected Colosseum / XD encounter');
+        if (encounter.tid !== undefined && currentTid !== Number(encounter.tid)) errors.push(`${sourceName} must use TID ${encounter.tid}`);
+        if (encounter.fixedSID !== undefined && currentSid !== Number(encounter.fixedSID)) errors.push(`${sourceName} must use SID ${encounter.fixedSID}`);
+        if (encounter.fixedOtGender && $('#otGender')?.value !== encounter.fixedOtGender) errors.push('OT gender does not match the selected Colosseum / XD gift');
+        if (encounter.fixedNature !== undefined && Number($('#nature')?.value) !== Number(encounter.fixedNature)) errors.push(`${sourceName} has a fixed nature for this encounter`);
+        if (encounter.fixedGender && $('#gender')?.value !== encounter.fixedGender) errors.push(`${sourceName} has a fixed gender for this encounter`);
+        if (encounter.fixedAbility !== undefined && Number($('#ability')?.value) !== Number(encounter.fixedAbility)) errors.push(`${sourceName} has a fixed ability slot for this encounter`);
+        if (Array.isArray(encounter.allowedLanguages) && !encounter.allowedLanguages.map(Number).includes(language)) errors.push('Language is not available for the selected Colosseum / XD encounter');
+
+        if (encounter.fixedIVs) {
+          const currentIVs = {
+            hp: Number($('#ivHp')?.value || 0), atk: Number($('#ivAtk')?.value || 0),
+            def: Number($('#ivDef')?.value || 0), spa: Number($('#ivSpAtk')?.value || 0),
+            spd: Number($('#ivSpDef')?.value || 0), spe: Number($('#ivSpe')?.value || 0),
+          };
+          if (Object.entries(encounter.fixedIVs).some(([stat, value]) => currentIVs[stat] !== Number(value))) {
+            errors.push(`${sourceName} must use its fixed encounter IVs`);
+          }
+        }
+
+        const pid = parsePidInput($('#pid')?.value || '0');
+        const shinyXor = ((pid >>> 16) ^ (pid & 0xFFFF)) ^ (currentTid ^ currentSid);
+        if (encounter.shinyLocked && shinyXor < 8) errors.push(`${sourceName} cannot be shiny in this encounter`);
+        if (!pidFinderResultActive && !manualOverrideActive) errors.push('Select a legal result with Find Legal Encounter before generating this Colosseum / XD Pokémon');
+        if (pidFinderResultActive && (currentTid !== pidFinderOriginalTid || currentSid !== pidFinderOriginalSid)) {
+          errors.push('The trainer IDs changed after CXD result selection; select a new CXD result');
+        }
+      }
     } else if (mode === 'cxd_trade') {
       const trade = getSelectedCXDTrade();
       const tradeName = SPECIES.find(entry => Number(entry[0]) === speciesId)?.[1] || 'Pokémon';
@@ -3608,8 +3797,8 @@ function boot(){
         if (!pidFinderResultActive && !manualOverrideActive) {
           errors.push('Select a CXD result with Find Legal Encounter before generating this trade');
         }
-        if (pidFinderResultActive && currentTid !== pidFinderOriginalTid) {
-          errors.push('The trade TID changed after CXD result selection; select a new CXD result');
+        if (pidFinderResultActive && (currentTid !== pidFinderOriginalTid || (Number($('#sid')?.value || 0) & 0xFFFF) !== pidFinderOriginalSid)) {
+          errors.push('The trade trainer IDs changed after CXD result selection; select a new CXD result');
         }
         if (trade.shinyLocked && ((((pid >>> 16) ^ (pid & 0xFFFF)) ^ (currentTid ^ (Number($('#sid')?.value || 0) & 0xFFFF))) < 8)) {
           errors.push('XD in-game trade Pokémon cannot be shiny');
@@ -3980,7 +4169,7 @@ function boot(){
         }
       }
     } else if (mode === 'mystery') {
-      const { tag } = getSelectedMysteryEvent();
+      const { tag, event } = getSelectedMysteryEvent();
       if (isPcnyWishEggsMysteryTag(tag)) {
         const originGame = Number($('#originGame')?.value) || 0;
         if (!PCNY_WISH_EGGS_ALLOWED_ORIGIN_GAMES.includes(originGame)) {
@@ -4109,6 +4298,52 @@ function boot(){
           if (otName !== 'AZUZA') {
             errors.push('BOX Event eggs must have OT name AZUZA');
           }
+        }
+      } else if (event) {
+        const originGame = Number($('#originGame')?.value || 0);
+        const language = Number($('#language')?.value || 0);
+        const ball = Number($('#ball')?.value || 0);
+        const tid = Number($('#tid')?.value || 0) & 0xFFFF;
+        const sid = Number($('#sid')?.value || 0) & 0xFFFF;
+        const hatcherOwned = Boolean(event.usesHatcherTrainerData);
+
+        if (Array.isArray(event.allowedOriginGames) && !event.allowedOriginGames.map(Number).includes(originGame)) {
+          errors.push('Origin game is not available for the selected Mystery Gift');
+        }
+        if (Array.isArray(event.allowedLanguages) && !event.allowedLanguages.map(Number).includes(language)) {
+          errors.push('Language is not available for the selected Mystery Gift');
+        }
+        if (event.defaultMetLevel !== undefined && metLevel !== Number(event.defaultMetLevel)) {
+          errors.push(`The selected Mystery Gift must have met level ${event.defaultMetLevel}`);
+        }
+        if (!hatcherOwned && event.defaultMetLocationId !== undefined && Number($('#metLocation')?.value || 0) !== Number(event.defaultMetLocationId)) {
+          errors.push('Met location does not match the selected Mystery Gift');
+        }
+        if (hatcherOwned) {
+          const locationName = String(LOCATIONS.find(([id]) => Number(id) === Number($('#metLocation')?.value || 0))?.[1] || '');
+          if (locationName.toLowerCase().includes('fateful')) errors.push('Hatched Mystery Gifts must use a normal hatch location');
+          if ($('#isEgg')?.checked) errors.push('This Mystery Gift preset represents the hatched Pokémon, not an unhatched Egg');
+        }
+        if (!hatcherOwned && event.fixedTID !== undefined && tid !== Number(event.fixedTID)) errors.push(`The selected Mystery Gift must use TID ${event.fixedTID}`);
+        if (Array.isArray(event.tidRange)) {
+          const [minimumTid, maximumTid] = event.tidRange.map(Number);
+          if (tid < minimumTid || tid > maximumTid) errors.push(`The selected Mystery Gift TID must be between ${minimumTid} and ${maximumTid}`);
+        }
+        if (!hatcherOwned && event.fixedSID !== undefined && sid !== Number(event.fixedSID)) errors.push(`The selected Mystery Gift must use SID ${event.fixedSID}`);
+        if (Array.isArray(event.allowedOtNames) && !event.allowedOtNames.includes(String($('#otName')?.value || ''))) {
+          errors.push('OT name is not available for the selected Mystery Gift campaign');
+        }
+        if (event.defaultBall && String(event.defaultBall).toLowerCase().includes('poke') && ball !== 4) errors.push('The selected Mystery Gift must be in a Poké Ball');
+        if (event.defaultNoItem && Number($('#item')?.value || 0) !== 0) errors.push('The selected Mystery Gift should not hold an item');
+
+        const expectedFateful = event.fatefulInFRLGOnly
+          ? [4, 5].includes(originGame)
+          : Boolean(event.defaultFatefulEncounter);
+        if (Boolean($('#fatefulEncounter')?.checked) !== expectedFateful) errors.push('Fateful Encounter does not match the selected Mystery Gift');
+        if (event.alwaysShiny && !$('#shiny')?.checked) errors.push('The selected Mystery Gift must be shiny');
+        if (event.shinyLocked && $('#shiny')?.checked) errors.push('The selected Mystery Gift cannot be shiny');
+        if (event.ribbons?.national !== undefined && Boolean($('#ribbonNational')?.checked) !== Boolean(event.ribbons.national)) {
+          errors.push('National Ribbon does not match the selected Mystery Gift');
         }
       }
     }
@@ -4364,25 +4599,19 @@ function boot(){
   // Adjust nickname/OT maxlength based on language selection
   $('#language').addEventListener('change', () => {
     const languageId = $('#language').value;
-    const isJapanese = languageId === '1'; // Japanese language ID
-    
-    // Japanese games limit to 5 characters, other languages use full byte limits
-    $('#nickname').maxLength = isJapanese ? 5 : 10;
-    $('#otName').maxLength = isJapanese ? 5 : 7;
-    
-    // Truncate existing values if they exceed new limits
-    if ($('#nickname').value.length > $('#nickname').maxLength) {
-      $('#nickname').value = $('#nickname').value.slice(0, $('#nickname').maxLength);
-    }
-    if ($('#otName').value.length > $('#otName').maxLength) {
-      $('#otName').value = $('#otName').value.slice(0, $('#otName').maxLength);
-    }
+    syncLanguageTextLimits();
 
     if (currentEncounterMode === 'cxd_trade') {
       applyCXDTradeLocalizedNames(getSelectedCXDTrade());
       try { updateTidSidLocking(); } catch (e) {}
       try { updateLegalityStatus(); } catch (e) {}
       return;
+    }
+    if (currentEncounterMode === 'cxd_shadow') {
+      const encounter = getSelectedCXDEncounter();
+      if (encounter?.otNames) {
+        $('#otName').value = encounter.otNames[String(languageId)] || encounter.otNames['2'] || Object.values(encounter.otNames)[0] || '';
+      }
     }
 
     setLocalizedSpeciesNickname(
@@ -4720,6 +4949,23 @@ function boot(){
 
       try { updateBallLocking(); } catch (e) {}
       try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
+      refreshOriginDependentLegality();
+      return;
+    }
+
+    if (currentEncounterMode === 'mystery') {
+      const { event } = getSelectedMysteryEvent();
+      if (event?.usesHatcherTrainerData) {
+        applyMysteryEventOriginConstraints(event, { hatcherLocations: true });
+      } else if (Array.isArray(event?.allowedOriginGames)) {
+        applyMysteryEventOriginConstraints(event);
+      }
+      if (event?.fatefulInFRLGOnly) {
+        const fateful = $('#fatefulEncounter');
+        if (fateful) fateful.checked = [4, 5].includes(Number($('#originGame')?.value || 0));
+      }
+      const speciesId = Number($('#species').value) || 0;
+      if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
       refreshOriginDependentLegality();
       return;
     }
@@ -5083,6 +5329,8 @@ function boot(){
       if (makeShinyRowEl) makeShinyRowEl.style.display = '';
       const shinyLockedLabelEl = document.getElementById('xdShinyLocked');
       if (shinyLockedLabelEl) shinyLockedLabelEl.style.display = 'none';
+      const shinyFinderHintEl = document.getElementById('cxdShinyFinderHint');
+      if (shinyFinderHintEl) shinyFinderHintEl.style.display = 'none';
       const makeShinyBtnEl = document.getElementById('makeShinyBtn');
       if (makeShinyBtnEl) makeShinyBtnEl.style.display = '';
       const shinyIndicatorBtnEl = document.getElementById('shinyIndicatorBtn');
@@ -5299,7 +5547,7 @@ function boot(){
       roamer: {label: 'Roamer', color: '#e879f9', text: 'Roaming legendaries (Latios, Latias, Raikou, Entei, Suicune). Uses Method 1 PID generation. Non-Emerald roamers have the IV truncation bug (only HP and partial ATK IVs are kept; DEF/SPE/SPA/SPD are forced to 0).'},
       wild: {label: 'Wild-caught / evolved from wild', color: '#60a5fa', text: 'Use this for a wild-caught Pokémon or one evolved from a wild ancestor. Origin game, location, level, encounter-slot, and Method H filtering continue to use the existing wild encounter data.'},
       mystery: {label: 'Mystery Gift', color: '#ef476f', text: 'Choose the exact distribution for this Pokémon. Fixed OT, IDs, language, level, ball, fateful flag, moves, PID method, and shiny rules are applied from the existing event data.'},
-      cxd_shadow: {label: 'Pokémon Colosseum / XD', color: '#a78bfa', text: 'Choose the exact trainer and location for this Shadow Pokémon. Game, level, moves, fateful flag, shiny lock, and CXD PID requirements continue to use the existing encounter preset.'},
+      cxd_shadow: {label: 'Pokémon Colosseum / XD', color: '#a78bfa', text: 'Choose the exact Shadow, starter, gift, e-Reader, or Poké Spot encounter. Its game, level, moves, flags, and RNG method are applied automatically.'},
       cxd_trade: {label: 'XD In-Game Trade', color: '#38bdf8', text: 'Pokémon received from an in-game trade in Pokémon XD. Fixed trade data is applied automatically; use the PID Finder with CXD method for a correlated PID, IV spread, and ability slot.'},
       imported: {label: 'Imported', color: '#94a3b8', text: 'Pokémon imported from external data. Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from UI fields. This matters for glitched bytes the UI cannot safely represent.'}
     };
@@ -5341,13 +5589,17 @@ function boot(){
       const tag = String($('#mysteryEvent')?.value || '').toUpperCase();
       const evt = (tag && MYSTERY_EVENTS && MYSTERY_EVENTS[tag]) ? MYSTERY_EVENTS[tag] : null;
       const usesHatcherTrainerData = isPcnyWishEggsMysteryTag(tag) || !!evt?.usesHatcherTrainerData;
-      const usesEditableOriginGame = isPcnyWishEggsMysteryTag(tag);
+      const usesEditableOriginGame = isPcnyWishEggsMysteryTag(tag) ||
+        Boolean(evt?.usesHatcherTrainerData) ||
+        (Array.isArray(evt?.allowedOriginGames) && evt.allowedOriginGames.length > 1);
       const trade = getSelectedCXDTrade();
       const shadowEncounter = getSelectedCXDEncounter();
       const cxdEncounter = trade || shadowEncounter;
       if (trade && !manualOverrideActive && tidEl) tidEl.value = String(trade.tid);
+      if (shadowEncounter?.tid !== undefined && !manualOverrideActive && tidEl) tidEl.value = String(shadowEncounter.tid);
+      if (shadowEncounter?.fixedSID !== undefined && !manualOverrideActive && sidEl) sidEl.value = String(shadowEncounter.fixedSID);
       if (cxdEncounter && !manualOverrideActive && originGameEl) {
-        const fixedOriginGame = Number(trade?.originGame || 15);
+        const fixedOriginGame = Number(trade?.originGame ?? shadowEncounter?.originGame ?? 15);
         const originGameChanged = Number(originGameEl.value || 0) !== fixedOriginGame;
         originGameEl.value = String(fixedOriginGame);
         if (originGameChanged && metLocationWrapper?.updateList) {
@@ -5358,9 +5610,11 @@ function boot(){
           }
         }
       }
-      const shouldLockTid = !manualOverrideActive && Boolean(trade || (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData));
-      const shouldLockSid = !manualOverrideActive && !trade && (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData);
-      const shouldLockOtName = !manualOverrideActive && Boolean(trade || (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesHatcherTrainerData));
+      const hasSeedDerivedStarterIds = pidFinderResultActive &&
+        String(shadowEncounter?.pidType || '').includes('STARTER');
+      const shouldLockTid = !manualOverrideActive && Boolean(hasSeedDerivedStarterIds || trade || shadowEncounter?.tid !== undefined || (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData && !Array.isArray(evt?.tidRange)));
+      const shouldLockSid = !manualOverrideActive && Boolean(hasSeedDerivedStarterIds || shadowEncounter?.fixedSID !== undefined || (!trade && currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData));
+      const shouldLockOtName = !manualOverrideActive && Boolean(trade || shadowEncounter?.otNames || (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesHatcherTrainerData && !Array.isArray(evt?.allowedOtNames)));
       const shouldLockOriginGame = !manualOverrideActive && (
         (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesEditableOriginGame) ||
         shouldLockStaticEncounterOriginFields() ||
@@ -5392,6 +5646,10 @@ function boot(){
 
       if (isPcnyWishEggsMysteryEventSelected()) {
         applyPcnyWishEggsOriginAndLocationConstraints();
+      } else if (evt?.usesHatcherTrainerData) {
+        applyMysteryEventOriginConstraints(evt, { hatcherLocations: true });
+      } else if (Array.isArray(evt?.allowedOriginGames)) {
+        applyMysteryEventOriginConstraints(evt);
       }
       if (isMystryMewMysteryEventSelected()) {
         applyMystryMewOriginGameConstraints();
@@ -5402,6 +5660,7 @@ function boot(){
       if (isBoxEventMysteryEventSelected()) {
         applyBoxEventMysteryLocationConstraints({ preserveCurrentNonEgg: true });
       }
+      try { updateCXDEncounterPersonalityLocking(); } catch (e) {}
     } catch (e) {}
   }
 
@@ -5418,6 +5677,7 @@ function boot(){
         manualOverride: manualOverrideActive,
         mysteryTag: tag,
         mysteryUsesHatcherTrainerData: Boolean(event?.usesHatcherTrainerData),
+        mysteryUsesRecipientOtGender: Boolean(event?.usesRecipientOtGender || event?.otGenderMethod === 'RECIPIENT'),
         isEgg: shouldApplyIsEggOverrides(),
       });
       if (policy.locked) {
@@ -5468,6 +5728,42 @@ function boot(){
     } catch (e) {}
   }
 
+  // Colosseum e-Reader shadow PIDs are XDRNG/team-lock constrained even
+  // though their IVs are fixed independently at zero. PKHeX's final team lock
+  // fixes nature and gender, and generation always refreshes ability slot 0.
+  function updateCXDEncounterPersonalityLocking() {
+    try {
+      const encounter = currentEncounterMode === 'cxd_shadow' ? getSelectedCXDEncounter() : null;
+      const fixed = !manualOverrideActive && encounter?.eReader ? encounter : null;
+      const controls = [
+        { el: $('#nature'), value: fixed?.fixedNature },
+        { el: $('#gender'), value: fixed?.fixedGender },
+        { el: $('#ability'), value: fixed?.fixedAbility },
+      ];
+
+      for (const { el, value } of controls) {
+        if (!el) continue;
+        const shouldLock = value !== undefined && value !== null;
+        if (shouldLock) {
+          el.value = String(value);
+          el.disabled = true;
+          el.style.pointerEvents = 'none';
+          el.style.opacity = '0.6';
+          el.style.cursor = 'not-allowed';
+          el.dataset.cxdEncounterFixedLock = '1';
+        } else if (el.dataset.cxdEncounterFixedLock === '1') {
+          delete el.dataset.cxdEncounterFixedLock;
+          if (!pidFinderResultActive) {
+            el.disabled = false;
+            el.style.pointerEvents = '';
+            el.style.opacity = '';
+            el.style.cursor = '';
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
   /**
    * Unlock all fields that were locked by the PID Finder result.
    * Called when species or encounter mode changes, invalidating the previous result.
@@ -5485,6 +5781,7 @@ function boot(){
     if (pidFinderStatusEl) pidFinderStatusEl.textContent = '';
     pidFinderHadSelection = false;
     pidFinderMysteryTag = '';
+    pidFinderResultAbilityBit = null;
     const unlock = (el) => {
       if (!el) return;
       el.disabled = false;
@@ -5518,6 +5815,7 @@ function boot(){
     try { updateOtGenderLocking(); } catch (e) {}
     try { updateMetLevelLocking(); } catch (e) {}
     try { updateIvLocking(); } catch (e) {}
+    try { updateCXDEncounterPersonalityLocking(); } catch (e) {}
     try { updateContestStatsLocking(); } catch (e) {}
     try { updateRibbonLocking(); } catch (e) {}
     try { updateBerryFixOtPreferenceUi(); } catch (e) {}
@@ -5600,15 +5898,20 @@ function boot(){
       return;
     }
 
-    if (isPcnyWishEggsMysteryEventSelected()) {
-      if (manualOverrideActive) {
-        el.disabled = false;
-      } else {
-        el.checked = true;
-        el.disabled = true;
+      const selectedMysteryEvent = currentEncounterMode === 'mystery'
+        ? getSelectedMysteryEvent().event
+        : null;
+      if (isPcnyWishEggsMysteryEventSelected() || selectedMysteryEvent?.usesHatcherTrainerData) {
+        if (manualOverrideActive) {
+          el.disabled = false;
+        } else {
+          el.checked = selectedMysteryEvent?.fatefulInFRLGOnly
+            ? [4, 5].includes(Number($('#originGame')?.value || 0))
+            : Boolean(selectedMysteryEvent?.defaultFatefulEncounter ?? true);
+          el.disabled = true;
+        }
+        return;
       }
-      return;
-    }
 
     if (currentEncounterMode === 'cxd_trade') {
       if (!manualOverrideActive) el.checked = true;
@@ -5634,7 +5937,10 @@ function boot(){
         setControlLockState(metEl, false);
         return;
       }
-      if (isPcnyWishEggsMysteryEventSelected()) {
+      const selectedMysteryEvent = currentEncounterMode === 'mystery'
+        ? getSelectedMysteryEvent().event
+        : null;
+      if (isPcnyWishEggsMysteryEventSelected() || selectedMysteryEvent?.usesHatcherTrainerData) {
         metEl.value = '0';
         setControlLockState(metEl, true);
         return;
@@ -5642,6 +5948,12 @@ function boot(){
       if (currentEncounterMode === 'cxd_trade') {
         const trade = getSelectedCXDTrade();
         if (trade) metEl.value = String(trade.level);
+        setControlLockState(metEl, true);
+        return;
+      }
+      if (currentEncounterMode === 'cxd_shadow') {
+        const encounter = getSelectedCXDEncounter();
+        if (encounter && !pidFinderLockedMetLevel) metEl.value = String(encounter.level);
         setControlLockState(metEl, true);
         return;
       }
@@ -5736,6 +6048,21 @@ function boot(){
               setMetLocationLock(true);
               return;
             }
+          }
+
+          if (currentEncounterMode === 'cxd_shadow') {
+            const encounter = getSelectedCXDEncounter();
+            if (encounter?.ball !== null && encounter?.ball !== undefined) {
+              if (ballEl.updateList) ballEl.updateList(BALLS);
+              ballEl.value = String(encounter.ball);
+              setBallLockState(true);
+            } else {
+              if (ballEl.updateList) ballEl.updateList(BALLS.filter(([id]) => Number(id) !== 5));
+              if (!String(ballEl.value ?? '').trim() || Number(ballEl.value) === 5) ballEl.value = '4';
+              setBallLockState(false);
+            }
+            setMetLocationLock(true);
+            return;
           }
 
           if (currentEncounterMode === 'static' && shouldLockStaticEncounterMetFields()) {
@@ -5880,7 +6207,7 @@ function boot(){
             } else {
               const mysteryEvent = (mysteryTag && MYSTERY_EVENTS && MYSTERY_EVENTS[mysteryTag]) ? MYSTERY_EVENTS[mysteryTag] : null;
               const usesHatcherTrainerData = isPcnyWishEggsMysteryTag(mysteryTag) || !!mysteryEvent?.usesHatcherTrainerData;
-              if (!manualOverrideActive && currentEncounterMode === 'mystery' && mysteryTag !== 'BOX_EVENT' && !usesHatcherTrainerData) {
+              if (!manualOverrideActive && currentEncounterMode === 'mystery' && mysteryTag !== 'BOX_EVENT' && !usesHatcherTrainerData && !Array.isArray(mysteryEvent?.allowedOtNames)) {
                 otEl.disabled = true;
                 otEl.style.pointerEvents = 'none';
                 otEl.style.opacity = '0.6';
@@ -6256,14 +6583,21 @@ function boot(){
 
         // group individual pokemon entries by tag
         MYSTERY_GIFTS = {};
-        for (const entry of data.pokemon || []) {
+        const allMysteryPokemon = [
+          ...(data.pokemon || []),
+          ...MYSTERY_GIFT_POKEMON_SUPPLEMENTAL,
+        ];
+        for (const entry of allMysteryPokemon) {
           const tag = entry.tag || 'UNKNOWN';
           if (!MYSTERY_GIFTS[tag]) MYSTERY_GIFTS[tag] = [];
           MYSTERY_GIFTS[tag].push(entry);
         }
 
         // load event-level metadata if present
-        MYSTERY_EVENTS = data.events || {};
+        MYSTERY_EVENTS = {
+          ...(data.events || {}),
+          ...MYSTERY_GIFT_EVENTS_SUPPLEMENTAL,
+        };
 
         // Try loading external moveset file to supply per-event moves
         try {
@@ -6373,7 +6707,7 @@ function boot(){
         // Apply per-pokemon exp group mappings if present in the JSON entries.
         // JSON entries may provide `expGroup` (string like "MEDIUM_SLOW") or `exp_group`.
         try {
-          for (const entry of data.pokemon || []) {
+          for (const entry of allMysteryPokemon) {
             if (!entry) continue;
             const sid = entry.species !== undefined ? Number(entry.species) : NaN;
             const eg = entry.expGroup ?? entry.exp_group ?? null;
@@ -6754,7 +7088,24 @@ function boot(){
             if (disp === rawNorm || disp.includes(rawNorm) || rawNorm.includes(disp)) { ms = v; break; }
           }
         }
-        if (ms && ms.moves) {
+        let eventMoveIds = Array.isArray(entry?.moves)
+          ? entry.moves
+          : selectedEvent?.movesBySpecies?.[originSpeciesId];
+        if ((!Array.isArray(eventMoveIds) || !eventMoveIds.length) && selectedEvent) {
+          const encounterLevel = Number(selectedEvent.defaultMetLevel || selectedEvent.current_level || 1);
+          eventMoveIds = (LEARNSETS[originSpeciesId]?.l || [])
+            .filter(([, learnedAt]) => Number(learnedAt) <= encounterLevel)
+            .map(([moveId]) => Number(moveId))
+            .slice(-4);
+        }
+        if (Array.isArray(eventMoveIds) && eventMoveIds.length) {
+          for (let i = 0; i < 4; i++) {
+            const el = $(`#move${i+1}`);
+            if (!el) continue;
+            el.value = eventMoveIds[i] ? String(eventMoveIds[i]) : '';
+            try { el.dispatchEvent(new Event('change')); } catch (e) {}
+          }
+        } else if (ms && ms.moves) {
           const speciesObj = SPECIES.find(s => Number(s[0]) === originSpeciesId);
           const speciesName = speciesObj ? String(speciesObj[1]) : null;
           // Try direct lookup by species name, then fallback to normalized name matching
@@ -7111,24 +7462,11 @@ function boot(){
    * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
   /**
-   * Return the currently selected CXD shadow encounter object, or null.
-   */
-  function getSelectedCXDEncounter() {
-    if (currentEncounterMode !== 'cxd_shadow') return null;
-    const sel = document.getElementById('shadowEncounter');
-    if (!sel?.value) return null;
-    const speciesId = Number($('#species').value) || 0;
-    const encounters = getShadowEncountersForSpecies(speciesId);
-    const idx = Number(sel.value) || 0;
-    return encounters[idx] || null;
-  }
-
-  /**
    * Populate the #shadowEncounter dropdown with all encounters for the given
    * species, and auto-apply the first one.
    */
   function applyCXDShadowEncounterForSpecies(speciesId, applyPreset = true, options = {}) {
-    const encounters = getShadowEncountersForSpecies(speciesId);
+    const encounters = getCXDEncountersForSpecies(speciesId);
     const sel = document.getElementById('shadowEncounter');
     if (!sel) return;
     const previousValue = options.preserveSelection === true ? String(sel.value || '') : '';
@@ -7139,7 +7477,7 @@ function boot(){
     if (requireSelection) {
       const placeholder = document.createElement('option');
       placeholder.value = '';
-      placeholder.textContent = '— Select trainer / location —';
+      placeholder.textContent = '— Select encounter —';
       sel.appendChild(placeholder);
     }
 
@@ -7149,16 +7487,20 @@ function boot(){
       return;
     }
 
-    // Build dropdown options:  "Trainer @ Location [###] (Game, Lv##)"
+    // Build dropdown options: "Kind — Trainer @ Location [###] (Game, Lv##)"
     for (let i = 0; i < encounters.length; i++) {
       const enc = encounters[i];
       const locPad = String(enc.location).padStart(3, '0');
       const gameLabel = enc.game === 'colo' ? 'Colo' : 'XD';
       const sourceName = SPECIES.find(([id]) => Number(id) === Number(enc.species))?.[1] || 'Pokémon';
       const sourcePrefix = Number(enc.species) === Number(speciesId) ? '' : `${sourceName} — `;
+      const kindLabel = ({ shadow: 'Shadow', starter: 'Starter', gift: 'Gift', pokespot: 'Poké Spot' })[enc.kind] || 'Encounter';
+      const levelLabel = Number.isFinite(Number(enc.levelMin)) && Number(enc.levelMin) !== Number(enc.level)
+        ? `${enc.levelMin}–${enc.levelMax ?? enc.level}`
+        : String(enc.level);
       const opt = document.createElement('option');
       opt.value = String(i);
-      opt.textContent = `${sourcePrefix}${enc.trainer} @ ${enc.locationName} [${locPad}] (${gameLabel}, Lv${enc.level})`;
+      opt.textContent = `${sourcePrefix}${kindLabel} — ${enc.trainer} @ ${enc.locationName} [${locPad}] (${gameLabel}, Lv${levelLabel})`;
       sel.appendChild(opt);
     }
     sel.value = hasPreviousSelection ? previousValue : (requireSelection ? '' : '0');
@@ -7178,13 +7520,12 @@ function boot(){
   function applyCXDShadowPreset(enc) {
     if (!enc) return;
 
-    // Origin game: Colosseum/XD = game ID 15
+    const fixedOriginGame = Number(enc.originGame ?? 15);
     const originGameSelect = $('#originGame');
     if (originGameSelect) {
-      originGameSelect.value = '15';
-      // Refresh location list for Colosseum/XD
+      originGameSelect.value = String(fixedOriginGame);
       if (metLocationWrapper && metLocationWrapper.updateList) {
-        metLocationWrapper.updateList(getLocationsForGame(15));
+        metLocationWrapper.updateList(getLocationsForGame(fixedOriginGame));
       }
     }
 
@@ -7212,28 +7553,62 @@ function boot(){
     // Show all moves in dropdown for this species so shadow moves are available
     updateMovesForSpecies(targetSpeciesId, { preserveValue: true });
 
-    // Fateful encounter — only XD shadow Pokémon have the fateful flag.
-    // Colosseum shadow Pokémon do NOT have fateful encounter set.
     const fatefulCheckbox = $('#fatefulEncounter');
-    if (fatefulCheckbox) fatefulCheckbox.checked = (enc.game === 'xd');
+    if (fatefulCheckbox) fatefulCheckbox.checked = Boolean(enc.fateful);
 
-    // National Ribbon — required for Colosseum/XD Pokémon to pass legality
     const nationalRibbonCb = $('#ribbonNational');
-    if (nationalRibbonCb) nationalRibbonCb.checked = true;
+    if (nationalRibbonCb) nationalRibbonCb.checked = Boolean(enc.nationalRibbon);
 
-    // IVs: reset to 31 (user can pick via PID Finder)
-    $('#ivHp').value = '31';
-    $('#ivAtk').value = '31';
-    $('#ivDef').value = '31';
-    $('#ivSpAtk').value = '31';
-    $('#ivSpDef').value = '31';
-    $('#ivSpe').value = '31';
+    const ballEl = $('#ball');
+    if (ballEl && enc.ball !== null && enc.ball !== undefined) ballEl.value = String(enc.ball);
+
+    const languageEl = $('#language');
+    if (languageEl) {
+      for (const option of Array.from(languageEl.options || [])) option.disabled = false;
+      if (Array.isArray(enc.allowedLanguages)) {
+        const allowed = new Set(enc.allowedLanguages.map(String));
+        for (const option of Array.from(languageEl.options || [])) option.disabled = !allowed.has(String(option.value));
+        if (!allowed.has(String(languageEl.value))) languageEl.value = String(enc.allowedLanguages[0]);
+      }
+    }
+
+    if (enc.tid !== undefined && $('#tid')) $('#tid').value = String(enc.tid);
+    if (enc.fixedSID !== undefined && $('#sid')) $('#sid').value = String(enc.fixedSID);
+    if (enc.fixedOtGender && $('#otGender')) $('#otGender').value = enc.fixedOtGender;
+    if (enc.fixedNature !== undefined && $('#nature')) $('#nature').value = String(enc.fixedNature);
+    if (enc.fixedGender && $('#gender')) $('#gender').value = enc.fixedGender;
+    if (enc.fixedAbility !== undefined && $('#ability')) $('#ability').value = String(enc.fixedAbility);
+    if (enc.otNames && $('#otName')) {
+      const language = String($('#language')?.value || 2);
+      $('#otName').value = enc.otNames[language] || enc.otNames['2'] || Object.values(enc.otNames)[0] || '';
+    }
+
+    setDistributionNicknameDefault({
+      nickname: enc.nickname,
+      speciesId: targetSpeciesId,
+      languageId: Number($('#language')?.value || 2),
+    });
+
+    const shinyEl = $('#shiny');
+    if (shinyEl && enc.shinyLocked) shinyEl.checked = false;
+
+    const ivs = enc.fixedIVs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
+    $('#ivHp').value = String(ivs.hp);
+    $('#ivAtk').value = String(ivs.atk);
+    $('#ivDef').value = String(ivs.def);
+    $('#ivSpAtk').value = String(ivs.spa);
+    $('#ivSpDef').value = String(ivs.spd);
+    $('#ivSpe').value = String(ivs.spe);
 
     updateHiddenPower();
     try { validateForm(); } catch (e) {}
     try { updateGCTidSidWarning(); } catch (e) {}
     try { updateRSTidSidWarning(); } catch (e) {}
     try { updateMakeShinyVisibility(enc); } catch (e) {}
+    try { updateTidSidLocking(); } catch (e) {}
+    try { updateBallLocking(); } catch (e) {}
+    try { updateCXDEncounterPersonalityLocking(); } catch (e) {}
+    try { updatePidFinderVisibility(); } catch (e) {}
   }
 
   function applyCXDTradeLocalizedNames(enc) {
@@ -7251,6 +7626,7 @@ function boot(){
         nicknameEl.dataset.cxdTradeDefaultNickname = '1';
       }
     }
+    syncLanguageTextLimits();
   }
 
   function updateCXDTradeIdentityLocking() {
@@ -7380,14 +7756,14 @@ function boot(){
   }
 
   /**
-   * Show or hide the Make Shiny button for CXD shadow mode.
-   * XD shadows are shiny-locked — hide the button.
-   * Colosseum shadows are NOT shiny-locked — show the button.
-   * For non-CXD modes, visibility is handled by encounter-mode body classes.
+   * Configure shiny controls for correlated GameCube encounters.
+   * Shiny-capable encounters must be generated through the PID Finder; the
+   * generic shortcut changes SID and would break the selected GC RNG tuple.
    */
   function updateMakeShinyVisibility(enc) {
     const row = document.getElementById('makeShinyRow');
     const shinyLockedLabel = document.getElementById('xdShinyLocked');
+    const shinyFinderHint = document.getElementById('cxdShinyFinderHint');
     const makeShinyBtnLocal = document.getElementById('makeShinyBtn');
     const shinyIndicatorBtnLocal = document.getElementById('shinyIndicatorBtn');
     const makeShinyStatusLocal = document.getElementById('makeShinyStatus');
@@ -7396,6 +7772,7 @@ function boot(){
       // Non-CXD modes: let CSS handle visibility.
       row.style.display = '';
       if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
+      if (shinyFinderHint) shinyFinderHint.style.display = 'none';
       if (makeShinyBtnLocal) makeShinyBtnLocal.style.display = '';
       if (shinyIndicatorBtnLocal) shinyIndicatorBtnLocal.style.display = '';
       if (makeShinyStatusLocal) makeShinyStatusLocal.style.display = '';
@@ -7404,27 +7781,28 @@ function boot(){
     if (currentEncounterMode === 'cxd_shadow' && !enc) {
       row.style.display = 'none';
       if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
+      if (shinyFinderHint) shinyFinderHint.style.display = 'none';
       return;
     }
-    // CXD mode: XD shadows are locked; Colosseum shadows and XD trades allow shininess.
+    // CXD mode: respect the selected encounter's explicit shiny policy.
     row.style.display = '';
-    const isTrade = currentEncounterMode === 'cxd_trade';
-    const isXD = !isTrade && (!enc || enc.game === 'xd');
-    if (isXD) {
-      // XD: show shiny-locked label, hide Make Shiny button and status
-      if (makeShinyBtnLocal) makeShinyBtnLocal.style.display = 'none';
+    const isLocked = Boolean(enc?.shinyLocked);
+    // Never expose the generic SID-changing shortcut for a correlated CXD
+    // result, even when that encounter can legitimately be shiny.
+    if (makeShinyBtnLocal) makeShinyBtnLocal.style.display = 'none';
+    if (makeShinyStatusLocal) makeShinyStatusLocal.style.display = 'none';
+    if (isLocked) {
       if (shinyIndicatorBtnLocal) shinyIndicatorBtnLocal.style.display = 'none';
-      if (makeShinyStatusLocal) makeShinyStatusLocal.style.display = 'none';
+      if (shinyFinderHint) shinyFinderHint.style.display = 'none';
       if (shinyLockedLabel) {
-        shinyLockedLabel.textContent = '🔒 Shiny locked (XD shadows cannot be shiny)';
+        shinyLockedLabel.textContent = '🔒 Shiny locked for this encounter';
         shinyLockedLabel.style.display = '';
       }
     } else {
-      // Colosseum: show Make Shiny button, hide locked label
-      if (makeShinyBtnLocal) makeShinyBtnLocal.style.display = '';
+      // Shiny is legal, but PID/TID/SID must be searched together.
       if (shinyIndicatorBtnLocal) shinyIndicatorBtnLocal.style.display = '';
-      if (makeShinyStatusLocal) makeShinyStatusLocal.style.display = '';
       if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
+      if (shinyFinderHint) shinyFinderHint.style.display = '';
     }
     // Also update the shiny checkbox state for the encounter
     try { updateShinyCheckboxState(); } catch (e) {}
@@ -7444,13 +7822,15 @@ function boot(){
       }
       const speciesId = Number($('#species').value) || 0;
       if (hasPidFinderSelectionState()) unlockPidFinderFields({ clearPid: true });
-      const encounters = getShadowEncountersForSpecies(speciesId);
+      const encounters = getCXDEncountersForSpecies(speciesId);
       const idx = Number(shadowEncounterSel.value) || 0;
       if (encounters[idx]) {
         if (!manualOverrideActive) applyCXDShadowPreset(encounters[idx]);
         updateMakeShinyVisibility(encounters[idx]);
       }
       try { updateTidSidLocking(); } catch (e) {}
+      try { updateMetLevelLocking(); } catch (e) {}
+      try { updateBallLocking(); } catch (e) {}
       validateForm();
       updateLegalityStatus();
     });
@@ -7534,12 +7914,10 @@ function boot(){
       return;
     }
 
-    // Check 1 (XD only): Is the PID shiny for the current TID/SID?
-    // XD shadows use anti-shiny rerolling against the player's TSV — a PID
-    // that is shiny for the player's TID/SID would have been skipped.
-    // Colosseum uses the NPC trainer's TID/SID for rerolling, so player-shiny
-    // Colosseum shadows are perfectly valid.
-    if ((enc && enc.game === 'xd') || trade?.shinyLocked) {
+    // Check 1 (explicitly shiny-locked encounters): is the PID shiny for the
+    // current IDs? Shiny-capable XD gifts and Poké Spot encounters must not be
+    // rejected merely because their origin game is XD.
+    if (enc?.shinyLocked || trade?.shinyLocked) {
       const pidHigh = (pid >>> 16) & 0xFFFF;
       const pidLow = pid & 0xFFFF;
       const xor = (pidHigh ^ pidLow) ^ (tid ^ sid);
@@ -8164,6 +8542,8 @@ function boot(){
       if (cxdTradeEnc) { cxdTradeEnc.innerHTML = ''; }
       const shinyLockedLabel = document.getElementById('xdShinyLocked');
       if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
+      const shinyFinderHint = document.getElementById('cxdShinyFinderHint');
+      if (shinyFinderHint) shinyFinderHint.style.display = 'none';
       const makeShinyBtn = document.getElementById('makeShinyBtn');
       if (makeShinyBtn) makeShinyBtn.style.display = '';
       const shinyIndicatorBtn = document.getElementById('shinyIndicatorBtn');
@@ -8302,19 +8682,17 @@ function boot(){
           return;
         }
       }
-      // CXD shadow mode: XD shadows are shiny-locked (disable checkbox),
-      // Colosseum shadows can be shiny (adjust SID).
+      // CXD encounters use their explicit shiny policy.
       if (currentEncounterMode === 'cxd_shadow') {
         const enc = getSelectedCXDEncounter();
-        if (enc && enc.game === 'xd') {
+        if (enc?.shinyLocked) {
           shinyCheckboxLocal.checked = false;
           shinyCheckboxLocal.disabled = true;
-          shinyCheckboxLocal.title = 'XD shadow Pokémon are shiny locked — shininess is not possible';
+          shinyCheckboxLocal.title = 'This Colosseum/XD encounter is shiny locked';
           return;
         }
-        // Colosseum shadow: allow shiny toggle (adjusts SID)
-        shinyCheckboxLocal.disabled = false;
-        shinyCheckboxLocal.title = 'Colosseum shadow — checking this adjusts your SID';
+        shinyCheckboxLocal.disabled = true;
+        shinyCheckboxLocal.title = 'Choose Shiny in Find Legal Encounter so PID, IVs, TID, and SID remain correlated';
         return;
       }
       if (currentEncounterMode === 'cxd_trade') {
@@ -8325,12 +8703,17 @@ function boot(){
           shinyCheckboxLocal.title = 'XD in-game trade Pokémon are shiny locked';
           return;
         }
+        shinyCheckboxLocal.disabled = true;
+        shinyCheckboxLocal.title = 'Choose Shiny in Find Legal Encounter so the GameCube RNG correlation remains valid';
+        return;
       }
       // Default: ensure enabled, clear tooltip
       shinyCheckboxLocal.disabled = false;
       shinyCheckboxLocal.title = '';
       const shinyLockedLabel = document.getElementById('xdShinyLocked');
       if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
+      const shinyFinderHint = document.getElementById('cxdShinyFinderHint');
+      if (shinyFinderHint) shinyFinderHint.style.display = 'none';
     } catch (e) {}
   }
 
@@ -8402,16 +8785,10 @@ function boot(){
     
     // When shiny checkbox is clicked
     shinyCheckbox.addEventListener('change', (e) => {
-      // Block shiny toggle for shiny-locked XD encounters.
-      if (currentEncounterMode === 'cxd_shadow') {
-        const enc = getSelectedCXDEncounter();
-        if (enc && enc.game === 'xd') {
-          e.target.checked = false;
-          return;
-        }
-      }
-      if (currentEncounterMode === 'cxd_trade' && getSelectedCXDTrade()?.shinyLocked) {
-        e.target.checked = false;
+      // CXD shininess must be selected inside the PID Finder. Changing only
+      // SID here would invalidate the correlated trainer/PID result.
+      if (currentEncounterMode === 'cxd_shadow' || currentEncounterMode === 'cxd_trade') {
+        checkShiny();
         return;
       }
 
@@ -8530,6 +8907,10 @@ function boot(){
 
   if (makeShinyBtn) {
     makeShinyBtn.addEventListener('click', () => {
+      // GameCube encounters must search a complete shiny RNG tuple; changing
+      // only SID here would invalidate the selected PID Finder result.
+      if (currentEncounterMode === 'cxd_shadow' || currentEncounterMode === 'cxd_trade') return;
+
       const pid = parsePidInput($('#pid').value);
       const tid = Number($('#tid').value) & 0xFFFF;
       const sid = Number($('#sid').value) & 0xFFFF;
@@ -8583,6 +8964,7 @@ function boot(){
             makeShinyStatus.textContent = `SID set to ${newSid}`;
             makeShinyStatus.style.color = 'var(--emerald, #10b981)';
           }
+
         }
       } else if (undoActive) {
         const restoredSid = restoreSidBeforeMakeShiny(pid, tid);
@@ -9591,6 +9973,7 @@ function initPidFinder() {
       } else {
         pidFinderResultActive = false;
         pidFinderLockedMetLevel = false;
+        pidFinderResultAbilityBit = null;
       }
     }
 
@@ -9601,6 +9984,7 @@ function initPidFinder() {
     }
     pidFinderHadSelection = false;
     pidFinderMysteryTag = '';
+    pidFinderResultAbilityBit = null;
 
     if (statusSpan) {
       statusSpan.textContent = reasonText || '';
@@ -9774,6 +10158,7 @@ function initPidFinder() {
 
     const currentGameId = Number($('#originGame').value) || 3;
     const mysteryMethod = getMysteryPidMethod();
+    const selectedCXDForPF = currentEncounterMode === 'cxd_shadow' ? getSelectedCXDEncounter() : null;
     const isChannelPF = mysteryMethod === 'CHANNEL';
     const isBACDPF = isMysteryBACDMethod(mysteryMethod);
     const isMysteryMethod2PF = currentEncounterMode === 'mystery' && isMysteryMethod2(mysteryMethod);
@@ -9783,6 +10168,43 @@ function initPidFinder() {
     if (pfM1) pfM1.disabled = false;
     if (pfM2) pfM2.disabled = false;
     if (pfM4) pfM4.disabled = false;
+
+    // Fixed-IV GameCube encounters (the Japanese e-Reader shadows) must
+    // search their exact spread. Restore normal editability for every other
+    // encounter so a previous e-Reader selection cannot leak into the modal.
+    const fixedIvFields = [
+      ['pfMinHp', 'pfMaxHp', 'hp'], ['pfMinAtk', 'pfMaxAtk', 'atk'],
+      ['pfMinDef', 'pfMaxDef', 'def'], ['pfMinSpA', 'pfMaxSpA', 'spa'],
+      ['pfMinSpD', 'pfMaxSpD', 'spd'], ['pfMinSpe', 'pfMaxSpe', 'spe'],
+    ];
+    for (const [minId, maxId, stat] of fixedIvFields) {
+      const minEl = document.getElementById(minId);
+      const maxEl = document.getElementById(maxId);
+      if (minEl) minEl.disabled = false;
+      if (maxEl) maxEl.disabled = false;
+      if (selectedCXDForPF?.fixedIVs) {
+        const value = String(Number(selectedCXDForPF.fixedIVs[stat]) || 0);
+        if (minEl) {
+          if (minEl.dataset.cxdFixedIvSaved === undefined) minEl.dataset.cxdFixedIvSaved = minEl.value;
+          minEl.value = value;
+          minEl.disabled = true;
+        }
+        if (maxEl) {
+          if (maxEl.dataset.cxdFixedIvSaved === undefined) maxEl.dataset.cxdFixedIvSaved = maxEl.value;
+          maxEl.value = value;
+          maxEl.disabled = true;
+        }
+      } else {
+        if (minEl?.dataset.cxdFixedIvSaved !== undefined) {
+          minEl.value = minEl.dataset.cxdFixedIvSaved;
+          delete minEl.dataset.cxdFixedIvSaved;
+        }
+        if (maxEl?.dataset.cxdFixedIvSaved !== undefined) {
+          maxEl.value = maxEl.dataset.cxdFixedIvSaved;
+          delete maxEl.dataset.cxdFixedIvSaved;
+        }
+      }
+    }
 
     if (isChannelPF) {
       // Channel Jirachi uses XDRNG Channel method only
@@ -9858,7 +10280,7 @@ function initPidFinder() {
 
     } else if (isMysteryCXD || currentEncounterMode === 'cxd_shadow' || isCXDTradePF || (currentEncounterMode === 'static' && currentGameId === 15)) {
       // CXD encounters use CXD PRNG only
-      if (pfM1) { pfM1.checked = true;  pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, 'CXD'); }
+      if (pfM1) { pfM1.checked = true;  pfM1.parentElement.style.display = ''; relabelCheckbox(pfM1, selectedCXDForPF?.eReader ? 'CXD e-Reader PID' : 'CXD'); }
       if (pfM2) { pfM2.checked = false; pfM2.parentElement.style.display = 'none'; }
       if (pfM4) { pfM4.checked = false; pfM4.parentElement.style.display = 'none'; }
       if (isCXDTradePF) {
@@ -9877,6 +10299,34 @@ function initPidFinder() {
         }
         if (pfAbilitySel && pfAbilitySel.querySelector('option[value="-1"]')) {
           pfAbilitySel.value = '-1';
+        }
+      }
+      if (selectedCXDForPF) {
+        if (pfTidEl && selectedCXDForPF.tid !== undefined) {
+          pfTidEl.value = String(selectedCXDForPF.tid);
+          pfTidEl.disabled = true;
+        }
+        if (pfSidEl && selectedCXDForPF.fixedSID !== undefined) {
+          pfSidEl.value = String(selectedCXDForPF.fixedSID);
+          pfSidEl.disabled = true;
+        }
+        if (pfShinyEl && selectedCXDForPF.shinyLocked) {
+          pfShinyEl.checked = false;
+          pfShinyEl.disabled = true;
+        }
+        if (selectedCXDForPF.fixedGender && pfGenderSel) {
+          const fixedGender = String(selectedCXDForPF.fixedGender);
+          pfGenderSel.innerHTML = `<option value="${fixedGender}">${fixedGender === 'female' ? 'Female' : 'Male'} (fixed)</option>`;
+          pfGenderSel.value = fixedGender;
+          pfGenderSel.disabled = true;
+        }
+        if (selectedCXDForPF.fixedAbility !== undefined && pfAbilitySel) {
+          const fixedAbility = String(selectedCXDForPF.fixedAbility);
+          const fixedOption = pfAbilitySel.querySelector(`option[value="${fixedAbility}"]`);
+          if (fixedOption) {
+            pfAbilitySel.value = fixedAbility;
+            pfAbilitySel.disabled = true;
+          }
         }
       }
       if (currentEncounterMode === 'mystery') {
@@ -10001,11 +10451,13 @@ function initPidFinder() {
     // illegal in practice), so alert the user before wasting search time.
     const isCXDPreSearch = currentEncounterMode === 'cxd_shadow' ||
       (currentEncounterMode === 'static' && (Number($('#originGame').value) || 3) === 15);
-    if (isCXDPreSearch && !isValidGCTidSid(tid, sid)) {
+    const selectedCXDForTrainerCheck = currentEncounterMode === 'cxd_shadow' ? getSelectedCXDEncounter() : null;
+    const starterSearchDerivesTrainerIds = String(selectedCXDForTrainerCheck?.pidType || '').includes('STARTER');
+    if (isCXDPreSearch && !starterSearchDerivesTrainerIds && selectedCXDForTrainerCheck?.fixedSID === undefined && !isValidGCTidSid(tid, sid)) {
       const proceed = confirm(
         'Warning: This TID/SID combination is not possible in Colosseum/XD.\n\n' +
-        'The game generates TID and SID as consecutive GC RNG outputs — ' +
-        'only certain pairs are valid. Any results found will be illegal.\n\n' +
+        'The IDs must be consecutive GC RNG outputs reachable from the ' +
+        'player-name screen. Any results found will be illegal.\n\n' +
         'Do you want to search anyway?'
       );
       if (!proceed) return;
@@ -10129,7 +10581,7 @@ function initPidFinder() {
       if (isBACDSearch) {
         const { event } = getSelectedMysteryEvent();
         const berryFixOtPreference = mysteryMethod === 'BACD_RBCD'
-          ? getBerryFixOtPreference()
+          ? (event?.berryFixOtPreference || (isBerryFixMysteryEventSelected() ? getBerryFixOtPreference() : 'ANY'))
           : 'ANY';
 
         worker.postMessage({
@@ -10144,6 +10596,9 @@ function initPidFinder() {
           sid,
           wantShiny,
           noShiny: !!event?.shinyLocked || mysteryMethod === 'BACD_M',
+          otGenderMethod: event?.otGenderMethod || '',
+          eventNationalSpecies: event?.tableNationalSpecies || 0,
+          eventWish: event?.tableWish,
           berryFixOtPreference,
           minIVs,
           maxIVs,
@@ -10162,22 +10617,25 @@ function initPidFinder() {
         // CXD worker: core filters + anti-shiny rerolling + team-lock data.
         // Use the SELECTED encounter to determine game-specific behaviour.
         const isCXDTradeSearch = currentEncounterMode === 'cxd_trade';
-        const cxdEncounters = isCXDTradeSearch ? [] : getShadowEncountersForSpecies(speciesId);
+        const cxdEncounters = isCXDTradeSearch ? [] : getCXDEncountersForSpecies(speciesId);
         const selEnc = document.getElementById('shadowEncounter');
         const selIdx = selEnc ? (Number(selEnc.value) || 0) : 0;
         const selectedEnc = cxdEncounters[selIdx] || null;
-        const isXD = selectedEnc && selectedEnc.game === 'xd';
+        const isShadow = selectedEnc?.kind === 'shadow';
+        const isXD = selectedEnc?.game === 'xd';
+        const sourceSpeciesName = SPECIES.find(([id]) => Number(id) === Number(selectedEnc?.species))?.[1] || '';
+        const lockSpecies = Number(selectedEnc?.teamLockSpecies || getNationalDexNumber(sourceSpeciesName) || selectedEnc?.species || speciesId);
 
         // Gather lock patterns for the selected encounter's game only.
         let teamLocks = null;
         if (isCXDTradeSearch) {
           teamLocks = null;
-        } else if (isXD) {
-          if (!XD_NO_LOCK_SPECIES.has(speciesId) && XD_SHADOW_LOCKS[speciesId])
-            teamLocks = XD_SHADOW_LOCKS[speciesId];
-        } else {
-          if (!COLO_NO_LOCK_SPECIES.has(speciesId) && COLO_SHADOW_LOCKS[speciesId])
-            teamLocks = COLO_SHADOW_LOCKS[speciesId];
+        } else if (isShadow && isXD) {
+          if (!XD_NO_LOCK_SPECIES.has(lockSpecies) && XD_SHADOW_LOCKS[lockSpecies])
+            teamLocks = XD_SHADOW_LOCKS[lockSpecies];
+        } else if (isShadow) {
+          if (!COLO_NO_LOCK_SPECIES.has(lockSpecies) && COLO_SHADOW_LOCKS[lockSpecies])
+            teamLocks = COLO_SHADOW_LOCKS[lockSpecies];
         }
 
         // XD: anti-shiny rerolling uses the player's TSV — shadows can
@@ -10187,16 +10645,22 @@ function initPidFinder() {
         //     and NOT_FORCED so the worker doesn't reject player-shiny PIDs.
         const mysteryEvent = currentEncounterMode === 'mystery' ? getSelectedMysteryEvent().event : null;
         const forceNoShiny = currentEncounterMode === 'mystery' && !!mysteryEvent?.shinyLocked;
-        const tsvVal = isXD ? ((tid ^ sid) >>> 3) : 0xFFFFFFFF;
+        const tsvVal = isShadow && isXD ? ((tid ^ sid) >>> 3) : 0xFFFFFFFF;
 
+        const cxdAbility = hasSingleNormalGen3Ability(speciesId) ? 0 : ability;
         worker.postMessage({
           startSeed: start, endSeed: end,
-          nature, ability,
+          nature, ability: cxdAbility,
           genderThreshold: genderThreshold === -1 ? -1 : genderThreshold,
           targetGender, tid, sid, wantShiny,
           minIVs, maxIVs,
           maxResults: Math.ceil(250 / workerCount),
-          noShiny: isXD || forceNoShiny,
+          noShiny: Boolean(selectedEnc?.shinyLocked) || forceNoShiny,
+          pidType: selectedEnc?.pidType || 'CXD',
+          starterIndex: Number(selectedEnc?.starterIndex || 0),
+          pokeSpotSlot: Number(selectedEnc?.pokeSpotSlot || 0),
+          levelMin: Number(selectedEnc?.levelMin ?? selectedEnc?.level ?? $('#metLevel')?.value ?? 1),
+          levelMax: Number(selectedEnc?.levelMax ?? selectedEnc?.level ?? $('#metLevel')?.value ?? 1),
           teamLocks,
           tsv: tsvVal,
           unownForm: speciesId === 201 ? Number($('#unownForm')?.value ?? -1) : -1
@@ -10391,21 +10855,28 @@ function initPidFinder() {
     pidFinderResultActive = true;
     pidFinderHadSelection = true;
     pidFinderMysteryTag = currentEncounterMode === 'mystery' ? getSelectedMysteryEvent().tag : '';
+    pidFinderResultAbilityBit = hasSingleNormalGen3Ability(Number($('#species')?.value || 0))
+      ? 0
+      : Number.isInteger(r.abilityBit) ? (r.abilityBit & 1) : (r.pid & 1);
 
     // Sync TID/SID from PID Finder modal back to main form
     const pfTid = Number(document.getElementById('pfTid').value) & 0xFFFF;
     const pfSid = Number(document.getElementById('pfSid').value) & 0xFFFF;
+    const resultTid = Number.isFinite(Number(r.tid)) ? (Number(r.tid) & 0xFFFF) : pfTid;
+    const resultSid = Number.isFinite(Number(r.sid)) ? (Number(r.sid) & 0xFFFF) : pfSid;
     if (currentEncounterMode === 'cxd_trade') {
       const trade = getSelectedCXDTrade();
       $('#tid').value = String(trade?.tid ?? pfTid);
     } else {
-      $('#tid').value = String(pfTid);
+      $('#tid').value = String(resultTid);
     }
-    $('#sid').value = String(pfSid);
+    $('#sid').value = String(resultSid);
 
     // Store the TID/SID used for this PID result so we can detect changes later
-    pidFinderOriginalTid = pfTid;
-    pidFinderOriginalSid = pfSid;
+    pidFinderOriginalTid = currentEncounterMode === 'cxd_trade'
+      ? (Number(getSelectedCXDTrade()?.tid ?? pfTid) & 0xFFFF)
+      : resultTid;
+    pidFinderOriginalSid = resultSid;
 
     const isBACDResult = isMysteryBACDMethod(String(r.method || '').toUpperCase());
 
@@ -10420,7 +10891,7 @@ function initPidFinder() {
       if (otGenderEl) { otGenderEl.value = r.otGender === 1 ? 'female' : 'male'; }
     } else if (isBACDResult && currentEncounterMode === 'mystery') {
       const otNameEl = $('#otName');
-      if (otNameEl && r.otName) {
+      if (otNameEl && r.otName && isBerryFixMysteryEventSelected()) {
         otNameEl.value = String(r.otName);
       }
       const otGenderEl = $('#otGender');
@@ -10438,10 +10909,10 @@ function initPidFinder() {
       }
     }
 
-    // Determine actual shiny status from PID and TID/SID
+    // Determine actual shiny status from PID and the IDs tied to this result.
     const pidHigh = (r.pid >>> 16) & 0xFFFF;
     const pidLow = r.pid & 0xFFFF;
-    const xor = (pidHigh ^ pidLow) ^ (pfTid ^ pfSid);
+    const xor = (pidHigh ^ pidLow) ^ (resultTid ^ resultSid);
     const isActuallyShiny = xor < 8;
     const mainShiny = $('#shiny');
     if (mainShiny) mainShiny.checked = isActuallyShiny;
@@ -10491,11 +10962,12 @@ function initPidFinder() {
 
     // CXD derives the stored ability slot from its own RNG call, independent
     // of PID parity. Older worker results fall back to the Gen 3 PID rule.
-    const abilityBit = Number.isInteger(r.abilityBit) ? r.abilityBit : (r.pid & 1);
+    const abilityBit = pidFinderResultAbilityBit;
     const abilitySel = $('#ability');
     if (abilitySel) {
       abilitySel.value = String(abilityBit);
-      // If the species only has one ability, option '1' doesn't exist — fall back
+      // Single-ability species are normalized to legal ability number 0;
+      // dual-ability RNG slots are retained separately for serialization.
       if (abilitySel.value !== String(abilityBit)) abilitySel.value = '0';
     }
 
@@ -10525,6 +10997,11 @@ function initPidFinder() {
       lockStyle($('#originGame'));
       lockStyle($('#otGender'));
       lockStyle($('#otName'));
+    } else if (String(r.method || '').includes('STARTER') && Number.isFinite(Number(r.tid)) && Number.isFinite(Number(r.sid))) {
+      // GameCube starter PID/IVs and trainer IDs are one RNG tuple. Keep the
+      // seed-derived IDs together unless the user explicitly enables Manual Override.
+      lockStyle($('#tid'));
+      lockStyle($('#sid'));
     } else if (isBACDResult && currentEncounterMode === 'mystery') {
       // BACD mystery OT gender is part of the legality correlation.
       lockStyle($('#otGender'));
@@ -10556,6 +11033,10 @@ function initPidFinder() {
     if (statusSpan) {
       statusSpan.textContent = r.method === 'Channel'
         ? `PID set (Channel, SID ${r.sid})`
+        : r.method === 'CXD_EREADER'
+          ? 'PID set (Colosseum e-Reader, fixed 0 IVs)'
+        : String(r.method || '').includes('STARTER') && Number.isFinite(Number(r.tid)) && Number.isFinite(Number(r.sid))
+          ? `PID set (${r.method === 'CXD_COLO_STARTER' ? 'Colosseum starter' : 'XD starter'}, seed-derived TID ${resultTid} / SID ${resultSid})`
         : isBACDResult
           ? `PID set (${bacdStatusLabel}, seed 0x${Number(r.originSeed ?? r.seed ?? 0).toString(16).toUpperCase().padStart(4, '0')})`
           : `PID set (${statusMethod === 'CXD' ? 'CXD' : 'Method ' + statusMethod}, Lv ${r.metLevels ? r.metLevels[0] : '?'})`;
@@ -10621,7 +11102,12 @@ function collect(){
     itemId: Number($('#item').value || 0),
     level: level($('#level').value || 50),
     natureIndex: Number($('#nature').value),
-    abilityBit: Number($('#ability').value) & 1,
+    abilityBit: resolvePidFinderAbilityBit({
+      selectedAbilityBit: $('#ability').value,
+      resultActive: pidFinderResultActive,
+      resultAbilityBit: pidFinderResultAbilityBit,
+      manualOverride: manualOverrideActive,
+    }),
     genderPref: $('#gender').value, // 'any' | 'male' | 'female'
     tid: Number($('#tid').value) & 0xFFFF,
     sid: Number($('#sid').value) & 0xFFFF,
@@ -11251,6 +11737,8 @@ function enterImportedModeSilently() {
 
   const shinyLockedLabel = document.getElementById('xdShinyLocked');
   if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
+  const shinyFinderHint = document.getElementById('cxdShinyFinderHint');
+  if (shinyFinderHint) shinyFinderHint.style.display = 'none';
   const makeShinyBtn = document.getElementById('makeShinyBtn');
   if (makeShinyBtn) makeShinyBtn.style.display = '';
   const shinyIndicatorBtn = document.getElementById('shinyIndicatorBtn');
@@ -11288,6 +11776,8 @@ function switchToImportedMode() {
   try { clearGeneratedOutputs(); } catch (e) {}
   const shinyLockedLabel = document.getElementById('xdShinyLocked');
   if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
+  const shinyFinderHint = document.getElementById('cxdShinyFinderHint');
+  if (shinyFinderHint) shinyFinderHint.style.display = 'none';
   const makeShinyBtn = document.getElementById('makeShinyBtn');
   if (makeShinyBtn) makeShinyBtn.style.display = '';
   const shinyIndicatorBtn = document.getElementById('shinyIndicatorBtn');

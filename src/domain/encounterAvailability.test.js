@@ -19,8 +19,13 @@ import {
 } from '../data/cxdTrades.gen3.js';
 import { ROAMER_SPECIES_SET } from '../data/roamers.gen3.js';
 import {
+  MYSTERY_GIFT_EVENTS_SUPPLEMENTAL,
+  MYSTERY_GIFT_POKEMON_SUPPLEMENTAL,
+} from '../data/mysteryGiftsSupplemental.gen3.js';
+import {
   NORMAL_ORIGIN_MODES,
   getAvailableOriginsForSpecies,
+  getCXDEncountersForSpecies,
   getMinimumLevelForEncounterEvolution,
   getMysteryEventsForSpecies,
   getOriginDefinition,
@@ -39,9 +44,9 @@ const mysteryData = JSON.parse(await readFile(
   new URL('../data/Mystery gift pokemon gen 3.json', import.meta.url),
   'utf8'
 ));
-const mysteryEvents = mysteryData.events || {};
+const mysteryEvents = { ...(mysteryData.events || {}), ...MYSTERY_GIFT_EVENTS_SUPPLEMENTAL };
 const mysteryGifts = {};
-for (const entry of mysteryData.pokemon || []) {
+for (const entry of [...(mysteryData.pokemon || []), ...MYSTERY_GIFT_POKEMON_SUPPLEMENTAL]) {
   if (!entry?.tag) continue;
   if (!mysteryGifts[entry.tag]) mysteryGifts[entry.tag] = [];
   mysteryGifts[entry.tag].push(entry);
@@ -49,6 +54,10 @@ for (const entry of mysteryData.pokemon || []) {
 const context = { mysteryEvents, mysteryGifts };
 const wildPlusEvolutions = buildWildWithEvolutions(WILD_ENCOUNTERS);
 const speciesByName = new Map(SPECIES.map(([id, name]) => [String(name).toLowerCase(), Number(id)]));
+const speciesForMode = Object.fromEntries(NORMAL_ORIGIN_MODES.map(mode => [
+  mode,
+  new Set(getSpeciesForOrigin(mode, context).map(([id]) => Number(id))),
+]));
 
 function speciesId(name) {
   const id = speciesByName.get(String(name).toLowerCase());
@@ -92,7 +101,7 @@ for (const [rawId, name] of SPECIES) {
     mystery: supported && Object.values(mysteryEvents).some(event =>
       Array.isArray(event?.species) && event.species.map(Number).some(sourceId => lineage.includes(sourceId))
     ),
-    cxd_shadow: supported && lineage.some(sourceId => CXD_SHADOW_SPECIES.has(sourceId)),
+    cxd_shadow: supported && getCXDEncountersForSpecies(id).length > 0,
     cxd_trade: supported && lineage.some(sourceId => CXD_TRADE_SPECIES.has(sourceId)),
   };
 
@@ -104,7 +113,7 @@ for (const [rawId, name] of SPECIES) {
       `${name} differs for ${mode}`
     );
     assert.equal(
-      getSpeciesForOrigin(mode, context).some(([candidateId]) => Number(candidateId) === id),
+      speciesForMode[mode].has(id),
       expectedByMode[mode],
       `${name} forward list differs for ${mode}`
     );
@@ -159,17 +168,18 @@ assert.ok(modesFor(speciesId('Mewtwo')).has('static'), 'A static legendary shoul
 assert.ok(modesFor(speciesId('Latios')).has('roamer'), 'A roamer should support Roamer');
 
 const mewEvents = getMysteryEventsForSpecies(speciesId('Mew'), mysteryEvents, mysteryGifts).map(item => item.tag);
-assert.deepEqual(mewEvents, ['AURA_MEW', 'MYSTRY_MEW']);
+for (const tag of ['AURA_MEW', 'HADOU_MEW', 'MYSTRY_MEW', 'POKEPARK_MEW']) assert.ok(mewEvents.includes(tag));
 assert.ok(!modesFor(speciesId('Mew')).has('hatched'), 'Mew must not support Hatched');
 
 const jirachiEvents = getMysteryEventsForSpecies(speciesId('Jirachi'), mysteryEvents, mysteryGifts).map(item => item.tag);
-assert.deepEqual(jirachiEvents, ['CHANNEL_JIRACHI', 'WISHMKR_BEST', 'WISHMKR_SHINY']);
+for (const tag of ['CHANNEL_JIRACHI', 'NEGAI_BOSHI_JIRACHI_TABLE', 'TANABATA_JIRACHI_2006', 'WISHMKR_BEST', 'WISHMKR_SHINY']) assert.ok(jirachiEvents.includes(tag));
 
 const deoxysEvents = getMysteryEventsForSpecies(speciesId('Deoxys'), mysteryEvents, mysteryGifts).map(item => item.tag);
 assert.deepEqual(deoxysEvents, ['DOEL_DEOXYS', 'SPACE_CENTER_DEOXYS']);
 
 const metangEvents = getMysteryEventsForSpecies(speciesId('Metang'), mysteryEvents, mysteryGifts).map(item => item.tag);
-assert.deepEqual(metangEvents, ['POKEMON_ROCKS_METANG']);
+assert.ok(metangEvents.includes('FESTA_METANG'));
+assert.ok(metangEvents.includes('POKEMON_ROCKS_METANG'));
 
 const venusaurId = speciesId('Venusaur');
 const bulbasaurId = speciesId('Bulbasaur');

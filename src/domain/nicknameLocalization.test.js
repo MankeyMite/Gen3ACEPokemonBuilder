@@ -6,6 +6,7 @@ import {
   createNicknameState,
   shouldSynchronizeSpeciesNickname,
 } from './nicknameLocalization.js';
+import { getLocalizedSpeciesName } from '../data/localizedSpeciesNames.gen3.js';
 
 const automaticBulbasaur = createNicknameState(NICKNAME_SOURCE.SPECIES_DEFAULT, 1);
 assert.equal(shouldSynchronizeSpeciesNickname(automaticBulbasaur, 1, 'hatched'), true);
@@ -23,9 +24,22 @@ assert.equal(
 assert.equal(shouldSynchronizeSpeciesNickname(automaticBulbasaur, 1, 'imported'), false);
 assert.equal(shouldSynchronizeSpeciesNickname(automaticBulbasaur, 1, 'cxd_trade'), false);
 
+for (const [speciesId, expected] of [[25, 'ピカチュウ'], [151, 'ミュウ'], [175, 'トゲピー'], [409, 'ジラーチ']]) {
+  const localized = getLocalizedSpeciesName(speciesId, 1);
+  assert.equal(localized, expected);
+  assert.ok(localized.length <= 5, `Japanese species nickname ${localized} must fit the five-character limit`);
+}
+
 const mainSource = await readFile(new URL('../main.js', import.meta.url), 'utf8');
 assert.match(mainSource, /#nickname'\)\.addEventListener\('input', markNicknameAsUserEdited\)/);
 assert.match(mainSource, /#language'\)\.addEventListener\('change',[\s\S]*?setLocalizedSpeciesNickname\(/);
 assert.match(mainSource, /markNicknameAsImported\(data\.speciesId\)/);
+assert.match(mainSource, /function setDistributionNicknameDefault\([\s\S]*?nickname !== undefined[\s\S]*?NICKNAME_SOURCE\.PRESET[\s\S]*?force: true/);
+assert.match(mainSource, /function syncLanguageTextLimits\([\s\S]*?isJapanese \? 5 : 10[\s\S]*?isJapanese \? 5 : 7/);
+assert.equal(
+  (mainSource.match(/setDistributionNicknameDefault\(\{/g) || []).length,
+  3,
+  'the helper definition plus Mystery Gift and Colosseum\/XD preset calls must be present',
+);
 
 console.log('nicknameLocalization state tests passed');

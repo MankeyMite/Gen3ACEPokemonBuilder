@@ -5,6 +5,7 @@ export function getOtGenderLockPolicy({
   manualOverride = false,
   mysteryTag = '',
   mysteryUsesHatcherTrainerData = false,
+  mysteryUsesRecipientOtGender = false,
   isEgg = false,
 } = {}) {
   if (manualOverride) return { locked: false, forcedGender: '' };
@@ -26,7 +27,7 @@ export function getOtGenderLockPolicy({
       : { locked: false, forcedGender: '' };
   }
 
-  if (tag === 'PCNY_WISH_EGGS' || mysteryUsesHatcherTrainerData) {
+  if (tag === 'PCNY_WISH_EGGS' || mysteryUsesHatcherTrainerData || mysteryUsesRecipientOtGender) {
     return { locked: false, forcedGender: '' };
   }
 
