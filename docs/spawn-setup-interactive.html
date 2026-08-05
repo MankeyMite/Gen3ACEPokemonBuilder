@@ -27,11 +27,11 @@
     .char-red{color:#ff6b6b;font-weight:700}
     .panel-inner{display:block}
     .codes-box{min-width:0;background:#081525;border:1px solid rgba(255,255,255,0.03);padding:21px;border-radius:14px;display:flex;flex-direction:column;gap:8px;color:#f5f7f2}
-    .codes-box .code-line{min-height:44px;box-sizing:border-box;padding:8px 6px;font:14px/2 "Atkinson Hyperlegible Mono",Consolas,monospace;font-variant-ligatures:none;display:grid;grid-template-columns:8ch 17ch minmax(0,1fr);column-gap:1ch;align-items:center;white-space:normal;overflow:visible}
-    .code-box-prefix{display:block;width:8ch;color:#f5f7f2;font-weight:800;white-space:nowrap}
+    .codes-box .code-line{min-height:44px;box-sizing:border-box;padding:8px 6px;font:14px/2 "Atkinson Hyperlegible Mono",Consolas,monospace;font-variant-ligatures:none;display:grid;grid-template-columns:8ch 17ch minmax(0,1fr);grid-template-areas:"prefix code note";column-gap:1ch;align-items:center;white-space:normal;overflow:visible}
+    .code-box-prefix{grid-area:prefix;display:block;width:8ch;color:#f5f7f2;font-weight:800;white-space:nowrap}
     .code-box-prefix-warning{color:#f2c94c;font-weight:800}
-    .code-box-main{display:block;width:17ch;color:#f5f7f2;white-space:pre}
-    .code-box-annotation{display:block;min-width:0;color:#b7c5bf;white-space:normal;overflow-wrap:break-word}
+    .code-box-main{grid-area:code;display:block;width:17ch;color:#f5f7f2;white-space:pre}
+    .code-box-annotation{grid-area:note;display:block;min-width:0;color:#b7c5bf;white-space:normal;overflow-wrap:break-word}
     .code-char-upper{color:#8ed8f8;font-weight:700}
     .code-char-lower{color:#f4b183}
     .code-char-lower-q{font-family:Consolas,monospace}
@@ -41,7 +41,21 @@
     .code-char-bracket{color:#f5f7f2;font-weight:800}
     .code-char-underscore{color:#f5f7f2;font-weight:900}
     .code-char-hyphen{color:#b7e27a;font-weight:900}
-    @media (max-width:520px){.codes-box{padding:16px}.codes-box .code-line{grid-template-columns:8ch minmax(8ch,17ch) minmax(0,1fr);column-gap:.5ch}.code-box-main{width:auto}}
+    @media (max-width:640px){
+      .container{margin:0 auto;padding:10px}
+      .card{padding:12px}
+      h1{font-size:1.75rem;line-height:1.35}
+      .tabs,.mode-select,.lang-select{flex-wrap:wrap}
+      .codes-box{padding:10px;gap:4px}
+      .codes-box .code-line{min-height:0;padding:8px 4px;grid-template-columns:7.5ch minmax(0,1fr);grid-template-areas:"prefix code" ". note";column-gap:.75ch;row-gap:2px;align-items:baseline}
+      .code-box-prefix,.code-box-main{width:auto}
+      .code-box-main{min-width:0}
+      .code-box-annotation{margin-top:2px;padding:2px 0 2px .65rem;border-left:2px solid rgba(159,183,201,.32);color:var(--muted);font:500 .8rem/1.4 system-ui,Segoe UI,Roboto,Arial;overflow-wrap:normal;word-break:normal}
+      .code-box-annotation::before{content:"\21B3\00A0";color:#7594aa}
+      .codes-box .code-line.code-line-has-skip-note{grid-template-areas:"note note" "prefix code";row-gap:6px;margin-top:2px}
+      .code-line-has-skip-note .code-box-annotation{margin:0 0 2px;padding:5px 8px;border:1px dashed rgba(159,183,201,.25);border-radius:6px;background:rgba(159,183,201,.05);font-size:.78rem;letter-spacing:.01em}
+      .code-line-has-skip-note .code-box-annotation::before{content:"\2193\00A0"}
+    }
     .kbd{background:rgba(255,255,255,0.04);padding:0 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.02);font-family:ui-monospace,Menlo,Consolas}
     .footer{margin-top:12px;color:var(--muted);font-size:0.95rem}
     .panel-tip{margin-top:10px;color:var(--muted);font-size:0.9rem}
@@ -450,8 +464,12 @@
         var compactText = compactCodeText(text);
         var hasHTML = compactText.indexOf('<') >= 0;
         var codeHTML = useHTML && hasHTML ? compactText : escHTML(compactText);
-        var noteHTML = '<span class="code-box-annotation">' + escHTML(note || '') + '</span>';
-        return '<div class="code-line"><span class="code-box-prefix">' + prefixHTML + '</span><span class="code-box-main">' + codeHTML + '</span>' + noteHTML + '</div>';
+        var cleanNote = String(note || '').trim();
+        var isSkipNote = /^skip boxes?\b/i.test(cleanNote);
+        var lineClass = 'code-line' + (isSkipNote ? ' code-line-has-skip-note' : '');
+        var noteHTML = cleanNote ? '<span class="code-box-annotation">' + escHTML(cleanNote) + '</span>' : '';
+        var boxHTML = '<span class="code-box-prefix">' + prefixHTML + '</span><span class="code-box-main">' + codeHTML + '</span>';
+        return '<div class="' + lineClass + '">' + (isSkipNote ? noteHTML + boxHTML : boxHTML + noteHTML) + '</div>';
       }
 
       function buildPanelHTML(rows, useHTML){
