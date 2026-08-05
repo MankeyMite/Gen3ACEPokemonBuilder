@@ -14,6 +14,16 @@
     .tabs{display:flex;gap:8px;margin-bottom:12px}
     .mode-select{display:flex;gap:10px;margin:12px 0 18px}
     .lang-select{display:flex;gap:10px;margin:0 0 18px}
+    .guide-version-control{margin:12px 0 16px;padding:12px;border:1px solid rgba(88,183,255,.24);border-radius:10px;background:rgba(8,21,37,.48)}
+    .guide-version-title{display:block;margin-bottom:8px;color:var(--fg);font-weight:800}
+    .guide-version-select{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-width:560px}
+    .guide-version-btn{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:#081525;color:var(--muted);font-weight:700;cursor:pointer}
+    .guide-version-btn.active{color:#03131f;background:linear-gradient(90deg,#73bfff,#48d597);border-color:#a6dcff;box-shadow:0 0 0 2px rgba(74,158,255,.18);font-weight:900}
+    .guide-version-btn.active::before{content:"\2713\00A0"}
+    .guide-version-note{margin:8px 0 0;color:var(--muted);font-size:.88rem;line-height:1.4}
+    .game-control{margin:12px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .game-availability-note{color:#b7d9ee;font-size:.88rem}
+    #gameSelect:disabled{opacity:.72;cursor:not-allowed}
     .mode-btn,.lang-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--fg);padding:8px 12px;border-radius:8px;cursor:pointer}
     .mode-btn.requires-instructions,.lang-btn.requires-instructions{opacity:0.6}
     .mode-btn.active,.lang-btn.active{background:linear-gradient(90deg,var(--accent),#48d597);color:#02121a;font-weight:700}
@@ -27,10 +37,11 @@
     .char-red{color:#ff6b6b;font-weight:700}
     .panel-inner{display:block}
     .codes-box{min-width:0;background:#081525;border:1px solid rgba(255,255,255,0.03);padding:21px;border-radius:14px;display:flex;flex-direction:column;gap:8px;color:#f5f7f2}
-    .codes-box .code-line{min-height:44px;box-sizing:border-box;padding:8px 6px;font:14px/2 "Atkinson Hyperlegible Mono",Consolas,monospace;font-variant-ligatures:none;display:grid;grid-template-columns:8ch 17ch minmax(0,1fr);grid-template-areas:"prefix code note";column-gap:1ch;align-items:center;white-space:normal;overflow:visible}
+    .codes-box .code-line{min-height:44px;box-sizing:border-box;padding:8px 6px;font:14px/2 "Atkinson Hyperlegible Mono",Consolas,monospace;font-variant-ligatures:none;display:grid;grid-template-columns:8ch max-content minmax(0,1fr);grid-template-areas:"prefix code note";column-gap:1ch;align-items:center;white-space:normal;overflow:visible}
     .code-box-prefix{grid-area:prefix;display:block;width:8ch;color:#f5f7f2;font-weight:800;white-space:nowrap}
     .code-box-prefix-warning{color:#f2c94c;font-weight:800}
-    .code-box-main{grid-area:code;display:block;width:17ch;color:#f5f7f2;white-space:pre}
+    .code-box-main{grid-area:code;display:flex;align-items:center;gap:.16em;width:max-content;color:#f5f7f2;white-space:pre}
+    .code-box-main>span{flex:0 0 auto}
     .code-box-annotation{grid-area:note;display:block;min-width:0;color:#b7c5bf;white-space:normal;overflow-wrap:break-word}
     .code-char-upper{color:#8ed8f8;font-weight:700}
     .code-char-lower{color:#f4b183}
@@ -41,11 +52,24 @@
     .code-char-bracket{color:#f5f7f2;font-weight:800}
     .code-char-underscore{color:#f5f7f2;font-weight:900}
     .code-char-hyphen{color:#b7e27a;font-weight:900}
+    .code-char-space{display:none}
+    .code-char-jp-hiragana,.japanese-legend-hiragana{color:#8ed8f8;font-weight:700}
+    .code-char-jp-katakana,.japanese-legend-katakana{color:#f4b183;font-weight:700}
+    .code-char-jp-alphabet,.japanese-legend-alphabet{color:#b7e27a;font-weight:700}
+    .code-char-japanese-space{display:inline-block;width:1em;min-height:1.15em;border-bottom:2px solid rgba(245,247,242,.48);background:rgba(245,247,242,.06)}
+    .japanese-code-panel .code-box-main{font-family:"Yu Gothic UI","Meiryo","Noto Sans JP",sans-serif}
+    .japanese-page-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 10px;padding:9px 12px;border:1px solid rgba(255,255,255,.06);border-radius:8px;background:rgba(255,255,255,.025);color:var(--muted);font-size:.88rem}
+    .japanese-page-legend strong{color:var(--fg);width:100%}
+    .japanese-page-key{white-space:nowrap}
+    .japanese-page-key .code-char-japanese-space{margin-right:.3em;vertical-align:-.12em}
     @media (max-width:640px){
       .container{margin:0 auto;padding:10px}
       .card{padding:12px}
       h1{font-size:1.75rem;line-height:1.35}
       .tabs,.mode-select,.lang-select{flex-wrap:wrap}
+      .guide-version-control{padding:10px}
+      .guide-version-select{gap:6px}
+      .guide-version-btn{padding:8px 6px;font-size:.86rem;line-height:1.2}
       .codes-box{padding:10px;gap:4px}
       .codes-box .code-line{min-height:0;padding:8px 4px;grid-template-columns:7.5ch minmax(0,1fr);grid-template-areas:"prefix code" ". note";column-gap:.75ch;row-gap:2px;align-items:baseline}
       .code-box-prefix,.code-box-main{width:auto}
@@ -81,7 +105,15 @@
   <div class="container">
     <div class="card">
       <h1>BASE64 writer 3.0 setup (by Mettrich)</h1>
-      <div style="margin:12px 0;display:flex;align-items:center;gap:12px">
+      <div class="guide-version-control">
+        <span class="guide-version-title">Choose your guide version</span>
+        <div class="guide-version-select" role="group" aria-label="Guide version">
+          <button type="button" class="guide-version-btn active" data-guide-version="non-japanese" aria-pressed="true">Non-Japanese (default)</button>
+          <button type="button" class="guide-version-btn" data-guide-version="japanese" aria-pressed="false">Japanese (Emerald only)</button>
+        </div>
+        <p id="guideVersionNote" class="guide-version-note">Use Non-Japanese for English and other non-Japanese game versions. Japanese currently supports Emerald only.</p>
+      </div>
+      <div class="game-control">
         <label style="color:var(--fg);font-weight:700">Game:</label>
         <select id="gameSelect" autocomplete="off" style="background:#ffffff;border:1px solid rgba(0,0,0,0.12);color:#000;padding:6px;border-radius:6px;min-width:140px">
           <option value="EM">Emerald</option>
@@ -89,6 +121,7 @@
           <option value="FRLGSW">FR/LG Switch</option>
           <option value="RS">Ruby / Sapphire</option>
         </select>
+        <span id="gameAvailabilityNote" class="game-availability-note" hidden>Japanese guide: Emerald only</span>
       </div>
       <details id="instructions" class="instructions">
         <summary>Instructions — click me first!</summary>
@@ -166,6 +199,13 @@
             </ul>
 
             <p>You may now select your emulator type and language below, then start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+          </div>
+
+          <div class="instr-JP" style="display:none">
+            <h2>Japanese Emerald BASE64 writer setup</h2>
+            <p>This guide currently supports <strong>Japanese Emerald only</strong>.</p>
+            <p>You need a stable THUMB ACE species, such as <strong>0x085F</strong>. This is the standard stable ACE species obtained after the DOTS setup on Japanese versions.</p>
+            <p>Open the Setup code tab and enter the Japanese box names exactly as shown. Highlighted blank cells are Japanese full-width spaces and must be included where shown.</p>
           </div>
         </div>
       </details>
@@ -336,6 +376,23 @@
         {box: 14, text: 'H U T G', note: ''}
       ];
 
+      // Japanese Emerald setup: the game-typable Japanese spaces are preserved in the strings.
+      var japaneseEmeraldRows = [
+        {box: 1,  text: 'かッほＮいリあぃ'},
+        {box: 2,  text: 'れすＶこミ　Ｗ', note: 'one full-width space before Ｗ'},
+        {box: 3,  text: 'あぅあごきｈミび'},
+        {box: 4,  text: 'アクぢいい'},
+        {box: 5,  text: 'ぞ　　　　めｗＶ', note: 'four full-width spaces after ぞ'},
+        {box: 6,  text: 'ｄ♂　むよ２いＶ', note: 'one full-width space after ♂'},
+        {box: 7,  text: 'ＷＥＬＤＲ　ぎ１', note: 'one full-width space after Ｒ'},
+        {box: 8,  text: 'にリあぇｚんちｈ'},
+        {box: 9,  text: 'Ａず　ｌｑｍ　ａ', note: 'full-width spaces after ず and ｍ'},
+        {box: 10, text: 'ぺょのＺＥあＥの'},
+        {box: 11, text: 'かぅくるかｇくぐ'},
+        {box: 12, text: 'ず　Ｔぞほミ　ｌ', note: 'full-width spaces after ず and ミ'},
+        {box: 13, text: 'ムぬあぉｔｓ　　', note: 'required: two trailing full-width spaces'}
+      ];
+
       // Nickname per game for the sacrificial pokemon
       var nicknameByGame = {
         EM:     'J-FKVC',
@@ -348,6 +405,7 @@
       /* ============================================================
          STATE
          ============================================================ */
+      var selectedGuideVersion = 'non-japanese';
       var selectedGame = 'EM';
       var selectedMode = null;  // 'modern', 'old', or 'myboy'
       var selectedLang = null;  // 'RS_EN' or 'RS_NEL' (only used for RS)
@@ -356,11 +414,13 @@
       /* ============================================================
          DOM REFERENCES
          ============================================================ */
+      var guideVersionButtons = document.querySelectorAll('.guide-version-btn');
       var modeButtons = document.querySelectorAll('.mode-btn');
       var langButtons = document.querySelectorAll('.lang-btn');
       var tabs = document.querySelectorAll('.tab');
       var panels = document.querySelectorAll('.code-panel');
       var gameSelect = document.getElementById('gameSelect');
+      var gameAvailabilityNote = document.getElementById('gameAvailabilityNote');
       var instrEl = document.getElementById('instructions');
       var modeContainer = document.querySelector('.mode-select');
       var langContainer = document.querySelector('.lang-select');
@@ -369,8 +429,12 @@
          HELPERS
          ============================================================ */
 
+      function isJapaneseGuide(){
+        return selectedGuideVersion === 'japanese';
+      }
+
       function isMyBoyAllowedGame(){
-        return selectedGame === 'EM' || selectedGame === 'FRLG';
+        return !isJapaneseGuide() && (selectedGame === 'EM' || selectedGame === 'FRLG');
       }
 
       function isMyBoyMode(){
@@ -391,6 +455,7 @@
 
       // Whether all required selections are made
       function isReady(){
+        if(isJapaneseGuide()) return instructionsAcknowledged;
         if(selectedGame === 'FRLGSW') return true;
         if(selectedMode === 'myboy' && !isMyBoyAllowedGame()) return false;
         if(selectedGame === 'RS') return !!selectedMode && selectedMode !== 'myboy' && !!selectedLang;
@@ -540,6 +605,35 @@
         return html;
       }
 
+      function renderJapanesePanel(){
+        var p1 = document.getElementById('code1');
+        var html = '<div class="japanese-page-legend" aria-label="Japanese keyboard page colors">';
+        html += '<strong>Keyboard page colors</strong>';
+        html += '<span class="japanese-page-key"><span class="japanese-legend-hiragana">あ</span> Hiragana</span>';
+        html += '<span class="japanese-page-key"><span class="japanese-legend-katakana">ア</span> Katakana</span>';
+        html += '<span class="japanese-page-key"><span class="japanese-legend-alphabet">Ａ</span> Alphabet / numbers / symbols</span>';
+        html += '<span class="japanese-page-key"><span class="code-char-japanese-space">　</span> Full-width space</span>';
+        html += '</div>';
+        html += '<div class="japanese-code-panel">' + buildPanelHTML(japaneseEmeraldRows, false) + '</div>';
+        html += '<div class="panel-tip"><strong>Japanese full-width spaces:</strong> the highlighted blank cells are part of the box name.';
+        html += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
+        html += '<li>Make sure there are no Pokémon in Boxes 11–14.</li>';
+        html += '<li>Save the game.</li>';
+        html += '<li>Execute the code by viewing the summary of your stable THUMB ACE species, such as 0x085F.</li>';
+        html += '<li>WELDR should spawn in Box 10, Slot 19. Move it to Box 14, Slot 28.</li>';
+        html += '<li>Catch any Pokémon, name it <strong>ＨＫｄＣ</strong>, and place it in Box 14, Slot 29 next to WELDR.</li>';
+        html += '<li>You are now ready to spawn Pokémon with Base64 codes.</li>';
+        html += '<li><a class="builder-start-link" href="https://mankeymite.github.io/Gen3ACEPokemonBuilder/">Open the Gen 3 ACE Pokémon Builder</a></li>';
+        html += '</ul></div>';
+        p1.innerHTML = html;
+
+        ['code2','code3','code4','code5','codeTest'].forEach(function(id){
+          var panel = document.getElementById(id);
+          if(panel) panel.innerHTML = '';
+        });
+        wrapCaseChars();
+      }
+
       function renderMyBoyPanels(){
         var gameKey = effectiveGameKey();
         var nickname = nicknameByGame[gameKey] || nicknameByGame.EM;
@@ -578,6 +672,10 @@
 
       function renderAllPanels(){
         if(!isReady()) return;
+        if(isJapaneseGuide()){
+          renderJapanesePanel();
+          return;
+        }
         if(isMyBoyMode()){
           renderMyBoyPanels();
           return;
@@ -675,20 +773,32 @@
       /* ============================================================
          CHARACTER WRAPPING – lowercase dimmed
          ============================================================ */
-      function getCodeCharacterClass(ch){
+      function getJapaneseCodeCharacterClass(ch){
+        if(ch === '\u3000') return 'code-char-japanese-space';
+        var codePoint = ch.codePointAt(0);
+        if(codePoint >= 0x3040 && codePoint <= 0x309F) return 'code-char-jp-hiragana';
+        if(codePoint >= 0x30A0 && codePoint <= 0x30FF) return 'code-char-jp-katakana';
+        return 'code-char-jp-alphabet';
+      }
+
+      function getCodeCharacterClass(ch, useJapanesePageColors){
+        if(useJapanesePageColors) return getJapaneseCodeCharacterClass(ch);
+        if(ch === '\u3000') return 'code-char-japanese-space';
+        if(ch === ' ') return 'code-char-space';
         if(ch === '.' || ch === ',') return 'code-char-flexible';
         if(ch === '-' || ch === '\u2010' || ch === '\u2011' || ch === '\u2012' || ch === '\u2013' || ch === '\u2014') return 'code-char-hyphen';
         if(ch === '_') return 'code-char-underscore';
         if('()[]{}'.indexOf(ch) >= 0) return 'code-char-bracket';
-        if((ch >= 'A' && ch <= 'Z') || ch === '\u00C4' || ch === '\u00D6' || ch === '\u00DC') return 'code-char-upper';
+        if((ch >= 'A' && ch <= 'Z') || (ch >= '\uFF21' && ch <= '\uFF3A') || ch === '\u00C4' || ch === '\u00D6' || ch === '\u00DC') return 'code-char-upper';
         if(ch === 'q') return 'code-char-lower code-char-lower-q';
-        if((ch >= 'a' && ch <= 'z') || ch === '\u00E4' || ch === '\u00F6' || ch === '\u00FC') return 'code-char-lower';
-        if(ch >= '0' && ch <= '9') return 'code-char-number';
+        if((ch >= 'a' && ch <= 'z') || (ch >= '\uFF41' && ch <= '\uFF5A') || ch === '\u00E4' || ch === '\u00F6' || ch === '\u00FC') return 'code-char-lower';
+        if((ch >= '0' && ch <= '9') || (ch >= '\uFF10' && ch <= '\uFF19')) return 'code-char-number';
         return 'code-char-symbol';
       }
 
       function wrapCaseChars(){
         document.querySelectorAll('.code-box-main').forEach(function(el){
+          var useJapanesePageColors = !!el.closest('.japanese-code-panel');
           var children = Array.from(el.childNodes);
           children.forEach(function(node){
             if(node.nodeType !== 3) return;
@@ -698,7 +808,7 @@
             for(var ci = 0; ci < text.length; ci++){
               var ch = text[ci];
               var charSpan = document.createElement('span');
-              charSpan.className = getCodeCharacterClass(ch);
+              charSpan.className = getCodeCharacterClass(ch, useJapanesePageColors);
               charSpan.textContent = ch;
               frag.appendChild(charSpan);
             }
@@ -712,12 +822,22 @@
          ============================================================ */
 
       // Instructions acknowledgement gate
+      if(instrEl && instrEl.open){
+        instructionsAcknowledged = true;
+        modeButtons.forEach(function(b){ b.classList.remove('requires-instructions'); });
+        langButtons.forEach(function(b){ b.classList.remove('requires-instructions'); });
+      }
       if(instrEl){
         instrEl.addEventListener('toggle', function onInstrToggle(){
           if(instrEl.open){
             instructionsAcknowledged = true;
             modeButtons.forEach(function(b){ b.classList.remove('requires-instructions'); });
             langButtons.forEach(function(b){ b.classList.remove('requires-instructions'); });
+            if(isJapaneseGuide()){
+              refreshModeUI();
+              renderAllPanels();
+              ensureActiveTab();
+            }
             instrEl.removeEventListener('toggle', onInstrToggle);
           }
         });
@@ -732,11 +852,25 @@
       }
 
       function updateTabVisibility(){
+        if(isJapaneseGuide()){
+          tabs.forEach(function(t){
+            var isSetupTab = t.dataset.tab === 'code1';
+            t.style.display = isSetupTab ? '' : 'none';
+            if(isSetupTab) t.textContent = 'Setup code';
+            else t.classList.remove('active');
+          });
+          panels.forEach(function(p){
+            if(p.id !== 'code1') p.style.display = 'none';
+          });
+          return;
+        }
+
         var showMyBoyTabs = isMyBoyMode();
         tabs.forEach(function(t){
+          if(t.dataset.tab === 'code1') t.textContent = 'Code 1';
           var isMyBoyExtraTab = t.dataset.tab === 'code4' || t.dataset.tab === 'code5';
+          t.style.display = isMyBoyExtraTab ? (showMyBoyTabs ? '' : 'none') : '';
           if(isMyBoyExtraTab){
-            t.style.display = showMyBoyTabs ? '' : 'none';
             if(!showMyBoyTabs) t.classList.remove('active');
           }
         });
@@ -749,10 +883,31 @@
       }
 
       function refreshModeUI(){
+        var japaneseGuide = isJapaneseGuide();
         var isRS = selectedGame === 'RS';
         var isFRLGSW = selectedGame === 'FRLGSW';
+        guideVersionButtons.forEach(function(b){
+          var active = b.dataset.guideVersion === selectedGuideVersion;
+          b.classList.toggle('active', active);
+          b.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        if(gameSelect) gameSelect.disabled = japaneseGuide;
+        if(gameAvailabilityNote) gameAvailabilityNote.hidden = !japaneseGuide;
         updateModeButtonVisibility();
         updateTabVisibility();
+
+        if(japaneseGuide){
+          if(modeContainer) modeContainer.style.display = 'none';
+          if(langContainer) langContainer.style.display = 'none';
+          if(!isReady()){
+            tabs.forEach(function(t){ t.setAttribute('disabled','true'); });
+            tabs.forEach(function(t){ t.classList.remove('active'); });
+            panels.forEach(function(p){ p.style.display='none'; });
+          } else {
+            tabs.forEach(function(t){ t.removeAttribute('disabled'); });
+          }
+          return;
+        }
 
         // FR/LG Switch: hide both selects, always ready
         if(isFRLGSW){
@@ -809,16 +964,46 @@
         var instrFR = document.querySelector('.instr-FRLG');
         var instrFRSW = document.querySelector('.instr-FRLGSW');
         var instrRS = document.querySelector('.instr-RS');
+        var instrJP = document.querySelector('.instr-JP');
         if(!instrEM) return;
         instrEM.style.display = 'none';
         if(instrFR) instrFR.style.display = 'none';
         if(instrFRSW) instrFRSW.style.display = 'none';
         if(instrRS) instrRS.style.display = 'none';
-        if(selectedGame === 'FRLG' && instrFR) instrFR.style.display = '';
+        if(instrJP) instrJP.style.display = 'none';
+        if(isJapaneseGuide() && instrJP) instrJP.style.display = '';
+        else if(selectedGame === 'FRLG' && instrFR) instrFR.style.display = '';
         else if(selectedGame === 'FRLGSW' && instrFRSW) instrFRSW.style.display = '';
         else if(selectedGame === 'RS' && instrRS) instrRS.style.display = '';
         else instrEM.style.display = '';
       }
+
+      // Guide version selector: Non-Japanese (default) or Japanese Emerald.
+      guideVersionButtons.forEach(function(btn){
+        btn.addEventListener('click', function(){
+          selectedGuideVersion = btn.dataset.guideVersion === 'japanese' ? 'japanese' : 'non-japanese';
+          selectedGame = 'EM';
+          selectedMode = null;
+          selectedLang = null;
+          if(isJapaneseGuide()){
+            instructionsAcknowledged = true;
+            modeButtons.forEach(function(b){ b.classList.remove('requires-instructions'); });
+            langButtons.forEach(function(b){ b.classList.remove('requires-instructions'); });
+          }
+          if(gameSelect) gameSelect.value = 'EM';
+          modeButtons.forEach(function(b){ b.classList.remove('active'); });
+          langButtons.forEach(function(b){ b.classList.remove('active'); });
+          tabs.forEach(function(t){ t.classList.remove('active'); });
+          panels.forEach(function(p){ p.style.display = 'none'; });
+          updateInstructionsForGame();
+          if(instrEl) instrEl.open = true;
+          refreshModeUI();
+          if(isReady()){
+            renderAllPanels();
+            ensureActiveTab();
+          }
+        });
+      });
 
       // Mode button click handler
       modeButtons.forEach(function(btn){
