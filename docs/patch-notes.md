@@ -1,3 +1,7 @@
+Patch Notes - (V.0.4.4) - August 5, 2026.
+- Added 195 new distribution event Pokémon, including mystery gifts, PCJP, Poképark, PCNY, Colosseum, XD, starters, gifts, e-Reader shadows, trades and Poké Spot encounters! 
+- Small fixes to some of the imported distribution Pokémon.
+
 Patch Notes - (V.0.4.3) - August 5, 2026.
 - Added all 386 nicknames for all pokémon in all languages. Selecting a language will now load the default nickname from the chosen language, unless edited first.
 - Removed all unreleased Pokémon from Altering Cave from all gen 3 games. Zubat should now be the only encounterable Pokémon in Altering Cave.
