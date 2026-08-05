@@ -778,6 +778,10 @@
     }
 
     .code-target-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
       padding: 0.52rem 1.15rem;
       background: rgba(8, 21, 37, 0.55);
       border: 1px solid rgba(88, 183, 255, 0.28);
@@ -798,11 +802,18 @@
     }
 
     .code-target-btn.active {
-      color: var(--text);
-      background: linear-gradient(135deg, rgba(88, 183, 255, 0.24), rgba(57, 217, 138, 0.14));
-      border-color: rgba(88, 183, 255, 0.82);
-      border-bottom-color: var(--accent);
-      box-shadow: 0 0 0 1px rgba(88, 183, 255, 0.12), 0 8px 20px rgba(0, 0, 0, 0.16);
+      color: #03131f;
+      background: linear-gradient(135deg, #73bfff, #39d98a);
+      border-color: #a6dcff;
+      border-bottom-color: #39d98a;
+      box-shadow: 0 0 0 2px rgba(88, 183, 255, 0.22), 0 8px 22px rgba(0, 0, 0, 0.24);
+      font-weight: 800;
+      text-shadow: none;
+    }
+
+    .code-target-btn.active::before {
+      content: "\2713";
+      font-weight: 900;
     }
 
     .code-target-option .code-target-btn {
@@ -1566,12 +1577,46 @@
 
       .output-tabs,
       .code-target-tabs {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        overflow: visible;
       }
 
-      .output-tabs .tab-btn,
+      .code-target-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+        gap: 0.4rem;
+        padding: 0.35rem;
+        border: 1px solid var(--border-soft);
+        border-radius: 10px;
+        background: rgba(8, 21, 37, 0.42);
+      }
+
+      .code-target-option {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+      }
+
       .code-target-btn {
+        width: 100%;
+        min-width: 0;
+        height: 100%;
+        margin-bottom: 0;
+        padding: 0.65rem 0.5rem;
+        border-radius: 7px;
+        line-height: 1.2;
+        white-space: normal;
+      }
+
+      .code-target-option .code-target-btn {
+        padding-right: 2rem;
+      }
+
+      .code-target-help {
+        right: 0.5rem;
+      }
+
+      .output-tabs .tab-btn {
         white-space: nowrap;
       }
 
@@ -2409,7 +2454,7 @@
       </div>
 
       <div class="code-target-tabs" role="group" aria-label="Code target">
-        <button id="codeTargetConsole" type="button" class="code-target-btn active" data-code-target="console" aria-pressed="true">Console/Emulator</button>
+        <button id="codeTargetConsole" type="button" class="code-target-btn active" data-code-target="console" aria-pressed="true">Console / Emulator</button>
         <span class="code-target-option">
           <button id="codeTargetSwitch" type="button" class="code-target-btn" data-code-target="switch" aria-pressed="false">Nintendo Switch</button>
           <span class="inline-tooltip code-target-help">
