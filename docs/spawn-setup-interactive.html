@@ -206,7 +206,7 @@
             <h2>Japanese Emerald BASE64 writer setup</h2>
             <p>This guide currently supports <strong>Japanese Emerald only</strong>.</p>
             <p>You need a stable THUMB ACE species, such as <strong>0x085F</strong>. This is the standard stable ACE species obtained after the DOTS setup on Japanese versions.</p>
-            <p>Open the Setup code tab and enter the Japanese box names exactly as shown. Highlighted blank cells are Japanese full-width spaces and must be included where shown.</p>
+            <p>Open the Setup code tab and enter the Japanese box names exactly as shown. Highlighted blank cells are spaces and must be included where shown.</p>
           </div>
         </div>
       </details>
@@ -374,19 +374,19 @@
 
       // Japanese Emerald setup: the game-typable Japanese spaces are preserved in the strings.
       var japaneseEmeraldRows = [
-        {box: 1,  text: 'かッほＮいリあぃ'},
-        {box: 2,  text: 'れすＶこミ　Ｗ', note: 'one full-width space before Ｗ'},
+        {box: 1,  text: 'かッほＮいリあぃ', note: 'top left ぃ; bottom right い'},
+        {box: 2,  text: 'れすＶこミ　Ｗ', note: 'one space before Ｗ'},
         {box: 3,  text: 'あぅあごきｈミび'},
-        {box: 4,  text: 'アクぢいい'},
-        {box: 5,  text: 'ぞ　　　　めｗＶ', note: 'four full-width spaces after ぞ'},
-        {box: 6,  text: 'ｄ♂　むよ２いＶ', note: 'one full-width space after ♂'},
-        {box: 7,  text: 'ＷＥＬＤＲ　ぎ１', note: 'one full-width space after Ｒ'},
+        {box: 4,  text: 'アクぢいい', note: 'bottom right い'},
+        {box: 5,  text: 'ぞ　　　　めｗＶ', note: 'four spaces after ぞ'},
+        {box: 6,  text: 'ｄ♂　むよ２いＶ', note: 'one space after ♂; bottom right い'},
+        {box: 7,  text: 'ＷＥＬＤＲ　ぎ１', note: 'one space after Ｒ'},
         {box: 8,  text: 'にリあぇｚんちｈ'},
-        {box: 9,  text: 'Ａず　ｌｑｍ　ａ', note: 'full-width spaces after ず and ｍ'},
+        {box: 9,  text: 'Ａず　ｌｑｍ　ａ', note: 'spaces after ず and ｍ'},
         {box: 10, text: 'ぺょのＺＥあＥの'},
         {box: 11, text: 'かぅくるかｇくぐ'},
-        {box: 12, text: 'ず　Ｔぞほミ　ｌ', note: 'full-width spaces after ず and ミ'},
-        {box: 13, text: 'ムぬあぉｔｓ　　', note: 'required: two trailing full-width spaces'}
+        {box: 12, text: 'ず　Ｔぞほミ　ｌ', note: 'spaces after ず and ミ'},
+        {box: 13, text: 'ムぬあぉｔｓ　　', note: 'required: two trailing spaces'}
       ];
 
       // Language-specific DexReg payloads imported from the supplied .b64 files.
@@ -736,7 +736,7 @@
         html += '<span class="japanese-page-key"><span class="japanese-legend-hiragana">あ</span> Hiragana</span>';
         html += '<span class="japanese-page-key"><span class="japanese-legend-katakana">ア</span> Katakana</span>';
         html += '<span class="japanese-page-key"><span class="japanese-legend-alphabet">Ａ</span> Alphabet / numbers / symbols</span>';
-        html += '<span class="japanese-page-key"><span class="code-char-japanese-space">　</span> Full-width space</span>';
+        html += '<span class="japanese-page-key"><span class="code-char-japanese-space">　</span> Space</span>';
         html += '</div>';
         return html;
       }
@@ -815,12 +815,12 @@
         var p1 = document.getElementById('code1');
         var html = buildJapanesePageLegendHTML();
         html += buildPanelHTML(japaneseEmeraldRows, false);
-        html += '<div class="panel-tip"><strong>Japanese full-width spaces:</strong> the highlighted blank cells are part of the box name.';
+        html += '<div class="panel-tip"><strong>Japanese spaces:</strong> the highlighted blank cells are part of the box name.';
         html += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
         html += '<li>Make sure there are no Pokémon in Boxes 11–14.</li>';
         html += '<li>Save the game.</li>';
         html += '<li>Execute the code by viewing the summary of your stable THUMB ACE species, such as 0x085F.</li>';
-        html += '<li>WELDR should spawn in Box 10, Slot 19. Move it to Box 14, Slot 28.</li>';
+        html += '<li>WELDR should spawn in Party Slot 3. Move it to Box 14, Slot 28.</li>';
         html += '<li>Catch any Pokémon, name it <strong>ＨＫｄＣ</strong>, and place it in Box 14, Slot 29 next to WELDR.</li>';
         html += '<li>You are now ready to spawn Pokémon with Base64 codes.</li>';
         html += '<li><a class="builder-start-link" href="https://mankeymite.github.io/Gen3ACEPokemonBuilder/">Open the Gen 3 ACE Pokémon Builder</a></li>';
