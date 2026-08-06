@@ -11,7 +11,7 @@
     html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#071021 0%,#0b1220 100%);color:var(--fg)}
     .container{max-width:1100px;margin:32px auto;padding:24px}
     .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.04));border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.03)}
-    .tabs{display:flex;gap:8px;margin-bottom:12px}
+    .tabs{display:flex;flex-wrap:wrap;align-items:center;column-gap:28px;row-gap:10px;margin-bottom:12px}
     .mode-select{display:flex;gap:10px;margin:12px 0 18px}
     .guide-version-control{margin:12px 0 16px;padding:12px;border:1px solid rgba(88,183,255,.24);border-radius:10px;background:rgba(8,21,37,.48)}
     .guide-version-title{display:block;margin-bottom:8px;color:var(--fg);font-weight:800}
@@ -20,12 +20,15 @@
     .setup-select{width:100%;min-height:44px;padding:8px 38px 8px 12px;border:1px solid rgba(166,220,255,.55);border-radius:8px;background:#fff;color:#071021;font:700 1rem system-ui,Segoe UI,Roboto,Arial;cursor:pointer}
     .setup-select:focus{outline:2px solid rgba(74,158,255,.5);outline-offset:2px}
     .setup-select:disabled{opacity:.62;cursor:not-allowed}
+    .setup-select option:disabled{color:#8b98a5}
     .guide-version-note{margin:8px 0 0;color:var(--muted);font-size:.88rem;line-height:1.4}
     .mode-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--fg);padding:8px 12px;border-radius:8px;cursor:pointer}
     .mode-btn.requires-instructions{opacity:0.6}
     .mode-btn.active{background:linear-gradient(90deg,var(--accent),#48d597);color:#02121a;font-weight:700}
-    .tab{background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);padding:8px 12px;border-radius:8px;cursor:pointer}
-    .tab.active{background:linear-gradient(90deg,var(--accent),#48d597);color:#02121a;font-weight:700;box-shadow:0 6px 18px rgba(74,158,255,0.12)}
+    .tab{position:relative;background:rgba(8,21,37,.62);border:1px solid rgba(128,201,246,.42);box-shadow:inset 0 1px 0 rgba(255,255,255,.025);color:var(--muted);padding:8px 12px;border-radius:8px;cursor:pointer}
+    .tab:hover,.tab:focus-visible{border-color:rgba(144,216,255,.78);color:var(--fg);outline:none}
+    .tab.active{background:linear-gradient(90deg,var(--accent),#48d597);border-color:#79d8ee;color:#02121a;font-weight:700;box-shadow:0 6px 18px rgba(74,158,255,0.18)}
+    .tab.tab-has-prev::before{content:"\2192";position:absolute;right:calc(100% + 8px);top:50%;transform:translateY(-52%);color:#78a9c8;font-size:1rem;font-weight:800;line-height:1;pointer-events:none}
     .tab[disabled]{opacity:0.5;pointer-events:none}
     pre{background:rgba(0,0,0,0.25);padding:12px;border-radius:8px;overflow:auto;color:var(--fg);font:14px/2 "Atkinson Hyperlegible Mono",Consolas,monospace;font-variant-ligatures:none;position:relative}
     .line{display:grid;grid-template-columns:1fr 320px 120px;align-items:center;gap:12px;padding:6px 4px;border-radius:6px}
@@ -33,7 +36,7 @@
     .text{white-space:pre-wrap}
     .char-red{color:#ff6b6b;font-weight:700}
     .panel-inner{display:block}
-    .codes-box{min-width:0;background:#081525;border:1px solid rgba(255,255,255,0.03);padding:21px;border-radius:14px;display:flex;flex-direction:column;gap:8px;color:#f5f7f2}
+    .codes-box{min-width:0;background:linear-gradient(180deg,#102a43 0%,#0c2135 100%);border:1px solid rgba(112,190,239,.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 8px 22px rgba(0,0,0,.14);padding:21px;border-radius:14px;display:flex;flex-direction:column;gap:8px;color:#f5f7f2}
     .codes-box .code-line{min-height:44px;box-sizing:border-box;padding:8px 6px;font:14px/2 "Atkinson Hyperlegible Mono",Consolas,monospace;font-variant-ligatures:none;display:grid;grid-template-columns:8ch max-content minmax(0,1fr);grid-template-areas:"prefix code note";column-gap:1ch;align-items:center;white-space:normal;overflow:visible}
     .code-box-prefix{grid-area:prefix;display:block;width:8ch;color:#f5f7f2;font-weight:800;white-space:nowrap}
     .code-box-prefix-warning{color:#f2c94c;font-weight:800}
@@ -65,6 +68,9 @@
       .card{padding:12px}
       h1{font-size:1.75rem;line-height:1.35}
       .tabs,.mode-select{flex-wrap:wrap}
+      .tabs{column-gap:24px;row-gap:10px}
+      .tab{padding:7px 10px}
+      .tab.tab-has-prev::before{right:calc(100% + 6px)}
       .guide-version-control{padding:10px}
       .setup-selectors{grid-template-columns:1fr;gap:10px}
       .codes-box{padding:10px;gap:4px}
@@ -111,7 +117,8 @@
               <option value="EM">Emerald</option>
               <option value="FR">FireRed</option>
               <option value="LG">LeafGreen</option>
-              <option value="FRLGSW">FireRed / LeafGreen Switch</option>
+              <option value="FRSW">FireRed Switch</option>
+              <option value="LGSW">LeafGreen Switch</option>
               <option value="R">Ruby</option>
               <option value="S">Sapphire</option>
             </select>
@@ -144,7 +151,8 @@
               <li>Box 10 slot 22 is empty.</li>
             </ul>
 
-            <p>You may now select Console/mGBA, Old Emulator, or MyBoy Emulator below and start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+            <p>Select Console/mGBA, Old Emulator, or MyBoy Emulator below. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+            <p>You may now start typing the first code. Then execute it and keep going with the next codes until your setup is complete.</p>
           </div>
 
           <div class="instr-FRLG" style="display:none">
@@ -163,7 +171,8 @@
               <li>Box 10 slot 22 is empty.</li>
             </ul>
 
-            <p>You may now select Console/mGBA, Old Emulator, or MyBoy Emulator below and start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+            <p>Select Console/mGBA, Old Emulator, or MyBoy Emulator below. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+            <p>You may now start typing the first code. Then execute it and keep going with the next codes until your setup is complete.</p>
           </div>
 
           <div class="instr-FRLGSW" style="display:none">
@@ -182,7 +191,7 @@
               <li>Box 10 slot 22 is empty.</li>
             </ul>
 
-            <p>You may now start typing the first code.</p>
+            <p>You may now start typing the first code. Then execute it and keep going with the next codes until your setup is complete.</p>
           </div>
 
           <div class="instr-RS" style="display:none">
@@ -199,7 +208,8 @@
               <li>Box 10 slot 22 is empty.</li>
             </ul>
 
-            <p>With your game language selected above, choose your emulator type below and start typing the first code. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+            <p>With your game language selected above, choose your emulator type below. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+            <p>You may now start typing the first code. Then execute it and keep going with the next codes until your setup is complete.</p>
           </div>
 
           <div class="instr-JP" style="display:none">
@@ -207,6 +217,7 @@
             <p>This guide currently supports <strong>Japanese Emerald only</strong>.</p>
             <p>You need a stable THUMB ACE species, such as <strong>0x085F</strong>. This is the standard stable ACE species obtained after the DOTS setup on Japanese versions.</p>
             <p>Open the Setup code tab and enter the Japanese box names exactly as shown. Highlighted blank cells are spaces and must be included where shown.</p>
+            <p>You may now start typing the first code. Then execute it and do the DexReg code to make built Pokémon register in the Pokédex.</p>
           </div>
         </div>
       </details>
@@ -295,9 +306,9 @@
       var code2Rows = [
         {box: 5,  text: '_ H B … c L Q ♂'},
         {box: 9,  text: 'I H F J D U I G', note: 'skip boxes 6-8!', highlightBoxNum: true},
-        {box: 10, text: 'C U J <span class="char-red">O</span> I L L G', note: 'upper case O (O)'},
-        {box: 11, text: 'H N K <span class="char-red">O</span> I J F Q', note: 'upper case O (O)'},
-        {box: 12, text: 'H N L <span class="char-red">O</span> L T I F', note: 'upper case O (O)'},
+        {box: 10, text: 'C U J O I L L G', note: 'upper case O (O)'},
+        {box: 11, text: 'H N K O I J F Q', note: 'upper case O (O)'},
+        {box: 12, text: 'H N L O L T I F', note: 'upper case O (O)'},
         {box: 13, text: 'D T M F J L P F'},
         {box: 14, text: 'H G L H G Q G M'}
       ];
@@ -422,37 +433,40 @@
         {value: 'fra', label: 'French'},
         {value: 'ita', label: 'Italian'},
         {value: 'ger', label: 'German'},
-        {value: 'jap1', label: 'Japanese 1.1'},
-        {value: 'jap0', label: 'Japanese 1.0'}
+        {value: 'jap-unavailable', label: 'Japanese — not yet available', disabled: true}
       ];
-      var frlgSwitchLanguageOptions = [
-        {value: 'eng10', label: 'English Switch'},
-        {value: 'spa10', label: 'Spanish Switch'},
-        {value: 'fra10', label: 'French Switch'},
-        {value: 'ita10', label: 'Italian Switch'},
-        {value: 'ger10', label: 'German Switch'},
-        {value: 'jap10', label: 'Japanese Switch'}
+      var fireRedSwitchLanguageOptions = [
+        {value: 'eng10', label: 'English'},
+        {value: 'spa10', label: 'Spanish'},
+        {value: 'fra10', label: 'French'},
+        {value: 'ita10', label: 'Italian'},
+        {value: 'ger10', label: 'German'},
+        {value: 'jap-switch-unavailable', label: 'Japanese — not yet available', disabled: true}
       ];
+      var leafGreenSwitchLanguageOptions = [
+        {value: 'eng-switch-unavailable', label: 'English — not yet available', disabled: true},
+        {value: 'spa10', label: 'Spanish'},
+        {value: 'fra10', label: 'French'},
+        {value: 'ita10', label: 'Italian'},
+        {value: 'ger10', label: 'German'},
+        {value: 'jap-switch-unavailable', label: 'Japanese — not yet available', disabled: true}
+      ];
+      // The existing 1.0 setup works across Ruby/Sapphire revisions, so only
+      // one versionless choice is shown for each supported language.
       var rsLanguageOptions = [
-        {value: 'eng2', label: 'English 1.2'},
-        {value: 'eng1', label: 'English 1.1'},
-        {value: 'eng0', label: 'English 1.0'},
-        {value: 'spa1', label: 'Spanish 1.1'},
-        {value: 'spa0', label: 'Spanish 1.0'},
-        {value: 'fra1', label: 'French 1.1'},
-        {value: 'fra0', label: 'French 1.0'},
-        {value: 'ita1', label: 'Italian 1.1'},
-        {value: 'ita0', label: 'Italian 1.0'},
-        {value: 'ger1', label: 'German 1.1'},
-        {value: 'ger0', label: 'German 1.0'},
-        {value: 'jap1', label: 'Japanese 1.1'},
-        {value: 'jap0', label: 'Japanese 1.0'}
+        {value: 'eng0', label: 'English'},
+        {value: 'spa0', label: 'Spanish'},
+        {value: 'fra0', label: 'French'},
+        {value: 'ita0', label: 'Italian'},
+        {value: 'ger0', label: 'German'},
+        {value: 'jap-unavailable', label: 'Japanese — not yet available', disabled: true}
       ];
       var languageOptionsByGame = {
         EM: emeraldLanguageOptions,
         FR: frlgLanguageOptions,
         LG: frlgLanguageOptions,
-        FRLGSW: frlgSwitchLanguageOptions,
+        FRSW: fireRedSwitchLanguageOptions,
+        LGSW: leafGreenSwitchLanguageOptions,
         R: rsLanguageOptions,
         S: rsLanguageOptions
       };
@@ -460,7 +474,8 @@
         EM: 'Emerald',
         FR: 'FireRed',
         LG: 'LeafGreen',
-        FRLGSW: 'FireRed / LeafGreen Switch',
+        FRSW: 'FireRed Switch',
+        LGSW: 'LeafGreen Switch',
         R: 'Ruby',
         S: 'Sapphire'
       };
@@ -474,8 +489,8 @@
         jp: makeDexRegPayloadRows(['AAAAAOkA', 'Fz8tgNC8', 'MLQQpQBI', 'h0arrgcI'])
       };
 
-      // The _1 FireRed/LeafGreen files are the 1.1 revisions. Every supplied
-      // FR/LG language and revision contains the same DexReg payload bytes.
+      // Every supported FireRed/LeafGreen language and revision contains the
+      // same DexReg payload bytes.
       var frlgDexRegPayload = makeDexRegPayloadRows([
         '6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0ZztAcI'
       ]);
@@ -485,15 +500,22 @@
         spa: frlgDexRegPayload,
         fra: frlgDexRegPayload,
         ita: frlgDexRegPayload,
-        ger: frlgDexRegPayload,
-        jap1: frlgDexRegPayload,
-        jap0: frlgDexRegPayload,
-        eng10: frlgDexRegPayload,
-        spa10: frlgDexRegPayload,
-        fra10: frlgDexRegPayload,
-        ita10: frlgDexRegPayload,
-        ger10: frlgDexRegPayload,
-        jap10: frlgDexRegPayload
+        ger: frlgDexRegPayload
+      };
+
+      // Switch DexReg payloads imported from the supplied game/language files.
+      var fireRedSwitchDexRegPayloads = {
+        eng10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0ZnPwUI']),
+        spa10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bXQAUI']),
+        fra10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bDQAUI']),
+        ita10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bvPwUI']),
+        ger10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0YDQAUI'])
+      };
+      var leafGreenSwitchDexRegPayloads = {
+        spa10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bXQAUI']),
+        fra10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bDQAUI']),
+        ita10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bvPwUI']),
+        ger10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0YDQAUI'])
       };
 
       // Nickname per game for the sacrificial pokemon
@@ -557,6 +579,10 @@
         return selectedGame === 'FR' || selectedGame === 'LG';
       }
 
+      function isFRLGSwitchGame(){
+        return selectedGame === 'FRSW' || selectedGame === 'LGSW';
+      }
+
       function isRSGame(){
         return selectedGame === 'R' || selectedGame === 'S';
       }
@@ -571,7 +597,7 @@
 
       // Emulator mode: 'modern' or 'old'
       function effectiveMode(){
-        if(selectedGame === 'FRLGSW') return 'modern';
+        if(isFRLGSwitchGame()) return 'modern';
         return selectedMode || 'modern';
       }
 
@@ -579,6 +605,7 @@
       function effectiveGameKey(){
         if(isRSGame()) return selectedBaseLanguage() === 'en' ? 'RS_EN' : 'RS_NEL';
         if(isFRLGGame()) return 'FRLG';
+        if(isFRLGSwitchGame()) return 'FRLGSW';
         return selectedGame;
       }
 
@@ -586,7 +613,7 @@
       function isReady(){
         if(!selectedGame || !selectedLanguage) return false;
         if(isJapaneseGuide()) return instructionsAcknowledged;
-        if(selectedGame === 'FRLGSW') return true;
+        if(isFRLGSwitchGame()) return true;
         if(selectedMode === 'myboy' && !isMyBoyAllowedGame()) return false;
         if(isRSGame()) return !!selectedMode && selectedMode !== 'myboy';
         return !!selectedMode;
@@ -600,11 +627,21 @@
             label: 'Emerald — ' + selectedLanguageLabel()
           };
         }
-        if(isFRLGGame() || selectedGame === 'FRLGSW'){
+        if(isFRLGGame()){
           return {
             rows: frlgDexRegPayloads[selectedLanguage] || frlgDexRegPayload,
             label: (gameNames[selectedGame] || 'FireRed / LeafGreen') + ' — ' + selectedLanguageLabel()
           };
+        }
+        if(isFRLGSwitchGame()){
+          var switchPayloads = selectedGame === 'FRSW'
+            ? fireRedSwitchDexRegPayloads
+            : leafGreenSwitchDexRegPayloads;
+          var switchRows = switchPayloads[selectedLanguage];
+          return switchRows ? {
+            rows: switchRows,
+            label: gameNames[selectedGame] + ' — ' + selectedLanguageLabel()
+          } : null;
         }
         return null;
       }
@@ -699,10 +736,19 @@
       function buildCodeLineHTML(box, text, useHTML, highlightBoxNum, note){
         var prefixHTML = highlightBoxNum ? fmtBoxWarning(box) : escHTML(fmtBox(box));
         var compactText = compactCodeText(text);
+        var cleanNote = String(note || '').trim();
+        if(usesJapaneseKeyboard()){
+          var plainCodeText = String(text || '').replace(/<[^>]*>/g, '');
+          var ambiguityNotes = [];
+          if(/[OＯ]/.test(plainCodeText)) ambiguityNotes.push('upper case O (O)');
+          if(/[0０]/.test(plainCodeText)) ambiguityNotes.push('zero (0), not O');
+          if(ambiguityNotes.length){
+            cleanNote += (cleanNote ? '; ' : '') + ambiguityNotes.join('; ');
+          }
+        }
         if(usesJapaneseKeyboard()) compactText = toJapaneseKeyboardMarkup(compactText);
         var hasHTML = compactText.indexOf('<') >= 0;
         var codeHTML = useHTML && hasHTML ? compactText : escHTML(compactText);
-        var cleanNote = String(note || '').trim();
         var isSkipNote = /^skip boxes?\b/i.test(cleanNote);
         var lineClass = 'code-line' + (isSkipNote ? ' code-line-has-skip-note' : '');
         var noteHTML = cleanNote ? '<span class="code-box-annotation">' + escHTML(cleanNote) + '</span>' : '';
@@ -771,7 +817,6 @@
 
         var htmlT = '';
         if(usesJapaneseKeyboard()) htmlT += buildJapanesePageLegendHTML();
-        htmlT += '<div class="panel-tip" style="margin:0 0 10px"><strong>DexReg payload: ' + escHTML(config.label) + '</strong></div>';
         htmlT += buildPanelHTML(rows, false);
         htmlT += '<div class="panel-tip">This payload installs the Pokédex registration helper used by Pokémon created later with the Base64 writer.';
         htmlT += '<ol style="margin:8px 0 0 20px;padding:0;color:var(--muted)">';
@@ -781,6 +826,7 @@
         htmlT += '<li>Execute ACE again. Another Porygon2 should spawn in Box 14, Slot 30 and, if it was not already owned, be registered in the Pokédex.</li>';
         htmlT += '<li>You may release the newly spawned copy of Porygon2 from Slot 30.</li>';
         htmlT += '<li>The setup is now complete. You can use the main builder to create Pokémon with the Base64 writer.</li>';
+        htmlT += '<li><strong>Important:</strong> If you want to execute regular ACE codes in the future, make sure to move WELDR and the sacrificial Pokémon out of Box 14 first.</li>';
         htmlT += '<li><a class="builder-start-link" href="https://mankeymite.github.io/Gen3ACEPokemonBuilder/">Open the Gen 3 ACE Pokémon Builder</a></li>';
         htmlT += '</ol></div>';
         return htmlT;
@@ -807,7 +853,6 @@
         html += '<li>Place this in box 14 slot 29.</li>';
         html += '<li>DONE! Now go to the DexReg payload tab to finish the setup.</li>';
         html += '</ul></div>';
-        html += '<div class="panel-tip">IMPORTANT: If you want to execute regular ACE codes in the future, make sure to move WELDR and the sacrificial Pokemon out of box 14 first!</div>';
         return html;
       }
 
@@ -822,7 +867,7 @@
         html += '<li>Execute the code by viewing the summary of your stable THUMB ACE species, such as 0x085F.</li>';
         html += '<li>WELDR should spawn in Party Slot 3. Move it to Box 14, Slot 28.</li>';
         html += '<li>Catch any Pokémon, name it <strong>ＨＫｄＣ</strong>, and place it in Box 14, Slot 29 next to WELDR.</li>';
-        html += '<li>You are now ready to spawn Pokémon with Base64 codes.</li>';
+        html += '<li>You can now proceed with the DexReg payload if you want Pokémon spawned with WELDR to be registered in the Pokédex.</li>';
         html += '<li><a class="builder-start-link" href="https://mankeymite.github.io/Gen3ACEPokemonBuilder/">Open the Gen 3 ACE Pokémon Builder</a></li>';
         html += '</ul></div>';
         p1.innerHTML = html;
@@ -942,10 +987,9 @@
         html3 += '<li>Place this in box 14 slot 29.</li>';
         html3 += '<li>DONE! Now go to the DexReg payload tab to finish the setup.</li>';
         html3 += '</ul></div>';
-        html3 += '<div class="panel-tip">IMPORTANT: If you want to execute regular ACE codes in the future, make sure to move WELDR and the sacrificial Pokemon out of box 14 first!</div>';
         // images
         html3 += '<div class="remember-image" style="margin-top:10px;">';
-        if(selectedGame === 'FRLGSW'){
+        if(isFRLGSwitchGame()){
           html3 += '<img src="../src/Images/WELDR base64 code FRLG Switch.png" alt="WELDR base64 code" />';
         } else if(isFRLGGame()){
           html3 += '<img src="../src/Images/WELDR base64 code FRLG.png" alt="WELDR base64 code" />';
@@ -954,7 +998,7 @@
         } else {
           html3 += '<img src="../src/Images/WELDR base64 code.png" alt="WELDR base64 code" />';
         }
-        if(isFRLGGame() || selectedGame === 'FRLGSW'){
+        if(isFRLGGame() || isFRLGSwitchGame()){
           html3 += '<img src="../src/Images/Sacrificial Pokemon Base64-FRLG.png" alt="Sacrificial Pokemon base64" />';
         } else if(isRSGame()){
           html3 += '<img src="../src/Images/Sacrificial Pokemon Base64 RS.png" alt="Sacrificial Pokemon base64" />';
@@ -1053,6 +1097,14 @@
         });
       }
 
+      function updateTabFlowArrows(){
+        var visibleTabs = Array.from(tabs).filter(function(tab){
+          return tab.style.display !== 'none';
+        });
+        tabs.forEach(function(tab){ tab.classList.remove('tab-has-prev'); });
+        visibleTabs.slice(1).forEach(function(tab){ tab.classList.add('tab-has-prev'); });
+      }
+
       function updateTabVisibility(){
         if(isJapaneseGuide()){
           tabs.forEach(function(t){
@@ -1066,6 +1118,7 @@
           panels.forEach(function(p){
             if(p.id !== 'code1' && p.id !== 'codeTest') p.style.display = 'none';
           });
+          updateTabFlowArrows();
           return;
         }
 
@@ -1085,6 +1138,7 @@
           if(p4) p4.style.display = 'none';
           if(p5) p5.style.display = 'none';
         }
+        updateTabFlowArrows();
       }
 
       function populateLanguageOptions(game){
@@ -1100,6 +1154,7 @@
           var option = document.createElement('option');
           option.value = optionData.value;
           option.textContent = optionData.label;
+          option.disabled = !!optionData.disabled;
           languageSelect.appendChild(option);
         });
         languageSelect.disabled = !game;
@@ -1108,7 +1163,7 @@
 
       function refreshModeUI(){
         var japaneseGuide = isJapaneseGuide();
-        var isFRLGSW = selectedGame === 'FRLGSW';
+        var isFRLGSwitch = isFRLGSwitchGame();
         if(languageSelect) languageSelect.value = selectedLanguage;
         if(guideVersionNote){
           if(!selectedGame){
@@ -1147,7 +1202,7 @@
         }
 
         // FR/LG Switch: no emulator mode selection is needed.
-        if(isFRLGSW){
+        if(isFRLGSwitch){
           if(modeContainer) modeContainer.style.display = 'none';
           tabs.forEach(function(t){ t.removeAttribute('disabled'); });
           return;
@@ -1206,7 +1261,7 @@
         if(!selectedGame) return;
         if(isJapaneseGuide() && instrJP) instrJP.style.display = '';
         else if(isFRLGGame() && instrFR) instrFR.style.display = '';
-        else if(selectedGame === 'FRLGSW' && instrFRSW) instrFRSW.style.display = '';
+        else if(isFRLGSwitchGame() && instrFRSW) instrFRSW.style.display = '';
         else if(isRSGame() && instrRS) instrRS.style.display = '';
         else instrEM.style.display = '';
       }
@@ -1226,8 +1281,8 @@
           updateInstructionsForGame();
           if(instrEl) instrEl.open = true;
           refreshModeUI();
-          if(isJapaneseGuide() || selectedGame === 'FRLGSW'){
-            if(selectedGame === 'FRLGSW') selectedMode = 'modern';
+          if(isJapaneseGuide() || isFRLGSwitchGame()){
+            if(isFRLGSwitchGame()) selectedMode = 'modern';
             renderAllPanels();
             ensureActiveTab();
           }
