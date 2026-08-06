@@ -787,7 +787,7 @@
         return html;
       }
 
-      function buildLegacyTestPanelHTML(includeImages){
+      function buildTestPanelHTML(includeImages){
         var htmlT = '<div class="panel-inner"><div class="codes-box">';
         htmlT += buildCodeLineHTML(1, 'A Q D ? P w _ _  ', false, false, 'two spaces at the end!');
         htmlT += '</div></div>';
@@ -813,7 +813,7 @@
       function buildDexRegPayloadHTML(){
         var config = getDexRegPayloadConfig();
         var rows = getDexRegPayloadRows();
-        if(!config || !rows) return buildLegacyTestPanelHTML(true);
+        if(!config || !rows) return buildTestPanelHTML(true);
 
         var htmlT = '';
         if(usesJapaneseKeyboard()) htmlT += buildJapanesePageLegendHTML();
@@ -985,7 +985,9 @@
         html3 += '<li>Move WELDR to box 14 slot 28</li>';
         html3 += '<li>Catch any Pokemon and name it "' + escHTML(nickname) + '"</li>';
         html3 += '<li>Place this in box 14 slot 29.</li>';
-        html3 += '<li>DONE! Now go to the DexReg payload tab to finish the setup.</li>';
+        html3 += isRSGame()
+          ? '<li>DONE! Now go to the Test code tab to finish the setup.</li>'
+          : '<li>DONE! Now go to the DexReg payload tab to finish the setup.</li>';
         html3 += '</ul></div>';
         // images
         html3 += '<div class="remember-image" style="margin-top:10px;">';
@@ -1008,7 +1010,7 @@
         html3 += '</div>';
         p3.innerHTML = html3;
 
-        // --- DexReg payload (or the legacy Ruby/Sapphire test) ---
+        // --- DexReg payload (or the Ruby/Sapphire test code) ---
         var pT = document.getElementById('codeTest');
         var htmlT = buildDexRegPayloadHTML();
         pT.innerHTML = htmlT;
@@ -1125,7 +1127,7 @@
         var showMyBoyTabs = isMyBoyMode();
         tabs.forEach(function(t){
           if(t.dataset.tab === 'code1') t.textContent = 'Code 1';
-          if(t.dataset.tab === 'codeTest') t.textContent = getDexRegPayloadConfig() ? 'DexReg payload' : 'Test code (legacy)';
+          if(t.dataset.tab === 'codeTest') t.textContent = getDexRegPayloadConfig() ? 'DexReg payload' : 'Test code';
           var isMyBoyExtraTab = t.dataset.tab === 'code4' || t.dataset.tab === 'code5';
           t.style.display = isMyBoyExtraTab ? (showMyBoyTabs ? '' : 'none') : '';
           if(isMyBoyExtraTab){
@@ -1173,7 +1175,7 @@
           } else if(japaneseGuide){
             guideVersionNote.textContent = 'Emerald — Japanese selected. This uses the Japanese Emerald setup and DexReg payload.';
           } else if(isRSGame()){
-            guideVersionNote.textContent = (gameNames[selectedGame] || 'Ruby/Sapphire') + ' — ' + selectedLanguageLabel() + ' selected. No Ruby/Sapphire DexReg file was supplied, so the legacy test remains.';
+            guideVersionNote.textContent = (gameNames[selectedGame] || 'Ruby/Sapphire') + ' — ' + selectedLanguageLabel() + ' selected.';
           } else {
             guideVersionNote.textContent = (gameNames[selectedGame] || '') + ' — ' + selectedLanguageLabel() + ' selected.';
           }
