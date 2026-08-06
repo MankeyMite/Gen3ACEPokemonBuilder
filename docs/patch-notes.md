@@ -1,3 +1,11 @@
+Patch Notes - (V.0.4.5) - August 6. 2026.
+- Added Japanese Base64 setup guide for Emerald!
+- Improved mobile view
+- Added a payload to the Base64 writer guide that lets you register spawned Pokémon to the pokedex. This will now replace the test code.
+- Improved the UI for the code section and Base64 writer guide
+- You will now select game, then language in the guide, since the DexReg payload has different code for each language.
+- Fixed some mistakes in the guides
+
 Patch Notes - (V.0.4.4) - August 5, 2026.
 - Added 195 new distribution event Pokémon, including mystery gifts, PCJP, Poképark, PCNY, Colosseum, XD, starters, gifts, e-Reader shadows, trades and Poké Spot encounters! 
 - Small fixes to some of the imported distribution Pokémon.
