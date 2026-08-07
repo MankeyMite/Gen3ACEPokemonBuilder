@@ -12,19 +12,15 @@
     .container{max-width:1100px;margin:32px auto;padding:24px}
     .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.04));border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.03)}
     .tabs{display:flex;flex-wrap:wrap;align-items:center;column-gap:28px;row-gap:10px;margin-bottom:12px}
-    .mode-select{display:flex;gap:10px;margin:12px 0 18px}
     .guide-version-control{margin:12px 0 16px;padding:12px;border:1px solid rgba(88,183,255,.24);border-radius:10px;background:rgba(8,21,37,.48)}
     .guide-version-title{display:block;margin-bottom:8px;color:var(--fg);font-weight:800}
-    .setup-selectors{display:grid;grid-template-columns:repeat(2,minmax(0,320px));gap:12px;align-items:end}
+    .setup-selectors{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end}
     .setup-selector-field{min-width:0}
     .setup-select{width:100%;min-height:44px;padding:8px 38px 8px 12px;border:1px solid rgba(166,220,255,.55);border-radius:8px;background:#fff;color:#071021;font:700 1rem system-ui,Segoe UI,Roboto,Arial;cursor:pointer}
     .setup-select:focus{outline:2px solid rgba(74,158,255,.5);outline-offset:2px}
     .setup-select:disabled{opacity:.62;cursor:not-allowed}
     .setup-select option:disabled{color:#8b98a5}
     .guide-version-note{margin:8px 0 0;color:var(--muted);font-size:.88rem;line-height:1.4}
-    .mode-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--fg);padding:8px 12px;border-radius:8px;cursor:pointer}
-    .mode-btn.requires-instructions{opacity:0.6}
-    .mode-btn.active{background:linear-gradient(90deg,var(--accent),#48d597);color:#02121a;font-weight:700}
     .tab{position:relative;background:rgba(8,21,37,.62);border:1px solid rgba(128,201,246,.42);box-shadow:inset 0 1px 0 rgba(255,255,255,.025);color:var(--muted);padding:8px 12px;border-radius:8px;cursor:pointer}
     .tab:hover,.tab:focus-visible{border-color:rgba(144,216,255,.78);color:var(--fg);outline:none}
     .tab.active{background:linear-gradient(90deg,var(--accent),#48d597);border-color:#79d8ee;color:#02121a;font-weight:700;box-shadow:0 6px 18px rgba(74,158,255,0.18)}
@@ -43,6 +39,7 @@
     .code-box-main{grid-area:code;display:flex;align-items:center;gap:.16em;width:max-content;color:#f5f7f2;white-space:pre}
     .code-box-main>span{flex:0 0 auto}
     .code-box-annotation{grid-area:note;display:block;min-width:0;color:#b7c5bf;white-space:normal;overflow-wrap:break-word}
+    .code-box-helper{margin:-4px 6px 2px;padding:5px 8px;border-left:2px solid rgba(159,183,201,.32);color:var(--muted);font:500 .85rem/1.4 system-ui,Segoe UI,Roboto,Arial}
     .code-char-upper{color:#8ed8f8;font-weight:700}
     .code-char-lower{color:#f4b183}
     .code-char-lower-q{font-family:Consolas,monospace}
@@ -63,11 +60,15 @@
     .japanese-page-legend strong{color:var(--fg);width:100%}
     .japanese-page-key{white-space:nowrap}
     .japanese-page-key .code-char-japanese-space{margin-right:.3em;vertical-align:-.12em}
+    @media (max-width:900px){
+      .setup-selectors{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .setup-device-field{grid-column:1 / -1}
+    }
     @media (max-width:640px){
       .container{margin:0 auto;padding:10px}
       .card{padding:12px}
       h1{font-size:1.75rem;line-height:1.35}
-      .tabs,.mode-select{flex-wrap:wrap}
+      .tabs{flex-wrap:wrap}
       .tabs{column-gap:24px;row-gap:10px}
       .tab{padding:7px 10px}
       .tab.tab-has-prev::before{right:calc(100% + 6px)}
@@ -129,6 +130,15 @@
               <option value="">Select a game first</option>
             </select>
           </div>
+          <div class="setup-selector-field setup-device-field">
+            <label class="guide-version-title" for="deviceSelect">Device / emulator:</label>
+            <select id="deviceSelect" class="setup-select" autocomplete="off" disabled>
+              <option id="deviceSelectPlaceholder" value="">Select a game first</option>
+              <option value="modern">Console / mGBA</option>
+              <option value="old">Old Emulator</option>
+              <option value="myboy">MyBoy Emulator</option>
+            </select>
+          </div>
         </div>
         <p id="guideVersionNote" class="guide-version-note">Select your game first, then choose its exact language and revision.</p>
       </div>
@@ -151,7 +161,7 @@
               <li>Box 10 slot 22 is empty.</li>
             </ul>
 
-            <p>Select Console/mGBA, Old Emulator, or MyBoy Emulator below. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+            <p>Choose your setup using the Device / emulator menu above. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
             <p>You may now start typing the first code. Then execute it and keep going with the next codes until your setup is complete.</p>
           </div>
 
@@ -171,7 +181,7 @@
               <li>Box 10 slot 22 is empty.</li>
             </ul>
 
-            <p>Select Console/mGBA, Old Emulator, or MyBoy Emulator below. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+            <p>Choose your setup using the Device / emulator menu above. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
             <p>You may now start typing the first code. Then execute it and keep going with the next codes until your setup is complete.</p>
           </div>
 
@@ -208,7 +218,7 @@
               <li>Box 10 slot 22 is empty.</li>
             </ul>
 
-            <p>With your game language selected above, choose your emulator type below. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+            <p>Choose your setup using the Device / emulator menu above. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
             <p>You may now start typing the first code. Then execute it and keep going with the next codes until your setup is complete.</p>
           </div>
 
@@ -221,12 +231,6 @@
           </div>
         </div>
       </details>
-
-      <div class="mode-select">
-        <button class="mode-btn requires-instructions" data-mode="modern">Console / mGBA</button>
-        <button class="mode-btn requires-instructions" data-mode="old">Old Emulator</button>
-        <button class="mode-btn requires-instructions" data-mode="myboy">MyBoy Emulator</button>
-      </div>
 
       <div class="tabs" role="tablist">
         <button class="tab" data-tab="code1">Code 1</button>
@@ -404,7 +408,12 @@
       // Only Boxes 1-4 and "A " in Box 5 are required; Boxes 6-14 are left alone.
       function makeDexRegPayloadRows(firstFour){
         var rows = firstFour.map(function(text, index){ return {box: index + 1, text: text}; });
-        rows.push({box: 5, text: 'A _', note: 'one trailing space after A'});
+        rows.push({
+          box: 5,
+          text: 'A _',
+          note: 'one trailing space after A',
+          helper: 'Codes in boxes 6-14 can stay the same as before.'
+        });
         return rows;
       }
 
@@ -540,14 +549,14 @@
       /* ============================================================
          DOM REFERENCES
          ============================================================ */
-      var modeButtons = document.querySelectorAll('.mode-btn');
       var tabs = document.querySelectorAll('.tab');
       var panels = document.querySelectorAll('.code-panel');
       var languageSelect = document.getElementById('languageSelect');
+      var deviceSelect = document.getElementById('deviceSelect');
+      var deviceSelectPlaceholder = document.getElementById('deviceSelectPlaceholder');
       var guideVersionNote = document.getElementById('guideVersionNote');
       var gameSelect = document.getElementById('gameSelect');
       var instrEl = document.getElementById('instructions');
-      var modeContainer = document.querySelector('.mode-select');
 
       /* ============================================================
          HELPERS
@@ -613,8 +622,8 @@
 
       // Whether all required selections are made
       function isReady(){
-        if(!selectedGame || !selectedLanguage) return false;
-        if(isJapaneseGuide()) return instructionsAcknowledged;
+        if(!selectedGame || !selectedLanguage || !instructionsAcknowledged) return false;
+        if(isJapaneseGuide()) return true;
         if(isFRLGSwitchGame()) return true;
         if(selectedMode === 'myboy' && !isMyBoyAllowedGame()) return false;
         if(isRSGame()) return !!selectedMode && selectedMode !== 'myboy';
@@ -668,7 +677,8 @@
           return {
             box: row.box,
             text: row.text,
-            note: row.note || ''
+            note: row.note || '',
+            helper: row.helper || ''
           };
         });
       }
@@ -762,6 +772,7 @@
         var html = '<div class="panel-inner"><div class="codes-box">';
         rows.forEach(function(r){
           html += buildCodeLineHTML(r.box, r.text, useHTML, !!r.highlightBoxNum, r.note);
+          if(r.helper) html += '<div class="code-box-helper">' + escHTML(r.helper) + '</div>';
         });
         html += '</div></div>';
         return usesJapaneseKeyboard() ? '<div class="japanese-code-panel">' + html + '</div>' : html;
@@ -824,20 +835,22 @@
         htmlT += '<ol style="margin:8px 0 0 20px;padding:0;color:var(--muted)">';
         htmlT += '<li>After typing the five box names above, save the game and execute the code with your stable ACE species.</li>';
         htmlT += '<li>A Porygon2 should spawn in Box 14, Slot 30.</li>';
-        htmlT += '<li>Replace the Pokémon in Box 14, Slot 29 with this Porygon2.</li>';
+        htmlT += '<li>Replace the Pokémon in Box 14, Slot 29 with this Porygon2. Keep the nicknamed Pokemon somewhere in box 1-10 until you confirm the Porygon2 payload works.</li>';
         htmlT += '<li>Execute ACE again. Another Porygon2 should spawn in Box 14, Slot 30 and, if it was not already owned, be registered in the Pokédex.</li>';
         htmlT += '<li>You may release the newly spawned copy of Porygon2 from Slot 30.</li>';
-        htmlT += '<li>The setup is now complete. You can use the main builder to create Pokémon with the Base64 writer.</li>';
-        htmlT += '<li><strong>Important:</strong> If you want to execute regular ACE codes in the future, make sure to move WELDR and the sacrificial Pokémon out of Box 14 first.</li>';
+        htmlT += '<li>The setup is now complete. The earlier nicknamed Pokémon is no longer needed and can be deleted. You can now use the main builder website to create Pokémon in box 14 slot 30.</li>';
+        htmlT += '<li><strong>Important:</strong> If you want to execute regular ACE codes in the future, make sure to move WELDR and the Porygon2 out of Box 14 first.</li>';
         htmlT += '<li><a class="builder-start-link" href="https://mankeymite.github.io/Gen3ACEPokemonBuilder/">Open the Gen 3 ACE Pokémon Builder</a></li>';
         htmlT += '</ol></div>';
+        htmlT += '<div class="remember-image" style="margin-top:10px;">';
+        htmlT += '<img src="../src/Images/DexRegPayload.png" alt="DexReg payload code" />';
+        htmlT += '</div>';
         return htmlT;
       }
 
       function buildMyBoyContinueTip(nextCodeNumber){
         var html = '<div class="panel-tip">All other boxes stay the same as before.';
         html += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
-        html += '<li>Save the game</li>';
         html += buildExecutionLi();
         html += '<li>After executing this code, no visible change will happen to the egg. Keep going with code ' + nextCodeNumber + '!</li>';
         html += '</ul></div>';
@@ -847,7 +860,6 @@
       function buildMyBoyFinalTip(nickname){
         var html = '<div class="panel-tip">All other boxes stay the same as before.';
         html += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
-        html += '<li>Save the game</li>';
         html += buildExecutionLi();
         html += '<li>A Metang called "WELDR" should have appeared in Box 10 Slot 22! If it stayed a bad egg, check your Code 5 for errors, otherwise you\'ll likely have to start from the beginning.</li>';
         html += '<li>Move WELDR to box 14 slot 28</li>';
@@ -890,14 +902,14 @@
         var p1 = document.getElementById('code1');
         var html1 = buildPanelHTML(myBoyCode1Rows, false);
         html1 += '<div class="remember-list"><ul>';
-        html1 += '<li>All other boxes should NOT be typed with spaces at the end; end the box name early instead.</li>';
+        html1 += '<li>Do not add spaces at the end of a box name unless the code specifically shows them.</li>';
         html1 += '<li>Save the game</li>';
         if(selectedGame === 'EM'){
-          html1 += '<li>Execute the code with your stable ace species with no trailing spaces. If you are using a stable or metastable THUMB species, you NEED a THUMB -&gt; ARM bootstrap bad egg anywhere from box 12 slot 4.</li>';
+          html1 += '<li>Execute the code with your stable ace species with no trailing spaces.</li>';
         } else {
           html1 += '<li>Execute the code with your ace species.</li>';
         }
-        html1 += '<li>After this code, a bad egg should have appeared in Box 10 Slot 22. Don\'t look at its summary!</li>';
+        html1 += '<li>After this code, a bad egg should have appeared in Box 10 Slot 22. Don\'t look at its summary! Now continue with Code 2.</li>';
         html1 += '</ul></div>';
         p1.innerHTML = html1;
 
@@ -938,19 +950,18 @@
         var html1 = usesJapaneseKeyboard() ? buildJapanesePageLegendHTML() : '';
         html1 += buildPanelHTML(rows1, false);
         html1 += '<div class="remember-list"><ul>';
-        html1 += '<li>All other boxes should NOT be typed with spaces at the end; end the box name early instead.</li>';
+        html1 += '<li>Do not add spaces at the end of a box name unless the code specifically shows them.</li>';
         html1 += '<li>Save the game</li>';
         if(selectedGame === 'EM'){
-          html1 += '<li>Execute the code with your stable ace species with no trailing spaces. If you are using a stable or metastable THUMB species, you NEED a THUMB -&gt; ARM bootstrap bad egg anywhere from box 12 slot 4.</li>';
+          html1 += '<li>Execute the code with your stable ace species with no trailing spaces.</li>';
         } else {
           html1 += '<li>Execute the code with your ace species.</li>';
         }
-        html1 += '<li>After this code, a bad egg should have appeared in Box 10 Slot 22. Don\'t look at its summary!</li>';
+        html1 += '<li>After this code, a bad egg should have appeared in Box 10 Slot 22. Don\'t look at its summary! Now continue with Code 2.</li>';
         html1 += '</ul></div>';
         if(selectedGame === 'EM'){
           html1 += '<div class="remember-image">';
           html1 += '<img src="../src/Images/bad egg base64 code 1_2.png" alt="Bad egg example 2" />';
-          html1 += '<img src="../src/Images/bad egg base64 code 1_1.png" alt="Bad egg example 1" />';
           html1 += '</div>';
         }
         p1.innerHTML = html1;
@@ -961,7 +972,6 @@
         var html2 = buildPanelHTML(rows2, true);
         html2 += '<div class="panel-tip">Codes in boxes 1-4 + 6-8 will be the same as before';
         html2 += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
-        html2 += '<li>Save the game</li>';
         if(selectedGame === 'EM'){
           html2 += '<li>Execute the code with your stable ace species with no trailing spaces.</li>';
         } else {
@@ -977,7 +987,6 @@
         var html3 = buildPanelHTML(rows3, true);
         html3 += '<div class="panel-tip">Codes in boxes 1-4 + 6-8 will be the same as before';
         html3 += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
-        html3 += '<li>Save the game</li>';
         if(selectedGame === 'EM'){
           html3 += '<li>Execute the code with your stable ace species with no trailing spaces.</li>';
         } else {
@@ -1076,15 +1085,13 @@
       // Instructions acknowledgement gate
       if(instrEl && instrEl.open){
         instructionsAcknowledged = true;
-        modeButtons.forEach(function(b){ b.classList.remove('requires-instructions'); });
       }
       if(instrEl){
         instrEl.addEventListener('toggle', function onInstrToggle(){
           if(instrEl.open){
             instructionsAcknowledged = true;
-            modeButtons.forEach(function(b){ b.classList.remove('requires-instructions'); });
-            if(isJapaneseGuide()){
-              refreshModeUI();
+            refreshModeUI();
+            if(isReady()){
               renderAllPanels();
               ensureActiveTab();
             }
@@ -1093,12 +1100,15 @@
         });
       }
 
-      function updateModeButtonVisibility(){
-        modeButtons.forEach(function(b){
-          if(b.dataset.mode === 'myboy'){
-            b.style.display = isMyBoyAllowedGame() ? '' : 'none';
-          }
-        });
+      function updateModeOptionVisibility(){
+        if(!deviceSelect) return;
+        var myBoyOption = deviceSelect.querySelector('option[value="myboy"]');
+        if(myBoyOption){
+          var myBoyAllowed = isMyBoyAllowedGame();
+          myBoyOption.hidden = !myBoyAllowed;
+          myBoyOption.disabled = !myBoyAllowed;
+          if(!myBoyAllowed && selectedMode === 'myboy') selectedMode = null;
+        }
       }
 
       function updateTabFlowArrows(){
@@ -1174,19 +1184,31 @@
             guideVersionNote.textContent = 'Select your game first, then choose its exact language and revision.';
           } else if(!selectedLanguage){
             guideVersionNote.textContent = 'Now select the language and revision for ' + (gameNames[selectedGame] || 'your game') + '.';
+          } else if(japaneseGuide && !instructionsAcknowledged){
+            guideVersionNote.textContent = 'Emerald — Japanese selected. Now open Instructions — click me first.';
           } else if(japaneseGuide){
             guideVersionNote.textContent = 'Emerald — Japanese selected. This uses the Japanese Emerald setup and DexReg payload.';
+          } else if(!isFRLGSwitch && !selectedMode){
+            guideVersionNote.textContent = (gameNames[selectedGame] || '') + ' — ' + selectedLanguageLabel() + ' selected. Now choose your device or emulator.';
+          } else if(!instructionsAcknowledged){
+            guideVersionNote.textContent = (gameNames[selectedGame] || '') + ' — ' + selectedLanguageLabel() + ' selected. Now open Instructions — click me first.';
           } else if(isRSGame()){
             guideVersionNote.textContent = (gameNames[selectedGame] || 'Ruby/Sapphire') + ' — ' + selectedLanguageLabel() + ' selected.';
           } else {
             guideVersionNote.textContent = (gameNames[selectedGame] || '') + ' — ' + selectedLanguageLabel() + ' selected.';
           }
         }
-        updateModeButtonVisibility();
+        updateModeOptionVisibility();
         updateTabVisibility();
 
         if(!selectedGame || !selectedLanguage){
-          if(modeContainer) modeContainer.style.display = 'none';
+          if(deviceSelect){
+            deviceSelect.disabled = true;
+            deviceSelect.value = '';
+          }
+          if(deviceSelectPlaceholder){
+            deviceSelectPlaceholder.textContent = selectedGame ? 'Select a language first' : 'Select a game first';
+          }
           tabs.forEach(function(t){ t.setAttribute('disabled','true'); });
           tabs.forEach(function(t){ t.classList.remove('active'); });
           panels.forEach(function(p){ p.style.display='none'; });
@@ -1194,7 +1216,11 @@
         }
 
         if(japaneseGuide){
-          if(modeContainer) modeContainer.style.display = 'none';
+          if(deviceSelect){
+            deviceSelect.disabled = true;
+            deviceSelect.value = '';
+          }
+          if(deviceSelectPlaceholder) deviceSelectPlaceholder.textContent = 'Not required for this setup';
           if(!isReady()){
             tabs.forEach(function(t){ t.setAttribute('disabled','true'); });
             tabs.forEach(function(t){ t.classList.remove('active'); });
@@ -1207,16 +1233,21 @@
 
         // FR/LG Switch: no emulator mode selection is needed.
         if(isFRLGSwitch){
-          if(modeContainer) modeContainer.style.display = 'none';
+          if(deviceSelect){
+            deviceSelect.disabled = true;
+            deviceSelect.value = '';
+          }
+          if(deviceSelectPlaceholder) deviceSelectPlaceholder.textContent = 'Not required for this setup';
           tabs.forEach(function(t){ t.removeAttribute('disabled'); });
           return;
         }
 
-        // All other games: show available emulator modes
-        if(modeContainer) modeContainer.style.display = '';
-
-        // Update button active states
-        modeButtons.forEach(function(b){ b.classList.toggle('active', !!selectedMode && b.dataset.mode === selectedMode); });
+        // All other games require an emulator mode.
+        if(deviceSelect){
+          deviceSelect.disabled = false;
+          deviceSelect.value = selectedMode || '';
+        }
+        if(deviceSelectPlaceholder) deviceSelectPlaceholder.textContent = 'Select a device / emulator';
 
         if(!isReady()){
           tabs.forEach(function(t){ t.setAttribute('disabled','true'); });
@@ -1275,34 +1306,30 @@
         languageSelect.addEventListener('change', function(){
           selectedLanguage = languageSelect.value || '';
           selectedMode = null;
-          if(isJapaneseGuide()){
-            instructionsAcknowledged = true;
-            modeButtons.forEach(function(b){ b.classList.remove('requires-instructions'); });
-          }
-          modeButtons.forEach(function(b){ b.classList.remove('active'); });
+          if(deviceSelect) deviceSelect.value = '';
           tabs.forEach(function(t){ t.classList.remove('active'); });
           panels.forEach(function(p){ p.style.display = 'none'; });
           updateInstructionsForGame();
-          if(instrEl) instrEl.open = true;
           refreshModeUI();
           if(isJapaneseGuide() || isFRLGSwitchGame()){
             if(isFRLGSwitchGame()) selectedMode = 'modern';
-            renderAllPanels();
-            ensureActiveTab();
+            refreshModeUI();
+            if(isReady()){
+              renderAllPanels();
+              ensureActiveTab();
+            }
           }
         });
       }
 
-      // Mode button click handler
-      modeButtons.forEach(function(btn){
-        btn.addEventListener('click', function(){
-          if(!instructionsAcknowledged) return;
-          selectedMode = btn.dataset.mode;
-          modeButtons.forEach(function(b){ b.classList.toggle('active', b.dataset.mode === selectedMode); });
+      // Device / emulator selector
+      if(deviceSelect){
+        deviceSelect.addEventListener('change', function(){
+          selectedMode = deviceSelect.value || null;
           refreshModeUI();
           activateAndRender();
         });
-      });
+      }
 
       // Game selector
       if(gameSelect){
@@ -1311,7 +1338,7 @@
           selectedLanguage = '';
           selectedMode = null;
           populateLanguageOptions(selectedGame);
-          modeButtons.forEach(function(b){ b.classList.remove('active'); });
+          if(deviceSelect) deviceSelect.value = '';
           tabs.forEach(function(t){ t.classList.remove('active'); });
           panels.forEach(function(p){ p.style.display = 'none'; });
           updateInstructionsForGame();
