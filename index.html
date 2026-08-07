@@ -628,15 +628,12 @@
     body.encounter-static #makeShinyRow,
     body.encounter-cxd_shadow #makeShinyRow,
     body.encounter-cxd_trade #makeShinyRow,
-    body.encounter-roamer #makeShinyRow {
+    body.encounter-roamer #makeShinyRow,
+    body.encounter-mystery #makeShinyRow,
+    body.encounter-imported #makeShinyRow {
       display: flex;
     }
-    body.encounter-hatched .shiny-external,
-    body.encounter-wild .shiny-external,
-    body.encounter-static .shiny-external,
-    body.encounter-cxd_shadow .shiny-external,
-    body.encounter-cxd_trade .shiny-external,
-    body.encounter-roamer .shiny-external {
+    .shiny-external {
       display: none;
     }
     /* Move rows: select + small PP box */
@@ -1360,7 +1357,9 @@
       body.encounter-static #makeShinyRow,
       body.encounter-cxd_shadow #makeShinyRow,
       body.encounter-cxd_trade #makeShinyRow,
-      body.encounter-roamer #makeShinyRow {
+      body.encounter-roamer #makeShinyRow,
+      body.encounter-mystery #makeShinyRow,
+      body.encounter-imported #makeShinyRow {
         display: grid;
       }
 
@@ -1368,12 +1367,7 @@
         display: grid;
       }
 
-      body.encounter-wild .shiny-external,
-      body.encounter-static .shiny-external,
-      body.encounter-cxd_shadow .shiny-external,
-      body.encounter-cxd_trade .shiny-external,
-      body.encounter-roamer .shiny-external,
-      body.encounter-hatched .shiny-external {
+      .shiny-external {
         display: none;
       }
 
@@ -2069,7 +2063,7 @@
         <button id="makeShinyBtn" type="button" class="make-shiny-btn">&#x2728; Make Shiny</button>
         <span id="shinyIndicatorBtn" class="shiny-indicator" title="This Pokémon is shiny!" style="margin-left: 0.5rem;">✨</span>
         <span id="makeShinyStatus" class="make-shiny-status"></span>
-        <span id="xdShinyLocked" class="profanity-warning" style="display:none; margin-left:0.5rem; font-size:0.85rem;">&#x1F512; Shiny locked (XD shadows cannot be shiny)</span>
+        <span id="xdShinyLocked" class="shiny-locked-message" style="display:none;">&#x1F512; This Pok&eacute;mon cannot be shiny.</span>
         <span id="cxdShinyFinderHint" class="make-shiny-status" style="display:none; margin-left:0.5rem; font-size:0.85rem;">&#x2728; Shiny is possible — choose Shiny in Find Legal Encounter.</span>
       </div>
 

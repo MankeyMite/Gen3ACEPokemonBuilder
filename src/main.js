@@ -72,6 +72,15 @@ import {
 } from './domain/mysteryGiftMoves.js';
 import { canSelectJapaneseLanguage } from './domain/languageAvailability.js';
 import { getOtGenderLockPolicy } from './domain/otGenderLocking.js';
+import {
+  resolveImportedProgression,
+  resolveShowdownAbilitySlot,
+} from './domain/importedPokemon.js';
+import {
+  SHINY_CONTROL_KIND,
+  getShinyButtonPresentation,
+  getShinyControlPolicy,
+} from './domain/shinyControl.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -141,6 +150,7 @@ let _updateContestSheenAuto = null;
 let _applyContestSpeciesRequirements = null;
 let _syncLegalModeToggle = null;
 let _syncPokemonFirstOriginUi = null;
+let _createImportedSetPid = null;
 
 // Ensure a safe no-op exists early so callers from earlier code don't throw
 function updateMysterySpeciesOptions(/*tag*/) { return; }
@@ -925,6 +935,7 @@ let outputCodeTarget = 'console';
 let importedPokerusState = null;
 let pokerusDropdownDirty = false;
 const makeShinyUndoStateByMode = {};
+let suppressMakeShinyUndoClear = false;
 // When true, skip applying simple-mode PID presets (used during imports)
 let suppressPresetApply = false;
 // When true, suppress marking user-change events while programmatically applying presets
@@ -3252,48 +3263,78 @@ document.getElementById('unownForm')?.addEventListener('change', function () {
   filterUnownLocationsByForm();
 });
 
+function populateAbilitySelectForSpecies(speciesId, abilityBit = 0) {
+  const abilitySelect = $('#ability');
+  if (!abilitySelect) return 0;
+
+  const abilities = getSpeciesAbilities(Number(speciesId));
+  const selectedBit = Number(abilityBit) === 1 ? 1 : 0;
+  if (!abilities) {
+    abilitySelect.innerHTML = '<option value="0">0</option><option value="1">1</option>';
+    abilitySelect.value = String(selectedBit);
+    return selectedBit;
+  }
+
+  const [ability0Id, ability1Id] = abilities;
+  const ability0Name = getAbilityName(ability0Id);
+  const ability1Name = getAbilityName(ability1Id);
+  if (ability0Id === ability1Id) {
+    abilitySelect.innerHTML = `<option value="0">${ability0Name}</option>`;
+    abilitySelect.value = '0';
+    return 0;
+  }
+
+  abilitySelect.innerHTML = [
+    `<option value="0">${ability0Name}</option>`,
+    `<option value="1">${ability1Name}</option>`,
+  ].join('');
+  abilitySelect.value = String(selectedBit);
+  return selectedBit;
+}
+
+function getImportedGenderForPid(speciesId, pid) {
+  const threshold = getGenderThreshold(Number(speciesId));
+  if (threshold === -1) return 'genderless';
+  if (threshold === 0) return 'male';
+  if (threshold >= 254) return 'female';
+  return ((Number(pid) >>> 0) & 0xFF) < threshold ? 'female' : 'male';
+}
+
+function populateImportedGenderForSpecies(speciesId, preferredGender = '') {
+  const genderSelect = $('#gender');
+  if (!genderSelect) return 'male';
+
+  const threshold = getGenderThreshold(Number(speciesId));
+  let selectedGender;
+  if (threshold === -1) {
+    selectedGender = 'genderless';
+    genderSelect.innerHTML = '<option value="genderless">Genderless</option>';
+  } else if (threshold === 0) {
+    selectedGender = 'male';
+    genderSelect.innerHTML = '<option value="male">Male</option>';
+  } else if (threshold >= 254) {
+    selectedGender = 'female';
+    genderSelect.innerHTML = '<option value="female">Female</option>';
+  } else {
+    genderSelect.innerHTML = '<option value="male">Male</option><option value="female">Female</option>';
+    selectedGender = preferredGender === 'female' ? 'female' : 'male';
+  }
+
+  genderSelect.value = selectedGender;
+  const fixedGender = threshold === -1 || threshold === 0 || threshold >= 254;
+  genderSelect.disabled = fixedGender;
+  genderSelect.style.pointerEvents = fixedGender ? 'none' : '';
+  genderSelect.style.opacity = fixedGender ? '0.6' : '';
+  genderSelect.style.cursor = fixedGender ? 'not-allowed' : '';
+  return selectedGender;
+}
+
 function boot(){
   // Function to update ability select based on species
   function updateAbilitySelect(speciesId) {
     if (currentEncounterMode === 'imported') return;
-    const abilitySelect = $('#ability');
-    if (!abilitySelect) return;
-    
-    const abilities = getSpeciesAbilities(speciesId);
-    if (!abilities) {
-      // Default to generic 0/1 if no data
-      abilitySelect.innerHTML = `
-        <option value="0">0</option>
-        <option value="1">1</option>
-      `;
-      try { syncPidParityPreferenceUi(); } catch (e) {}
-      return;
-    }
-    
-    const [ability0Id, ability1Id] = abilities;
-    const ability0Name = getAbilityName(ability0Id);
-    const ability1Name = getAbilityName(ability1Id);
-    
-    // Store current value to preserve selection if possible
-    const currentValue = abilitySelect.value;
-    
-    if (ability0Id === ability1Id) {
-      // Single ability - only show one option
-      abilitySelect.innerHTML = `<option value="0">${ability0Name}</option>`;
-      abilitySelect.value = '0';
-    } else {
-      // Dual abilities - show both
-      abilitySelect.innerHTML = `
-        <option value="0">${ability0Name}</option>
-        <option value="1">${ability1Name}</option>
-      `;
-      // Restore previous value if it's still valid
-      if (currentValue === '0' || currentValue === '1') {
-        abilitySelect.value = currentValue;
-      } else {
-        abilitySelect.value = '0';
-      }
-    }
+    const currentValue = $('#ability')?.value;
+    populateAbilitySelectForSpecies(speciesId, currentValue);
     try { syncPidParityPreferenceUi(); } catch (e) {}
   }
 
@@ -6718,6 +6759,9 @@ function boot(){
             eventSel.addEventListener('change', () => {
               const tag = eventSel.value;
               console.log('Mystery event selected:', tag);
+              clearMakeShinyUndoState();
+              const shinyStatus = document.getElementById('makeShinyStatus');
+              if (shinyStatus) shinyStatus.textContent = '';
               // Unlock any PID Finder result from the previous event
               if (hasPidFinderSelectionState()) try { unlockPidFinderFields({ clearPid: true }); } catch (e) {}
               if (!manualOverrideActive) {
@@ -6746,6 +6790,7 @@ function boot(){
                 if (!manualOverrideActive) applyMysteryPresetForSpecies(sp);
               }
               try { updateShinyCheckboxState(); } catch (e) {}
+              try { updateMakeShinyVisibility(); } catch (e) {}
               // Update mystery species options (noop if selector removed)
               updateMysterySpeciesOptions(tag);
               try { updateTidSidLocking(); } catch (e) {}
@@ -7702,11 +7747,33 @@ function boot(){
     try { updateLegalityStatus(); } catch (e) {}
   }
 
-  /**
-   * Configure shiny controls for correlated GameCube encounters.
-   * Shiny-capable encounters must be generated through the PID Finder; the
-   * generic shortcut changes SID and would break the selected GC RNG tuple.
-   */
+  function getCurrentShinyControlPolicy(encounterOverride = undefined) {
+    if (currentEncounterMode === 'mystery') {
+      const { tag, event } = getSelectedMysteryEvent();
+      return getShinyControlPolicy({
+        encounterMode: currentEncounterMode,
+        eventTag: tag,
+        event,
+        pidMethod: getMysteryPidMethod(),
+        unlockShinyLock: shouldUnlockCelebiShinyLock(tag, event),
+      });
+    }
+
+    const encounter = encounterOverride !== undefined
+      ? encounterOverride
+      : currentEncounterMode === 'cxd_shadow'
+        ? getSelectedCXDEncounter()
+        : currentEncounterMode === 'cxd_trade'
+          ? getSelectedCXDTrade()
+          : null;
+
+    return getShinyControlPolicy({
+      encounterMode: currentEncounterMode,
+      encounter,
+    });
+  }
+
+  /** Configure the shared shiny control for every encounter type. */
   function updateMakeShinyVisibility(enc) {
     const row = document.getElementById('makeShinyRow');
     const shinyLockedLabel = document.getElementById('xdShinyLocked');
@@ -7715,44 +7782,43 @@ function boot(){
     const shinyIndicatorBtnLocal = document.getElementById('shinyIndicatorBtn');
     const makeShinyStatusLocal = document.getElementById('makeShinyStatus');
     if (!row) return;
-    if (currentEncounterMode !== 'cxd_shadow' && currentEncounterMode !== 'cxd_trade') {
-      // Non-CXD modes: let CSS handle visibility.
-      row.style.display = '';
-      if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
-      if (shinyFinderHint) shinyFinderHint.style.display = 'none';
-      if (makeShinyBtnLocal) makeShinyBtnLocal.style.display = '';
-      if (shinyIndicatorBtnLocal) shinyIndicatorBtnLocal.style.display = '';
-      if (makeShinyStatusLocal) makeShinyStatusLocal.style.display = '';
-      return;
-    }
-    if (currentEncounterMode === 'cxd_shadow' && !enc) {
+
+    const selectedEncounter = enc !== undefined ? enc : getSelectedCXDEncounter();
+    if (currentEncounterMode === 'cxd_shadow' && !selectedEncounter) {
       row.style.display = 'none';
       if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
       if (shinyFinderHint) shinyFinderHint.style.display = 'none';
       return;
     }
-    // CXD mode: respect the selected encounter's explicit shiny policy.
+
+    const policy = getCurrentShinyControlPolicy(enc);
     row.style.display = '';
-    const isLocked = Boolean(enc?.shinyLocked);
-    // Never expose the generic SID-changing shortcut for a correlated CXD
-    // result, even when that encounter can legitimately be shiny.
-    if (makeShinyBtnLocal) makeShinyBtnLocal.style.display = 'none';
-    if (makeShinyStatusLocal) makeShinyStatusLocal.style.display = 'none';
-    if (isLocked) {
+    if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
+    if (shinyFinderHint) shinyFinderHint.style.display = 'none';
+    if (makeShinyBtnLocal) makeShinyBtnLocal.style.display = '';
+    if (shinyIndicatorBtnLocal) shinyIndicatorBtnLocal.style.display = '';
+    if (makeShinyStatusLocal) makeShinyStatusLocal.style.display = '';
+
+    if (policy.kind === SHINY_CONTROL_KIND.LOCKED) {
+      if (makeShinyBtnLocal) makeShinyBtnLocal.style.display = 'none';
       if (shinyIndicatorBtnLocal) shinyIndicatorBtnLocal.style.display = 'none';
-      if (shinyFinderHint) shinyFinderHint.style.display = 'none';
+      if (makeShinyStatusLocal) makeShinyStatusLocal.style.display = 'none';
       if (shinyLockedLabel) {
-        shinyLockedLabel.textContent = '🔒 Shiny locked for this encounter';
+        shinyLockedLabel.textContent = policy.message;
         shinyLockedLabel.style.display = '';
       }
-    } else {
-      // Shiny is legal, but PID/TID/SID must be searched together.
-      if (shinyIndicatorBtnLocal) shinyIndicatorBtnLocal.style.display = '';
-      if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
-      if (shinyFinderHint) shinyFinderHint.style.display = '';
+      return;
     }
-    // Also update the shiny checkbox state for the encounter
-    try { updateShinyCheckboxState(); } catch (e) {}
+
+    if (policy.kind === SHINY_CONTROL_KIND.FINDER && shinyFinderHint) {
+      shinyFinderHint.textContent = policy.message;
+      shinyFinderHint.style.display = '';
+    }
+    if (policy.kind === SHINY_CONTROL_KIND.ALWAYS && makeShinyStatusLocal) {
+      makeShinyStatusLocal.style.display = 'none';
+    }
+
+    try { updateMakeShinyButton(); } catch (e) {}
   }
 
   // Wire up the shadow encounter dropdown change handler
@@ -8664,23 +8730,43 @@ function boot(){
     } catch (e) {}
   }
 
-  function rememberSidBeforeMakeShiny(pid, tid, sid) {
+  function getMakeShinyContextKey() {
+    const speciesId = Number($('#species')?.value || 0);
+    const parts = [currentEncounterMode, speciesId];
+    if (currentEncounterMode === 'mystery') {
+      parts.push(String($('#mysteryEvent')?.value || '').toUpperCase());
+    } else if (currentEncounterMode === 'cxd_shadow') {
+      parts.push(String($('#shadowEncounter')?.value || ''));
+    } else if (currentEncounterMode === 'cxd_trade') {
+      parts.push(String($('#cxdTradeEncounter')?.value || ''));
+    } else if (currentEncounterMode === 'static') {
+      parts.push(String($('#staticCategory')?.value || ''), String($('#staticEncounter')?.value || ''));
+    }
+    return parts.join(':');
+  }
+
+  function rememberSidBeforeMakeShiny(pid, tid, sid, resultSid) {
     makeShinyUndoStateByMode[currentEncounterMode] = {
       kind: 'sid',
       mode: currentEncounterMode,
+      contextKey: getMakeShinyContextKey(),
       pid: pid >>> 0,
       tid: tid & 0xFFFF,
       sid: sid & 0xFFFF,
+      resultSid: resultSid & 0xFFFF,
     };
   }
 
-  function rememberPidBeforeMakeShiny(pid, tid, sid) {
+  function rememberPidBeforeMakeShiny(pid, tid, sid, resultPid, pidText = '') {
     makeShinyUndoStateByMode[currentEncounterMode] = {
       kind: 'pid',
       mode: currentEncounterMode,
+      contextKey: getMakeShinyContextKey(),
       pid: pid >>> 0,
+      pidText: String(pidText),
       tid: tid & 0xFFFF,
       sid: sid & 0xFFFF,
+      resultPid: resultPid >>> 0,
     };
   }
 
@@ -8692,11 +8778,16 @@ function boot(){
     const state = getMakeShinyUndoState();
     if (!state || !isShiny) return false;
     if (state.mode !== currentEncounterMode) return false;
+    if (state.contextKey !== getMakeShinyContextKey()) return false;
     if (state.kind === 'sid') {
-      return state.pid === (pid >>> 0) && state.tid === (tid & 0xFFFF);
+      return state.pid === (pid >>> 0)
+        && state.tid === (tid & 0xFFFF)
+        && state.resultSid === (sid & 0xFFFF);
     }
     if (state.kind === 'pid') {
-      return state.tid === (tid & 0xFFFF) && state.sid === (sid & 0xFFFF);
+      return state.tid === (tid & 0xFFFF)
+        && state.sid === (sid & 0xFFFF)
+        && state.resultPid === (pid >>> 0);
     }
     return false;
   }
@@ -8705,6 +8796,7 @@ function boot(){
     const state = getMakeShinyUndoState();
     if (!state || state.kind !== 'sid') return null;
     if (state.mode !== currentEncounterMode) return null;
+    if (state.contextKey !== getMakeShinyContextKey()) return null;
     if (state.pid !== (pid >>> 0)) return null;
     if (state.tid !== (tid & 0xFFFF)) return null;
 
@@ -8713,12 +8805,43 @@ function boot(){
     return restoredSid;
   }
 
+  function restorePidBeforeMakeShiny(tid, sid) {
+    const state = getMakeShinyUndoState();
+    if (!state || state.kind !== 'pid') return null;
+    if (state.mode !== currentEncounterMode) return null;
+    if (state.contextKey !== getMakeShinyContextKey()) return null;
+    if (state.tid !== (tid & 0xFFFF)) return null;
+    if (state.sid !== (sid & 0xFFFF)) return null;
+
+    const restoredPid = {
+      value: state.pid >>> 0,
+      text: state.pidText,
+    };
+    clearMakeShinyUndoState();
+    return restoredPid;
+  }
+
   function clearMakeShinyUndoState(mode = currentEncounterMode) {
     delete makeShinyUndoStateByMode[mode];
   }
 
   function clearSidBeforeMakeShiny() {
+    if (suppressMakeShinyUndoClear) return;
     clearMakeShinyUndoState();
+    const status = document.getElementById('makeShinyStatus');
+    if (status) status.textContent = '';
+  }
+
+  function setInputValueForMakeShiny(element, value) {
+    if (!element) return;
+    suppressMakeShinyUndoClear = true;
+    try {
+      element.value = String(value);
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+      element.dispatchEvent(new Event('change', { bubbles: true }));
+    } finally {
+      suppressMakeShinyUndoClear = false;
+    }
   }
 
   // Handle shiny checkbox
@@ -8745,10 +8868,14 @@ function boot(){
       const speciesId = Number($('#species').value) || 0;
       const ability = Number($('#ability').value);
       
-      // For legendaries, wild, CXD shadow, and Box Event mystery gifts, adjust SID instead of PID
-      const isBoxEvent = currentEncounterMode === 'mystery' && 
-        String($('#mysteryEvent')?.value || '').toUpperCase() === 'BOX_EVENT';
-      if (currentEncounterMode === 'static' || currentEncounterMode === 'wild' || currentEncounterMode === 'roamer' || currentEncounterMode === 'cxd_shadow' || currentEncounterMode === 'cxd_trade' || isBoxEvent) {
+      // Captures and hatcher-owned gifts can keep their legal PID and adjust
+      // the recipient's SID. Fixed-trainer events use the finder instead.
+      const shinyPolicy = getCurrentShinyControlPolicy();
+      const shouldAdjustSid = currentEncounterMode === 'static'
+        || currentEncounterMode === 'wild'
+        || currentEncounterMode === 'roamer'
+        || (currentEncounterMode === 'mystery' && shinyPolicy.kind === SHINY_CONTROL_KIND.DIRECT);
+      if (shouldAdjustSid) {
         const pid = parsePidInput($('#pid').value);
         
         if (e.target.checked) {
@@ -8758,15 +8885,15 @@ function boot(){
           const pidHigh = (pid >>> 16) & 0xFFFF;
           const pidLow = pid & 0xFFFF;
           const currentSid = Number($('#sid').value) & 0xFFFF;
-          rememberSidBeforeMakeShiny(pid, tid, currentSid);
           const newSid = (pidHigh ^ pidLow ^ tid) & 0xFFFF;
-          $('#sid').value = String(newSid);
+          rememberSidBeforeMakeShiny(pid, tid, currentSid, newSid);
+          setInputValueForMakeShiny($('#sid'), newSid);
         } else {
           const pidHigh = (pid >>> 16) & 0xFFFF;
           const pidLow = pid & 0xFFFF;
           const restoredSid = restoreSidBeforeMakeShiny(pid, tid);
           const newSid = restoredSid ?? ((pidHigh ^ pidLow ^ tid ^ 8) & 0xFFFF);
-          $('#sid').value = String(newSid);
+          setInputValueForMakeShiny($('#sid'), newSid);
         }
       } else {
         // For hatched mode, change PID as before
@@ -8775,11 +8902,17 @@ function boot(){
         if (e.target.checked) {
           // Calculate a shiny PID with the correct gender and ability
           const shinyPID = calculateShinyPID(tid, sid, natureIndex, gender, speciesId, ability, getPidParityPreferenceForSpecies(speciesId));
-          $('#pid').value = '0x' + shinyPID.toString(16).toUpperCase().padStart(8, '0');
+          rememberPidBeforeMakeShiny(parsePidInput($('#pid').value), tid, sid, shinyPID, $('#pid').value);
+          setInputValueForMakeShiny($('#pid'), '0x' + shinyPID.toString(16).toUpperCase().padStart(8, '0'));
         } else {
-          // Calculate a non-shiny PID with the correct gender and ability
-          const nonShinyPID = calculateNonShinyPID(tid, sid, natureIndex, gender, speciesId, ability, getPidParityPreferenceForSpecies(speciesId));
-          $('#pid').value = '0x' + nonShinyPID.toString(16).toUpperCase().padStart(8, '0');
+          // Undo restores the exact previous PID; a direct checkbox toggle
+          // without undo history still creates a compatible non-shiny PID.
+          const restoredPid = restorePidBeforeMakeShiny(tid, sid);
+          const nonShinyPID = restoredPid?.value ?? calculateNonShinyPID(tid, sid, natureIndex, gender, speciesId, ability, getPidParityPreferenceForSpecies(speciesId));
+          const nextPidText = restoredPid
+            ? restoredPid.text
+            : '0x' + nonShinyPID.toString(16).toUpperCase().padStart(8, '0');
+          setInputValueForMakeShiny($('#pid'), nextPidText);
         }
         
         // Update gender based on new PID (should match what we requested)
@@ -8839,14 +8972,16 @@ function boot(){
     const xor = (pidHigh ^ pidLow) ^ (tid ^ sid);
     const isShiny = xor < 8;
     const undoActive = hasUndoableMakeShinyState(pid, tid, sid, isShiny);
+    const policy = getCurrentShinyControlPolicy();
+    const presentation = getShinyButtonPresentation({
+      policyKind: policy.kind,
+      isShiny,
+      undoActive,
+    });
 
-    if (undoActive) {
-      makeShinyBtn.textContent = '\u2728 Undo Shiny';
-      makeShinyBtn.classList.add('is-shiny');
-    } else {
-      makeShinyBtn.textContent = '\u2728 Make Shiny';
-      makeShinyBtn.classList.remove('is-shiny');
-    }
+    makeShinyBtn.textContent = presentation.label;
+    makeShinyBtn.disabled = presentation.disabled;
+    makeShinyBtn.classList.toggle('is-shiny', presentation.active);
     if (shinyIndicatorBtn) {
       shinyIndicatorBtn.classList.toggle('active', isShiny);
     }
@@ -8854,9 +8989,20 @@ function boot(){
 
   if (makeShinyBtn) {
     makeShinyBtn.addEventListener('click', () => {
-      // GameCube encounters must search a complete shiny RNG tuple; changing
-      // only SID here would invalidate the selected PID Finder result.
-      if (currentEncounterMode === 'cxd_shadow' || currentEncounterMode === 'cxd_trade') return;
+      const policy = getCurrentShinyControlPolicy();
+      if (policy.kind === SHINY_CONTROL_KIND.LOCKED || policy.kind === SHINY_CONTROL_KIND.ALWAYS) return;
+
+      // Fixed-trainer distributions and GameCube encounters must search a
+      // complete legal tuple. Open the finder with Shiny Only preselected.
+      if (policy.kind === SHINY_CONTROL_KIND.FINDER) {
+        const finderBtn = document.getElementById('pidFinderBtn');
+        if (finderBtn && !finderBtn.disabled) {
+          finderBtn.click();
+          const shinyOnly = document.getElementById('pfShiny');
+          if (shinyOnly && !shinyOnly.disabled) shinyOnly.checked = true;
+        }
+        return;
+      }
 
       const pid = parsePidInput($('#pid').value);
       const tid = Number($('#tid').value) & 0xFFFF;
@@ -8869,21 +9015,14 @@ function boot(){
 
       if (currentEncounterMode === 'hatched') {
         const shinyCheckbox = $('#shiny');
-        if (undoActive) {
-          clearMakeShinyUndoState();
-        } else {
-          rememberPidBeforeMakeShiny(pid, tid, sid);
-        }
         if (shinyCheckbox) {
           shinyCheckbox.checked = !undoActive;
           shinyCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
         }
         if (makeShinyStatus) {
           makeShinyStatus.textContent = undoActive
-            ? 'PID set to non-shiny'
-            : isShiny
-              ? 'Shiny PID rerolled'
-              : 'PID set to shiny';
+            ? 'Previous PID restored'
+            : 'PID set to shiny';
           makeShinyStatus.style.color = undoActive
             ? 'var(--text-muted, #94a3b8)'
             : 'var(--emerald, #10b981)';
@@ -8894,11 +9033,11 @@ function boot(){
 
       if (!undoActive && !isShiny) {
         // Make shiny: set SID so xor = 0 (pidHigh ^ pidLow ^ tid ^ newSid) = 0
-        rememberSidBeforeMakeShiny(pid, tid, sid);
         const preferredSid = (pidHigh ^ pidLow ^ tid) & 0xFFFF;
         const sidAdjustment = adjustShinySidForOriginGame(tid, pid, preferredSid);
         const newSid = sidAdjustment.sid;
-        $('#sid').value = String(newSid);
+        rememberSidBeforeMakeShiny(pid, tid, sid, newSid);
+        setInputValueForMakeShiny($('#sid'), newSid);
         if (makeShinyStatus) {
           if (sidAdjustment.adjusted) {
             const sign = sidAdjustment.direction > 0 ? '+1' : '-1';
@@ -8916,16 +9055,11 @@ function boot(){
       } else if (undoActive) {
         const restoredSid = restoreSidBeforeMakeShiny(pid, tid);
         const newSid = restoredSid ?? ((pidHigh ^ pidLow ^ tid ^ 8) & 0xFFFF);
-        $('#sid').value = String(newSid);
+        setInputValueForMakeShiny($('#sid'), newSid);
         if (makeShinyStatus) {
           makeShinyStatus.textContent = restoredSid == null
             ? `SID set to ${newSid}`
             : `SID restored to ${newSid}`;
-          makeShinyStatus.style.color = 'var(--text-muted, #94a3b8)';
-        }
-      } else {
-        if (makeShinyStatus) {
-          makeShinyStatus.textContent = 'Already shiny';
           makeShinyStatus.style.color = 'var(--text-muted, #94a3b8)';
         }
       }
@@ -9645,6 +9779,8 @@ function checkShiny() {
     shinyCheckbox.checked = isShiny;
   }
 
+  try { updateMakeShinyVisibility(); } catch (e) {}
+
   // Refresh sprite to show shiny/normal version
   updateSpeciesSprite(Number($('#species').value) || 0);
 }
@@ -9857,6 +9993,29 @@ function calculateNonShinyPID(tid, sid, nature, targetGender, speciesId, ability
   
   return ((pidHigh << 16) | pidLow) >>> 0;
 }
+
+_createImportedSetPid = ({
+  tid,
+  sid,
+  natureIndex,
+  gender,
+  speciesId,
+  abilityBit,
+  shiny,
+}) => {
+  const args = [
+    Number(tid) & 0xFFFF,
+    Number(sid) & 0xFFFF,
+    Number(natureIndex) || 0,
+    String(gender || 'male'),
+    Number(speciesId) || 0,
+    Number(abilityBit) === 1 ? 1 : 0,
+    'any',
+  ];
+  return shiny
+    ? calculateShinyPID(...args)
+    : calculateNonShinyPID(...args);
+};
 
 // Update gender display based on PID
 // In Gen 3, gender is determined by the lowest byte of PID vs species gender ratio
@@ -11958,41 +12117,27 @@ function applySmogonImport(parsed) {
     );
   }
 
+  const progression = resolveImportedProgression({
+    speciesId: parsed.speciesId,
+    level: parsed.level,
+  });
+  $('#level').value = String(progression.level);
+  $('#expTotal').value = String(progression.totalExp);
+
   // Item
   if (parsed.itemId != null) {
     $('#item').value = String(parsed.itemId);
   }
 
-  // Nature
-  if (parsed.natureIndex != null) {
-    $('#nature').value = String(parsed.natureIndex);
-  }
+  // Showdown sets normally include a nature. Use Hardy if it is omitted so
+  // the generated PID and the displayed nature never inherit stale state.
+  const natureIndex = parsed.natureIndex ?? 0;
+  $('#nature').value = String(natureIndex);
 
-  // Level
-  if (parsed.level != null) {
-    $('#level').value = String(parsed.level);
-    // Trigger exp update
-    try {
-      const expGroup = EXP_GROUPS[parsed.speciesId] ?? GROUP.MEDIUM_FAST;
-      $('#expTotal').value = String(expForLevel(expGroup, parsed.level));
-    } catch (e) {}
-  }
-
-  // Ability
-  if (parsed.ability) {
-    const abilityLower = parsed.ability.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const abilities = getSpeciesAbilities(parsed.speciesId);
-    if (abilities) {
-      const [a0, a1] = abilities;
-      const a0Name = getAbilityName(a0).toLowerCase().replace(/[^a-z0-9]/g, '');
-      const a1Name = getAbilityName(a1).toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (abilityLower === a1Name && a0 !== a1) {
-        $('#ability').value = '1';
-      } else {
-        $('#ability').value = '0';
-      }
-    }
-  }
+  // Populate the species-specific options before selecting the requested
+  // ability. Assigning the value first leaves the select blank.
+  const abilityBit = resolveShowdownAbilitySlot(parsed.speciesId, parsed.ability);
+  populateAbilitySelectForSpecies(parsed.speciesId, abilityBit);
 
   // EVs
   $('#evHp').value = String(parsed.evs.hp);
@@ -12018,15 +12163,32 @@ function applySmogonImport(parsed) {
   }
   refreshMoveExclusions();
 
-  // Gender
-  if (parsed.gender) {
-    $('#gender').value = parsed.gender;
-  }
+  // Populate gender options before choosing one, including fixed/genderless
+  // species whose option may not exist from the previously displayed species.
+  const importedGender = populateImportedGenderForSpecies(parsed.speciesId, parsed.gender);
 
   // Happiness
   if (parsed.happiness != null) {
     $('#friendship').value = String(parsed.happiness);
   }
+
+  // Showdown text has no PID field. Generate one only after species, nature,
+  // gender, ability, and trainer IDs are all known so every derived property
+  // agrees with the imported set (including Shiny: Yes).
+  if (typeof _createImportedSetPid !== 'function') {
+    throw new Error('PID generator is unavailable');
+  }
+  const importedPid = _createImportedSetPid({
+    tid: Number($('#tid')?.value || 0),
+    sid: Number($('#sid')?.value || 0),
+    natureIndex,
+    gender: importedGender,
+    speciesId: parsed.speciesId,
+    abilityBit,
+    shiny: parsed.shiny,
+  });
+  $('#pid').value = '0x' + importedPid.toString(16).toUpperCase().padStart(8, '0');
+  try { checkShiny(); } catch (e) {}
 
   // Update Hidden Power
   try { updateHiddenPower(); } catch (e) {}
@@ -12065,8 +12227,11 @@ function onLoadFromHex(hexString){
     const data = parsePokemonBytes(Array.from(rawBytes).map(b => b.toString(16).padStart(2, '0')).join(''));
     
     // Debug: log species ID and exp group
-    const expGroup = EXP_GROUPS[data.speciesId] ?? GROUP.MEDIUM_FAST;
-    console.log(`Species ID: ${data.speciesId}, Exp Group: ${expGroup}, Total Exp: ${data.totalExp}`);
+    const progression = resolveImportedProgression({
+      speciesId: data.speciesId,
+      totalExp: data.totalExp,
+    });
+    console.log(`Species ID: ${data.speciesId}, Exp Group: ${progression.group}, Total Exp: ${data.totalExp}`);
     
     // Enable manual override so imported values aren't overwritten by mode locks
     manualOverrideActive = true;
@@ -12094,34 +12259,15 @@ function onLoadFromHex(hexString){
     // Populate all fields
     $('#species').value = String(data.speciesId);
     $('#item').value = String(data.itemId);
-    $('#level').value = String(levelForExp(expGroup, data.totalExp));
-    $('#expTotal').value = String(data.totalExp);
+    $('#level').value = String(progression.level);
+    $('#expTotal').value = String(progression.totalExp);
     $('#pid').value = '0x' + data.pid.toString(16).toUpperCase().padStart(8, '0');
     $('#nature').value = String(data.natureIndex);
-    (function setAbilityOptionsForSpecies(speciesId, abilityBit){
-      const abilitySelect = document.querySelector('#ability');
-      if (!abilitySelect) return;
-      const abilities = getSpeciesAbilities(Number(speciesId));
-      if (!abilities) {
-        abilitySelect.innerHTML = `\n        <option value="0">0</option>\n        <option value="1">1</option>\n      `;
-        abilitySelect.value = String(abilityBit ?? '0');
-        return;
-      }
-      const [ability0Id, ability1Id] = abilities;
-      const ability0Name = getAbilityName(ability0Id);
-      const ability1Name = getAbilityName(ability1Id);
-      if (ability0Id === ability1Id) {
-        abilitySelect.innerHTML = `<option value="0">${ability0Name}</option>`;
-        abilitySelect.value = '0';
-      } else {
-        abilitySelect.innerHTML = `\n        <option value="0">${ability0Name}</option>\n        <option value="1">${ability1Name}</option>\n      `;
-        if (abilityBit === 0 || abilityBit === 1 || String(abilityBit) === '0' || String(abilityBit) === '1') {
-          abilitySelect.value = String(abilityBit);
-        } else {
-          abilitySelect.value = '0';
-        }
-      }
-    })(data.speciesId, data.abilityBit);
+    populateAbilitySelectForSpecies(data.speciesId, data.abilityBit);
+    populateImportedGenderForSpecies(
+      data.speciesId,
+      getImportedGenderForPid(data.speciesId, data.pid),
+    );
     $('#tid').value = String(data.tid);
     $('#sid').value = String(data.sid);
     $('#ball').value = String(data.ballId);
@@ -12351,8 +12497,11 @@ function onImportPk3(event) {
       console.log(`Imported .${ext} — PID:`, data.pid, 'usedXor:', data.usedXor);
       
       // Debug: log species ID and exp group
-      const expGroup = EXP_GROUPS[data.speciesId] ?? GROUP.MEDIUM_FAST;
-      console.log(`Species ID: ${data.speciesId}, Exp Group: ${expGroup}, Total Exp: ${data.totalExp}`);
+      const progression = resolveImportedProgression({
+        speciesId: data.speciesId,
+        totalExp: data.totalExp,
+      });
+      console.log(`Species ID: ${data.speciesId}, Exp Group: ${progression.group}, Total Exp: ${data.totalExp}`);
       
       // Enable manual override so imported values aren't overwritten by mode locks.
       // Also suppress preset application so PID/IVs come from the imported file.
@@ -12378,37 +12527,14 @@ function onImportPk3(event) {
 
       // Populate all fields (same as onLoadFromHex)
       $('#species').value = String(data.speciesId);
-      // Update ability select options based on species (do this here because
-      // the updateAbilitySelect function is defined inside boot() and not
-      // directly callable from this scope)
-      (function setAbilityOptionsForSpecies(speciesId, abilityBit){
-        const abilitySelect = document.querySelector('#ability');
-        if (!abilitySelect) return;
-        const abilities = getSpeciesAbilities(Number(speciesId));
-        if (!abilities) {
-          abilitySelect.innerHTML = `\n        <option value="0">0</option>\n        <option value="1">1</option>\n      `;
-          abilitySelect.value = String(abilityBit ?? '0');
-          return;
-        }
-        const [ability0Id, ability1Id] = abilities;
-        const ability0Name = getAbilityName(ability0Id);
-        const ability1Name = getAbilityName(ability1Id);
-        if (ability0Id === ability1Id) {
-          abilitySelect.innerHTML = `<option value="0">${ability0Name}</option>`;
-          abilitySelect.value = '0';
-        } else {
-          abilitySelect.innerHTML = `\n        <option value="0">${ability0Name}</option>\n        <option value="1">${ability1Name}</option>\n      `;
-          // set ability to imported bit if valid, otherwise default to 0
-          if (abilityBit === 0 || abilityBit === 1 || String(abilityBit) === '0' || String(abilityBit) === '1') {
-            abilitySelect.value = String(abilityBit);
-          } else {
-            abilitySelect.value = '0';
-          }
-        }
-      })(data.speciesId, data.abilityBit);
+      populateAbilitySelectForSpecies(data.speciesId, data.abilityBit);
+      populateImportedGenderForSpecies(
+        data.speciesId,
+        getImportedGenderForPid(data.speciesId, data.pid),
+      );
       $('#item').value = String(data.itemId);
-      $('#level').value = String(levelForExp(expGroup, data.totalExp));
-      $('#expTotal').value = String(data.totalExp);
+      $('#level').value = String(progression.level);
+      $('#expTotal').value = String(progression.totalExp);
       $('#pid').value = '0x' + data.pid.toString(16).toUpperCase().padStart(8, '0');
       $('#nature').value = String(data.natureIndex);
       $('#tid').value = String(data.tid);

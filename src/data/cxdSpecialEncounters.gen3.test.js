@@ -76,12 +76,12 @@ assert.ok(
   'single-ability GameCube encounters must search legal ability number 0',
 );
 assert.ok(
-  mainSource.includes("if (currentEncounterMode === 'cxd_shadow' || currentEncounterMode === 'cxd_trade') return;"),
-  'the generic SID-changing Make Shiny shortcut must be blocked for correlated GameCube encounters',
+  mainSource.includes('policy.kind === SHINY_CONTROL_KIND.FINDER'),
+  'correlated GameCube encounters must route the shiny control through the legal finder',
 );
 assert.ok(
-  mainSource.includes('Choose Shiny in Find Legal Encounter so PID, IVs, TID, and SID remain correlated'),
-  'shiny-capable GameCube encounters must direct users to the PID Finder',
+  mainSource.includes('if (shinyOnly && !shinyOnly.disabled) shinyOnly.checked = true;'),
+  'the shared shiny control must open the finder with Shiny Only selected',
 );
 assert.ok(
   mainSource.includes('if (enc?.shinyLocked || trade?.shinyLocked)'),
