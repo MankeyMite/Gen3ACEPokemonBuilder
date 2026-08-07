@@ -32,6 +32,11 @@ for (const row of rows) {
 
 const pcnyTags = tags.filter(tag => tag.startsWith('PCNY_'));
 assert.equal(pcnyTags.length, 50, 'all 50 PCNY direct-download records should be present');
+assert.equal(
+  new Set(pcnyTags.map(tag => events[tag].label)).size,
+  pcnyTags.length,
+  'each PCNY distribution must have a distinguishable label',
+);
 for (const tag of pcnyTags) {
   assert.equal(events[tag].pidMethod, 'BACD_U_AX');
   assert.equal(events[tag].usesRecipientOtGender, true);
@@ -39,6 +44,13 @@ for (const tag of pcnyTags) {
   assert.ok(events[tag].allowedOtNames.length >= 1);
   assert.ok(!('ot_gender' in events[tag]), `${tag} must use the recipient trainer gender`);
 }
+
+assert.match(events.PCNY_DRAGON_SEADRA_ICE_BEAM.label, /Ice Beam/);
+assert.match(events.PCNY_DRAGON_SEADRA_LEER.label, /Leer/);
+assert.match(events.PCNY_DRAGON_ALTARIA_ICE_BEAM.label, /Flamethrower/);
+assert.match(events.PCNY_DRAGON_ALTARIA_DRAGON_DANCE.label, /Ice Beam/);
+assert.match(events.PCNY_BOX_ABSOL_SPITE.label, /Spite/);
+assert.match(events.PCNY_BOX_ABSOL_WISH.label, /Wish/);
 
 const fifthEggTags = tags.filter(tag => tag.startsWith('PCJP_5TH_EGG_'));
 assert.equal(fifthEggTags.length, 10, 'all ten PCJP 5th Anniversary egg variants should be present');

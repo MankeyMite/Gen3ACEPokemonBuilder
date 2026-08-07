@@ -259,8 +259,20 @@ const pcnyRows = [
   ['SIXTH_SHIFTRY', '6th Anniversary', 'PCNYd', 275, 20, [1, 106, 74, 267]],
 ];
 
+const pcnyVariantLabels = Object.freeze({
+  DRAGON_SEADRA_ICE_BEAM: 'Ice Beam',
+  DRAGON_SEADRA_LEER: 'Leer',
+  // Preserve the existing stable tags while labeling these Altaria variants
+  // by the move that actually distinguishes their distributed movesets.
+  DRAGON_ALTARIA_ICE_BEAM: 'Flamethrower',
+  DRAGON_ALTARIA_DRAGON_DANCE: 'Ice Beam',
+  BOX_ABSOL_SPITE: 'Spite',
+  BOX_ABSOL_WISH: 'Wish',
+});
+
 for (const [suffix, campaign, otName, national, level, moves] of pcnyRows) {
   const speciesName = nameByNational.get(national) || `#${national}`;
+  const variantLabel = pcnyVariantLabels[suffix];
   const allowedOtNames = campaign === 'Evolution'
     ? ['PCNYb', 'PCNYc']
     : campaign === 'Dragon Week'
@@ -271,7 +283,7 @@ for (const [suffix, campaign, otName, national, level, moves] of pcnyRows) {
           ? ['PCNYc', 'PCNYd']
           : ['PCNYd'];
   addEvent(`PCNY_${suffix}`, {
-    label: `PCNY ${campaign} — ${speciesName} (Lv${level})`,
+    label: `PCNY ${campaign} — ${speciesName} (Lv${level})${variantLabel ? ` — ${variantLabel}` : ''}`,
     defaultTID: 1,
     tidRange: [1, 2999],
     fixedSID: 0,

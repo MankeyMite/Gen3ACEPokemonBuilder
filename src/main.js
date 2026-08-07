@@ -67,6 +67,7 @@ import {
 import { getSeedDerivedMysteryOtGender } from './domain/mysteryGiftOtGender.js';
 import {
   getCuratedMysteryMovesForSpecies,
+  getMysteryMovesetEventAlias,
   resolveMysteryMoveIds,
 } from './domain/mysteryGiftMoves.js';
 import { canSelectJapaneseLanguage } from './domain/languageAvailability.js';
@@ -6613,35 +6614,13 @@ function boot(){
             // Explicit aliases checked FIRST so curated mappings always win
             // over heuristic species/name matching (critical when multiple
             // events share the same single species, e.g. Jirachi).
-            const aliasMap = {
-              'doeldeoxys': 'DOEL_DEOXYS',
-              'pokemonrocksamerica2005': 'POKEMON_ROCKS_METANG',
-              'berryfix': 'BERRY_PROGRAM_UPDATE_ZIGZAGOON',
-              'berryfixzigzagoon': 'BERRY_PROGRAM_UPDATE_ZIGZAGOON',
-              'berryprogramupdate': 'BERRY_PROGRAM_UPDATE_ZIGZAGOON',
-              'berryprogramupdatezigzagoon': 'BERRY_PROGRAM_UPDATE_ZIGZAGOON',
-              'partyofthedecade': 'PARTY_OF_THE_DECADE',
-              'pcnywisheggs': 'PCNY_WISH_EGGS',
-              'mystrymew': 'MYSTRY_MEW',
-              'mysterymew': 'MYSTRY_MEW',
-              'mitsurincelebi': 'MITSURIN_CELEBI',
-              'agetocelebi': 'AGETO_CELEBI',
-              'clubnintendojirachigiveaway': 'WISHMKR_BEST',
-              'wishmkrjirachibestivs': 'WISHMKR_BEST',
-              'wishmkrjirachiallshinypids': 'WISHMKR_SHINY',
-              'wishmkrjirachiallshinyversions': 'WISHMKR_SHINY'
-            };
             for (const displayName of Object.keys(movesData || {})) {
               const movesForEvent = movesData[displayName];
               let found = null;
 
               // 1. Check explicit alias map first (highest priority)
               const nd = normalize(displayName);
-              const rawLower = String(displayName || '').toLowerCase();
-              const compact = rawLower.replace(/[^a-z0-9]/g,'');
-              if (aliasMap[nd]) found = aliasMap[nd];
-              else if (aliasMap[rawLower]) found = aliasMap[rawLower];
-              else if (aliasMap[compact]) found = aliasMap[compact];
+              found = getMysteryMovesetEventAlias(displayName) || null;
 
               // 2. Species-based matching
               if (!found) {

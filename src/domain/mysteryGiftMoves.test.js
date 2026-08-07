@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 
 import {
   getCuratedMysteryMovesForSpecies,
+  getMysteryMovesetEventAlias,
   resolveMysteryMoveIds,
 } from './mysteryGiftMoves.js';
 
@@ -13,6 +14,13 @@ const eventMovesets = JSON.parse(await readFile(
 
 const boxMoveset = { moves: eventMovesets['Box Event'] };
 const zigzagoonMoves = getCuratedMysteryMovesForSpecies(boxMoveset, 'Zigzagoon');
+const moveIdsFor = (eventName, speciesName) => eventMovesets[eventName][speciesName].map(move => move.index);
+
+assert.deepEqual(moveIdsFor('Party of the Decade', 'Bulbasaur'), [230, 74, 76, 235]);
+assert.deepEqual(moveIdsFor('Party of the Decade', 'Pikachu'), [85, 87, 113, 19]);
+assert.deepEqual(moveIdsFor('Journey Across America', 'Bulbasaur'), [230, 74, 76, 235]);
+assert.deepEqual(moveIdsFor('Journey Across America', 'Pikachu'), [85, 97, 87, 113]);
+assert.equal(getMysteryMovesetEventAlias('Space Center Deoxys'), 'SPACE_CENTER_DEOXYS');
 
 assert.deepEqual(
   resolveMysteryMoveIds({

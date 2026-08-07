@@ -386,12 +386,12 @@
                 "index": 74
             },
             {
-                "name": "Synthesis",
-                "index": 235
-            },
-            {
                 "name": "Solar Beam",
                 "index": 76
+            },
+            {
+                "name": "Synthesis",
+                "index": 235
             }
         ],
         "Charizard": [
@@ -436,16 +436,16 @@
                 "index": 85
             },
             {
-                "name": "Fly",
-                "index": 19
-            },
-            {
                 "name": "Thunder",
                 "index": 87
             },
             {
                 "name": "Light Screen",
                 "index": 113
+            },
+            {
+                "name": "Fly",
+                "index": 19
             }
         ],
         "Alakazam": [
@@ -766,12 +766,12 @@
                 "index": 74
             },
             {
-                "name": "Synthesis",
-                "index": 235
-            },
-            {
                 "name": "Solar Beam",
                 "index": 76
+            },
+            {
+                "name": "Synthesis",
+                "index": 235
             }
         ],
         "Charizard": [
@@ -816,8 +816,8 @@
                 "index": 85
             },
             {
-                "name": "Fly",
-                "index": 19
+                "name": "Agility",
+                "index": 97
             },
             {
                 "name": "Thunder",
