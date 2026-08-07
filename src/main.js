@@ -65,6 +65,10 @@ import {
   shouldSynchronizeSpeciesNickname,
 } from './domain/nicknameLocalization.js';
 import { getSeedDerivedMysteryOtGender } from './domain/mysteryGiftOtGender.js';
+import {
+  getCuratedMysteryMovesForSpecies,
+  resolveMysteryMoveIds,
+} from './domain/mysteryGiftMoves.js';
 import { canSelectJapaneseLanguage } from './domain/languageAvailability.js';
 import { getOtGenderLockPolicy } from './domain/otGenderLocking.js';
 
@@ -7088,59 +7092,23 @@ function boot(){
             if (disp === rawNorm || disp.includes(rawNorm) || rawNorm.includes(disp)) { ms = v; break; }
           }
         }
-        let eventMoveIds = Array.isArray(entry?.moves)
-          ? entry.moves
-          : selectedEvent?.movesBySpecies?.[originSpeciesId];
-        if ((!Array.isArray(eventMoveIds) || !eventMoveIds.length) && selectedEvent) {
-          const encounterLevel = Number(selectedEvent.defaultMetLevel || selectedEvent.current_level || 1);
-          eventMoveIds = (LEARNSETS[originSpeciesId]?.l || [])
-            .filter(([, learnedAt]) => Number(learnedAt) <= encounterLevel)
-            .map(([moveId]) => Number(moveId))
-            .slice(-4);
-        }
+        const speciesObj = SPECIES.find(species => Number(species[0]) === originSpeciesId);
+        const speciesName = speciesObj ? String(speciesObj[1]) : '';
+        const curatedMoves = getCuratedMysteryMovesForSpecies(ms, speciesName);
+        const eventMoveIds = resolveMysteryMoveIds({
+          entryMoves: entry?.moves,
+          eventMoves: selectedEvent?.movesBySpecies?.[originSpeciesId],
+          curatedMoves,
+          levelUpMoves: selectedEvent ? (LEARNSETS[originSpeciesId]?.l || []) : [],
+          encounterLevel: selectedEvent
+            ? Number(selectedEvent.defaultMetLevel || selectedEvent.current_level || 1)
+            : undefined,
+        });
         if (Array.isArray(eventMoveIds) && eventMoveIds.length) {
           for (let i = 0; i < 4; i++) {
             const el = $(`#move${i+1}`);
             if (!el) continue;
             el.value = eventMoveIds[i] ? String(eventMoveIds[i]) : '';
-            try { el.dispatchEvent(new Event('change')); } catch (e) {}
-          }
-        } else if (ms && ms.moves) {
-          const speciesObj = SPECIES.find(s => Number(s[0]) === originSpeciesId);
-          const speciesName = speciesObj ? String(speciesObj[1]) : null;
-          // Try direct lookup by species name, then fallback to normalized name matching
-          const normalizeName = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-          let moves = [];
-          if (speciesName && ms.moves[speciesName]) {
-            moves = ms.moves[speciesName] || [];
-          } else if (speciesName) {
-            const target = normalizeName(speciesName);
-            const candidateKey = Object.keys(ms.moves || {}).find(k => {
-              const nk = normalizeName(k);
-              return nk === target || nk.includes(target) || target.includes(nk);
-            });
-            if (candidateKey) moves = ms.moves[candidateKey] || [];
-          }
-          if (!moves.length && String(rawTag || '').toUpperCase() === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') {
-            moves = [
-              { index: 33 }, // Tackle
-              { index: 45 }, // Growl
-              { index: 39 }  // Tail Whip
-            ];
-          }
-          for (let i = 0; i < 4; i++) {
-            const el = $(`#move${i+1}`);
-            if (!el) continue;
-            const mv = moves[i];
-            if (!mv) {
-              el.value = '';
-            } else if (mv.index !== undefined) {
-              el.value = String(mv.index);
-            } else if (typeof mv === 'number') {
-              el.value = String(mv);
-            } else {
-              el.value = '';
-            }
             try { el.dispatchEvent(new Event('change')); } catch (e) {}
           }
         } else if (String(rawTag || '').toUpperCase() === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') {
