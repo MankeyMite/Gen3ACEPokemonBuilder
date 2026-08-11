@@ -62,7 +62,7 @@
     .japanese-page-key .code-char-japanese-space{margin-right:.3em;vertical-align:-.12em}
     @media (max-width:900px){
       .setup-selectors{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .setup-device-field{grid-column:1 / -1}
+      .setup-language-field{grid-column:1 / -1}
     }
     @media (max-width:640px){
       .container{margin:0 auto;padding:10px}
@@ -118,29 +118,28 @@
               <option value="EM">Emerald</option>
               <option value="FR">FireRed</option>
               <option value="LG">LeafGreen</option>
-              <option value="FRSW">FireRed Switch</option>
-              <option value="LGSW">LeafGreen Switch</option>
               <option value="R">Ruby</option>
               <option value="S">Sapphire</option>
             </select>
           </div>
           <div class="setup-selector-field">
-            <label class="guide-version-title" for="languageSelect">Language / version:</label>
-            <select id="languageSelect" class="setup-select" autocomplete="off" disabled>
-              <option value="">Select a game first</option>
-            </select>
-          </div>
-          <div class="setup-selector-field setup-device-field">
-            <label class="guide-version-title" for="deviceSelect">Device / emulator:</label>
+            <label class="guide-version-title" for="deviceSelect">Platform / emulator:</label>
             <select id="deviceSelect" class="setup-select" autocomplete="off" disabled>
               <option id="deviceSelectPlaceholder" value="">Select a game first</option>
-              <option value="modern">Console / mGBA</option>
+              <option value="modern">GBA / Nintendo DS / mGBA</option>
+              <option value="switch">Nintendo Switch</option>
               <option value="old">Old Emulator</option>
               <option value="myboy">MyBoy Emulator</option>
             </select>
           </div>
+          <div class="setup-selector-field setup-language-field">
+            <label class="guide-version-title" for="languageSelect">Language:</label>
+            <select id="languageSelect" class="setup-select" autocomplete="off" disabled>
+              <option value="">Select a game first</option>
+            </select>
+          </div>
         </div>
-        <p id="guideVersionNote" class="guide-version-note">Select your game first, then choose its exact language and revision.</p>
+        <p id="guideVersionNote" class="guide-version-note">Select your game first, then your platform or emulator, and finally your language.</p>
       </div>
       <details id="instructions" class="instructions">
         <summary>Instructions — click me first!</summary>
@@ -161,7 +160,7 @@
               <li>Box 10 slot 22 is empty.</li>
             </ul>
 
-            <p>Choose your setup using the Device / emulator menu above. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+            <p>Choose your setup using the Platform / emulator menu above. A Game Boy Advance, Nintendo DS with a real cartridge, or mGBA version 0.9 or newer uses "GBA / Nintendo DS / mGBA". Most other emulators use "Old Emulator".</p>
             <p>You may now start typing the first code. Then execute it and keep going with the next codes until your setup is complete.</p>
           </div>
 
@@ -181,7 +180,7 @@
               <li>Box 10 slot 22 is empty.</li>
             </ul>
 
-            <p>Choose your setup using the Device / emulator menu above. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+            <p>Choose your setup using the Platform / emulator menu above. A Game Boy Advance, Nintendo DS with a real cartridge, or mGBA version 0.9 or newer uses "GBA / Nintendo DS / mGBA". Choose "Nintendo Switch" when playing the Switch release. Most other emulators use "Old Emulator".</p>
             <p>You may now start typing the first code. Then execute it and keep going with the next codes until your setup is complete.</p>
           </div>
 
@@ -218,7 +217,7 @@
               <li>Box 10 slot 22 is empty.</li>
             </ul>
 
-            <p>Choose your setup using the Device / emulator menu above. Any Nintendo console with a real cartridge or mGBA emulator version 0.9 or newer is considered "Console", and most other emulators are considered "Old Emulator".</p>
+            <p>Choose your setup using the Platform / emulator menu above. A Game Boy Advance, Nintendo DS with a real cartridge, or mGBA version 0.9 or newer uses "GBA / Nintendo DS / mGBA". Most other emulators use "Old Emulator".</p>
             <p>You may now start typing the first code. Then execute it and keep going with the next codes until your setup is complete.</p>
           </div>
 
@@ -474,8 +473,6 @@
         EM: emeraldLanguageOptions,
         FR: frlgLanguageOptions,
         LG: frlgLanguageOptions,
-        FRSW: fireRedSwitchLanguageOptions,
-        LGSW: leafGreenSwitchLanguageOptions,
         R: rsLanguageOptions,
         S: rsLanguageOptions
       };
@@ -483,8 +480,6 @@
         EM: 'Emerald',
         FR: 'FireRed',
         LG: 'LeafGreen',
-        FRSW: 'FireRed Switch',
-        LGSW: 'LeafGreen Switch',
         R: 'Ruby',
         S: 'Sapphire'
       };
@@ -543,7 +538,7 @@
          ============================================================ */
       var selectedGame = '';
       var selectedLanguage = '';
-      var selectedMode = null;  // 'modern', 'old', or 'myboy'
+      var selectedMode = null;  // 'modern', 'switch', 'old', or 'myboy'
       var instructionsAcknowledged = false;
 
       /* ============================================================
@@ -573,9 +568,18 @@
       }
 
       function selectedLanguageLabel(){
-        var options = languageOptionsByGame[selectedGame] || [];
+        var options = currentLanguageOptions();
         var match = options.find(function(option){ return option.value === selectedLanguage; });
         return match ? match.label : '';
+      }
+
+      function currentLanguageOptions(){
+        if(isFRLGSwitchGame()){
+          return selectedGame === 'FR'
+            ? fireRedSwitchLanguageOptions
+            : leafGreenSwitchLanguageOptions;
+        }
+        return languageOptionsByGame[selectedGame] || [];
       }
 
       function usesJapaneseKeyboard(){
@@ -586,12 +590,16 @@
         return selectedGame === 'EM' && usesJapaneseKeyboard();
       }
 
-      function isFRLGGame(){
+      function isBaseFRLGGame(){
         return selectedGame === 'FR' || selectedGame === 'LG';
       }
 
       function isFRLGSwitchGame(){
-        return selectedGame === 'FRSW' || selectedGame === 'LGSW';
+        return isBaseFRLGGame() && selectedMode === 'switch';
+      }
+
+      function isFRLGGame(){
+        return isBaseFRLGGame() && !isFRLGSwitchGame();
       }
 
       function isRSGame(){
@@ -600,6 +608,10 @@
 
       function isMyBoyAllowedGame(){
         return !usesJapaneseKeyboard() && (selectedGame === 'EM' || isFRLGGame());
+      }
+
+      function isMyBoySupportedGame(){
+        return selectedGame === 'EM' || isBaseFRLGGame();
       }
 
       function isMyBoyMode(){
@@ -615,14 +627,14 @@
       // Game key for Box 6 / nickname lookups
       function effectiveGameKey(){
         if(isRSGame()) return selectedBaseLanguage() === 'en' ? 'RS_EN' : 'RS_NEL';
-        if(isFRLGGame()) return 'FRLG';
         if(isFRLGSwitchGame()) return 'FRLGSW';
+        if(isFRLGGame()) return 'FRLG';
         return selectedGame;
       }
 
       // Whether all required selections are made
       function isReady(){
-        if(!selectedGame || !selectedLanguage || !instructionsAcknowledged) return false;
+        if(!selectedGame || !selectedMode || !selectedLanguage || !instructionsAcknowledged) return false;
         if(isJapaneseGuide()) return true;
         if(isFRLGSwitchGame()) return true;
         if(selectedMode === 'myboy' && !isMyBoyAllowedGame()) return false;
@@ -645,13 +657,13 @@
           };
         }
         if(isFRLGSwitchGame()){
-          var switchPayloads = selectedGame === 'FRSW'
+          var switchPayloads = selectedGame === 'FR'
             ? fireRedSwitchDexRegPayloads
             : leafGreenSwitchDexRegPayloads;
           var switchRows = switchPayloads[selectedLanguage];
           return switchRows ? {
             rows: switchRows,
-            label: gameNames[selectedGame] + ' — ' + selectedLanguageLabel()
+            label: gameNames[selectedGame] + ' Switch — ' + selectedLanguageLabel()
           } : null;
         }
         return null;
@@ -996,7 +1008,7 @@
         html3 += '<li>Move WELDR to box 14 slot 28</li>';
         html3 += '<li>Catch any Pokemon and name it "' + escHTML(nickname) + '"</li>';
         html3 += '<li>Place this in box 14 slot 29.</li>';
-        html3 += isRSGame() || (selectedGame === 'LGSW' && selectedLanguage === 'eng10')
+        html3 += isRSGame() || (isFRLGSwitchGame() && selectedGame === 'LG' && selectedLanguage === 'eng10')
           ? '<li>DONE! Now go to the Test code tab to finish the setup.</li>'
           : '<li>DONE! Now go to the DexReg payload tab to finish the setup.</li>';
         html3 += '</ul></div>';
@@ -1079,7 +1091,7 @@
       }
 
       /* ============================================================
-         MODE BUTTONS + GAME SELECT
+         SETUP SELECTORS
          ============================================================ */
 
       // Instructions acknowledgement gate
@@ -1102,13 +1114,20 @@
 
       function updateModeOptionVisibility(){
         if(!deviceSelect) return;
+        var switchOption = deviceSelect.querySelector('option[value="switch"]');
         var myBoyOption = deviceSelect.querySelector('option[value="myboy"]');
+        var switchAllowed = isBaseFRLGGame();
+        var myBoyAllowed = isMyBoySupportedGame();
+        if(switchOption){
+          switchOption.hidden = !switchAllowed;
+          switchOption.disabled = !switchAllowed;
+        }
         if(myBoyOption){
-          var myBoyAllowed = isMyBoyAllowedGame();
           myBoyOption.hidden = !myBoyAllowed;
           myBoyOption.disabled = !myBoyAllowed;
-          if(!myBoyAllowed && selectedMode === 'myboy') selectedMode = null;
         }
+        if(!switchAllowed && selectedMode === 'switch') selectedMode = null;
+        if(!myBoyAllowed && selectedMode === 'myboy') selectedMode = null;
       }
 
       function updateTabFlowArrows(){
@@ -1155,99 +1174,71 @@
         updateTabFlowArrows();
       }
 
-      function populateLanguageOptions(game){
+      function populateLanguageOptions(){
         if(!languageSelect) return;
         languageSelect.innerHTML = '';
         var placeholder = document.createElement('option');
         placeholder.value = '';
-        placeholder.textContent = game ? 'Select language / version' : 'Select a game first';
+        placeholder.textContent = !selectedGame
+          ? 'Select a game first'
+          : (!selectedMode
+            ? 'Select a platform first'
+            : (isFRLGGame() ? 'Select language / version' : 'Select a language'));
         languageSelect.appendChild(placeholder);
 
-        var options = languageOptionsByGame[game] || [];
+        var options = selectedGame && selectedMode ? currentLanguageOptions() : [];
         options.forEach(function(optionData){
           var option = document.createElement('option');
           option.value = optionData.value;
-          option.textContent = optionData.label;
-          option.disabled = !!optionData.disabled;
+          var unavailableForMyBoy = selectedMode === 'myboy' && optionData.value.indexOf('jap') === 0;
+          option.textContent = unavailableForMyBoy
+            ? 'Japanese — not available for MyBoy'
+            : optionData.label;
+          option.disabled = !!optionData.disabled || unavailableForMyBoy;
           languageSelect.appendChild(option);
         });
-        languageSelect.disabled = !game;
+        languageSelect.disabled = !selectedGame || !selectedMode;
         languageSelect.value = '';
       }
 
       function refreshModeUI(){
+        updateModeOptionVisibility();
         var japaneseGuide = isJapaneseGuide();
         var isFRLGSwitch = isFRLGSwitchGame();
+        var setupLabel = (gameNames[selectedGame] || '')
+          + (isFRLGSwitch ? ' — Nintendo Switch' : '')
+          + (selectedLanguage ? ' — ' + selectedLanguageLabel() : '');
+        if(deviceSelect){
+          deviceSelect.disabled = !selectedGame;
+          deviceSelect.value = selectedMode || '';
+        }
+        if(deviceSelectPlaceholder){
+          deviceSelectPlaceholder.textContent = selectedGame
+            ? 'Select a platform / emulator'
+            : 'Select a game first';
+        }
+        if(languageSelect) languageSelect.disabled = !selectedGame || !selectedMode;
         if(languageSelect) languageSelect.value = selectedLanguage;
         if(guideVersionNote){
           if(!selectedGame){
-            guideVersionNote.textContent = 'Select your game first, then choose its exact language and revision.';
+            guideVersionNote.textContent = 'Select your game first, then your platform or emulator, and finally your language.';
+          } else if(!selectedMode){
+            guideVersionNote.textContent = 'Now choose the platform or emulator you use for ' + (gameNames[selectedGame] || 'your game') + '.';
           } else if(!selectedLanguage){
-            guideVersionNote.textContent = 'Now select the language and revision for ' + (gameNames[selectedGame] || 'your game') + '.';
+            guideVersionNote.textContent = isFRLGSwitch
+              ? 'Now select the language for ' + (gameNames[selectedGame] || 'your game') + ' on Nintendo Switch.'
+              : 'Now select the language' + (isFRLGGame() ? ' and revision' : '') + ' for ' + (gameNames[selectedGame] || 'your game') + '.';
           } else if(japaneseGuide && !instructionsAcknowledged){
             guideVersionNote.textContent = 'Emerald — Japanese selected. Now open Instructions — click me first.';
           } else if(japaneseGuide){
             guideVersionNote.textContent = 'Emerald — Japanese selected. This uses the Japanese Emerald setup and DexReg payload.';
-          } else if(!isFRLGSwitch && !selectedMode){
-            guideVersionNote.textContent = (gameNames[selectedGame] || '') + ' — ' + selectedLanguageLabel() + ' selected. Now choose your device or emulator.';
           } else if(!instructionsAcknowledged){
-            guideVersionNote.textContent = (gameNames[selectedGame] || '') + ' — ' + selectedLanguageLabel() + ' selected. Now open Instructions — click me first.';
-          } else if(isRSGame()){
-            guideVersionNote.textContent = (gameNames[selectedGame] || 'Ruby/Sapphire') + ' — ' + selectedLanguageLabel() + ' selected.';
+            guideVersionNote.textContent = setupLabel + ' selected. Now open Instructions — click me first.';
           } else {
-            guideVersionNote.textContent = (gameNames[selectedGame] || '') + ' — ' + selectedLanguageLabel() + ' selected.';
+            guideVersionNote.textContent = setupLabel + ' selected.';
           }
         }
-        updateModeOptionVisibility();
         updateTabVisibility();
-
-        if(!selectedGame || !selectedLanguage){
-          if(deviceSelect){
-            deviceSelect.disabled = true;
-            deviceSelect.value = '';
-          }
-          if(deviceSelectPlaceholder){
-            deviceSelectPlaceholder.textContent = selectedGame ? 'Select a language first' : 'Select a game first';
-          }
-          tabs.forEach(function(t){ t.setAttribute('disabled','true'); });
-          tabs.forEach(function(t){ t.classList.remove('active'); });
-          panels.forEach(function(p){ p.style.display='none'; });
-          return;
-        }
-
-        if(japaneseGuide){
-          if(deviceSelect){
-            deviceSelect.disabled = true;
-            deviceSelect.value = '';
-          }
-          if(deviceSelectPlaceholder) deviceSelectPlaceholder.textContent = 'Not required for this setup';
-          if(!isReady()){
-            tabs.forEach(function(t){ t.setAttribute('disabled','true'); });
-            tabs.forEach(function(t){ t.classList.remove('active'); });
-            panels.forEach(function(p){ p.style.display='none'; });
-          } else {
-            tabs.forEach(function(t){ t.removeAttribute('disabled'); });
-          }
-          return;
-        }
-
-        // FR/LG Switch: no emulator mode selection is needed.
-        if(isFRLGSwitch){
-          if(deviceSelect){
-            deviceSelect.disabled = true;
-            deviceSelect.value = '';
-          }
-          if(deviceSelectPlaceholder) deviceSelectPlaceholder.textContent = 'Not required for this setup';
-          tabs.forEach(function(t){ t.removeAttribute('disabled'); });
-          return;
-        }
-
-        // All other games require an emulator mode.
-        if(deviceSelect){
-          deviceSelect.disabled = false;
-          deviceSelect.value = selectedMode || '';
-        }
-        if(deviceSelectPlaceholder) deviceSelectPlaceholder.textContent = 'Select a device / emulator';
 
         if(!isReady()){
           tabs.forEach(function(t){ t.setAttribute('disabled','true'); });
@@ -1301,33 +1292,28 @@
         else instrEM.style.display = '';
       }
 
-      // Language/revision selector is enabled only after a game is chosen.
+      // Language/revision selector is enabled only after game and platform.
       if(languageSelect){
         languageSelect.addEventListener('change', function(){
           selectedLanguage = languageSelect.value || '';
-          selectedMode = null;
-          if(deviceSelect) deviceSelect.value = '';
           tabs.forEach(function(t){ t.classList.remove('active'); });
           panels.forEach(function(p){ p.style.display = 'none'; });
           updateInstructionsForGame();
           refreshModeUI();
-          if(isJapaneseGuide() || isFRLGSwitchGame()){
-            if(isFRLGSwitchGame()) selectedMode = 'modern';
-            refreshModeUI();
-            if(isReady()){
-              renderAllPanels();
-              ensureActiveTab();
-            }
-          }
+          activateAndRender();
         });
       }
 
-      // Device / emulator selector
+      // Platform / emulator selector
       if(deviceSelect){
         deviceSelect.addEventListener('change', function(){
           selectedMode = deviceSelect.value || null;
+          selectedLanguage = '';
+          populateLanguageOptions();
+          tabs.forEach(function(t){ t.classList.remove('active'); });
+          panels.forEach(function(p){ p.style.display = 'none'; });
+          updateInstructionsForGame();
           refreshModeUI();
-          activateAndRender();
         });
       }
 
@@ -1337,7 +1323,8 @@
           selectedGame = gameSelect.value || '';
           selectedLanguage = '';
           selectedMode = null;
-          populateLanguageOptions(selectedGame);
+          updateModeOptionVisibility();
+          populateLanguageOptions();
           if(deviceSelect) deviceSelect.value = '';
           tabs.forEach(function(t){ t.classList.remove('active'); });
           panels.forEach(function(p){ p.style.display = 'none'; });
@@ -1363,7 +1350,7 @@
          ============================================================ */
       // Always begin with the required game-first selection order.
       if(gameSelect) gameSelect.value = '';
-      populateLanguageOptions('');
+      populateLanguageOptions();
       updateInstructionsForGame();
       refreshModeUI();
     })();
