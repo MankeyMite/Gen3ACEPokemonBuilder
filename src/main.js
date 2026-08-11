@@ -73,6 +73,10 @@ import {
 import { canSelectJapaneseLanguage } from './domain/languageAvailability.js';
 import { getOtGenderLockPolicy } from './domain/otGenderLocking.js';
 import {
+  getDefaultMoveIdsForSpecies,
+  getSelectableMovesForSpecies,
+} from './domain/smeargleMoveRules.js';
+import {
   resolveImportedProgression,
   resolveShowdownAbilitySlot,
 } from './domain/importedPokemon.js';
@@ -2894,7 +2898,19 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
     baseMoves = MOVES.filter(([id]) => id === 0 || allowedMoveIds.has(id));
     effectivePreserveValue = false;
   }
+  if (!manualOverrideActive) {
+    baseMoves = getSelectableMovesForSpecies(speciesId, baseMoves, MOVES);
+  }
   baseMoves = sortMoveListAlphabetically(baseMoves);
+
+  // A fresh Smeargle selection starts with Sketch in move slot 1. Imported,
+  // Mystery Gift, and CXD presets pass preserveValue so their moves stay intact.
+  const defaultMoveIds = preserveValue ? null : getDefaultMoveIdsForSpecies(speciesId);
+  if (defaultMoveIds) {
+    moveAutocompletes.forEach((ac, index) => {
+      if (ac) ac.value = defaultMoveIds[index] ? String(defaultMoveIds[index]) : '';
+    });
+  }
 
   // For each slot, exclude moves already chosen in other slots to
   // prevent the same move from being selected twice.
