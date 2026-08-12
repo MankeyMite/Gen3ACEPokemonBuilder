@@ -78,8 +78,10 @@ const MANUAL_BOUNDARY_ONLY = new Set([
  * Strong slurs, severe profanity, etc.
  */
 const MANUAL_STRONG_SUBSTRING = new Set([
+  'bv',
   'dp',
   'fag',
+  'sex',
   'shit',
   'fuck',
   'cunt',

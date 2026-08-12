@@ -41,10 +41,12 @@ function section(name) {
 const TEST_PATTERNS = [
   '^ass$',        // exact → boundary-only
   '^sa$',         // exact → boundary-only
+  '^bv$',         // exact in PKHeX, but manually overridden to strong
   '^dp$',         // exact in PKHeX, but manually overridden to strong
   '.*wix.*',      // substring len 3 -> boundary (digit-bridged regression case)
   '.*kz.*',       // substring len 2 -> boundary (Nintendo digit-isolated behavior)
   '.*fag.*',      // substring, len 3, but manually overridden to strong
+  '.*sex.*',      // substring, len 3, but manually overridden to strong
   '.*dick.*',     // substring, len 4, manually overridden to strong
   '.*shit.*',     // substring, len 4 → strong
   '.*fuck.*',     // substring, len 4 → strong
@@ -164,8 +166,10 @@ section('classifyPattern');
 
 assert(classifyPattern('^ass$').ruleClass === 'boundary', '^ass$ → boundary (exact match)');
 assert(classifyPattern('^sa$').ruleClass === 'boundary', '^sa$ → boundary (exact match)');
+assert(classifyPattern('^bv$').ruleClass === 'strong', '^bv$ → strong (manual override)');
 assert(classifyPattern('^dp$').ruleClass === 'strong', '^dp$ → strong (manual override)');
 assert(classifyPattern('.*fag.*').ruleClass === 'strong', '.*fag.* → strong (manual override)');
+assert(classifyPattern('.*sex.*').ruleClass === 'strong', '.*sex.* → strong (manual override)');
 assert(classifyPattern('.*shit.*').ruleClass === 'strong', '.*shit.* → strong (manual override)');
 assert(classifyPattern('.*fuck.*').ruleClass === 'strong', '.*fuck.* → strong (manual override)');
 assert(classifyPattern('.*asshole.*').ruleClass === 'strong', '.*asshole.* → strong (len > 3)');
@@ -247,6 +251,16 @@ section('Full filter: "dp" (strong override)');
 assert(filter.check('dp') === true, '"dp" = banned');
 assert(filter.check('tetdp') === true, '"tetdp" = banned');
 assert(filter.check('t0?et7dP') === true, '"t0?et7dP" = banned (digit/separator bridged)');
+
+section('Full filter: "bv" (strong override)');
+
+assert(filter.check('bv') === true, '"bv" = banned');
+assert(filter.check('b42?v9C?') === true, '"b42?v9C?" = banned (digit/separator bridged)');
+
+section('Full filter: "sex" (strong override)');
+
+assert(filter.check('sex') === true, '"sex" = banned');
+assert(filter.check('s1?e2x3A') === true, '"s1?e2x3A" = banned (digit/separator bridged)');
 
 // ═══════════════════════════════════════════════════════════════════════
 // Full filter integration — "asshole" (strong substring)
