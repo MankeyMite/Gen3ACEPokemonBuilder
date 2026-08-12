@@ -936,6 +936,7 @@ let importedRoundTripBytes = null;
 let importedRoundTripDirty = true;
 let suppressImportedDirtyTracking = false;
 let outputCodeTarget = 'console';
+const manualSwitchSymbolBoxes = new Set();
 let importedPokerusState = null;
 let pokerusDropdownDirty = false;
 const makeShinyUndoStateByMode = {};
@@ -9591,7 +9592,12 @@ function boot(){
     setOutputTroubleshootingVisible(true);
   }
 
-  $('#generateBtn').addEventListener('click', onGenerate);
+  $('#generateBtn').addEventListener('click', () => {
+    resetManualSwitchBoxConversion();
+    onGenerate();
+  });
+  $('#convertSwitchBoxBtn')?.addEventListener('click', convertSelectedSwitchBox);
+  $('#undoSwitchBoxConversionsBtn')?.addEventListener('click', undoSwitchBoxConversions);
   $('#copyHexBtn').addEventListener('click', ()=> {
     copy($('#hexOutput').value);
     showCopyConfirmation('copyHexCheck');
@@ -11474,14 +11480,95 @@ function updateBase64SafetyWarnings(b64Text, substitutionUsed) {
   }
 }
 
+function getBase64GenerationOptions() {
+  return {
+    switchSafe: isNintendoSwitchCodeTarget(),
+    ...(manualSwitchSymbolBoxes.size > 0
+      ? { symbolSubstitutionBoxes: [...manualSwitchSymbolBoxes].sort((a, b) => a - b) }
+      : {}),
+  };
+}
+
+function setSwitchBoxConverterStatus(message = '') {
+  const status = document.getElementById('switchBoxConverterStatus');
+  if (!status) return;
+  status.textContent = message;
+  status.hidden = !message;
+}
+
+function resetManualSwitchBoxConversion() {
+  manualSwitchSymbolBoxes.clear();
+  setSwitchBoxConverterStatus('');
+}
+
+function formatConvertedBoxList() {
+  const boxes = [...manualSwitchSymbolBoxes].sort((a, b) => a - b);
+  if (boxes.length === 0) return '';
+  if (boxes.length === 1) return `Box ${boxes[0]}`;
+  return `Boxes ${boxes.slice(0, -1).join(', ')} and ${boxes.at(-1)}`;
+}
+
+function updateSwitchBoxConverterUi() {
+  const tool = document.getElementById('switchBoxConverter');
+  const convertButton = document.getElementById('convertSwitchBoxBtn');
+  const undoButton = document.getElementById('undoSwitchBoxConversionsBtn');
+  if (!tool) return;
+
+  tool.hidden = !isNintendoSwitchCodeTarget();
+  const hasSwitchOutput = isNintendoSwitchCodeTarget() && Boolean(getBase64OutputText());
+  if (convertButton) convertButton.disabled = !hasSwitchOutput;
+  if (undoButton) undoButton.disabled = !hasSwitchOutput || manualSwitchSymbolBoxes.size === 0;
+}
+
+function convertSelectedSwitchBox() {
+  if (!isNintendoSwitchCodeTarget() || !getBase64OutputText()) return;
+
+  const select = document.getElementById('switchBlockedBoxNumber');
+  const boxNumber = Number(select?.value);
+  if (!Number.isInteger(boxNumber) || boxNumber < 1 || boxNumber > 14) return;
+
+  manualSwitchSymbolBoxes.add(boxNumber);
+  const result = onGenerate();
+  const convertedCount = Number(result?.manualSubstitutionCounts?.[boxNumber]) || 0;
+
+  if (convertedCount > 0) {
+    const noun = convertedCount === 1 ? 'capital' : 'capitals';
+    setSwitchBoxConverterStatus(
+      `Converted ${convertedCount} compatible ${noun} in Box ${boxNumber}. Active: ${formatConvertedBoxList()}. The Pokemon data is unchanged.`
+    );
+  } else {
+    manualSwitchSymbolBoxes.delete(boxNumber);
+    if (manualSwitchSymbolBoxes.size > 0) onGenerate();
+    const activeMessage = manualSwitchSymbolBoxes.size > 0
+      ? ` ${formatConvertedBoxList()} remains converted.`
+      : '';
+    setSwitchBoxConverterStatus(
+      `Box ${boxNumber} has no compatible capitals that can be converted safely.${activeMessage}`
+    );
+  }
+}
+
+function undoSwitchBoxConversions() {
+  if (!isNintendoSwitchCodeTarget() || manualSwitchSymbolBoxes.size === 0) return;
+
+  resetManualSwitchBoxConversion();
+  onGenerate();
+  setSwitchBoxConverterStatus('All manual box conversions were undone. The original generated code has been restored.');
+}
+
 function setOutputCodeTarget(target, options = {}) {
+  const previousTarget = outputCodeTarget;
   outputCodeTarget = target === 'console' ? 'console' : 'switch';
+
+  if (previousTarget !== outputCodeTarget) resetManualSwitchBoxConversion();
 
   document.querySelectorAll('.code-target-btn').forEach(btn => {
     const active = btn.dataset.codeTarget === outputCodeTarget;
     btn.classList.toggle('active', active);
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
+
+  updateSwitchBoxConverterUi();
 
   if (options.regenerate && getBase64OutputText()) {
     onGenerate();
@@ -11631,6 +11718,7 @@ function setBase64OutputText(text) {
   const output = document.getElementById('base64Output');
   if (output) output.value = value;
   renderBase64CodeDisplay(value);
+  updateSwitchBoxConverterUi();
 }
 
 function getAceCodeCharacterClass(ch) {
@@ -11720,6 +11808,7 @@ function inspectBase64DisplayCharacter(event) {
 }
 
 function clearGeneratedOutputs() {
+  resetManualSwitchBoxConversion();
   const hexOut = document.getElementById('hexOutput');
   if (hexOut) hexOut.value = '';
 
@@ -11803,7 +11892,7 @@ function onGenerate(){
     importedRoundTripBytes,
     importedRoundTripDirty,
     toFormattedHexFn: toFormattedHex,
-    toBase64Fn: (bytes) => toBase64Emerald(bytes, { switchSafe: isNintendoSwitchCodeTarget() }),
+    toBase64Fn: (bytes) => toBase64Emerald(bytes, getBase64GenerationOptions()),
   });
   if (pristineOutput) {
     $('#hexOutput').value = pristineOutput.hex;
@@ -11811,7 +11900,7 @@ function onGenerate(){
     setOutputTroubleshootingVisible(true);
     updateBase64SafetyWarnings(pristineOutput.base64Text, pristineOutput.substitutionUsed);
     hideBase64CharacterInspector();
-    return;
+    return pristineOutput;
   }
 
   // Check if button is disabled and show validation errors
@@ -11828,12 +11917,13 @@ function onGenerate(){
   const cfg = collect();
   const result = buildPokemonBytes(cfg);
   const hex = toFormattedHex(result.bytes);
-  const b64Result = toBase64Emerald(result.bytes, { switchSafe: isNintendoSwitchCodeTarget() });
+  const b64Result = toBase64Emerald(result.bytes, getBase64GenerationOptions());
   $('#hexOutput').value = hex;
   setBase64OutputText(b64Result.text);
   setOutputTroubleshootingVisible(true);
   updateBase64SafetyWarnings(b64Result.text, b64Result.substitutionUsed);
   hideBase64CharacterInspector();
+  return b64Result;
 }
 
 function enterImportedModeSilently() {

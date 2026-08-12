@@ -851,6 +851,77 @@
       transform: none;
     }
 
+    .switch-box-converter {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+      margin: 0.55rem 0;
+      padding: 0.45rem 0.6rem;
+      border: 1px solid rgba(125, 211, 252, 0.2);
+      border-radius: 8px;
+      background: rgba(10, 20, 40, 0.4);
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .switch-box-converter[hidden],
+    .switch-box-converter-status[hidden] {
+      display: none !important;
+    }
+
+    .switch-box-converter label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    .switch-box-converter select,
+    .switch-box-converter button {
+      width: auto;
+      min-height: 1.9rem;
+      margin: 0;
+      padding: 0.28rem 0.55rem;
+      font-size: 0.82rem;
+    }
+
+    .switch-box-converter-help {
+      display: inline-flex;
+      position: relative;
+      align-items: center;
+    }
+
+    .switch-box-converter-help .tooltip-icon {
+      width: 1.15rem;
+      min-height: 1.15rem;
+      height: 1.15rem;
+      padding: 0;
+      font-size: 0.72rem;
+      line-height: 1.05rem;
+    }
+
+    .switch-box-converter-help .inline-tooltip-content {
+      left: auto;
+      right: 0;
+      transform: none;
+      width: 320px;
+      max-width: min(320px, 82vw);
+    }
+
+    .switch-box-converter-help .inline-tooltip-content::after {
+      left: auto;
+      right: 0.28rem;
+      transform: none;
+    }
+
+    .switch-box-converter-status {
+      flex-basis: 100%;
+      color: #bfdbfe;
+      line-height: 1.35;
+    }
+
     .tab-content {
       display: none;
     }
@@ -2466,6 +2537,35 @@
 
       <!-- Tab content -->
       <div class="tab-content active" data-tab-content="base64">
+        <div id="switchBoxConverter" class="switch-box-converter" hidden>
+          <span>Only if Switch refuses a box name:</span>
+          <label for="switchBlockedBoxNumber">
+            Box
+            <select id="switchBlockedBoxNumber" aria-label="Blocked box number">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+              <option value="11">11</option>
+              <option value="12">12</option>
+              <option value="13">13</option>
+              <option value="14">14</option>
+            </select>
+          </label>
+          <button id="convertSwitchBoxBtn" type="button" title="Replace compatible capital letters with byte-safe symbols">Convert box</button>
+          <button id="undoSwitchBoxConversionsBtn" type="button" title="Restore all manually converted boxes" disabled>Undo conversions</button>
+          <span class="inline-tooltip switch-box-converter-help">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Convert blocked box info" aria-describedby="switchBoxConverterTooltip" aria-expanded="false">?</button>
+            <span id="switchBoxConverterTooltip" class="inline-tooltip-content" role="tooltip">Use this only when Nintendo Switch refuses a generated box name. Select that box and click Convert box. Compatible capital letters will change to symbols without changing the Pokemon data. Repeat this for every box the Switch blocks; earlier conversions will stay active. Undo conversions restores every manually converted box to the original generated code.</span>
+          </span>
+          <span id="switchBoxConverterStatus" class="switch-box-converter-status" role="status" aria-live="polite" hidden></span>
+        </div>
         <div class="box-code-output-grid">
           <div class="box-code-output-main">
             <div id="profanityWarning" class="profanity-warning" style="display:none;"></div>

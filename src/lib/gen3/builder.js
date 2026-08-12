@@ -56,6 +56,71 @@ function findTermLetterPositionsInBox(boxText, term) {
   return null;
 }
 
+const SWITCH_SYMBOL_SUBSTITUTIONS = {
+  'A': '.', 'B': '-', 'D': '\u2026', 'E': '\u201C', 'F': '\u201D',
+  'G': '\u2018', 'H': '\u2019', 'I': '\u2642', 'J': '\u2640',
+  'L': ',', 'N': '/'
+};
+const EMERALD_BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!?';
+const EMERALD_BASE64_VALUES = Object.fromEntries(
+  Array.from(EMERALD_BASE64_ALPHABET, (character, value) => [character, value])
+);
+
+// Replace one supported capital with its Switch-safe symbol while preserving
+// the decoded bytes. Symbols behave like the original Base64 value + 64, so
+// positions 2-4 in each continuous 4-character group require compensation on
+// the preceding Base64 digit. Returns false when that correction is unsafe.
+function trySubstituteBase64Character(boxes, boxIndex, charIndex) {
+  const box = boxes[boxIndex] || '';
+  const character = box[charIndex];
+  const symbol = SWITCH_SYMBOL_SUBSTITUTIONS[character];
+  if (!symbol) return false;
+
+  let streamPosition = charIndex;
+  for (let i = 0; i < boxIndex; i++) streamPosition += boxes[i].length;
+  const positionInGroup = streamPosition % 4;
+
+  if (positionInGroup === 0) {
+    boxes[boxIndex] = box.slice(0, charIndex) + symbol + box.slice(charIndex + 1);
+    return true;
+  }
+
+  let previousBoxIndex = boxIndex;
+  let previousCharIndex = charIndex - 1;
+  if (previousCharIndex < 0) {
+    previousBoxIndex--;
+    while (previousBoxIndex >= 0 && boxes[previousBoxIndex].length === 0) previousBoxIndex--;
+    if (previousBoxIndex < 0) return false;
+    previousCharIndex = boxes[previousBoxIndex].length - 1;
+  }
+
+  const previousCharacter = boxes[previousBoxIndex][previousCharIndex];
+  const previousValue = EMERALD_BASE64_VALUES[previousCharacter];
+  if (previousValue === undefined) return false;
+
+  let correctedPreviousValue;
+  if (positionInGroup === 1) {
+    correctedPreviousValue = (previousValue - 1 + 64) % 64;
+  } else if (positionInGroup === 2) {
+    correctedPreviousValue = (previousValue & 0x30) | (((previousValue & 0x0F) - 1 + 16) % 16);
+  } else {
+    correctedPreviousValue = (previousValue & 0x3C) | (((previousValue & 0x03) - 1 + 4) % 4);
+  }
+
+  const correctedPreviousCharacter = EMERALD_BASE64_ALPHABET[correctedPreviousValue];
+  if (previousBoxIndex === boxIndex) {
+    boxes[boxIndex] = box.slice(0, previousCharIndex) + correctedPreviousCharacter
+      + symbol + box.slice(charIndex + 1);
+  } else {
+    const previousBox = boxes[previousBoxIndex];
+    boxes[previousBoxIndex] = previousBox.slice(0, previousCharIndex)
+      + correctedPreviousCharacter + previousBox.slice(previousCharIndex + 1);
+    boxes[boxIndex] = box.slice(0, charIndex) + symbol + box.slice(charIndex + 1);
+  }
+
+  return true;
+}
+
 /**
  * Core Pokémon builder — SCAFFOLD VERSION
  * This builds the minimal byte layout and stubs the exact word assignments.
@@ -498,6 +563,14 @@ export function toFormattedHex(bytes){
 // Convert bytes to Base64 with Emerald ACE naming rules
 export function toBase64Emerald(bytes, options = {}){
   const switchSafe = options.switchSafe !== false;
+  const requestedSymbolBoxes = Array.isArray(options.symbolSubstitutionBoxes)
+    ? options.symbolSubstitutionBoxes
+    : [options.symbolSubstitutionBox];
+  const symbolSubstitutionBoxIndices = [...new Set(requestedSymbolBoxes
+    .map(Number)
+    .filter(boxNumber => Number.isInteger(boxNumber) && boxNumber >= 1 && boxNumber <= 14)
+    .map(boxNumber => boxNumber - 1))]
+    .sort((a, b) => a - b);
   // Standard btoa over binary string
   let bin = '';
   for(const b of bytes) bin += String.fromCharCode(b);
@@ -529,6 +602,8 @@ export function toBase64Emerald(bytes, options = {}){
   const MAX_SHIFT_PASSES = 14; // safety limit
   const shiftedBoxes = new Set();               // track which boxes were truncated
   let substitutionUsed = false;
+  let manualSubstitutionCount = 0;
+  const manualSubstitutionCounts = {};
 
   if (switchSafe) {
   for (let pass = 0; pass < MAX_SHIFT_PASSES; pass++) {
@@ -606,15 +681,6 @@ export function toBase64Emerald(bytes, options = {}){
   // with a symbol that the game's Base64 decoder treats as value + 64.
   // The +64 overflows and requires carry-compensation on the previous digit
   // depending on position within the 4-character Base64 group.
-  const SUBST_MAP = {
-    'A': '.', 'B': '-', 'D': '\u2026', 'E': '\u201C', 'F': '\u201D',
-    'G': '\u2018', 'H': '\u2019', 'I': '\u2642', 'J': '\u2640',
-    'L': ',', 'N': '/'
-  };
-  const B64_ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!?';
-  const B64_VAL = {};
-  for (let i = 0; i < B64_ALPHA.length; i++) B64_VAL[B64_ALPHA[i]] = i;
-
   for (let sPass = 0; sPass < MAX_SHIFT_PASSES; sPass++) {
     let anySubst = false;
     for (let bi = 0; bi < 14; bi++) {
@@ -630,62 +696,12 @@ export function toBase64Emerald(bytes, options = {}){
         let substituted = false;
         for (const ci of positions) {
           const ch = box[ci];
-          if (!SUBST_MAP[ch]) continue;
-
-          // Position in the total Base64 stream
-          let streamPos = 0;
-          for (let k = 0; k < bi; k++) streamPos += boxes[k].length;
-          streamPos += ci;
-
-          const posInGroup = streamPos % 4;
-
-          if (posInGroup === 0) {
-            // First character of a 4-char group — free swap, no carry
-            boxes[bi] = box.slice(0, ci) + SUBST_MAP[ch] + box.slice(ci + 1);
+          if (!SWITCH_SYMBOL_SUBSTITUTIONS[ch]) continue;
+          if (trySubstituteBase64Character(boxes, bi, ci)) {
             substitutionUsed = true;
             substituted = true;
             break;
           }
-
-          // Locate the previous character (may be in the prior box)
-          let prevBi = bi, prevCi = ci - 1;
-          if (prevCi < 0) {
-            prevBi = bi - 1;
-            while (prevBi >= 0 && boxes[prevBi].length === 0) prevBi--;
-            if (prevBi < 0) continue;
-            prevCi = boxes[prevBi].length - 1;
-          }
-
-          const prevCh = boxes[prevBi][prevCi];
-          const prevVal = B64_VAL[prevCh];
-          if (prevVal === undefined) continue; // already-substituted char
-
-          let newPrevVal;
-          if (posInGroup === 1) {
-            // Whole-digit decrement
-            newPrevVal = (prevVal - 1 + 64) % 64;
-          } else if (posInGroup === 2) {
-            // Decrement lower 4 bits, preserve upper 2 bits
-            newPrevVal = (prevVal & 0x30) | (((prevVal & 0x0F) - 1 + 16) % 16);
-          } else {
-            // posInGroup === 3 — decrement lower 2 bits, preserve upper 4 bits
-            newPrevVal = (prevVal & 0x3C) | (((prevVal & 0x03) - 1 + 4) % 4);
-          }
-
-          // Apply carry adjustment + symbol swap
-          if (prevBi === bi) {
-            // Both changes in the same box (prevCi is always ci - 1)
-            boxes[bi] = box.slice(0, prevCi) + B64_ALPHA[newPrevVal]
-                      + SUBST_MAP[ch] + box.slice(ci + 1);
-          } else {
-            const pb = boxes[prevBi];
-            boxes[prevBi] = pb.slice(0, prevCi) + B64_ALPHA[newPrevVal] + pb.slice(prevCi + 1);
-            boxes[bi] = box.slice(0, ci) + SUBST_MAP[ch] + box.slice(ci + 1);
-          }
-
-          substitutionUsed = true;
-          substituted = true;
-          break;
         }
 
         if (substituted) { anySubst = true; break; }
@@ -693,6 +709,20 @@ export function toBase64Emerald(bytes, options = {}){
       if (anySubst) break; // restart full scan
     }
     if (!anySubst) break;
+  }
+
+  // Optional user-requested fallback for a specific box the Switch still
+  // refuses. Convert every safely replaceable supported capital in that box.
+  for (const boxIndex of symbolSubstitutionBoxIndices) {
+    let boxSubstitutionCount = 0;
+    for (let ci = 0; ci < boxes[boxIndex].length; ci++) {
+      if (trySubstituteBase64Character(boxes, boxIndex, ci)) {
+        substitutionUsed = true;
+        manualSubstitutionCount++;
+        boxSubstitutionCount++;
+      }
+    }
+    manualSubstitutionCounts[boxIndex + 1] = boxSubstitutionCount;
   }
   }
 
@@ -728,7 +758,12 @@ export function toBase64Emerald(bytes, options = {}){
     output += `  Box ${idx}:${space}(${box})${annotate(box)}${shiftNote}\n`;
   });
   
-  return { text: output.trimEnd(), substitutionUsed };
+  return {
+    text: output.trimEnd(),
+    substitutionUsed,
+    manualSubstitutionCount,
+    manualSubstitutionCounts,
+  };
 }
 
 // Parse Base64 generated by this tool (raw stream or "Box N: (...)" format)

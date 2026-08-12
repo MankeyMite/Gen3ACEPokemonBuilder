@@ -75,7 +75,7 @@ Code has been split and pushed:
    Be mindful of the available spaces in box 14. You may not split a box earlier than the 4th letter of a box, as that would result in box 14 getting more than 8 characters, which is impossible. If the word is within the first four characters of a box, this method will not work.
 
 
-When splitting cannot fix it, especially if the blocked word starts in the first 4 characters of a box or appears in Box 14, you may swap certain Base64 letters for equivalent symbols. The code’s substitution map is:
+When splitting cannot fix it, especially if the blocked word starts in the first 4 characters of a box or appears in Box 14, you may swap certain Base64 letters for equivalent symbols. This only works for the capital letters listed below:
 
 
 Base64 letter -> symbol
@@ -92,7 +92,9 @@ L -> , (comma)
 N -> / (slash)
 
 
-In the rare case that the bad word does not contain any of these letters, you have to adjust some info on the Pokemon to change the code.
+When Nintendo Switch output is selected, the generator has a small Convert blocked box tool. Select the box name that the Switch refuses and click Convert box. The generator will automatically replace any compatible capital letters and make the required corrections without changing the Pokemon data. Repeat this for any other blocked boxes; earlier conversions will stay active.
+
+In the rare case that the bad word does not contain any of these capital letters, you have to adjust some info on the Pokemon to change the code.
 
 <a id="problem-other-problems"></a>
 ## Other problems

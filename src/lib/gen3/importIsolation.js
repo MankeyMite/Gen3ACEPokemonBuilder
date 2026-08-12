@@ -22,6 +22,8 @@ export function tryBuildPristineImportedOutputs({
     hex,
     base64Text: base64Result?.text || '',
     substitutionUsed: Boolean(base64Result?.substitutionUsed),
+    manualSubstitutionCount: Number(base64Result?.manualSubstitutionCount) || 0,
+    manualSubstitutionCounts: base64Result?.manualSubstitutionCounts || {},
   };
 }
 
@@ -45,7 +47,10 @@ export function shouldMarkImportedDirtyFromEvent({
     targetId === 'copyHexBtn' ||
     targetId === 'copyBase64Btn' ||
     targetId === 'codeTargetConsole' ||
-    targetId === 'codeTargetSwitch'
+    targetId === 'codeTargetSwitch' ||
+    targetId === 'switchBlockedBoxNumber' ||
+    targetId === 'convertSwitchBoxBtn' ||
+    targetId === 'undoSwitchBoxConversionsBtn'
   ) {
     return false;
   }

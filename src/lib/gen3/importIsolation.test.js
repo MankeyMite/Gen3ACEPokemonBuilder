@@ -37,6 +37,8 @@ section('pristine imported output bypass helper');
   assert(Boolean(out), 'helper should return output in pristine imported state');
   assert(out.hex === toFormattedHex(rawBytes), 'hex output should match exact imported bytes');
   assert(out.base64Text === toBase64Emerald(rawBytes).text, 'base64 output should match exact imported bytes');
+  assert(out.manualSubstitutionCount === 0, 'normal pristine output should report no manual substitutions');
+  assert(Object.keys(out.manualSubstitutionCounts).length === 0, 'normal pristine output should report no converted boxes');
 }
 
 section('edited import falls back to rebuild path helper');
@@ -96,7 +98,13 @@ section('ignored controls remain non-dirty');
 
 section('output controls remain non-dirty');
 {
-  for (const targetId of ['codeTargetConsole', 'codeTargetSwitch']) {
+  for (const targetId of [
+    'codeTargetConsole',
+    'codeTargetSwitch',
+    'switchBlockedBoxNumber',
+    'convertSwitchBoxBtn',
+    'undoSwitchBoxConversionsBtn',
+  ]) {
     const shouldDirty = shouldMarkImportedDirtyFromEvent({
       event: { isTrusted: true },
       suppressImportedDirtyTracking: false,
