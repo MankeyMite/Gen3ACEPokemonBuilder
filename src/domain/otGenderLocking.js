@@ -6,11 +6,16 @@ export function getOtGenderLockPolicy({
   mysteryTag = '',
   mysteryUsesHatcherTrainerData = false,
   mysteryUsesRecipientOtGender = false,
+  tradeOtGender,
   isEgg = false,
 } = {}) {
   if (manualOverride) return { locked: false, forcedGender: '' };
 
-  if (encounterMode === 'cxd_shadow' || encounterMode === 'cxd_trade') {
+  if (encounterMode === 'cxd_trade') {
+    return { locked: true, forcedGender: Number(tradeOtGender) === 1 ? 'female' : 'male' };
+  }
+
+  if (encounterMode === 'cxd_shadow') {
     return { locked: true, forcedGender: 'male' };
   }
 

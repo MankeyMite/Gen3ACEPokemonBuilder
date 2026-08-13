@@ -1,3 +1,9 @@
+Patch Notes - (V.0.4.6) - August 13, 2026.
+- Added every Generation III NPC in-game trade from Ruby, Sapphire, Emerald, FireRed, LeafGreen, and Pokémon XD, with fixed trainer, nickname, PID, IV, move, item, contest, encounter, and localization data where applicable.
+- updated the switch profanity filter to include some new words.
+- Improvements to the setup guide for the base64 writer
+- bugfixes
+
 Patch Notes - (V.0.4.5) - August 6. 2026.
 - Added Japanese Base64 setup guide for Emerald!
 - Improved mobile view

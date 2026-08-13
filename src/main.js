@@ -25,7 +25,7 @@ import { PROFANITY_LIST } from './data/profanity.gen3.js';
 import { createProfanityFilter } from './lib/profanityFilter.js';
 import { isValidGCTidSid } from './data/shadowEncounters.gen3.js';
 import { COLO_SHADOW_LOCKS, XD_SHADOW_LOCKS, COLO_NO_LOCK_SPECIES, XD_NO_LOCK_SPECIES } from './data/cxdLocks.gen3.js';
-import { getCXDTradeLocalizedText } from './data/cxdTrades.gen3.js';
+import { getCXDTradeLocalizedText, isCXDGeneratedTrade } from './data/cxdTrades.gen3.js';
 import {
   MYSTERY_GIFT_EVENTS_SUPPLEMENTAL,
   MYSTERY_GIFT_POKEMON_SUPPLEMENTAL,
@@ -889,7 +889,7 @@ function updateStatGraph() {
     }
 let currentEncounterMode = '';
 
-/** Return the selected XD in-game trade, or null outside trade mode. */
+/** Return the selected NPC in-game trade, or null outside trade mode. */
 function getSelectedCXDTrade() {
   if (currentEncounterMode !== 'cxd_trade') return null;
   const sel = document.getElementById('cxdTradeEncounter');
@@ -1100,6 +1100,7 @@ function hasRequiredPidFinderForPidParitySelection() {
 
 function hasRequiredCXDEncounterPidFinderSelection() {
   if ((currentEncounterMode !== 'cxd_shadow' && currentEncounterMode !== 'cxd_trade') || manualOverrideActive) return true;
+  if (currentEncounterMode === 'cxd_trade' && !isCXDGeneratedTrade(getSelectedCXDTrade())) return true;
   return pidFinderResultActive &&
     (Number($('#tid')?.value || 0) & 0xFFFF) === pidFinderOriginalTid &&
     (Number($('#sid')?.value || 0) & 0xFFFF) === pidFinderOriginalSid;
@@ -1134,6 +1135,7 @@ function isRubySapphireOriginGame(gameId) {
 function shouldValidateRSTrainerId() {
   if (manualOverrideActive) return false;
   if (currentEncounterMode === 'mystery') return false;
+  if (currentEncounterMode === 'cxd_trade' && !isCXDGeneratedTrade(getSelectedCXDTrade())) return false;
   if (currentEncounterMode === 'cxd_shadow') {
     const speciesId = Number($('#species')?.value || 0);
     const index = Number($('#shadowEncounter')?.value || 0);
@@ -1647,21 +1649,25 @@ function updateItemLockingForEgg() {
   const itemEl = $('#item');
   if (!itemEl) return;
 
-  const shouldLock = shouldApplyIsEggOverrides();
+  const trade = currentEncounterMode === 'cxd_trade' ? getSelectedCXDTrade() : null;
+  const shouldLockForEgg = shouldApplyIsEggOverrides();
+  const shouldLockForTrade = Boolean(trade && !manualOverrideActive);
+  const shouldLock = shouldLockForEgg || shouldLockForTrade;
   const inputEl = typeof itemEl.querySelector === 'function'
     ? itemEl.querySelector('input')
     : null;
 
   if (shouldLock) {
-    if (String(itemEl.value || '') !== '') {
-      itemEl.value = '';
+    const fixedValue = shouldLockForTrade ? String(Number(trade.heldItem) || '') : '';
+    if (String(itemEl.value || '') !== fixedValue) {
+      itemEl.value = fixedValue;
       try { itemEl.dispatchEvent(new Event('change')); } catch (e) {}
     }
     itemEl.disabled = true;
     itemEl.style.pointerEvents = 'none';
     itemEl.style.opacity = '0.6';
     itemEl.style.cursor = 'not-allowed';
-    itemEl.dataset.itemLockedByEgg = '1';
+    itemEl.dataset.itemLockedByPreset = '1';
     if (inputEl) {
       inputEl.disabled = true;
       inputEl.style.pointerEvents = 'none';
@@ -1670,12 +1676,12 @@ function updateItemLockingForEgg() {
     return;
   }
 
-  if (itemEl.dataset.itemLockedByEgg === '1') {
+  if (itemEl.dataset.itemLockedByPreset === '1') {
     itemEl.disabled = false;
     itemEl.style.pointerEvents = '';
     itemEl.style.opacity = '';
     itemEl.style.cursor = '';
-    delete itemEl.dataset.itemLockedByEgg;
+    delete itemEl.dataset.itemLockedByPreset;
     if (inputEl) {
       inputEl.disabled = false;
       inputEl.style.pointerEvents = '';
@@ -2079,7 +2085,7 @@ function updatePidFinderVisibility() {
     currentEncounterMode === 'static' ||
     currentEncounterMode === 'roamer' ||
     currentEncounterMode === 'cxd_shadow' ||
-    currentEncounterMode === 'cxd_trade' ||
+    (currentEncounterMode === 'cxd_trade' && isCXDGeneratedTrade(getSelectedCXDTrade())) ||
     isMysteryMethod2(mysteryMethod) ||
     mysteryMethod === 'CHANNEL' ||
     mysteryMethod === 'CXD' ||
@@ -3835,36 +3841,52 @@ function boot(){
       const trade = getSelectedCXDTrade();
       const tradeName = SPECIES.find(entry => Number(entry[0]) === speciesId)?.[1] || 'Pokémon';
       if (!trade || !getXDTradesForSpecies(speciesId).includes(trade)) {
-        errors.push('Select a valid Pokémon XD in-game trade');
+        errors.push('Select a valid in-game trade');
       } else {
         const originGame = Number($('#originGame')?.value || 0);
         const currentMetLocation = Number($('#metLocation')?.value || 0);
         const currentBall = Number($('#ball')?.value || 0);
         const currentTid = Number($('#tid')?.value || 0) & 0xFFFF;
+        const currentSid = Number($('#sid')?.value || 0) & 0xFFFF;
         const currentMoves = [1, 2, 3, 4].map(slot => Number($(`#move${slot}`)?.value || 0));
         const expectedNickname = getCXDTradeLocalizedText(trade, 'nicknameByLanguage', Number($('#language')?.value || 2));
         const expectedOtName = getCXDTradeLocalizedText(trade, 'otNames', Number($('#language')?.value || 2));
+        const expectedOtGender = Number(trade.otGender) === 1 ? 'female' : 'male';
 
-        if (originGame !== trade.originGame) errors.push('XD in-game trades must use Pokémon XD as the origin game');
-        if (currentMetLocation !== trade.location) errors.push(`${tradeName} must have its fixed XD trade met location`);
+        if (originGame !== trade.originGame) errors.push('Origin game does not match the selected in-game trade');
+        if (currentMetLocation !== trade.location) errors.push(`${tradeName} must have its fixed in-game trade met location`);
         if (metLevel !== trade.level) errors.push(`${tradeName} must be received at level ${trade.level}`);
         if (currentBall !== trade.ball) errors.push(`${tradeName} must be in a Poké Ball`);
         if (currentTid !== trade.tid) errors.push(`${tradeName} must use TID ${trade.tid}`);
-        if (!$('#fatefulEncounter')?.checked) errors.push('XD in-game trades must have Fateful Encounter set');
-        if ($('#otGender')?.value !== 'male') errors.push('XD in-game trade OT gender must be male');
-        if (expectedOtName && $('#otName')?.value !== expectedOtName) errors.push('OT name does not match the selected XD language');
-        if (trade.nicknameLocked && expectedNickname && $('#nickname')?.value !== expectedNickname) errors.push('Nickname does not match the selected XD language');
-        if (currentMoves.some((move, index) => move !== trade.moves[index])) errors.push('Moves do not match the selected XD trade');
+        if (trade.fixedSID !== undefined && currentSid !== Number(trade.fixedSID)) errors.push(`${tradeName} must use SID ${trade.fixedSID}`);
+        if (Boolean($('#fatefulEncounter')?.checked) !== Boolean(trade.fateful)) errors.push('Fateful Encounter does not match the selected trade');
+        if ($('#otGender')?.value !== expectedOtGender) errors.push('OT gender does not match the selected trade');
+        if (expectedOtName && $('#otName')?.value !== expectedOtName) errors.push('OT name does not match the selected language');
+        if (trade.nicknameLocked && expectedNickname && $('#nickname')?.value !== expectedNickname) errors.push('Nickname does not match the selected language');
+        if (currentMoves.some((move, index) => move !== Number(trade.moves[index] || 0))) errors.push('Moves do not match the selected trade preset');
 
         const pid = parsePidInput($('#pid')?.value || '0');
-        if (!pidFinderResultActive && !manualOverrideActive) {
-          errors.push('Select a CXD result with Find Legal Encounter before generating this trade');
+        if (isCXDGeneratedTrade(trade)) {
+          if (!pidFinderResultActive && !manualOverrideActive) {
+            errors.push('Select a CXD result with Find Legal Encounter before generating this trade');
+          }
+          if (pidFinderResultActive && (currentTid !== pidFinderOriginalTid || currentSid !== pidFinderOriginalSid)) {
+            errors.push('The trade trainer IDs changed after CXD result selection; select a new CXD result');
+          }
+        } else {
+          const currentIVs = {
+            hp: Number($('#ivHp')?.value || 0), atk: Number($('#ivAtk')?.value || 0),
+            def: Number($('#ivDef')?.value || 0), spa: Number($('#ivSpAtk')?.value || 0),
+            spd: Number($('#ivSpDef')?.value || 0), spe: Number($('#ivSpe')?.value || 0),
+          };
+          if ((pid >>> 0) !== (trade.fixedPID >>> 0)) errors.push(`${tradeName} must use its fixed in-game trade PID`);
+          if (Object.entries(trade.fixedIVs).some(([stat, value]) => currentIVs[stat] !== Number(value))) errors.push(`${tradeName} must use its fixed in-game trade IVs`);
+          if (Number($('#nature')?.value) !== Number(trade.fixedNature)) errors.push(`${tradeName} must use its fixed nature`);
+          if ($('#gender')?.value !== trade.fixedGender) errors.push(`${tradeName} must use its fixed gender`);
+          if (Number($('#ability')?.value) !== Number(trade.fixedAbility)) errors.push(`${tradeName} must use its fixed ability slot`);
         }
-        if (pidFinderResultActive && (currentTid !== pidFinderOriginalTid || (Number($('#sid')?.value || 0) & 0xFFFF) !== pidFinderOriginalSid)) {
-          errors.push('The trade trainer IDs changed after CXD result selection; select a new CXD result');
-        }
-        if (trade.shinyLocked && ((((pid >>> 16) ^ (pid & 0xFFFF)) ^ (currentTid ^ (Number($('#sid')?.value || 0) & 0xFFFF))) < 8)) {
-          errors.push('XD in-game trade Pokémon cannot be shiny');
+        if (trade.shinyLocked && ((((pid >>> 16) ^ (pid & 0xFFFF)) ^ (currentTid ^ currentSid)) < 8)) {
+          errors.push('This in-game trade Pokémon cannot be shiny');
         }
       }
     } else if (
@@ -5611,7 +5633,7 @@ function boot(){
       wild: {label: 'Wild-caught / evolved from wild', color: '#60a5fa', text: 'Use this for a wild-caught Pokémon or one evolved from a wild ancestor. Origin game, location, level, encounter-slot, and Method H filtering continue to use the existing wild encounter data.'},
       mystery: {label: 'Mystery Gift', color: '#ef476f', text: 'Choose the exact distribution for this Pokémon. Fixed OT, IDs, language, level, ball, fateful flag, moves, PID method, and shiny rules are applied from the existing event data.'},
       cxd_shadow: {label: 'Pokémon Colosseum / XD', color: '#a78bfa', text: 'Choose the exact Shadow, starter, gift, e-Reader, or Poké Spot encounter. Its game, level, moves, flags, and RNG method are applied automatically.'},
-      cxd_trade: {label: 'XD In-Game Trade', color: '#38bdf8', text: 'Pokémon received from an in-game trade in Pokémon XD. Fixed trade data is applied automatically; use the PID Finder with CXD method for a correlated PID, IV spread, and ability slot.'},
+      cxd_trade: {label: 'In-Game Trade', color: '#38bdf8', text: 'Choose an NPC trade from Ruby, Sapphire, Emerald, FireRed, LeafGreen, or Pokémon XD. Handheld trades apply their fixed PID, IVs, trainer, nickname, and contest data; XD trades use the CXD finder for their correlated random values.'},
       imported: {label: 'Imported', color: '#94a3b8', text: 'Pokémon imported from external data. Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from UI fields. This matters for glitched bytes the UI cannot safely represent.'}
     };
     const m = map[mode] || {label: '', color: '#94a3b8', text: ''};
@@ -5659,6 +5681,7 @@ function boot(){
       const shadowEncounter = getSelectedCXDEncounter();
       const cxdEncounter = trade || shadowEncounter;
       if (trade && !manualOverrideActive && tidEl) tidEl.value = String(trade.tid);
+      if (trade?.fixedSID !== undefined && !manualOverrideActive && sidEl) sidEl.value = String(trade.fixedSID);
       if (shadowEncounter?.tid !== undefined && !manualOverrideActive && tidEl) tidEl.value = String(shadowEncounter.tid);
       if (shadowEncounter?.fixedSID !== undefined && !manualOverrideActive && sidEl) sidEl.value = String(shadowEncounter.fixedSID);
       if (cxdEncounter && !manualOverrideActive && originGameEl) {
@@ -5676,7 +5699,7 @@ function boot(){
       const hasSeedDerivedStarterIds = pidFinderResultActive &&
         String(shadowEncounter?.pidType || '').includes('STARTER');
       const shouldLockTid = !manualOverrideActive && Boolean(hasSeedDerivedStarterIds || trade || shadowEncounter?.tid !== undefined || (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData && !Array.isArray(evt?.tidRange)));
-      const shouldLockSid = !manualOverrideActive && Boolean(hasSeedDerivedStarterIds || shadowEncounter?.fixedSID !== undefined || (!trade && currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData));
+      const shouldLockSid = !manualOverrideActive && Boolean(hasSeedDerivedStarterIds || trade?.fixedSID !== undefined || shadowEncounter?.fixedSID !== undefined || (!trade && currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData));
       const shouldLockOtName = !manualOverrideActive && Boolean(trade || shadowEncounter?.otNames || (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesHatcherTrainerData && !Array.isArray(evt?.allowedOtNames)));
       const shouldLockOriginGame = !manualOverrideActive && (
         (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesEditableOriginGame) ||
@@ -5738,6 +5761,7 @@ function boot(){
       const policy = getOtGenderLockPolicy({
         encounterMode: currentEncounterMode,
         manualOverride: manualOverrideActive,
+        tradeOtGender: getSelectedCXDTrade()?.otGender,
         mysteryTag: tag,
         mysteryUsesHatcherTrainerData: Boolean(event?.usesHatcherTrainerData),
         mysteryUsesRecipientOtGender: Boolean(event?.usesRecipientOtGender || event?.otGenderMethod === 'RECIPIENT'),
@@ -5796,8 +5820,14 @@ function boot(){
   // fixes nature and gender, and generation always refreshes ability slot 0.
   function updateCXDEncounterPersonalityLocking() {
     try {
-      const encounter = currentEncounterMode === 'cxd_shadow' ? getSelectedCXDEncounter() : null;
-      const fixed = !manualOverrideActive && encounter?.eReader ? encounter : null;
+      const encounter = currentEncounterMode === 'cxd_shadow'
+        ? getSelectedCXDEncounter()
+        : currentEncounterMode === 'cxd_trade'
+          ? getSelectedCXDTrade()
+          : null;
+      const fixed = !manualOverrideActive && (encounter?.eReader || encounter?.fixedPID !== undefined)
+        ? encounter
+        : null;
       const controls = [
         { el: $('#nature'), value: fixed?.fixedNature },
         { el: $('#gender'), value: fixed?.fixedGender },
@@ -5977,7 +6007,8 @@ function boot(){
       }
 
     if (currentEncounterMode === 'cxd_trade') {
-      if (!manualOverrideActive) el.checked = true;
+      const trade = getSelectedCXDTrade();
+      if (!manualOverrideActive && trade) el.checked = Boolean(trade.fateful);
       el.disabled = !manualOverrideActive;
       return;
     }
@@ -6403,6 +6434,9 @@ function boot(){
     const candidates = [];
     try {
       if (currentEncounterMode === 'static') candidates.push(getSelectedStaticEncounter());
+    } catch (e) {}
+    try {
+      if (currentEncounterMode === 'cxd_trade') candidates.push(getSelectedCXDTrade());
     } catch (e) {}
     try {
       if (currentEncounterMode === 'mystery') {
@@ -7428,8 +7462,8 @@ function boot(){
         { requireSelection: suppressPresetApply, preserveSelection: true }
       );
     } else if (mode === 'cxd_trade') {
-      // XD in-game trades use fixed encounter metadata but CXD-correlated
-      // PID/IV/ability generation through the PID Finder.
+      // Handheld trades use fixed personality data. XD trades share this mode
+      // but obtain their correlated PID/IV/ability values from the PID Finder.
       if (genderSelect) {
         genderSelect.style.pointerEvents = '';
         genderSelect.style.opacity = '';
@@ -7711,11 +7745,14 @@ function boot(){
     const targetSpeciesId = Number($('#species')?.value || enc.species);
     const currentLevel = getMinimumLevelForEncounterEvolution(targetSpeciesId, enc.species, enc.level);
     if (metLevelInput) metLevelInput.value = String(enc.level);
-    if (levelInput && Number(levelInput.value || 0) < currentLevel) levelInput.value = String(currentLevel);
+    if (levelInput) levelInput.value = String(currentLevel);
     computeAndSetExpFromLevel();
 
     const ballEl = $('#ball');
     if (ballEl) ballEl.value = String(enc.ball);
+
+    const itemEl = $('#item');
+    if (itemEl) itemEl.value = String(Number(enc.heldItem) || '');
 
     const fatefulCheckbox = $('#fatefulEncounter');
     if (fatefulCheckbox) fatefulCheckbox.checked = Boolean(enc.fateful);
@@ -7727,9 +7764,10 @@ function boot(){
     }
     refreshMoveExclusions();
 
+    const presetIVs = enc.fixedIVs || { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
     for (const [id, value] of [
-      ['ivHp', 31], ['ivAtk', 31], ['ivDef', 31],
-      ['ivSpAtk', 31], ['ivSpDef', 31], ['ivSpe', 31]
+      ['ivHp', presetIVs.hp], ['ivAtk', presetIVs.atk], ['ivDef', presetIVs.def],
+      ['ivSpAtk', presetIVs.spa], ['ivSpDef', presetIVs.spd], ['ivSpe', presetIVs.spe]
     ]) {
       const el = $(`#${id}`);
       if (el) el.value = String(value);
@@ -7737,8 +7775,28 @@ function boot(){
 
     const tidEl = $('#tid');
     if (tidEl) tidEl.value = String(enc.tid);
+    const sidEl = $('#sid');
+    if (sidEl && enc.fixedSID !== undefined) sidEl.value = String(enc.fixedSID);
     const otGenderEl = $('#otGender');
     if (otGenderEl) otGenderEl.value = enc.otGender === 1 ? 'female' : 'male';
+
+    if (enc.fixedPID !== undefined) {
+      const pidEl = $('#pid');
+      if (pidEl) pidEl.value = `0x${(enc.fixedPID >>> 0).toString(16).toUpperCase().padStart(8, '0')}`;
+      if ($('#nature')) $('#nature').value = String(enc.fixedNature);
+      if ($('#gender')) $('#gender').value = String(enc.fixedGender);
+      if ($('#ability')) $('#ability').value = String(enc.fixedAbility);
+    }
+
+    if (enc.contest) {
+      for (const [id, key] of [
+        ['contestCool', 'cool'], ['contestBeauty', 'beauty'], ['contestCute', 'cute'],
+        ['contestSmart', 'smart'], ['contestTough', 'tough'], ['contestSheen', 'sheen'],
+      ]) {
+        const el = $(`#${id}`);
+        if (el) el.value = String(enc.contest[key]);
+      }
+    }
     const nicknameEl = $('#nickname');
     if (nicknameEl) {
       if (enc.nicknameLocked) {
@@ -7758,6 +7816,9 @@ function boot(){
     try { updateMetLevelLocking(); } catch (e) {}
     try { updateBallLocking(); } catch (e) {}
     try { updateFatefulLocking(); } catch (e) {}
+    try { updateItemLockingForEgg(); } catch (e) {}
+    try { updateCXDEncounterPersonalityLocking(); } catch (e) {}
+    try { updatePidFinderVisibility(); } catch (e) {}
     try { updateShinyCheckboxState(); } catch (e) {}
     try { updateMakeShinyVisibility(enc); } catch (e) {}
     try { validateForm(); } catch (e) {}
@@ -7883,7 +7944,7 @@ function boot(){
   function updateGCTidSidWarning() {
     const warningEl = document.getElementById('gcTidSidWarning');
     if (!warningEl) return;
-    if (currentEncounterMode !== 'cxd_shadow' && currentEncounterMode !== 'cxd_trade') {
+    if (currentEncounterMode !== 'cxd_shadow' && !(currentEncounterMode === 'cxd_trade' && isCXDGeneratedTrade(getSelectedCXDTrade()))) {
       warningEl.style.display = 'none';
       return;
     }
@@ -7926,7 +7987,7 @@ function boot(){
   function updatePidTidSidWarning() {
     const warningEl = document.getElementById('pidTidSidWarning');
     if (!warningEl) return;
-    if (currentEncounterMode !== 'cxd_shadow' && currentEncounterMode !== 'cxd_trade') {
+    if (currentEncounterMode !== 'cxd_shadow' && !(currentEncounterMode === 'cxd_trade' && isCXDGeneratedTrade(getSelectedCXDTrade()))) {
       warningEl.style.display = 'none';
       return;
     }
@@ -8730,7 +8791,7 @@ function boot(){
         if (trade?.shinyLocked) {
           shinyCheckboxLocal.checked = false;
           shinyCheckboxLocal.disabled = true;
-          shinyCheckboxLocal.title = 'XD in-game trade Pokémon are shiny locked';
+          shinyCheckboxLocal.title = 'This in-game trade Pokémon is shiny locked';
           return;
         }
         shinyCheckboxLocal.disabled = true;
@@ -10291,7 +10352,7 @@ function initPidFinder() {
     const isBACDPF = isMysteryBACDMethod(mysteryMethod);
     const isMysteryMethod2PF = currentEncounterMode === 'mystery' && isMysteryMethod2(mysteryMethod);
     const isMysteryCXD = currentEncounterMode === 'mystery' && mysteryMethod === 'CXD';
-    const isCXDTradePF = currentEncounterMode === 'cxd_trade';
+    const isCXDTradePF = currentEncounterMode === 'cxd_trade' && isCXDGeneratedTrade(getSelectedCXDTrade());
 
     if (pfM1) pfM1.disabled = false;
     if (pfM2) pfM2.disabled = false;
@@ -10608,7 +10669,7 @@ function initPidFinder() {
     const isBACDSearch = currentEncounterMode === 'mystery' && isMysteryBACDMethod(mysteryMethod);
     const isCXD = !isChannelSearch && !isBACDSearch && (
       currentEncounterMode === 'cxd_shadow' ||
-      currentEncounterMode === 'cxd_trade' ||
+      (currentEncounterMode === 'cxd_trade' && isCXDGeneratedTrade(getSelectedCXDTrade())) ||
       (currentEncounterMode === 'static' && gameId === 15) ||
       (currentEncounterMode === 'mystery' && mysteryMethod === 'CXD')
     );
@@ -10744,7 +10805,7 @@ function initPidFinder() {
       } else if (isCXD) {
         // CXD worker: core filters + anti-shiny rerolling + team-lock data.
         // Use the SELECTED encounter to determine game-specific behaviour.
-        const isCXDTradeSearch = currentEncounterMode === 'cxd_trade';
+        const isCXDTradeSearch = currentEncounterMode === 'cxd_trade' && isCXDGeneratedTrade(getSelectedCXDTrade());
         const cxdEncounters = isCXDTradeSearch ? [] : getCXDEncountersForSpecies(speciesId);
         const selEnc = document.getElementById('shadowEncounter');
         const selIdx = selEnc ? (Number(selEnc.value) || 0) : 0;

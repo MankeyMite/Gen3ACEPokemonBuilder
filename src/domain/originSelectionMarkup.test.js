@@ -22,7 +22,9 @@ assert.match(html, /<label for="staticEncounter">Encounter<\/label>/);
 assert.match(html, /<label for="shadowEncounter">Encounter<\/label>/);
 assert.match(html, /class="internal-builder-control" id="encounterModeToggle"/);
 assert.match(html, /<select id="staticCategory" tabindex="-1"><\/select>/);
-assert.match(html, /<select id="cxdTradeEncounter" tabindex="-1"><\/select>/);
+assert.match(html, /class="row builder-exact-row show-when-cxd-trade" id="cxdTradeEncounterRow"/);
+assert.match(html, /<label for="cxdTradeEncounter">Trade<\/label>/);
+assert.match(html, /<select id="cxdTradeEncounter"><\/select>/);
 assert.match(html, /\.internal-builder-control,[\s\S]*?display:\s*none\s*!important;/);
 assert.match(html, /\.row\.builder-origin-row\s*\{[\s\S]*?display:\s*block;/);
 assert.match(html, /#pokemonOrigin\s*\{[\s\S]*?width:\s*min\(100%,\s*240px\);/);
@@ -63,6 +65,11 @@ assert.match(
   'both WISHMKR distributions should use the fixed OT gender rule',
 );
 assert.match(mainSource, /getOtGenderLockPolicy\(\{/);
+assert.match(
+  mainSource,
+  /currentEncounterMode === 'cxd_trade'\) candidates\.push\(getSelectedCXDTrade\(\)\)/,
+  'fixed trade contest condition should be the baseline for automatic Sheen calculation',
+);
 
 const selectedCXDHelperIndex = mainSource.indexOf('function getSelectedCXDEncounter()');
 const bootFunctionIndex = mainSource.indexOf('function boot()');

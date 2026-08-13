@@ -61,7 +61,7 @@ export const ORIGIN_DEFINITIONS = Object.freeze([
   },
   {
     mode: 'cxd_trade',
-    label: 'Pokémon XD In-Game Trade',
+    label: 'In-Game Trade',
     requiresExactEncounter: false,
   },
 ]);

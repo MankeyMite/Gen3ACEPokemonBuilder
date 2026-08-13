@@ -56,4 +56,20 @@ assert.deepEqual(
   'Manual Mode should unlock fixed Mystery Gift OT gender',
 );
 
+assert.deepEqual(
+  getOtGenderLockPolicy({ encounterMode: 'cxd_trade', tradeOtGender: 1 }),
+  { locked: true, forcedGender: 'female' },
+  'female handheld trade OTs should remain fixed',
+);
+assert.deepEqual(
+  getOtGenderLockPolicy({ encounterMode: 'cxd_trade', tradeOtGender: 0 }),
+  { locked: true, forcedGender: 'male' },
+  'male trade OTs should remain fixed',
+);
+assert.deepEqual(
+  getOtGenderLockPolicy({ encounterMode: 'cxd_trade', tradeOtGender: 1, manualOverride: true }),
+  { locked: false, forcedGender: '' },
+  'Manual Mode should unlock trade OT gender',
+);
+
 console.log('OT gender locking tests passed');
