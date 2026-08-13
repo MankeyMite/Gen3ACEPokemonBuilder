@@ -70,6 +70,35 @@ assert.match(
   /currentEncounterMode === 'cxd_trade'\) candidates\.push\(getSelectedCXDTrade\(\)\)/,
   'fixed trade contest condition should be the baseline for automatic Sheen calculation',
 );
+const updateMovesStart = mainSource.indexOf('function updateMovesForSpecies(');
+const updateMovesEnd = mainSource.indexOf('function refreshMoveExclusions()', updateMovesStart);
+assert.ok(updateMovesStart >= 0 && updateMovesEnd > updateMovesStart);
+const updateMovesSource = mainSource.slice(updateMovesStart, updateMovesEnd);
+assert.match(updateMovesSource, /if \(manualOverrideActive\) \{/);
+assert.doesNotMatch(
+  updateMovesSource,
+  /currentEncounterMode === 'cxd_shadow'|isCXDGeneratedTrade/,
+  'Colosseum/XD encounters must use the species move pool plus preserved preset moves',
+);
+assert.match(
+  mainSource,
+  /event\?\.fixedPID !== undefined && event\?\.fixedIVs\) return false;/,
+  'fixed Mystery Gift specimens must not require a PID Finder selection',
+);
+assert.match(mainSource, /function updateMysteryFixedSpecimenLocking\(\)/);
+assert.match(
+  mainSource,
+  /const shouldLockNature = isFixedSpecimen && event\?\.fixedNature !== undefined/,
+  'fixed Mystery Gift specimens must lock their PID-derived nature',
+);
+assert.match(mainSource, /natureEl\.dataset\.mysteryFixedNatureLock = '1'/);
+assert.match(mainSource, /abilityEl\.dataset\.mysteryFixedAbilityLock = '1'/);
+assert.match(
+  mainSource,
+  /mysteryEvent\?\.fixedPID !== undefined\s*&& fixedSpecimenLanguages\.length === 1/,
+  'a fixed specimen with one legal language must lock the language selector',
+);
+assert.match(mainSource, /langSel\.dataset\.mysteryFixedLanguageLock = '1'/);
 
 const selectedCXDHelperIndex = mainSource.indexOf('function getSelectedCXDEncounter()');
 const bootFunctionIndex = mainSource.indexOf('function boot()');

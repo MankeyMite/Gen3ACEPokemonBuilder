@@ -408,8 +408,11 @@ function updateStatGraph() {
         } catch (e) {}
       }
 
-      // Ball - try to match by option text
-      if (evt.defaultBall) {
+      // Ball - prefer an exact numeric ID, then fall back to option text.
+      if (evt.defaultBallId !== undefined) {
+        const ballSel = $('#ball');
+        if (ballSel) ballSel.value = String(evt.defaultBallId);
+      } else if (evt.defaultBall) {
         const ballSel = $('#ball');
         if (ballSel) {
           const opts = ballSel.options && typeof ballSel.options[Symbol.iterator] === 'function' ? Array.from(ballSel.options) : Array.from(ballSel.querySelectorAll ? ballSel.querySelectorAll('option') : []);
@@ -540,9 +543,35 @@ function updateStatGraph() {
         }
       } catch (e) {}
 
-      // Default PID
-      if (evt.defaultPID) {
+      // Default/fixed PID and other immutable specimen attributes.
+      if (evt.fixedPID !== undefined) {
+        const fixedPid = Number(evt.fixedPID) >>> 0;
+        const pidEl = $('#pid');
+        if (pidEl) pidEl.value = `0x${fixedPid.toString(16).toUpperCase().padStart(8, '0')}`;
+        const natureEl = $('#nature');
+        if (natureEl) natureEl.value = String(evt.fixedNature ?? (fixedPid % 25));
+        const genderEl = $('#gender');
+        if (genderEl && evt.fixedGender !== undefined) genderEl.value = String(evt.fixedGender).toLowerCase();
+        const abilityEl = $('#ability');
+        if (abilityEl && evt.fixedAbility !== undefined) {
+          const abilityValue = String(evt.fixedAbility);
+          const hasOption = Array.from(abilityEl.options || []).some(option => String(option.value) === abilityValue);
+          if (!hasOption) {
+            const baseLabel = abilityEl.options?.[0]?.textContent || `Ability slot ${Number(evt.fixedAbility) + 1}`;
+            abilityEl.insertAdjacentHTML('beforeend', `<option value="${abilityValue}">${baseLabel} (slot ${Number(evt.fixedAbility) + 1})</option>`);
+          }
+          abilityEl.value = abilityValue;
+        }
+      } else if (evt.defaultPID) {
         const pidEl = $('#pid'); if (pidEl) pidEl.value = String(evt.defaultPID);
+      }
+      if (evt.fixedIVs) {
+        $('#ivHp').value = String(evt.fixedIVs.hp);
+        $('#ivAtk').value = String(evt.fixedIVs.atk);
+        $('#ivDef').value = String(evt.fixedIVs.def);
+        $('#ivSpe').value = String(evt.fixedIVs.spe);
+        $('#ivSpAtk').value = String(evt.fixedIVs.spa);
+        $('#ivSpDef').value = String(evt.fixedIVs.spd);
       }
 
       // WISHMKR_BEST: this version of the event does not allow shinies.
@@ -1484,8 +1513,11 @@ function isChannelJirachiMysteryEventSelected() {
 
 function requiresMysteryGiftPidFinderSelection() {
   if (currentEncounterMode !== 'mystery') return false;
-  const tag = getSelectedMysteryEvent().tag;
+  const { tag, event } = getSelectedMysteryEvent();
   if (!tag || tag === 'WISHMKR_SHINY') return false;
+  // A preserved fixed specimen already supplies its authoritative PID and
+  // IVs. Running a PID search would replace the exact event identity.
+  if (event?.fixedPID !== undefined && event?.fixedIVs) return false;
   return true;
 }
 
@@ -2836,9 +2868,10 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
   const data = LEARNSETS[speciesId];
   let baseMoves;
 
-  if (manualOverrideActive || currentEncounterMode === 'cxd_shadow' || currentEncounterMode === 'cxd_trade') {
-    // Manual override / CXD encounters: show all Gen 3 moves for special sets
-    // (shadow encounters can know moves outside the normal learnset)
+  if (manualOverrideActive) {
+    // Manual Override is the only mode that exposes every Gen III move.
+    // Encounter-specific distribution/CXD moves are preserved by the preset
+    // without making unrelated moves selectable.
     baseMoves = MOVES;
   } else if (data) {
     const mode = currentEncounterMode;
@@ -4418,8 +4451,35 @@ function boot(){
         if (Array.isArray(event.allowedOtNames) && !event.allowedOtNames.includes(String($('#otName')?.value || ''))) {
           errors.push('OT name is not available for the selected Mystery Gift campaign');
         }
-        if (event.defaultBall && String(event.defaultBall).toLowerCase().includes('poke') && ball !== 4) errors.push('The selected Mystery Gift must be in a Poké Ball');
+        if (event.defaultBallId !== undefined && ball !== Number(event.defaultBallId)) {
+          errors.push('Ball does not match the selected Mystery Gift');
+        } else if (event.defaultBall && String(event.defaultBall).toLowerCase().includes('poke') && ball !== 4) {
+          errors.push('The selected Mystery Gift must be in a Poké Ball');
+        }
         if (event.defaultNoItem && Number($('#item')?.value || 0) !== 0) errors.push('The selected Mystery Gift should not hold an item');
+        if (event.fixedOTName !== undefined && String($('#otName')?.value || '') !== String(event.fixedOTName)) {
+          errors.push('OT name does not match the selected Mystery Gift');
+        }
+        if (event.nicknameLocked && event.nickname !== undefined && String($('#nickname')?.value || '') !== String(event.nickname)) {
+          errors.push('Nickname does not match the selected Mystery Gift');
+        }
+        if (event.fixedPID !== undefined) {
+          const pid = parsePidInput($('#pid')?.value || '0');
+          if ((pid >>> 0) !== (Number(event.fixedPID) >>> 0)) errors.push('PID does not match the preserved Mystery Gift specimen');
+          if (event.fixedNature !== undefined && Number($('#nature')?.value) !== Number(event.fixedNature)) errors.push('Nature does not match the preserved Mystery Gift specimen');
+          if (event.fixedGender !== undefined && String($('#gender')?.value) !== String(event.fixedGender)) errors.push('Gender does not match the preserved Mystery Gift specimen');
+          if (event.fixedAbility !== undefined && Number($('#ability')?.value) !== Number(event.fixedAbility)) errors.push('Ability slot does not match the preserved Mystery Gift specimen');
+        }
+        if (event.fixedIVs) {
+          const currentIVs = {
+            hp: Number($('#ivHp')?.value || 0), atk: Number($('#ivAtk')?.value || 0),
+            def: Number($('#ivDef')?.value || 0), spe: Number($('#ivSpe')?.value || 0),
+            spa: Number($('#ivSpAtk')?.value || 0), spd: Number($('#ivSpDef')?.value || 0),
+          };
+          if (Object.entries(event.fixedIVs).some(([stat, value]) => currentIVs[stat] !== Number(value))) {
+            errors.push('IVs do not match the preserved Mystery Gift specimen');
+          }
+        }
 
         const expectedFateful = event.fatefulInFRLGOnly
           ? [4, 5].includes(originGame)
@@ -5746,6 +5806,7 @@ function boot(){
       if (isBoxEventMysteryEventSelected()) {
         applyBoxEventMysteryLocationConstraints({ preserveCurrentNonEgg: true });
       }
+      try { updateMysteryFixedSpecimenLocking(); } catch (e) {}
       try { updateCXDEncounterPersonalityLocking(); } catch (e) {}
     } catch (e) {}
   }
@@ -5811,6 +5872,59 @@ function boot(){
         ivEl.style.pointerEvents = shouldLock ? 'none' : '';
         ivEl.style.opacity = shouldLock ? '0.6' : '';
         ivEl.style.cursor = shouldLock ? 'not-allowed' : '';
+      }
+    } catch (e) {}
+  }
+
+  // Preserved Mystery Gift specimens such as JEREMY already have an exact
+  // PID, so their nature is derived and cannot be selected independently.
+  function updateMysteryFixedSpecimenLocking() {
+    try {
+      const natureEl = $('#nature');
+      const abilityEl = $('#ability');
+      const { event } = getSelectedMysteryEvent();
+      const isFixedSpecimen = !manualOverrideActive &&
+        currentEncounterMode === 'mystery' &&
+        event?.fixedPID !== undefined;
+      const shouldLockNature = isFixedSpecimen && event?.fixedNature !== undefined;
+      const shouldLockAbility = isFixedSpecimen && event?.fixedAbility !== undefined;
+
+      if (natureEl && shouldLockNature) {
+        natureEl.value = String(event.fixedNature);
+        natureEl.disabled = true;
+        natureEl.style.pointerEvents = 'none';
+        natureEl.style.opacity = '0.6';
+        natureEl.style.cursor = 'not-allowed';
+        natureEl.title = 'Nature is fixed by this preserved specimen\'s PID.';
+        natureEl.dataset.mysteryFixedNatureLock = '1';
+      } else if (natureEl?.dataset.mysteryFixedNatureLock === '1') {
+        delete natureEl.dataset.mysteryFixedNatureLock;
+        if (natureEl.title === 'Nature is fixed by this preserved specimen\'s PID.') natureEl.title = '';
+        if (!pidFinderResultActive && natureEl.dataset.cxdEncounterFixedLock !== '1') {
+          natureEl.disabled = false;
+          natureEl.style.pointerEvents = '';
+          natureEl.style.opacity = '';
+          natureEl.style.cursor = '';
+        }
+      }
+
+      if (abilityEl && shouldLockAbility) {
+        abilityEl.value = String(event.fixedAbility);
+        abilityEl.disabled = true;
+        abilityEl.style.pointerEvents = 'none';
+        abilityEl.style.opacity = '0.6';
+        abilityEl.style.cursor = 'not-allowed';
+        abilityEl.title = 'Ability slot is fixed by this preserved specimen\'s PID.';
+        abilityEl.dataset.mysteryFixedAbilityLock = '1';
+      } else if (abilityEl?.dataset.mysteryFixedAbilityLock === '1') {
+        delete abilityEl.dataset.mysteryFixedAbilityLock;
+        if (abilityEl.title === 'Ability slot is fixed by this preserved specimen\'s PID.') abilityEl.title = '';
+        if (!pidFinderResultActive && abilityEl.dataset.cxdEncounterFixedLock !== '1') {
+          abilityEl.disabled = false;
+          abilityEl.style.pointerEvents = '';
+          abilityEl.style.opacity = '';
+          abilityEl.style.cursor = '';
+        }
       }
     } catch (e) {}
   }
@@ -5908,6 +6022,7 @@ function boot(){
     try { updateOtGenderLocking(); } catch (e) {}
     try { updateMetLevelLocking(); } catch (e) {}
     try { updateIvLocking(); } catch (e) {}
+    try { updateMysteryFixedSpecimenLocking(); } catch (e) {}
     try { updateCXDEncounterPersonalityLocking(); } catch (e) {}
     try { updateContestStatsLocking(); } catch (e) {}
     try { updateRibbonLocking(); } catch (e) {}
@@ -6223,6 +6338,16 @@ function boot(){
       const speciesId = Number($('#species')?.value || 0);
       const isMew = speciesId === 151;
       const mysteryTag = String($('#mysteryEvent')?.value || '').toUpperCase();
+      const mysteryEvent = currentEncounterMode === 'mystery'
+        ? getSelectedMysteryEvent().event
+        : null;
+      const fixedSpecimenLanguages = Array.isArray(mysteryEvent?.allowedLanguages)
+        ? [...new Set(mysteryEvent.allowedLanguages.map(Number))]
+        : [];
+      const shouldLockFixedSpecimenLanguage = !manualOverrideActive
+        && currentEncounterMode === 'mystery'
+        && mysteryEvent?.fixedPID !== undefined
+        && fixedSpecimenLanguages.length === 1;
       const shouldLockEnglishForWishmkrMystery = !manualOverrideActive
         && currentEncounterMode === 'mystery'
         && isWishmkrMysteryEventSelected();
@@ -6230,6 +6355,22 @@ function boot(){
       const shouldLockJapaneseForCelebiMystery = !manualOverrideActive
         && currentEncounterMode === 'mystery'
         && (mysteryTag === 'MITSURIN_CELEBI' || mysteryTag === 'AGETO_CELEBI');
+
+      if (shouldLockFixedSpecimenLanguage) {
+        langSel.value = String(fixedSpecimenLanguages[0]);
+        langSel.disabled = true;
+        langSel.style.pointerEvents = 'none';
+        langSel.style.opacity = '0.6';
+        langSel.style.cursor = 'not-allowed';
+        langSel.title = 'Language is fixed for this preserved specimen.';
+        langSel.dataset.mysteryFixedLanguageLock = '1';
+        return;
+      }
+
+      if (langSel.dataset.mysteryFixedLanguageLock === '1') {
+        delete langSel.dataset.mysteryFixedLanguageLock;
+        if (langSel.title === 'Language is fixed for this preserved specimen.') langSel.title = '';
+      }
 
       if (shouldLockEnglishForWishmkrMystery) {
         langSel.value = '2';

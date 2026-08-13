@@ -23,12 +23,15 @@ const events = {};
 const pokemon = [];
 
 function addEvent(tag, event, variants = []) {
-  const normalizedVariants = variants.map(variant => ({
-    tag,
-    species: nationalToInternalSpecies(variant.national),
-    ...(variant.moves ? { moves: variant.moves.filter(Boolean) } : {}),
-    ...(variant.level ? { level: variant.level } : {}),
-  }));
+  const normalizedVariants = variants.map(variant => {
+    const { national, moves, ...details } = variant;
+    return {
+      tag,
+      species: nationalToInternalSpecies(national),
+      ...details,
+      ...(moves ? { moves: moves.filter(Boolean) } : {}),
+    };
+  });
   const species = [...new Set(normalizedVariants.map(variant => variant.species))];
   const movesBySpecies = {};
   for (const variant of normalizedVariants) {
@@ -41,6 +44,75 @@ function addEvent(tag, event, variants = []) {
   };
   pokemon.push(...normalizedVariants);
 }
+
+// Exact preserved specimens from the September 25, 2004 Toys "R" Us
+// Trade and Battle Day. These were ordinary FR/LG captures cloned onto the
+// JEREMY distribution saves, so their original PID, IVs, capture location,
+// game, Ball, moves and trainer data are all part of the preset identity.
+// Machoke and Haunter evolve during the distribution trade; the authentic
+// received specimens are therefore Machamp and Gengar.
+function addJeremySpecimen({
+  tag, label, national, level, tid, sid, otGender, originGame, location,
+  ball = 4, pid, ivs, pidMethod, nature, gender, ability, moves,
+}) {
+  addEvent(`JEREMY_${tag}`, {
+    label: `Trade and Battle Day — JEREMY ${label}`,
+    fixedEvent: true,
+    fixedTID: tid,
+    fixedSID: sid,
+    fixedOTName: 'JEREMY',
+    ot_name: 'JEREMY',
+    ot_gender: otGender,
+    nickname: label.includes('→') ? label.split('→').at(-1).trim().toUpperCase() : label.toUpperCase(),
+    nicknameLocked: true,
+    defaultLanguage: 2,
+    allowedLanguages: [2],
+    defaultOriginGame: originGame,
+    allowedOriginGames: [originGame],
+    defaultMetLocationId: location,
+    defaultMetLevel: level,
+    current_level: level,
+    defaultBall: ball === 5 ? 'Safari Ball' : 'Poké Ball',
+    defaultBallId: ball,
+    defaultNoItem: true,
+    defaultFatefulEncounter: false,
+    shinyLocked: true,
+    pidMethod,
+    fixedPID: pid >>> 0,
+    fixedIVs: { hp: ivs[0], atk: ivs[1], def: ivs[2], spe: ivs[3], spa: ivs[4], spd: ivs[5] },
+    fixedNature: nature,
+    fixedGender: gender,
+    fixedAbility: ability,
+  }, [{
+    national,
+    level,
+    moves,
+    pid: `0x${(pid >>> 0).toString(16).toUpperCase().padStart(8, '0')}`,
+    ivs,
+    nature,
+    gender,
+    ability,
+  }]);
+}
+
+const jeremySpecimens = [
+  { tag: 'EKANS', label: 'Ekans', national: 23, level: 14, tid: 24680, sid: 13330, otGender: 'female', originGame: 4, location: 111, pid: 0xE9D9B217, ivs: [26, 28, 6, 11, 14, 30], pidMethod: 'H4', nature: 6, gender: 'female', ability: 1, moves: [35, 43, 40, 44] },
+  { tag: 'VULPIX', label: 'Vulpix', national: 37, level: 18, tid: 13579, sid: 26437, otGender: 'male', originGame: 5, location: 107, pid: 0x65A0DE74, ivs: [15, 6, 3, 22, 25, 13], pidMethod: 'H4', nature: 24, gender: 'female', ability: 0, moves: [39, 46, 98, 261] },
+  { tag: 'ODDISH', label: 'Oddish', national: 43, level: 26, tid: 24680, sid: 13330, otGender: 'female', originGame: 4, location: 115, pid: 0xA23E7080, ivs: [11, 9, 31, 1, 14, 26], pidMethod: 'H4', nature: 24, gender: 'male', ability: 0, moves: [77, 78, 79, 51] },
+  { tag: 'PSYDUCK', label: 'Psyduck', national: 54, level: 27, tid: 24680, sid: 13330, otGender: 'female', originGame: 4, location: 139, pid: 0xEBAEB6DA, ivs: [31, 16, 12, 14, 29, 31], pidMethod: 'H4', nature: 9, gender: 'male', ability: 0, moves: [39, 50, 93, 103] },
+  { tag: 'GROWLITHE', label: 'Growlithe', national: 58, level: 32, tid: 24680, sid: 13330, otGender: 'female', originGame: 4, location: 135, pid: 0xD6A3173E, ivs: [11, 24, 28, 2, 1, 20], pidMethod: 'H1', nature: 17, gender: 'female', ability: 0, moves: [43, 316, 36, 172] },
+  { tag: 'MACHAMP', label: 'Machoke → Machamp', national: 68, level: 38, tid: 13579, sid: 26437, otGender: 'male', originGame: 5, location: 175, pid: 0xF48C3744, ivs: [9, 23, 25, 10, 20, 15], pidMethod: 'H4', nature: 17, gender: 'male', ability: 0, moves: [69, 193, 279, 233] },
+  { tag: 'GENGAR', label: 'Haunter → Gengar', national: 94, level: 23, tid: 13579, sid: 26437, otGender: 'male', originGame: 5, location: 140, pid: 0x227AD925, ivs: [19, 14, 0, 27, 14, 17], pidMethod: 'H1', nature: 0, gender: 'female', ability: 0, moves: [180, 174, 101, 109] },
+  { tag: 'STARYU', label: 'Staryu', national: 120, level: 18, tid: 13579, sid: 26437, otGender: 'male', originGame: 5, location: 96, pid: 0xEAAFB104, ivs: [10, 3, 22, 18, 24, 3], pidMethod: 'H4', nature: 10, gender: 'genderless', ability: 0, moves: [106, 55, 229, 105] },
+  { tag: 'TAUROS', label: 'Tauros', national: 128, level: 25, tid: 13579, sid: 26437, otGender: 'male', originGame: 5, location: 136, ball: 5, pid: 0xA5967A6D, ivs: [14, 19, 12, 26, 17, 5], pidMethod: 'H4', nature: 6, gender: 'male', ability: 0, moves: [99, 30, 184, 228] },
+];
+for (const specimen of jeremySpecimens) addJeremySpecimen(specimen);
+
+// Deliberately excluded from exact presets: no verified JEREMY Sandshrew,
+// Slowpoke or Shellder specimen is publicly preserved. The Stamp Contest
+// Pichu and Absol likewise have no verified OT/TID/PID record. Adding either
+// set would require fabricating identity data and would defeat legal-mode's
+// exact-preset guarantee.
 
 function japaneseGift(tag, label, national, level, tid, otName, moves, options = {}) {
   addEvent(tag, {
@@ -312,6 +384,7 @@ export const MYSTERY_GIFT_POKEMON_SUPPLEMENTAL = Object.freeze(pokemon);
 export const MYSTERY_GIFT_SUPPLEMENTAL_COUNTS = Object.freeze({
   events: Object.keys(events).length,
   pokemon: pokemon.length,
+  jeremy: jeremySpecimens.length,
   japaneseWC3: Object.keys(events).filter(tag => /^(JPN_|NEGAI_|TANABATA_|ANA_|POKEPARK_(MEOWTH|MEW|CELEBI|JIRACHI)|YOKOHAMA_|HADOU_|GW_|SAPPORO_|FESTA_|SUNDAY_)/.test(tag)).length,
   pcny: pcnyRows.length,
   pcjpCampaigns: pcjpCampaigns.length,

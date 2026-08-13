@@ -12,11 +12,12 @@ const rows = MYSTERY_GIFT_POKEMON_SUPPLEMENTAL;
 const validSpecies = new Set(SPECIES.map(([id]) => Number(id)).filter(Boolean));
 const tags = Object.keys(events);
 
-assert.equal(tags.length, 91, 'supplement should contain all 91 missing event variants');
-assert.equal(rows.length, 174, 'supplement should contain all 174 event/species rows');
+assert.equal(tags.length, 100, 'supplement should contain all 100 supported event variants');
+assert.equal(rows.length, 183, 'supplement should contain all 183 event/species rows');
 assert.deepEqual(MYSTERY_GIFT_SUPPLEMENTAL_COUNTS, {
-  events: 91,
-  pokemon: 174,
+  events: 100,
+  pokemon: 183,
+  jeremy: 9,
   japaneseWC3: 22,
   pcny: 50,
   pcjpCampaigns: 6,
@@ -68,5 +69,30 @@ assert.equal(events.POKEPARK_EGGS_WONDERCARD.fatefulInFRLGOnly, true);
 assert.deepEqual(events.POKEPARK_EGGS_DS_DOWNLOAD.allowedLanguages, [1, 2, 3, 4, 5, 7]);
 assert.equal(events.PCJP_GATHER_MORE_1.allowedOtNames.length, 6);
 assert.equal(events.PCJP_GATHER_MORE_6.allowedOtNames.length, 5);
+
+const jeremyTags = tags.filter(tag => tag.startsWith('JEREMY_'));
+assert.equal(jeremyTags.length, 9, 'all nine preserved JEREMY specimens should be available');
+for (const tag of jeremyTags) {
+  const event = events[tag];
+  const [row] = rows.filter(candidate => candidate.tag === tag);
+  assert.ok(['H1', 'H4'].includes(event.pidMethod), `${tag} must identify its underlying wild PID method`);
+  assert.equal(event.fixedEvent, true);
+  assert.equal(event.fixedOTName, 'JEREMY');
+  assert.deepEqual(event.allowedLanguages, [2]);
+  assert.equal(event.defaultFatefulEncounter, false);
+  assert.equal(event.shinyLocked, true);
+  assert.equal(typeof event.fixedPID, 'number');
+  assert.equal(row.pid, `0x${event.fixedPID.toString(16).toUpperCase().padStart(8, '0')}`);
+  assert.equal(row.ivs.length, 6);
+  assert.equal(row.moves.length, 4);
+}
+assert.equal(events.JEREMY_EKANS.fixedPID, 0xE9D9B217);
+assert.equal(events.JEREMY_EKANS.fixedAbility, 1, 'the preserved Ekans uses ability bit 1');
+assert.equal(events.JEREMY_EKANS.pidMethod, 'H4');
+assert.equal(events.JEREMY_GROWLITHE.pidMethod, 'H1');
+assert.equal(events.JEREMY_GENGAR.pidMethod, 'H1');
+assert.equal(events.JEREMY_TAUROS.defaultBallId, 5, 'the preserved Tauros was caught in a Safari Ball');
+assert.match(events.JEREMY_MACHAMP.label, /Machoke → Machamp/);
+assert.match(events.JEREMY_GENGAR.label, /Haunter → Gengar/);
 
 console.log('supplemental Mystery Gift tests passed');

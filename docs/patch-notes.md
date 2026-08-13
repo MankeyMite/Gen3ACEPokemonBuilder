@@ -1,4 +1,5 @@
 Patch Notes - (V.0.4.6) - August 13, 2026.
+- Added the nine preserved Trade and Battle Day JEREMY specimens as exact fixed presets, including the Machoke-to-Machamp and Haunter-to-Gengar trade evolutions.
 - Added every Generation III NPC in-game trade from Ruby, Sapphire, Emerald, FireRed, LeafGreen, and Pokémon XD, with fixed trainer, nickname, PID, IV, move, item, contest, encounter, and localization data where applicable.
 - updated the switch profanity filter to include some new words.
 - Improvements to the setup guide for the base64 writer
