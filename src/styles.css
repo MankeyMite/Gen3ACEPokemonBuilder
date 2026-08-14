@@ -70,6 +70,11 @@ body::after {
   z-index: 2;
 }
 
+/* Keep builder popovers above later page sections such as the footer. */
+main.container {
+  z-index: 3;
+}
+
 .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
 @media (max-width:1100px){.grid{grid-template-columns:1fr}}
 
@@ -124,6 +129,7 @@ h1 {
 .species-sprite {
   width: 64px;
   height: 64px;
+  transform: translateY(-4px);
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
@@ -578,7 +584,77 @@ body.encounter-roamer .shiny-external { display: none; }
   cursor: pointer;
 }
 
+/* Discreet project support link, kept in normal footer flow. */
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0;
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+.site-disclaimer {
+  max-width: 760px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  opacity: 0.74;
+}
+
+.bmc-footer-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1;
+  text-decoration: none;
+  opacity: 0.78;
+  flex-shrink: 0;
+  transition: color 0.2s ease, background-color 0.2s ease,
+              border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.bmc-footer-link:hover {
+  color: var(--text);
+  background: rgba(88, 183, 255, 0.08);
+  border-color: rgba(88, 183, 255, 0.22);
+  opacity: 1;
+}
+
+.bmc-footer-link:focus-visible {
+  color: var(--text);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+.bmc-footer-icon {
+  font-size: 0.9rem;
+}
+
 @media (max-width: 700px) {
   .pid-finder-iv-grid { grid-template-columns: repeat(3, 1fr); }
   .pid-finder-modal   { margin: 0.5rem; }
+
+  .site-footer {
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+
+  .site-disclaimer {
+    max-width: 34rem;
+    text-align: center;
+  }
 }

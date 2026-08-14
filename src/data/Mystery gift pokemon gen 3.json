@@ -91,6 +91,9 @@
       "fixedTID": 2005,
       "fixedSID": 0,
       "ot_name": "ROCKS",
+      "ribbons": {
+        "national": true
+      },
       "shinyLocked": true,
       "defaultOriginGame": 2,
       "defaultMetLocation": "(Fateful Encounter)",

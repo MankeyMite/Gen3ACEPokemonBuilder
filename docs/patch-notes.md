@@ -1,3 +1,11 @@
+Patch Notes - (V.0.4.7) - August 14, 2026.
+- Added a new encounter browser beside the Pokémon search. Pokémon can now be browsed by event distributions, in-game events, in-game trades, Pokémon Colosseum, Pokémon XD, roamers, wild encounters, and hatched or Egg origins.
+- Completely reworked Generation III ribbon legality. Legal Mode now automatically allows, requires, clears, or locks ribbons according to the selected species, exact encounter or event, met level, and Egg state.
+- Fixed PCNY distribution presets so Legal Mode consistently applies and locks their representative OT name and TID. Manual Mode can still be used for other allowed trainer combinations.
+- Improved the Pokémon selection layout so all three selectors stay aligned when a Pokémon and its sprite appear. The sprite position and responsive phone layout were also polished.
+- Shortened the builder introduction and added a small fan-made, non-affiliation disclaimer to the footer.
+- Added a discreet "Buy me a lemonade" support link to the footer.
+
 Patch Notes - (V.0.4.6) - August 13, 2026.
 - Added the nine preserved Trade and Battle Day JEREMY specimens as exact fixed presets, including the Machoke-to-Machamp and Haunter-to-Gengar trade evolutions.
 - Added every Generation III NPC in-game trade from Ruby, Sapphire, Emerald, FireRed, LeafGreen, and Pokémon XD, with fixed trainer, nickname, PID, IV, move, item, contest, encounter, and localization data where applicable.

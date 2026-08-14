@@ -43,7 +43,17 @@ for (const tag of pcnyTags) {
   assert.equal(events[tag].usesRecipientOtGender, true);
   assert.deepEqual(events[tag].tidRange, [1, 2999]);
   assert.ok(events[tag].allowedOtNames.length >= 1);
+  assert.equal(events[tag].defaultTID, 1);
+  assert.equal(events[tag].lockRepresentativeTrainer, true);
+  assert.ok(events[tag].allowedOtNames.includes(events[tag].ot_name));
   assert.ok(!('ot_gender' in events[tag]), `${tag} must use the recipient trainer gender`);
+}
+
+const pcnycTags = pcnyTags.filter(tag => events[tag].ot_name === 'PCNYc');
+assert.ok(pcnycTags.length > 0, 'the PCNYc representative distributions should be present');
+for (const tag of pcnycTags) {
+  assert.equal(events[tag].ot_name, 'PCNYc');
+  assert.equal(events[tag].defaultTID, 1);
 }
 
 assert.match(events.PCNY_DRAGON_SEADRA_ICE_BEAM.label, /Ice Beam/);
@@ -67,6 +77,7 @@ assert.equal(events.JPN_BERRY_FIX_RUBY.berryFixOtPreference, 'RUBY');
 assert.equal(events.JPN_BERRY_FIX_SAPPHIRE.berryFixOtPreference, 'SAPHIRE');
 assert.equal(events.POKEPARK_EGGS_WONDERCARD.fatefulInFRLGOnly, true);
 assert.deepEqual(events.POKEPARK_EGGS_DS_DOWNLOAD.allowedLanguages, [1, 2, 3, 4, 5, 7]);
+assert.deepEqual(events.FESTA_METANG.ribbons, { national: true });
 assert.equal(events.PCJP_GATHER_MORE_1.allowedOtNames.length, 6);
 assert.equal(events.PCJP_GATHER_MORE_6.allowedOtNames.length, 5);
 

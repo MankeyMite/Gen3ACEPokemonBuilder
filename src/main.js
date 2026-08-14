@@ -60,6 +60,12 @@ import {
   reconcileOriginForSpecies,
 } from './domain/encounterAvailability.js';
 import {
+  ENCOUNTER_BROWSE_CATEGORIES,
+  getEncounterBrowseCategory,
+  getEncounterBrowseOriginMode,
+  getSpeciesForEncounterBrowseCategory,
+} from './domain/encounterBrowser.js';
+import {
   NICKNAME_SOURCE,
   createNicknameState,
   shouldSynchronizeSpeciesNickname,
@@ -85,6 +91,12 @@ import {
   getShinyButtonPresentation,
   getShinyControlPolicy,
 } from './domain/shinyControl.js';
+import {
+  GEN3_RIBBON_CONTROLS,
+  RIBBON_LEGALITY_STATE,
+  getGen3RibbonLegality,
+  validateGen3RibbonSelection,
+} from './domain/ribbonLegality.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -1521,6 +1533,36 @@ function requiresMysteryGiftPidFinderSelection() {
   return true;
 }
 
+function getCurrentRibbonLegality() {
+  const mysteryEvent = currentEncounterMode === 'mystery'
+    ? getSelectedMysteryEvent().event
+    : null;
+  const encounter = currentEncounterMode === 'cxd_shadow'
+    ? getSelectedCXDEncounter()
+    : currentEncounterMode === 'cxd_trade'
+      ? getSelectedCXDTrade()
+      : null;
+
+  return getGen3RibbonLegality({
+    encounterMode: currentEncounterMode,
+    speciesId: Number($('#species')?.value || 0),
+    metLevel: Number($('#metLevel')?.value || 0),
+    isEgg: Boolean($('#isEgg')?.checked),
+    encounter,
+    event: mysteryEvent,
+  });
+}
+
+function readCurrentRibbonSelection() {
+  return Object.fromEntries(GEN3_RIBBON_CONTROLS.map(control => {
+    const element = document.getElementById(control.id);
+    const value = control.kind === 'rank'
+      ? Number(element?.value || 0)
+      : Boolean(element?.checked);
+    return [control.key, value];
+  }));
+}
+
 function hasRequiredMysteryGiftPidFinderSelection() {
   if (manualOverrideActive) return true;
   if (!requiresMysteryGiftPidFinderSelection()) return true;
@@ -2405,6 +2447,16 @@ function createAutocomplete(selectEl, list, opts = {}) {
         input.value = '';
       }
     }
+  };
+
+  // Select an item through the same callback/event path as a pointer or
+  // keyboard selection. Used by alternate discovery UIs such as encounter
+  // browsing so every existing species-change side effect remains intact.
+  wrapper.selectById = function(value) {
+    const item = items.find(candidate => candidate.id === String(value));
+    if (!item || isItemDisabled(item)) return false;
+    selectItem(item);
+    return true;
   };
   
   // Also expose addEventListener for compatibility
@@ -3437,6 +3489,104 @@ function boot(){
     return LOCATIONS.find(([id]) => Number(id) === Number(locationId))?.[1] || `Location ${locationId}`;
   }
 
+  function populateEncounterBrowserCategories() {
+    const select = document.getElementById('encounterBrowseCategory');
+    if (!select) return;
+    const currentValue = String(select.value || '');
+    select.innerHTML = '<option value="">Encounter type</option>';
+    for (const category of ENCOUNTER_BROWSE_CATEGORIES) {
+      const option = document.createElement('option');
+      option.value = category.id;
+      option.textContent = category.label;
+      select.appendChild(option);
+    }
+    select.value = ENCOUNTER_BROWSE_CATEGORIES.some(category => category.id === currentValue)
+      ? currentValue
+      : '';
+  }
+
+  function refreshEncounterBrowserResults() {
+    const categorySelect = document.getElementById('encounterBrowseCategory');
+    const speciesSelect = document.getElementById('encounterBrowseSpecies');
+    const status = document.getElementById('encounterBrowseStatus');
+    if (!categorySelect || !speciesSelect || !status) return;
+
+    const categoryId = String(categorySelect.value || '');
+    const category = getEncounterBrowseCategory(categoryId);
+    const previousValue = String(speciesSelect.value || '');
+    speciesSelect.innerHTML = '';
+
+    if (!category) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = 'Available Pokémon';
+      speciesSelect.appendChild(option);
+      speciesSelect.disabled = true;
+      status.textContent = 'Choose an encounter type to browse compatible Pokémon.';
+      return;
+    }
+
+    const availableSpecies = getSpeciesForEncounterBrowseCategory(categoryId, {
+      mysteryEvents: MYSTERY_EVENTS,
+      mysteryGifts: MYSTERY_GIFTS,
+    });
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = availableSpecies.length
+      ? 'Available Pokémon'
+      : 'No Pokémon available';
+    speciesSelect.appendChild(placeholder);
+    for (const [speciesId, speciesName] of availableSpecies) {
+      const option = document.createElement('option');
+      option.value = String(speciesId);
+      option.textContent = String(speciesName);
+      speciesSelect.appendChild(option);
+    }
+
+    speciesSelect.disabled = availableSpecies.length === 0;
+    const currentSpeciesId = String($('#species')?.value || '');
+    const preferredValue = availableSpecies.some(([id]) => String(id) === currentSpeciesId)
+      ? currentSpeciesId
+      : previousValue;
+    speciesSelect.value = availableSpecies.some(([id]) => String(id) === preferredValue)
+      ? preferredValue
+      : '';
+    status.textContent = `${availableSpecies.length} Pokémon: ${category.description}.`;
+  }
+
+  function syncEncounterBrowserSelection(speciesId) {
+    const speciesSelect = document.getElementById('encounterBrowseSpecies');
+    if (!speciesSelect) return;
+    const value = String(Number(speciesId) || '');
+    speciesSelect.value = Array.from(speciesSelect.options)
+      .some(option => option.value === value)
+      ? value
+      : '';
+  }
+
+  function initializeEncounterBrowser() {
+    const categorySelect = document.getElementById('encounterBrowseCategory');
+    const speciesSelect = document.getElementById('encounterBrowseSpecies');
+    if (!categorySelect || !speciesSelect) return;
+
+    populateEncounterBrowserCategories();
+    categorySelect.addEventListener('change', refreshEncounterBrowserResults);
+    speciesSelect.addEventListener('change', () => {
+      const speciesId = Number(speciesSelect.value) || 0;
+      if (!speciesId || !speciesAutocomplete?.selectById?.(speciesId)) return;
+
+      const originMode = getEncounterBrowseOriginMode(categorySelect.value);
+      const originSelect = document.getElementById('pokemonOrigin');
+      const hasOrigin = Array.from(originSelect?.options || [])
+        .some(option => option.value === originMode);
+      if (originSelect && originMode && hasOrigin) {
+        originSelect.value = originMode;
+        originSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+    refreshEncounterBrowserResults();
+  }
+
   function clearExactEncounterSelections() {
     selectedStaticEncounterDetail = null;
     const mysterySelect = document.getElementById('mysteryEvent');
@@ -3682,6 +3832,7 @@ function boot(){
       updateSpeciesSprite(speciesId);
       updateUnownFormVisibility(speciesId);
       syncPokemonFirstOriginUi(speciesId, { mode: 'imported' });
+      updateRibbonLocking();
       validateForm();
       return;
     }
@@ -3793,23 +3944,6 @@ function boot(){
         }
       }
       
-      // Check illegal ribbons for hatched mode
-      const illegalHatchedRibbons = [
-        { id: 'ribbonWorld', name: 'World' },
-        { id: 'ribbonBattleChampion', name: 'Battle Champion' },
-        { id: 'ribbonCountry', name: 'Country' },
-        { id: 'ribbonNational', name: 'National' },
-        { id: 'ribbonNationalChampion', name: 'National Champion' },
-        { id: 'ribbonRegionalChampion', name: 'Regional Champion' }
-      ];
-      
-      illegalHatchedRibbons.forEach(ribbon => {
-        const ribbonEl = $(`#${ribbon.id}`);
-        if (ribbonEl && ribbonEl.checked) {
-          errors.push(`${ribbon.name} ribbon is illegal for hatched Pokémon`);
-        }
-      });
-      
       // Hatched Pokémon must NOT have fateful encounter checked
       const fatefulCheckbox = $('#fatefulEncounter');
       if (fatefulCheckbox && fatefulCheckbox.checked) {
@@ -3842,7 +3976,6 @@ function boot(){
         }
         if (encounter.ball !== null && encounter.ball !== undefined && currentBall !== Number(encounter.ball)) errors.push(`${sourceName} must use its fixed encounter Ball`);
         if (Boolean($('#fatefulEncounter')?.checked) !== Boolean(encounter.fateful)) errors.push('Fateful Encounter does not match the selected Colosseum / XD encounter');
-        if (Boolean($('#ribbonNational')?.checked) !== Boolean(encounter.nationalRibbon)) errors.push('National Ribbon does not match the selected Colosseum / XD encounter');
         if (encounter.tid !== undefined && currentTid !== Number(encounter.tid)) errors.push(`${sourceName} must use TID ${encounter.tid}`);
         if (encounter.fixedSID !== undefined && currentSid !== Number(encounter.fixedSID)) errors.push(`${sourceName} must use SID ${encounter.fixedSID}`);
         if (encounter.fixedOtGender && $('#otGender')?.value !== encounter.fixedOtGender) errors.push('OT gender does not match the selected Colosseum / XD gift');
@@ -4199,53 +4332,6 @@ function boot(){
         errors.push('Legendary Pokémon cannot be caught in a Safari Ball');
       }
       
-      // Check illegal ribbons for legendary mode
-      // Define legendary categories
-      const xdColosseumDogs = [243, 244, 245]; // Raikou, Entei, Suicune
-      const battleFrontierAllowed = [407, 408, 144, 145, 146, 401, 402, 403]; // Latias, Latios, Articuno, Zapdos, Moltres, Regirock, Regice, Registeel
-      const battleFrontierBanned = [251, 150, 151, 406, 404, 405, 409, 410]; // Celebi, Mewtwo, Mew, Rayquaza, Kyogre, Groudon, Jirachi, Deoxys
-      
-      let illegalLegendaryRibbons = [];
-      
-      if (xdColosseumDogs.includes(speciesId)) {
-        // XD/Colosseum dogs cannot have these ribbons
-        illegalLegendaryRibbons = [
-          { id: 'ribbonWorld', name: 'World' },
-          { id: 'ribbonBattleChampion', name: 'Battle Champion' },
-          { id: 'ribbonCountry', name: 'Country' },
-          { id: 'ribbonNationalChampion', name: 'National Champion' },
-          { id: 'ribbonRegionalChampion', name: 'Regional Champion' }
-        ];
-      } else if (battleFrontierAllowed.includes(speciesId)) {
-        // Battle Frontier allowed legendaries
-        illegalLegendaryRibbons = [
-          { id: 'ribbonWorld', name: 'World' },
-          { id: 'ribbonBattleChampion', name: 'Battle Champion' },
-          { id: 'ribbonCountry', name: 'Country' },
-          { id: 'ribbonNational', name: 'National' },
-          { id: 'ribbonNationalChampion', name: 'National Champion' },
-          { id: 'ribbonRegionalChampion', name: 'Regional Champion' }
-        ];
-      } else if (battleFrontierBanned.includes(speciesId)) {
-        // Battle Frontier banned legendaries (most restrictive)
-        illegalLegendaryRibbons = [
-          { id: 'ribbonWorld', name: 'World' },
-          { id: 'ribbonBattleChampion', name: 'Battle Champion' },
-          { id: 'ribbonCountry', name: 'Country' },
-          { id: 'ribbonNational', name: 'National' },
-          { id: 'ribbonNationalChampion', name: 'National Champion' },
-          { id: 'ribbonRegionalChampion', name: 'Regional Champion' },
-          { id: 'ribbonVictory', name: 'Victory' },
-          { id: 'ribbonWinning', name: 'Winning' }
-        ];
-      }
-      
-      illegalLegendaryRibbons.forEach(ribbon => {
-        const ribbonEl = $(`#${ribbon.id}`);
-        if (ribbonEl && ribbonEl.checked) {
-          errors.push(`${ribbon.name} ribbon is illegal for this legendary Pokémon`);
-        }
-      });
     } else if (mode === 'roamer') {
       // ── Roamer legality checks ─────────────────────────────────
       if (!ROAMER_SPECIES_SET.has(speciesId)) {
@@ -4487,11 +4573,13 @@ function boot(){
         if (Boolean($('#fatefulEncounter')?.checked) !== expectedFateful) errors.push('Fateful Encounter does not match the selected Mystery Gift');
         if (event.alwaysShiny && !$('#shiny')?.checked) errors.push('The selected Mystery Gift must be shiny');
         if (event.shinyLocked && $('#shiny')?.checked) errors.push('The selected Mystery Gift cannot be shiny');
-        if (event.ribbons?.national !== undefined && Boolean($('#ribbonNational')?.checked) !== Boolean(event.ribbons.national)) {
-          errors.push('National Ribbon does not match the selected Mystery Gift');
-        }
       }
     }
+
+    errors.push(...validateGen3RibbonSelection(
+      readCurrentRibbonSelection(),
+      getCurrentRibbonLegality(),
+    ));
     
     return {
       legal: errors.length === 0,
@@ -4504,6 +4592,11 @@ function boot(){
    * Update legality status display
    */
   function updateLegalityStatus() {
+    // Legality-sensitive presets often update met level and encounter data
+    // programmatically without firing DOM change events. Re-apply ribbon
+    // policy here so every legality refresh first clears and locks ribbons
+    // against the final encounter state.
+    try { updateRibbonLocking(); } catch (e) {}
     try { updateRSTidSidWarning(); } catch (e) {}
     const result = checkLegality();
     // If a mystery preset is active and the user modified fields since the
@@ -4672,9 +4765,12 @@ function boot(){
       try { updateShinyCheckboxState(); } catch (e) {}
       try { updateMakeShinyButton(); } catch (e) {}
       // Validate form
+      syncEncounterBrowserSelection(speciesId);
       validateForm();
     }
   });
+
+  initializeEncounterBrowser();
   
   // Keep the searchable Pokémon selector independent of encounter origin.
   updateSpeciesListForMode();
@@ -5734,6 +5830,8 @@ function boot(){
       const tag = String($('#mysteryEvent')?.value || '').toUpperCase();
       const evt = (tag && MYSTERY_EVENTS && MYSTERY_EVENTS[tag]) ? MYSTERY_EVENTS[tag] : null;
       const usesHatcherTrainerData = isPcnyWishEggsMysteryTag(tag) || !!evt?.usesHatcherTrainerData;
+      const locksRepresentativeTrainer = currentEncounterMode === 'mystery' &&
+        Boolean(tag && evt?.lockRepresentativeTrainer);
       const usesEditableOriginGame = isPcnyWishEggsMysteryTag(tag) ||
         Boolean(evt?.usesHatcherTrainerData) ||
         (Array.isArray(evt?.allowedOriginGames) && evt.allowedOriginGames.length > 1);
@@ -5744,6 +5842,10 @@ function boot(){
       if (trade?.fixedSID !== undefined && !manualOverrideActive && sidEl) sidEl.value = String(trade.fixedSID);
       if (shadowEncounter?.tid !== undefined && !manualOverrideActive && tidEl) tidEl.value = String(shadowEncounter.tid);
       if (shadowEncounter?.fixedSID !== undefined && !manualOverrideActive && sidEl) sidEl.value = String(shadowEncounter.fixedSID);
+      if (locksRepresentativeTrainer && !manualOverrideActive) {
+        if (tidEl && evt?.defaultTID !== undefined) tidEl.value = String(evt.defaultTID);
+        if (otEl && evt?.ot_name) otEl.value = String(evt.ot_name);
+      }
       if (cxdEncounter && !manualOverrideActive && originGameEl) {
         const fixedOriginGame = Number(trade?.originGame ?? shadowEncounter?.originGame ?? 15);
         const originGameChanged = Number(originGameEl.value || 0) !== fixedOriginGame;
@@ -5758,9 +5860,9 @@ function boot(){
       }
       const hasSeedDerivedStarterIds = pidFinderResultActive &&
         String(shadowEncounter?.pidType || '').includes('STARTER');
-      const shouldLockTid = !manualOverrideActive && Boolean(hasSeedDerivedStarterIds || trade || shadowEncounter?.tid !== undefined || (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData && !Array.isArray(evt?.tidRange)));
+      const shouldLockTid = !manualOverrideActive && Boolean(hasSeedDerivedStarterIds || trade || shadowEncounter?.tid !== undefined || locksRepresentativeTrainer || (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData && !Array.isArray(evt?.tidRange)));
       const shouldLockSid = !manualOverrideActive && Boolean(hasSeedDerivedStarterIds || trade?.fixedSID !== undefined || shadowEncounter?.fixedSID !== undefined || (!trade && currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData));
-      const shouldLockOtName = !manualOverrideActive && Boolean(trade || shadowEncounter?.otNames || (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesHatcherTrainerData && !Array.isArray(evt?.allowedOtNames)));
+      const shouldLockOtName = !manualOverrideActive && Boolean(trade || shadowEncounter?.otNames || locksRepresentativeTrainer || (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesHatcherTrainerData && !Array.isArray(evt?.allowedOtNames)));
       const shouldLockOriginGame = !manualOverrideActive && (
         (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesEditableOriginGame) ||
         shouldLockStaticEncounterOriginFields() ||
@@ -6442,7 +6544,8 @@ function boot(){
             } else {
               const mysteryEvent = (mysteryTag && MYSTERY_EVENTS && MYSTERY_EVENTS[mysteryTag]) ? MYSTERY_EVENTS[mysteryTag] : null;
               const usesHatcherTrainerData = isPcnyWishEggsMysteryTag(mysteryTag) || !!mysteryEvent?.usesHatcherTrainerData;
-              if (!manualOverrideActive && currentEncounterMode === 'mystery' && mysteryTag !== 'BOX_EVENT' && !usesHatcherTrainerData && !Array.isArray(mysteryEvent?.allowedOtNames)) {
+              const locksRepresentativeTrainer = Boolean(mysteryEvent?.lockRepresentativeTrainer);
+              if (!manualOverrideActive && currentEncounterMode === 'mystery' && mysteryTag !== 'BOX_EVENT' && !usesHatcherTrainerData && (locksRepresentativeTrainer || !Array.isArray(mysteryEvent?.allowedOtNames))) {
                 otEl.disabled = true;
                 otEl.style.pointerEvents = 'none';
                 otEl.style.opacity = '0.6';
@@ -6764,38 +6867,53 @@ function boot(){
   _updateContestSheenAuto = updateContestSheenAuto;
   _applyContestSpeciesRequirements = applyContestSpeciesRequirements;
 
-  // In hatched mode, only a subset of ribbons are editable unless Manual Override is enabled.
+  // Apply the same centralized ribbon policy used by final legality validation.
   function updateRibbonLocking() {
     try {
-      const allIds = [
-        'ribbonCool', 'ribbonBeauty', 'ribbonCute', 'ribbonSmart', 'ribbonTough',
-        'ribbonChampion', 'ribbonWinning', 'ribbonVictory', 'ribbonArtist', 'ribbonEffort',
-        'ribbonBattleChampion', 'ribbonRegionalChampion', 'ribbonNationalChampion',
-        'ribbonCountry', 'ribbonNational', 'ribbonEarth', 'ribbonWorld'
-      ];
-
-      // Hatched mode: keep these editable
-      const allowedInHatched = new Set([
-        'ribbonCool', 'ribbonBeauty', 'ribbonCute', 'ribbonSmart', 'ribbonTough',
-        'ribbonArtist', 'ribbonChampion', 'ribbonEarth', 'ribbonEffort',
-        'ribbonVictory', 'ribbonWinning'
-      ]);
-
-      for (const id of allIds) {
-        const el = $('#' + id);
+      const legality = getCurrentRibbonLegality();
+      for (const control of GEN3_RIBBON_CONTROLS) {
+        const el = document.getElementById(control.id);
         if (!el) continue;
+        const policy = legality[control.key];
+        const shouldApply = !manualOverrideActive && policy &&
+          policy.state !== RIBBON_LEGALITY_STATE.UNKNOWN;
+        const shouldLock = shouldApply && policy.state !== RIBBON_LEGALITY_STATE.OPTIONAL;
 
-        const shouldLock = !manualOverrideActive && (
-          currentEncounterMode === 'mystery' ||
-          (currentEncounterMode === 'hatched' && !allowedInHatched.has(id))
-        );
-
+        if (shouldApply && policy.state === RIBBON_LEGALITY_STATE.REQUIRED) {
+          if (control.kind === 'rank') el.value = '1';
+          else el.checked = true;
+        } else if (shouldApply && policy.state === RIBBON_LEGALITY_STATE.FORBIDDEN) {
+          if (control.kind === 'rank') el.value = '0';
+          else el.checked = false;
+        } else if (shouldApply && control.kind === 'rank') {
+          const rank = Number(el.value);
+          if (el.value === '' || !Number.isInteger(rank) || rank < 0 || rank > Number(policy.max ?? 4)) {
+            el.value = '0';
+          }
+        }
         el.disabled = Boolean(shouldLock);
         el.style.pointerEvents = shouldLock ? 'none' : '';
         el.style.opacity = shouldLock ? '0.6' : '';
         el.style.cursor = shouldLock ? 'not-allowed' : '';
+        el.title = shouldLock ? policy.reason : '';
+        const row = el.closest('.row');
+        if (row) row.title = shouldLock ? policy.reason : '';
       }
     } catch (e) {}
+  }
+
+  // Exact encounter presets and met-level handlers run in their own change
+  // listeners. Re-evaluate after those listeners finish so ribbon locks always
+  // see the final selected encounter values.
+  const scheduleRibbonLocking = () => queueMicrotask(() => {
+    try { updateRibbonLocking(); } catch (e) {}
+    try { updateLegalityStatus(); } catch (e) {}
+  });
+  for (const id of ['species', 'mysteryEvent', 'shadowEncounter', 'cxdTradeEncounter', 'metLevel', 'isEgg']) {
+    const element = document.getElementById(id);
+    if (!element) continue;
+    element.addEventListener('change', scheduleRibbonLocking);
+    if (id === 'metLevel') element.addEventListener('input', scheduleRibbonLocking);
   }
 
     // Load mystery gift data (JSON) to populate event list
@@ -7000,6 +7118,7 @@ function boot(){
           preserveCurrent: true,
           preserveExact: true,
         });
+        refreshEncounterBrowserResults();
       } catch (e) {
         console.warn('Failed to load mystery gifts JSON', e);
       }

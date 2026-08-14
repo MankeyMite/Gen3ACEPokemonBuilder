@@ -277,7 +277,8 @@ for (const [campaign, tid, nationalSpecies] of pcjpCampaigns) {
 }
 
 // PCNY direct-download campaigns. PKHeX permits a campaign-specific PCNY OT
-// and a TID in 00001..02999; the builder uses one legal representative pair.
+// and a TID in 00001..02999. Legal Mode locks the builder to the row's legal
+// representative pair, while Manual Mode can still use another allowed pair.
 const pcnyRows = [
   ['EVOLUTION_PIKACHU', 'Evolution', 'PCNYc', 25, 50, [85, 97, 87, 113]],
   ['EVOLUTION_GLOOM', 'Evolution', 'PCNYc', 44, 50, [79, 51, 236, 80]],
@@ -361,6 +362,7 @@ for (const [suffix, campaign, otName, national, level, moves] of pcnyRows) {
     fixedSID: 0,
     ot_name: otName,
     allowedOtNames,
+    lockRepresentativeTrainer: true,
     otGenderMethod: 'RECIPIENT',
     usesRecipientOtGender: true,
     defaultLanguage: 2,

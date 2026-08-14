@@ -225,9 +225,154 @@
 
     .builder-species-control {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 0.75rem;
       min-width: 0;
+    }
+
+    .species-discovery-layout {
+      display: grid;
+      grid-template-columns: minmax(240px, 300px) 34px minmax(0, 1fr);
+      align-items: start;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+
+    .species-search-panel,
+    .encounter-browser-panel {
+      min-width: 0;
+    }
+
+    .species-search-panel > label,
+    .encounter-browser-panel > legend {
+      display: block;
+      width: auto;
+      min-width: 0;
+      margin-bottom: 0.45rem;
+      color: var(--label);
+    }
+
+    .species-search-panel .autocomplete-wrapper {
+      width: 220px;
+      max-width: 100%;
+    }
+
+    .species-search-panel .autocomplete-input,
+    .encounter-browser-field select {
+      height: 2.25rem;
+      min-height: 2.25rem;
+    }
+
+    .species-discovery-divider {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      align-self: stretch;
+      min-height: 5.2rem;
+      color: rgba(159, 182, 204, 0.72);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .species-discovery-divider::before {
+      content: '';
+      position: absolute;
+      top: 0.15rem;
+      bottom: 0.15rem;
+      left: 50%;
+      width: 1px;
+      background: rgba(88, 183, 255, 0.2);
+    }
+
+    .species-discovery-divider span {
+      position: relative;
+      padding: 0.35rem 0;
+      background: #0a1a2d;
+    }
+
+    .encounter-browser-panel {
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .encounter-browser-fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.6rem;
+    }
+
+    .encounter-browser-field {
+      display: block;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .encounter-browser-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .encounter-browser-field select {
+      width: 100%;
+      min-width: 0;
+      padding: 0.5rem 0.6rem;
+      font-size: 0.82rem;
+    }
+
+    .encounter-browser-field select:disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+    }
+
+    .encounter-browser-status {
+      min-height: 1.15rem;
+      margin: 0.4rem 0 0;
+      color: var(--muted);
+      font-size: 0.72rem;
+      line-height: 1.35;
+    }
+
+    @media (max-width: 840px) {
+      .species-discovery-layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.65rem;
+      }
+
+      .species-discovery-divider {
+        min-height: 1.25rem;
+      }
+
+      .species-discovery-divider::before {
+        top: 50%;
+        right: 0;
+        bottom: auto;
+        left: 0;
+        width: auto;
+        height: 1px;
+      }
+
+      .species-discovery-divider span {
+        padding: 0 0.55rem;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .encounter-browser-fields {
+        grid-template-columns: minmax(0, 1fr);
+      }
     }
 
     .builder-exact-row > label {
@@ -1334,6 +1479,7 @@
       main.layout-vertical {
         gap: 0.9rem;
         margin-top: 0.9rem;
+        overflow: visible;
       }
 
       main.layout-vertical > .card,
@@ -1779,7 +1925,7 @@
     <p class="muted" style="margin-top: -0.75rem; margin-bottom: 1rem;">
       <a href="./docs/patch-notes.html" target="_blank" rel="noopener" class="version-link" title="View latest patch notes">v.0.4.6</a>
     </p>
-    <p class="muted">Create any Pokémon and make them spawn in your in-game PC, using a stable ACE species with a Base64 writer! No external tools needed. Build them from scratch, or import via Smogon/Showdown sets, raw hexdata or .pk3/ek3 files. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
+    <p class="muted">Generate any Pokémon and make them spawn in your in-game PC, using a stable ACE species with a Base64 writer! No external tools needed. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
   </header>
 
   <main class="container layout-vertical">
@@ -1818,10 +1964,35 @@
       <div id="builderSetupStage" class="builder-setup-stage">
 
       <div class="row builder-species-row">
-        <label for="species-input">Pokémon</label>
-        <div class="builder-species-control">
-          <select id="species"></select>
-          <img id="speciesSprite" class="species-sprite" alt="" />
+        <div class="species-discovery-layout">
+          <div class="species-search-panel">
+            <label for="species-input">Search by Pokémon</label>
+            <div class="builder-species-control">
+              <select id="species"></select>
+              <img id="speciesSprite" class="species-sprite" alt="" />
+            </div>
+          </div>
+
+          <div class="species-discovery-divider" aria-hidden="true"><span>or</span></div>
+
+          <fieldset class="encounter-browser-panel">
+            <legend>Browse by encounter</legend>
+            <div class="encounter-browser-fields">
+              <label class="encounter-browser-field" for="encounterBrowseCategory">
+                <span class="encounter-browser-label">Encounter type</span>
+                <select id="encounterBrowseCategory">
+                  <option value="">Encounter type</option>
+                </select>
+              </label>
+              <label class="encounter-browser-field" for="encounterBrowseSpecies">
+                <span class="encounter-browser-label">Available Pokémon</span>
+                <select id="encounterBrowseSpecies" disabled>
+                  <option value="">Available Pokémon</option>
+                </select>
+              </label>
+            </div>
+            <p id="encounterBrowseStatus" class="encounter-browser-status" aria-live="polite">Choose an encounter type to browse compatible Pokémon.</p>
+          </fieldset>
         </div>
       </div>
 
@@ -2847,6 +3018,20 @@ Trailing = padding is restored automatically.</pre>
       </div>
     </div>
   </main>
+
+  <footer class="site-footer container" aria-label="Site footer">
+    <p class="site-disclaimer">This is a fan-made project and is not affiliated with or endorsed by Nintendo, Game Freak, Creatures Inc., or The Pokémon Company.</p>
+    <a
+      class="bmc-footer-link"
+      href="https://www.buymeacoffee.com/MankeyMite"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Buy me a lemonade (opens in a new tab)"
+    >
+      <span class="bmc-footer-icon" aria-hidden="true">&#127819;</span>
+      <span>Buy me a lemonade</span>
+    </a>
+  </footer>
 
 
   <script type="module" src="./src/main.js"></script>
