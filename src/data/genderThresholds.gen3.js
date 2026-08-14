@@ -77,7 +77,6 @@ const MALE_75 = _resolve({
 const FEMALE_75 = _resolve({
   Cleffa: 191, Clefairy: 191, Clefable: 191,
   Igglybuff: 191, Jigglypuff: 191, Wigglytuff: 191,
-  Marill: 191, Azumarill: 191,
   Azurill: 191,
   Skitty: 191, Delcatty: 191,
 });

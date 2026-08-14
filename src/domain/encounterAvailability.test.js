@@ -27,6 +27,7 @@ import {
   getAvailableOriginsForSpecies,
   getCXDEncountersForSpecies,
   getMinimumLevelForEncounterEvolution,
+  getMysteryGiftSourceLevel,
   getMysteryEventsForSpecies,
   getOriginDefinition,
   getOriginTransitionForSpecies,
@@ -148,6 +149,75 @@ for (const [tag, event] of Object.entries(mysteryEvents)) {
 
 const pikachuModes = modesFor(speciesId('Pikachu'));
 assert.ok(pikachuModes.has('hatched'), 'A normal breedable Pokémon should support Hatched');
+assert.equal(
+  getMinimumLevelForEncounterEvolution(speciesId('Pikachu'), speciesId('Pichu'), 5),
+  6,
+  'A level-5 event Pichu must level up at least once before it can be Pikachu'
+);
+assert.equal(getMysteryGiftSourceLevel(mysteryEvents.BOX_EVENT, 0), 5, 'Pokémon Box Eggs hatch at level 5');
+assert.equal(
+  getMinimumLevelForEncounterEvolution(
+    speciesId('Raichu'),
+    speciesId('Pichu'),
+    getMysteryGiftSourceLevel(mysteryEvents.PCJP_5TH_EGG_PICHU_TEETER_SHINY, 0)
+  ),
+  6,
+  'an event Pichu can become Raichu no earlier than level 6'
+);
+assert.equal(
+  getMinimumLevelForEncounterEvolution(
+    speciesId('Gardevoir'),
+    speciesId('Ralts'),
+    getMysteryGiftSourceLevel(mysteryEvents.PCJP_5TH_EGG_RALTS_WISH, 0)
+  ),
+  30,
+  'an event Ralts must reach Gardevoir\'s level-30 evolution floor'
+);
+assert.equal(
+  getMinimumLevelForEncounterEvolution(
+    speciesId('Salamence'),
+    speciesId('Bagon'),
+    getMysteryGiftSourceLevel(mysteryEvents.PCJP_5TH_EGG_BAGON_WISH, 0)
+  ),
+  50,
+  'an event Bagon must reach Salamence\'s level-50 evolution floor'
+);
+assert.equal(
+  getMinimumLevelForEncounterEvolution(
+    speciesId('Azumarill'),
+    speciesId('Azurill'),
+    getMysteryGiftSourceLevel(mysteryEvents.PCNY_BABY_AZURILL, 0)
+  ),
+  18,
+  'the PCNY Azurill must level up once into Marill and then reach level 18'
+);
+assert.equal(
+  getMinimumLevelForEncounterEvolution(
+    speciesId('Ampharos'),
+    speciesId('Mareep'),
+    getMysteryGiftSourceLevel(mysteryEvents.PCNY_COLOSSEUM_MAREEP, 0)
+  ),
+  30,
+  'the level-5 PCNY Mareep must reach both of its level-up evolution thresholds'
+);
+assert.equal(
+  getMinimumLevelForEncounterEvolution(
+    speciesId('Kingdra'),
+    speciesId('Seadra'),
+    getMysteryGiftSourceLevel(mysteryEvents.PCNY_DRAGON_SEADRA_ICE_BEAM, 0)
+  ),
+  45,
+  'trading the level-45 PCNY Seadra does not require an extra level'
+);
+assert.equal(
+  getMinimumLevelForEncounterEvolution(
+    speciesId('Granbull'),
+    speciesId('Snubbull'),
+    getMysteryGiftSourceLevel(mysteryEvents.PCJP_GATHER_MORE_6, 0)
+  ),
+  23,
+  'the level-10 PCJP Snubbull must reach Granbull\'s level-23 threshold'
+);
 
 const raichuModes = modesFor(speciesId('Raichu'));
 assert.ok(raichuModes.has('hatched'), 'An evolved breedable Pokémon should support Hatched');

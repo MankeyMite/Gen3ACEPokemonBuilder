@@ -38,7 +38,7 @@ import { getLegalSheenRangeGen3 } from './lib/gen3/contestSheen.js';
 import { getAllowedLevelUpMoveIdsForEncounter, shouldCapHatchedLevelUpMoves } from './lib/gen3/hatchedMoveLegality.js';
 import { getDirectWildMoveOverride } from './lib/gen3/wildMoveLegality.js';
 import { adjustShinySidForRSTrainerId, findNearestValidRSTrainerSid, isValidRSTrainerId } from './lib/gen3/rsTrainerId.js';
-import { resolvePidFinderAbilityBit } from './domain/pidFinderAbility.js';
+import { normalizeGeneratedAbilityBit, resolvePidFinderAbilityBit } from './domain/pidFinderAbility.js';
 import {
   ROAMER_GAMES_FOR_SPECIES,
   ROAMER_SPECIES,
@@ -49,6 +49,7 @@ import {
 import {
   getAvailableOriginsForSpecies,
   getMinimumLevelForEncounterEvolution,
+  getMysteryGiftSourceLevel,
   getMysteryEventsForSpecies,
   getOriginDefinition,
   getOriginTransitionForSpecies,
@@ -1294,16 +1295,10 @@ function getCurrentLevelFloor() {
       : getHatchedLevelFloor(speciesId);
     floor = Math.max(floor, hatchedFloor);
   } else if (currentEncounterMode === 'mystery') {
-    const tag = String(document.getElementById('mysteryEvent')?.value || '').toUpperCase();
-    if (tag === '10ANNI') floor = Math.max(floor, 70);
-    else if (tag === 'AURA_MEW') floor = Math.max(floor, 10);
-    else if (tag === 'AGETO_CELEBI' || tag === 'MITSURIN_CELEBI') floor = Math.max(floor, 10);
-    else if (tag === 'BOX_EVENT') floor = Math.max(floor, 5);
-    else if (tag === 'DOEL_DEOXYS' || tag === 'SPACE_CENTER_DEOXYS') floor = Math.max(floor, 70);
-    else if (tag === 'JOURNEY_ACROSS_AMERICA') floor = Math.max(floor, 70);
-    else if (tag === 'PARTY_OF_THE_DECADE') floor = Math.max(floor, 70);
-    else if (tag === 'POKEMON_ROCKS_METANG') floor = Math.max(floor, 30);
-    else if (tag === 'WISHMKR_BEST' || tag === 'WISHMKR_SHINY' || tag === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') floor = Math.max(floor, 5);
+    floor = Math.max(
+      floor,
+      getMysteryGiftSourceLevel(getSelectedMysteryEvent().event, metLevel)
+    );
   } else if (currentEncounterMode === 'static') {
     const speciesId = Number($('#species')?.value || 0);
     if (speciesId === 151) floor = Math.max(floor, 30);
@@ -1314,9 +1309,14 @@ function getCurrentLevelFloor() {
   const sourceSpeciesId = getCurrentOriginSourceSpeciesId(speciesId);
   if (speciesId && sourceSpeciesId && sourceSpeciesId !== speciesId) {
     const selectedStatic = currentEncounterMode === 'static' ? getSelectedStaticEncounter() : null;
-    const sourceLevel = selectedStatic?.isEgg
-      ? Math.max(IS_EGG_OVERRIDE_LEVEL, 5)
-      : Math.max(1, metLevel);
+    const selectedMystery = currentEncounterMode === 'mystery'
+      ? getSelectedMysteryEvent().event
+      : null;
+    const sourceLevel = selectedMystery
+      ? getMysteryGiftSourceLevel(selectedMystery, metLevel)
+      : selectedStatic?.isEgg
+        ? IS_EGG_OVERRIDE_LEVEL
+        : Math.max(1, metLevel);
     floor = Math.max(
       floor,
       getMinimumLevelForEncounterEvolution(speciesId, sourceSpeciesId, sourceLevel)
@@ -1802,7 +1802,10 @@ function applyMysteryEventOriginConstraints(event, { hatcherLocations = false } 
   }
 
   if (!hatcherLocations) return true;
-  setControlLockState(originGameSelect, false);
+  // Recipient trainer data and hatch location are editable, but an egg event
+  // with one permitted origin game (such as the Ruby-only PCJP 5th Anniversary
+  // eggs) still has a genuinely fixed Origin Game field.
+  setControlLockState(originGameSelect, !manualOverrideActive && allowed.length === 1);
   const locations = getLocationsForGame(gameId).filter(([, name]) =>
     !String(name || '').toLowerCase().includes('fateful')
   );
@@ -5833,7 +5836,6 @@ function boot(){
       const locksRepresentativeTrainer = currentEncounterMode === 'mystery' &&
         Boolean(tag && evt?.lockRepresentativeTrainer);
       const usesEditableOriginGame = isPcnyWishEggsMysteryTag(tag) ||
-        Boolean(evt?.usesHatcherTrainerData) ||
         (Array.isArray(evt?.allowedOriginGames) && evt.allowedOriginGames.length > 1);
       const trade = getSelectedCXDTrade();
       const shadowEncounter = getSelectedCXDEncounter();
@@ -6579,7 +6581,7 @@ function boot(){
     } catch (e) {}
   }
 
-  // Enforce minimum level and UI constraints for hatched mode.
+  // Enforce minimum level and UI constraints for every selected legal origin.
   function updateLevelLocking() {
     try {
       const levelEl = $('#level');
@@ -6589,21 +6591,13 @@ function boot(){
         try { levelEl.min = '1'; } catch (e) {}
         return;
       }
-      if (currentEncounterMode === 'hatched') {
+      if (currentEncounterMode && currentEncounterMode !== 'imported') {
         const floor = getCurrentLevelFloor();
         // Set min attribute for better UX and snap stale values up.
         try { levelEl.min = String(floor); } catch (e) {}
         const cur = Number(levelEl.value) || 0;
         if (cur < floor) {
           levelEl.value = String(floor);
-          try { computeAndSetExpFromLevel(); } catch (e) {}
-          try { updateLegalityStatus(); } catch (e) {}
-        }
-      } else if (isPcnyWishEggsMysteryEventSelected()) {
-        try { levelEl.min = '5'; } catch (e) {}
-        const cur = Number(levelEl.value) || 0;
-        if (cur < 5) {
-          levelEl.value = '5';
           try { computeAndSetExpFromLevel(); } catch (e) {}
           try { updateLegalityStatus(); } catch (e) {}
         }
@@ -10496,6 +10490,9 @@ function initPidFinder() {
     const speciesId   = Number($('#species').value) || 0;
     const speciesEntry = SPECIES.find(s => s[0] === speciesId);
     const speciesName  = speciesEntry ? speciesEntry[1] : '\u2014';
+    const sourceSpeciesId = getCurrentOriginSourceSpeciesId(speciesId);
+    const sourceSpeciesEntry = SPECIES.find(s => s[0] === sourceSpeciesId);
+    const sourceSpeciesName = sourceSpeciesEntry ? sourceSpeciesEntry[1] : '';
     const natureIndex  = Number($('#nature').value || 0);
     const natureName   = NATURES[natureIndex] || '\u2014';
     const ability      = Number($('#ability').value);
@@ -10504,6 +10501,9 @@ function initPidFinder() {
 
     summaryEl.innerHTML = [
       `<span class="pf-tag">Species: <b>${speciesName}</b></span>`,
+      sourceSpeciesId && sourceSpeciesId !== speciesId
+        ? `<span class="pf-tag">Encounter source: <b>${sourceSpeciesName}</b></span>`
+        : '',
       `<span class="pf-tag">Nature: <b>${natureName}</b></span>`,
       `<span class="pf-tag">Game: <b>${originGameText}</b></span>`
     ].filter(Boolean).join('');
@@ -10725,6 +10725,16 @@ function initPidFinder() {
       if (pfM4) {
         pfM4.checked = false;
         pfM4.parentElement.style.display = 'none';
+      }
+
+      // Event-generated Method 2 spreads should begin without a target-species
+      // gender or ability filter. This keeps one legal encounter stable when
+      // the distributed Pokémon is viewed as one of its evolutions.
+      if (pfAbilitySel && !pfAbilitySel.disabled && pfAbilitySel.querySelector('option[value="-1"]')) {
+        pfAbilitySel.value = '-1';
+      }
+      if (pfGenderSel && !pfGenderSel.disabled && pfGenderSel.querySelector('option[value="any"]')) {
+        pfGenderSel.value = 'any';
       }
 
     } else if (isMysteryCXD || currentEncounterMode === 'cxd_shadow' || isCXDTradePF || (currentEncounterMode === 'static' && currentGameId === 15)) {
@@ -11304,9 +11314,15 @@ function initPidFinder() {
     pidFinderResultActive = true;
     pidFinderHadSelection = true;
     pidFinderMysteryTag = currentEncounterMode === 'mystery' ? getSelectedMysteryEvent().tag : '';
-    pidFinderResultAbilityBit = hasSingleNormalGen3Ability(Number($('#species')?.value || 0))
-      ? 0
-      : Number.isInteger(r.abilityBit) ? (r.abilityBit & 1) : (r.pid & 1);
+    const selectedSpeciesId = Number($('#species')?.value || 0);
+    const abilityCorrelationSpeciesId = currentEncounterMode === 'mystery'
+      ? getCurrentOriginSourceSpeciesId(selectedSpeciesId)
+      : selectedSpeciesId;
+    pidFinderResultAbilityBit = normalizeGeneratedAbilityBit({
+      pid: r.pid,
+      generatedAbilityBit: r.abilityBit,
+      correlationSpeciesHasSingleAbility: hasSingleNormalGen3Ability(abilityCorrelationSpeciesId),
+    });
 
     // Sync TID/SID from PID Finder modal back to main form
     const pfTid = Number(document.getElementById('pfTid').value) & 0xFFFF;

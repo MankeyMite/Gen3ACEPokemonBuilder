@@ -70,6 +70,20 @@ for (const tag of fifthEggTags) {
   assert.deepEqual(events[tag].allowedLanguages, [1, 2, 3, 4, 5, 7], 'hatched event Eggs may use the hatcher language');
   assert.ok(['BACD_TA', 'BACD_TS'].includes(events[tag].pidMethod));
   assert.ok(Number(events[tag].tableNationalSpecies) > 0);
+  assert.equal(events[tag].defaultMetLevel, 0);
+  assert.equal(events[tag].current_level, 5);
+  assert.equal(events[tag].usesHatcherTrainerData, true);
+}
+
+for (const tag of ['PCJP_5TH_EGG_PICHU_TEETER_SHINY', 'PCJP_5TH_EGG_PICHU_WISH_SHINY']) {
+  const event = events[tag];
+  assert.equal(event.pidMethod, 'BACD_TS');
+  assert.equal(event.alwaysShiny, true);
+  assert.equal(event.shinyLocked, false, `${tag} is generated shiny, not a fixed specimen`);
+  assert.equal(event.tableNationalSpecies, 172);
+  assert.ok(!('fixedPID' in event), `${tag} must allow multiple legal correlated PIDs`);
+  assert.ok(!('fixedIVs' in event), `${tag} must allow multiple legal correlated IV spreads`);
+  assert.ok(!('fixedNature' in event), `${tag} must allow multiple legal natures`);
 }
 
 assert.equal(events.NEGAI_BOSHI_JIRACHI_TABLE.tableNationalSpecies, 385);

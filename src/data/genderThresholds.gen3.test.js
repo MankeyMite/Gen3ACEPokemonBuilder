@@ -12,6 +12,9 @@ const SPECIES = {
   Tyranitar: 248,
   Latias: 407,
   Latios: 408,
+  Marill: 183,
+  Azumarill: 184,
+  Azurill: 350,
 };
 
 function isFemalePidLowByte(pid, speciesId) {
@@ -37,5 +40,15 @@ assert.equal(getGenderThreshold(SPECIES.Kangaskhan), 255, 'Kangaskhan should be 
 assert.equal(getGenderThreshold(SPECIES.Miltank), 255, 'Miltank should be female-only');
 assert.equal(getGenderThreshold(SPECIES.Latias), 255, 'Latias should be female-only');
 assert.equal(getGenderThreshold(SPECIES.Latios), 0, 'Latios should be male-only');
+
+assert.equal(getGenderThreshold(SPECIES.Azurill), 191, 'Azurill should use the 75% female threshold');
+assert.equal(getGenderThreshold(SPECIES.Marill), 127, 'Marill should use the 50/50 threshold');
+assert.equal(getGenderThreshold(SPECIES.Azumarill), 127, 'Azumarill should use the 50/50 threshold');
+assert.equal(isFemalePidLowByte(0x000000A0, SPECIES.Azurill), true);
+assert.equal(
+  isFemalePidLowByte(0x000000A0, SPECIES.Marill),
+  false,
+  'the same PID can change displayed gender after Azurill evolves'
+);
 
 console.log('All Gen 3 gender threshold tests passed.');

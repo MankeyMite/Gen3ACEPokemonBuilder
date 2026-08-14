@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-import { resolvePidFinderAbilityBit } from './pidFinderAbility.js';
+import { normalizeGeneratedAbilityBit, resolvePidFinderAbilityBit } from './pidFinderAbility.js';
 
 assert.equal(resolvePidFinderAbilityBit({
   selectedAbilityBit: 0,
@@ -36,5 +36,17 @@ assert.equal(resolvePidFinderAbilityBit({
   resultAbilityBit: null,
   manualOverride: false,
 }), 1, 'missing legacy result metadata must fall back to the form');
+
+assert.equal(normalizeGeneratedAbilityBit({
+  pid: 0x12345679,
+  generatedAbilityBit: undefined,
+  correlationSpeciesHasSingleAbility: false,
+}), 1, 'an evolved event must preserve the source encounter ability slot');
+
+assert.equal(normalizeGeneratedAbilityBit({
+  pid: 0x12345679,
+  generatedAbilityBit: 1,
+  correlationSpeciesHasSingleAbility: true,
+}), 0, 'a genuinely single-ability source encounter must normalize to slot 0');
 
 console.log('PID Finder ability-slot tests passed');

@@ -141,6 +141,32 @@ export function getMinimumLevelForEncounterEvolution(speciesId, sourceSpeciesId,
   return Math.max(1, Math.min(100, level));
 }
 
+/**
+ * Return the usable level of the Pokémon as it was originally distributed.
+ * Event Eggs have met level 0 in Gen III, but hatch at level 5.
+ */
+export function getMysteryGiftSourceLevel(event, fallbackMetLevel = 1) {
+  const currentLevel = Number(event?.current_level);
+  if (Number.isFinite(currentLevel) && currentLevel > 0) {
+    return Math.max(1, Math.min(100, Math.floor(currentLevel)));
+  }
+
+  const defaultMetLevel = Number(event?.defaultMetLevel);
+  if (Number.isFinite(defaultMetLevel) && defaultMetLevel > 0) {
+    return Math.max(1, Math.min(100, Math.floor(defaultMetLevel)));
+  }
+
+  // Legacy event-Egg rows may only identify themselves through a zero met
+  // level or hatcher-owned trainer data.
+  if (event?.usesHatcherTrainerData || defaultMetLevel === 0) return 5;
+
+  const fallback = Number(fallbackMetLevel);
+  if (Number.isFinite(fallback) && fallback > 0) {
+    return Math.max(1, Math.min(100, Math.floor(fallback)));
+  }
+  return 1;
+}
+
 function normalizeMysteryKey(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
