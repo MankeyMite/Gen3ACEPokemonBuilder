@@ -63,8 +63,11 @@ import {
 import {
   ENCOUNTER_BROWSE_CATEGORIES,
   getEncounterBrowseCategory,
+  getEventDistributionSubcategoryId,
   getEncounterBrowseOriginMode,
-  getSpeciesForEncounterBrowseCategory,
+  getEncounterBrowseSubcategories,
+  getEncounterBrowseSubcategory,
+  getSpeciesForEncounterBrowseSelection,
 } from './domain/encounterBrowser.js';
 import {
   NICKNAME_SOURCE,
@@ -3496,7 +3499,7 @@ function boot(){
     const select = document.getElementById('encounterBrowseCategory');
     if (!select) return;
     const currentValue = String(select.value || '');
-    select.innerHTML = '<option value="">Encounter type</option>';
+    select.innerHTML = '<option value="">Choose source</option>';
     for (const category of ENCOUNTER_BROWSE_CATEGORIES) {
       const option = document.createElement('option');
       option.value = category.id;
@@ -3508,35 +3511,69 @@ function boot(){
       : '';
   }
 
-  function refreshEncounterBrowserResults() {
-    const categorySelect = document.getElementById('encounterBrowseCategory');
+  function populateEncounterBrowserSubcategories(options = {}) {
+    const sourceSelect = document.getElementById('encounterBrowseCategory');
+    const subcategorySelect = document.getElementById('encounterBrowseSubcategory');
+    if (!sourceSelect || !subcategorySelect) return;
+
+    const previousValue = options.preserveSelection === false
+      ? ''
+      : String(subcategorySelect.value || '');
+    const subcategories = getEncounterBrowseSubcategories(sourceSelect.value);
+    subcategorySelect.innerHTML = '<option value="">Choose category</option>';
+    for (const subcategory of subcategories) {
+      const option = document.createElement('option');
+      option.value = subcategory.id;
+      option.textContent = subcategory.label;
+      subcategorySelect.appendChild(option);
+    }
+
+    if (subcategories.some(subcategory => subcategory.id === previousValue)) {
+      subcategorySelect.value = previousValue;
+    } else if (subcategories.length === 1) {
+      subcategorySelect.value = subcategories[0].id;
+    } else {
+      subcategorySelect.value = '';
+    }
+    subcategorySelect.disabled = subcategories.length === 0;
+  }
+
+  function refreshEncounterBrowserResults(options = {}) {
+    const sourceSelect = document.getElementById('encounterBrowseCategory');
+    const subcategorySelect = document.getElementById('encounterBrowseSubcategory');
     const speciesSelect = document.getElementById('encounterBrowseSpecies');
     const status = document.getElementById('encounterBrowseStatus');
-    if (!categorySelect || !speciesSelect || !status) return;
+    if (!sourceSelect || !subcategorySelect || !speciesSelect || !status) return;
 
-    const categoryId = String(categorySelect.value || '');
-    const category = getEncounterBrowseCategory(categoryId);
-    const previousValue = String(speciesSelect.value || '');
+    const sourceId = String(sourceSelect.value || '');
+    const subcategoryId = String(subcategorySelect.value || '');
+    const source = getEncounterBrowseCategory(sourceId);
+    const subcategory = getEncounterBrowseSubcategory(sourceId, subcategoryId);
+    const previousValue = options.preserveSelection === false
+      ? ''
+      : String(speciesSelect.value || '');
     speciesSelect.innerHTML = '';
 
-    if (!category) {
+    if (!source || !subcategory) {
       const option = document.createElement('option');
       option.value = '';
-      option.textContent = 'Available Pokémon';
+      option.textContent = 'Choose Pokémon';
       speciesSelect.appendChild(option);
       speciesSelect.disabled = true;
-      status.textContent = 'Choose an encounter type to browse compatible Pokémon.';
+      status.textContent = source
+        ? 'Choose a category to see compatible Pokémon.'
+        : 'Choose a source, then a category, to see compatible Pokémon.';
       return;
     }
 
-    const availableSpecies = getSpeciesForEncounterBrowseCategory(categoryId, {
+    const availableSpecies = getSpeciesForEncounterBrowseSelection(sourceId, subcategoryId, {
       mysteryEvents: MYSTERY_EVENTS,
       mysteryGifts: MYSTERY_GIFTS,
     });
     const placeholder = document.createElement('option');
     placeholder.value = '';
     placeholder.textContent = availableSpecies.length
-      ? 'Available Pokémon'
+      ? 'Choose Pokémon'
       : 'No Pokémon available';
     speciesSelect.appendChild(placeholder);
     for (const [speciesId, speciesName] of availableSpecies) {
@@ -3554,7 +3591,7 @@ function boot(){
     speciesSelect.value = availableSpecies.some(([id]) => String(id) === preferredValue)
       ? preferredValue
       : '';
-    status.textContent = `${availableSpecies.length} Pokémon: ${category.description}.`;
+    status.textContent = `${availableSpecies.length} Pokémon available in ${subcategory.label}.`;
   }
 
   function syncEncounterBrowserSelection(speciesId) {
@@ -3567,18 +3604,74 @@ function boot(){
       : '';
   }
 
+  function getActiveEncounterBrowseSelection() {
+    if (!document.body.classList.contains('encounter-browser-mode')) return null;
+    const sourceId = String(document.getElementById('encounterBrowseCategory')?.value || '');
+    const subcategoryId = String(document.getElementById('encounterBrowseSubcategory')?.value || '');
+    if (!getEncounterBrowseSubcategory(sourceId, subcategoryId)) return null;
+    return { sourceId, subcategoryId };
+  }
+
+  function isEncounterInActiveBrowseSelection(encounter) {
+    const selection = getActiveEncounterBrowseSelection();
+    if (!selection) return true;
+    const source = getEncounterBrowseCategory(selection.sourceId);
+    if (!source) return true;
+
+    if (selection.sourceId === 'in_game_events') {
+      return encounter.category === selection.subcategoryId;
+    }
+    if (selection.sourceId === 'in_game_trades') {
+      return Number(encounter.originGame) === Number(selection.subcategoryId);
+    }
+    if (selection.sourceId === 'colosseum' || selection.sourceId === 'xd') {
+      if (encounter.game !== source.game) return false;
+      if (selection.subcategoryId === 'ereader') return Boolean(encounter.eReader);
+      if (selection.subcategoryId === 'shadow') return encounter.kind === 'shadow' && !encounter.eReader;
+      return encounter.kind === selection.subcategoryId;
+    }
+    return true;
+  }
+
   function initializeEncounterBrowser() {
-    const categorySelect = document.getElementById('encounterBrowseCategory');
+    const sourceSelect = document.getElementById('encounterBrowseCategory');
+    const subcategorySelect = document.getElementById('encounterBrowseSubcategory');
     const speciesSelect = document.getElementById('encounterBrowseSpecies');
-    if (!categorySelect || !speciesSelect) return;
+    if (!sourceSelect || !subcategorySelect || !speciesSelect) return;
+
+    const disclosure = document.getElementById('encounterBrowserDisclosure');
+    const disclosureSummary = disclosure?.querySelector('summary');
+    const syncBrowseMode = () => {
+      const browseMode = Boolean(disclosure?.open);
+      document.body.classList.toggle('encounter-browser-mode', browseMode);
+      disclosureSummary?.setAttribute(
+        'aria-label',
+        browseMode
+          ? 'Selection mode: Browse. Switch to Search'
+          : 'Selection mode: Search. Switch to Browse',
+      );
+    };
+    if (disclosure) disclosure.open = false;
+    syncBrowseMode();
+    disclosure?.addEventListener('toggle', syncBrowseMode);
 
     populateEncounterBrowserCategories();
-    categorySelect.addEventListener('change', refreshEncounterBrowserResults);
+    populateEncounterBrowserSubcategories();
+    sourceSelect.addEventListener('change', () => {
+      populateEncounterBrowserSubcategories({ preserveSelection: false });
+      refreshEncounterBrowserResults({ preserveSelection: false });
+    });
+    subcategorySelect.addEventListener('change', () => {
+      refreshEncounterBrowserResults({ preserveSelection: false });
+    });
     speciesSelect.addEventListener('change', () => {
       const speciesId = Number(speciesSelect.value) || 0;
       if (!speciesId || !speciesAutocomplete?.selectById?.(speciesId)) return;
+      $('#species').value = String(speciesId);
 
-      const originMode = getEncounterBrowseOriginMode(categorySelect.value);
+      const sourceId = String(sourceSelect.value || '');
+      const subcategoryId = String(subcategorySelect.value || '');
+      const originMode = getEncounterBrowseOriginMode(sourceId);
       const originSelect = document.getElementById('pokemonOrigin');
       const hasOrigin = Array.from(originSelect?.options || [])
         .some(option => option.value === originMode);
@@ -3586,8 +3679,27 @@ function boot(){
         originSelect.value = originMode;
         originSelect.dispatchEvent(new Event('change', { bubbles: true }));
       }
+
+      // The first selection reveals and configures the compatible origin list.
+      // Re-apply the species after choosing that origin so the autocomplete and
+      // all exact-encounter controls finish in the same resolved state.
+      if (Number($('#species')?.value || 0) !== speciesId) {
+        speciesAutocomplete.selectById(speciesId);
+      }
+      $('#species').value = String(speciesId);
+
+      if (sourceId === 'in_game_events') {
+        const staticCategory = document.getElementById('staticCategory');
+        if (staticCategory) staticCategory.value = subcategoryId;
+      } else if (['wild', 'roamers'].includes(sourceId)) {
+        const originGame = document.getElementById('originGame');
+        if (originGame && Array.from(originGame.options).some(option => option.value === subcategoryId)) {
+          originGame.value = subcategoryId;
+          originGame.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
     });
-    refreshEncounterBrowserResults();
+    refreshEncounterBrowserResults({ preserveSelection: false });
   }
 
   function clearExactEncounterSelections() {
@@ -3607,7 +3719,10 @@ function boot(){
   function populateMysteryEventsForSpecies(speciesId, selectedTag = '') {
     const select = document.getElementById('mysteryEvent');
     if (!select) return;
-    const events = getMysteryEventsForSpecies(speciesId, MYSTERY_EVENTS, MYSTERY_GIFTS);
+    const browseSelection = getActiveEncounterBrowseSelection();
+    const events = getMysteryEventsForSpecies(speciesId, MYSTERY_EVENTS, MYSTERY_GIFTS)
+      .filter(({ tag, event }) => browseSelection?.sourceId !== 'event_distributions'
+        || getEventDistributionSubcategoryId(tag, event) === browseSelection.subcategoryId);
     select.innerHTML = '<option value="">— Select distribution —</option>';
     for (const { tag, sourceSpeciesIds = [] } of events) {
       const option = document.createElement('option');
@@ -3628,6 +3743,7 @@ function boot(){
     const encounters = getStaticEncountersForSpecies(speciesId);
     select.innerHTML = '<option value="">— Select encounter —</option>';
     encounters.forEach((encounter, encounterIndex) => {
+      if (!isEncounterInActiveBrowseSelection(encounter)) return;
       for (const gameId of encounter.games || []) {
         const option = document.createElement('option');
         option.value = `${encounterIndex}:${Number(gameId)}`;
@@ -7769,7 +7885,11 @@ function boot(){
     const previousValue = options.preserveSelection === true ? String(sel.value || '') : '';
     sel.innerHTML = '';
 
-    const hasPreviousSelection = previousValue !== '' && encounters[Number(previousValue)];
+    const eligibleIndices = encounters
+      .map((encounter, index) => isEncounterInActiveBrowseSelection(encounter) ? index : -1)
+      .filter(index => index >= 0);
+    const hasPreviousSelection = previousValue !== ''
+      && eligibleIndices.includes(Number(previousValue));
     const requireSelection = options.requireSelection === true && !hasPreviousSelection;
     if (requireSelection) {
       const placeholder = document.createElement('option');
@@ -7778,14 +7898,14 @@ function boot(){
       sel.appendChild(placeholder);
     }
 
-    if (!encounters.length) {
+    if (!eligibleIndices.length) {
       sel.innerHTML = '<option value="">— No encounters —</option>';
       try { updateMakeShinyVisibility(null); } catch (e) {}
       return;
     }
 
     // Build dropdown options: "Kind — Trainer @ Location [###] (Game, Lv##)"
-    for (let i = 0; i < encounters.length; i++) {
+    for (const i of eligibleIndices) {
       const enc = encounters[i];
       const locPad = String(enc.location).padStart(3, '0');
       const gameLabel = enc.game === 'colo' ? 'Colo' : 'XD';
@@ -7800,7 +7920,9 @@ function boot(){
       opt.textContent = `${sourcePrefix}${kindLabel} — ${enc.trainer} @ ${enc.locationName} [${locPad}] (${gameLabel}, Lv${levelLabel})`;
       sel.appendChild(opt);
     }
-    sel.value = hasPreviousSelection ? previousValue : (requireSelection ? '' : '0');
+    sel.value = hasPreviousSelection
+      ? previousValue
+      : (requireSelection ? '' : String(eligibleIndices[0]));
     const selectedEncounter = sel.value === '' ? null : encounters[Number(sel.value)] || null;
     // Apply the selected encounter (or just update visibility when override is active).
     if (applyPreset && selectedEncounter) {
@@ -7963,12 +8085,15 @@ function boot(){
     if (!sel) return;
     sel.innerHTML = '';
 
-    if (!encounters.length) {
+    const eligibleIndices = encounters
+      .map((encounter, index) => isEncounterInActiveBrowseSelection(encounter) ? index : -1)
+      .filter(index => index >= 0);
+    if (!eligibleIndices.length) {
       sel.innerHTML = '<option value="">- No trades -</option>';
       return;
     }
 
-    for (let i = 0; i < encounters.length; i++) {
+    for (const i of eligibleIndices) {
       const opt = document.createElement('option');
       opt.value = String(i);
       const sourceName = SPECIES.find(([id]) => Number(id) === Number(encounters[i].species))?.[1] || 'Pokémon';
@@ -7976,8 +8101,8 @@ function boot(){
       opt.textContent = `${sourcePrefix}${encounters[i].label}`;
       sel.appendChild(opt);
     }
-    sel.value = '0';
-    if (applyPreset) applyCXDTradePreset(encounters[0]);
+    sel.value = String(eligibleIndices[0]);
+    if (applyPreset) applyCXDTradePreset(encounters[eligibleIndices[0]]);
   }
 
   function applyCXDTradePreset(enc) {

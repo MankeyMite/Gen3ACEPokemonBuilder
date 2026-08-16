@@ -196,7 +196,7 @@
     }
 
     .builder-setup-stage {
-      width: min(100%, 820px);
+      width: 100%;
       padding: 0.9rem 1rem;
       border: 1px solid rgba(88, 183, 255, 0.28);
       border-radius: 10px;
@@ -243,8 +243,17 @@
     }
 
     .species-search-panel,
+    .encounter-browser-disclosure,
     .encounter-browser-panel {
       min-width: 0;
+    }
+
+    .encounter-browser-disclosure > summary {
+      display: none;
+    }
+
+    .encounter-browser-disclosure:not([open]) > .encounter-browser-panel {
+      display: block;
     }
 
     .species-search-panel > label,
@@ -376,6 +385,160 @@
     @media (max-width: 520px) {
       .encounter-browser-fields {
         grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .species-discovery-layout {
+      position: relative;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    body.encounter-browser-mode .species-search-panel,
+    body.encounter-browser-mode #pokemonOriginRow {
+      display: none !important;
+    }
+
+    .species-search-panel > label {
+      padding-right: 8.5rem;
+    }
+
+    .species-discovery-divider {
+      display: none;
+    }
+
+    .encounter-browser-disclosure {
+      position: absolute;
+      top: -0.55rem;
+      right: 0;
+      z-index: 30;
+    }
+
+    .encounter-browser-disclosure[open] {
+      position: static;
+      z-index: auto;
+    }
+
+    .encounter-browser-disclosure > summary {
+      display: flex;
+      align-items: center;
+      gap: 0.1rem;
+      width: auto;
+      min-height: 1.5rem;
+      padding: 0.1rem;
+      border: 1px solid rgba(88, 183, 255, 0.28);
+      border-radius: 7px;
+      background: rgba(11, 31, 52, 0.62);
+      cursor: pointer;
+      font-size: 0.66rem;
+      font-weight: 700;
+      list-style: none;
+      user-select: none;
+    }
+
+    .encounter-browser-disclosure > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .encounter-browser-mode-option {
+      padding: 0.16rem 0.4rem;
+      border-radius: 5px;
+      color: var(--muted);
+      line-height: 1;
+      transition: color 0.16s ease, background-color 0.16s ease;
+    }
+
+    .encounter-browser-disclosure:not([open]) .encounter-browser-mode-search,
+    .encounter-browser-disclosure[open] .encounter-browser-mode-browse {
+      background: rgba(88, 183, 255, 0.24);
+      color: var(--label);
+    }
+
+    .encounter-browser-disclosure[open] > summary {
+      position: absolute;
+      top: -0.55rem;
+      right: 0;
+      background: rgba(16, 42, 69, 0.92);
+    }
+
+    @media (min-width: 601px) {
+      .species-search-panel > label {
+        padding-right: 10.5rem;
+      }
+
+      .encounter-browser-disclosure > summary {
+        min-height: 2.05rem;
+        gap: 0.15rem;
+        padding: 0.16rem;
+        border-color: rgba(88, 183, 255, 0.5);
+        background: rgba(11, 31, 52, 0.9);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        font-size: 0.78rem;
+      }
+
+      .encounter-browser-mode-option {
+        min-width: 4.5rem;
+        padding: 0.34rem 0.68rem;
+        text-align: center;
+      }
+
+      .encounter-browser-disclosure[open] > summary {
+        top: -0.55rem;
+      }
+
+      .encounter-browser-disclosure .encounter-browser-panel > legend {
+        padding-right: 10.5rem;
+      }
+    }
+
+    .encounter-browser-disclosure:not([open]) > .encounter-browser-panel {
+      display: none;
+    }
+
+    .encounter-browser-disclosure[open] > .encounter-browser-panel {
+      display: block;
+      position: static;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: visible;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      animation: encounter-browser-mode-in 0.16s ease-out;
+    }
+
+    .encounter-browser-panel > legend {
+      position: static;
+      display: block;
+      margin: 0 0 0.45rem;
+      padding-right: 5.5rem;
+      color: var(--label);
+    }
+
+    .encounter-browser-fields {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    @media (max-width: 600px) {
+      .encounter-browser-fields {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    @keyframes encounter-browser-mode-in {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .encounter-browser-disclosure[open] > .encounter-browser-panel {
+        animation: none;
       }
     }
 
@@ -1959,8 +2122,6 @@
         </div>
       </div>
 
-      <h3 class="form-section-title">Basic setup</h3>
-
       <p id="builderSetupGuidance" class="builder-setup-guidance" aria-live="polite">
         Start by choosing the Pokémon you want to create.
       </p>
@@ -1979,24 +2140,36 @@
 
           <div class="species-discovery-divider" aria-hidden="true"><span>or</span></div>
 
-          <fieldset class="encounter-browser-panel">
-            <legend>Browse by encounter</legend>
-            <div class="encounter-browser-fields">
-              <label class="encounter-browser-field" for="encounterBrowseCategory">
-                <span class="encounter-browser-label">Encounter type</span>
-                <select id="encounterBrowseCategory">
-                  <option value="">Encounter type</option>
-                </select>
-              </label>
-              <label class="encounter-browser-field" for="encounterBrowseSpecies">
-                <span class="encounter-browser-label">Available Pokémon</span>
-                <select id="encounterBrowseSpecies" disabled>
-                  <option value="">Available Pokémon</option>
-                </select>
-              </label>
-            </div>
-            <p id="encounterBrowseStatus" class="encounter-browser-status" aria-live="polite">Choose an encounter type to browse compatible Pokémon.</p>
-          </fieldset>
+          <details id="encounterBrowserDisclosure" class="encounter-browser-disclosure">
+            <summary>
+              <span class="encounter-browser-mode-option encounter-browser-mode-search">Search</span>
+              <span class="encounter-browser-mode-option encounter-browser-mode-browse">Browse</span>
+            </summary>
+            <fieldset class="encounter-browser-panel">
+              <legend>Browse by encounter</legend>
+              <div class="encounter-browser-fields">
+                <label class="encounter-browser-field" for="encounterBrowseCategory">
+                  <span class="encounter-browser-label">Source</span>
+                  <select id="encounterBrowseCategory">
+                    <option value="">Choose source</option>
+                  </select>
+                </label>
+                <label class="encounter-browser-field" for="encounterBrowseSubcategory">
+                  <span class="encounter-browser-label">Category</span>
+                  <select id="encounterBrowseSubcategory" disabled>
+                    <option value="">Choose category</option>
+                  </select>
+                </label>
+                <label class="encounter-browser-field" for="encounterBrowseSpecies">
+                  <span class="encounter-browser-label">Available Pokémon</span>
+                  <select id="encounterBrowseSpecies" disabled>
+                    <option value="">Choose Pokémon</option>
+                  </select>
+                </label>
+              </div>
+              <p id="encounterBrowseStatus" class="encounter-browser-status" aria-live="polite">Choose a source, then a category, to see compatible Pokémon.</p>
+            </fieldset>
+          </details>
         </div>
       </div>
 
