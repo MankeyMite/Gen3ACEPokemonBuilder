@@ -3604,7 +3604,9 @@ function boot(){
     }
 
     speciesSelect.disabled = availableSpecies.length === 0;
-    const currentSpeciesId = String($('#species')?.value || '');
+    const currentSpeciesId = options.preserveSelection === false
+      ? ''
+      : String($('#species')?.value || '');
     const preferredValue = availableSpecies.some(([id]) => String(id) === currentSpeciesId)
       ? currentSpeciesId
       : previousValue;
@@ -3654,7 +3656,7 @@ function boot(){
     return true;
   }
 
-  function resetPokemonSelectionModeState() {
+  function resetResolvedPokemonSetupState() {
     for (const key of Object.keys(encounterModeStateCache)) delete encounterModeStateCache[key];
     preserveSpeciesOnNextModeChange = false;
     deferExactPresetOnNextModeChange = false;
@@ -3668,11 +3670,6 @@ function boot(){
     syncEncounterModeBodyClasses('');
 
     if (speciesAutocomplete) speciesAutocomplete.value = '';
-    const sourceSelect = document.getElementById('encounterBrowseCategory');
-    if (sourceSelect) sourceSelect.value = '';
-    populateEncounterBrowserSubcategories({ preserveSelection: false });
-    refreshEncounterBrowserResults({ preserveSelection: false });
-
     clearExactEncounterSelections();
     resetAllModeState();
     syncPokemonFirstOriginUi(0, {
@@ -3682,6 +3679,14 @@ function boot(){
     });
     validateForm();
     updateLegalityStatus();
+  }
+
+  function resetPokemonSelectionModeState() {
+    const sourceSelect = document.getElementById('encounterBrowseCategory');
+    if (sourceSelect) sourceSelect.value = '';
+    populateEncounterBrowserSubcategories({ preserveSelection: false });
+    refreshEncounterBrowserResults({ preserveSelection: false });
+    resetResolvedPokemonSetupState();
   }
 
   function initializeEncounterBrowser() {
@@ -3714,10 +3719,13 @@ function boot(){
     populateEncounterBrowserCategories();
     populateEncounterBrowserSubcategories();
     sourceSelect.addEventListener('change', () => {
+      subcategorySelect.value = '';
+      resetResolvedPokemonSetupState();
       populateEncounterBrowserSubcategories({ preserveSelection: false });
       refreshEncounterBrowserResults({ preserveSelection: false });
     });
     subcategorySelect.addEventListener('change', () => {
+      resetResolvedPokemonSetupState();
       refreshEncounterBrowserResults({ preserveSelection: false });
     });
     speciesSelect.addEventListener('change', () => {
