@@ -493,18 +493,23 @@
         jp: makeDexRegPayloadRows(['AAAAAOkA', 'Fz8tgNC8', 'MLQQpQBI', 'h0arrgcI'])
       };
 
-      // Every supported FireRed/LeafGreen language and revision contains the
-      // same DexReg payload bytes.
-      var frlgDexRegPayload = makeDexRegPayloadRows([
-        '6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0ZztAcI'
-      ]);
-      var frlgDexRegPayloads = {
-        eng1: frlgDexRegPayload,
-        eng0: frlgDexRegPayload,
-        spa: frlgDexRegPayload,
-        fra: frlgDexRegPayload,
-        ita: frlgDexRegPayload,
-        ger: frlgDexRegPayload
+      // Regular-console FireRed/LeafGreen DexReg payloads imported from the
+      // supplied game/language/revision files.
+      var fireRedDexRegPayloads = {
+        eng1: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bDBwUI']),
+        eng0: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0avBwUI']),
+        spa: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0ajCAUI']),
+        fra: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0aPCAUI']),
+        ita: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0a7BwUI']),
+        ger: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bPBwUI'])
+      };
+      var leafGreenDexRegPayloads = {
+        eng1: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bDBwUI']),
+        eng0: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0avBwUI']),
+        spa: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0ajCAUI']),
+        fra: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0aPCAUI']),
+        ita: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0a7BwUI']),
+        ger: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bPBwUI'])
       };
 
       // Switch DexReg payloads imported from the supplied game/language files.
@@ -651,10 +656,14 @@
           };
         }
         if(isFRLGGame()){
-          return {
-            rows: frlgDexRegPayloads[selectedLanguage] || frlgDexRegPayload,
+          var consolePayloads = selectedGame === 'FR'
+            ? fireRedDexRegPayloads
+            : leafGreenDexRegPayloads;
+          var consoleRows = consolePayloads[selectedLanguage];
+          return consoleRows ? {
+            rows: consoleRows,
             label: (gameNames[selectedGame] || 'FireRed / LeafGreen') + ' — ' + selectedLanguageLabel()
-          };
+          } : null;
         }
         if(isFRLGSwitchGame()){
           var switchPayloads = selectedGame === 'FR'

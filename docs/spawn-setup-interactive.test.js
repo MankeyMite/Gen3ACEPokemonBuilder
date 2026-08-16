@@ -54,6 +54,38 @@ const regularFrlgLanguageList = inlineScript.slice(
 );
 assert.match(regularFrlgLanguageList, /label: 'English 1\.1'/);
 assert.match(regularFrlgLanguageList, /label: 'English 1\.0'/);
+assert.match(
+  regularFrlgLanguageList,
+  /value: 'jap-unavailable', label: 'Japanese — not yet available', disabled: true/,
+);
+
+assert.match(
+  inlineScript,
+  /var consolePayloads = selectedGame === 'FR'\s*\? fireRedDexRegPayloads\s*: leafGreenDexRegPayloads;/,
+  'the selected base game should choose the corresponding regular-console payload',
+);
+for (const expectedPayload of [
+  "eng1: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bDBwUI'])",
+  "eng0: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0avBwUI'])",
+  "spa: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0ajCAUI'])",
+  "fra: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0aPCAUI'])",
+  "ita: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0a7BwUI'])",
+  "ger: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bPBwUI'])",
+]) {
+  assert.equal(
+    inlineScript.split(expectedPayload).length - 1,
+    2,
+    `FireRed and LeafGreen should both contain ${expectedPayload}`,
+  );
+}
+assert.doesNotMatch(
+  inlineScript.slice(
+    inlineScript.indexOf('var fireRedDexRegPayloads'),
+    inlineScript.indexOf('// Switch DexReg payloads'),
+  ),
+  /jap[01]:/,
+  'regular FireRed/LeafGreen should not expose Japanese DexReg payloads',
+);
 
 assert.match(
   inlineScript,
