@@ -143,6 +143,8 @@ const indexMarkup = await readFile(new URL('../../index.html', import.meta.url),
 assert.match(indexMarkup, /id="encounterBrowseCategory"/);
 assert.match(indexMarkup, /id="encounterBrowseSubcategory"/);
 assert.match(indexMarkup, /id="encounterBrowseSpecies"/);
+assert.match(indexMarkup, /id="encounterBrowseSprite"[^>]*class="species-sprite encounter-browser-sprite"/);
+assert.match(indexMarkup, /id="desktopPokemonPreviewSprite"[^>]*class="species-sprite desktop-pokemon-preview-sprite"/);
 assert.match(indexMarkup, /id="encounterBrowseStatus"[^>]*aria-live="polite"/);
 assert.match(indexMarkup, /<option value="">Choose source<\/option>/);
 assert.match(indexMarkup, /<option value="">Choose category<\/option>/);

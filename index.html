@@ -350,6 +350,42 @@
       opacity: 0.58;
     }
 
+    .encounter-browser-species-control {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      min-width: 0;
+    }
+
+    .encounter-browser-species-control select {
+      flex: 1 1 auto;
+    }
+
+    .encounter-browser-sprite {
+      width: 64px;
+      height: 64px;
+      margin: 0;
+      transform: none;
+    }
+
+    .encounter-browser-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      min-height: 64px;
+      margin-top: 0.35rem;
+    }
+
+    .encounter-browser-footer .encounter-browser-status {
+      flex: 1 1 auto;
+      margin: 0;
+    }
+
+    .desktop-pokemon-preview {
+      display: none;
+    }
+
     .encounter-browser-status {
       min-height: 1.15rem;
       margin: 0.4rem 0 0;
@@ -385,6 +421,11 @@
     @media (max-width: 520px) {
       .encounter-browser-fields {
         grid-template-columns: minmax(0, 1fr);
+      }
+
+      .encounter-browser-sprite {
+        width: 56px;
+        height: 56px;
       }
     }
 
@@ -519,6 +560,158 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
+    @media (min-width: 841px) {
+      .builder-setup-stage {
+        position: relative;
+        min-height: 296px;
+        padding-right: 304px;
+      }
+
+      .species-discovery-layout {
+        position: static;
+      }
+
+      .species-search-panel .autocomplete-wrapper {
+        width: min(100%, 520px);
+      }
+
+      .species-search-panel > .builder-species-control > .species-sprite,
+      .encounter-browser-footer > .encounter-browser-sprite {
+        display: none !important;
+      }
+
+      .species-search-panel > label {
+        display: flex;
+        align-items: center;
+        min-height: 2.4rem;
+        padding-right: 0;
+      }
+
+      .encounter-browser-disclosure {
+        top: 1.35rem;
+        right: auto;
+        left: 11.25rem;
+      }
+
+      .encounter-browser-disclosure[open] > summary {
+        top: 1.35rem;
+        right: auto;
+        left: 11.25rem;
+      }
+
+      .encounter-browser-disclosure .encounter-browser-panel > legend {
+        padding-right: 0;
+      }
+
+      .encounter-browser-fields {
+        grid-template-columns: minmax(0, 1fr);
+        width: min(100%, 520px);
+        padding-right: 0;
+      }
+
+      .encounter-browser-footer {
+        display: block;
+        min-height: 1.15rem;
+        margin-top: 0.55rem;
+      }
+
+      .desktop-pokemon-preview {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        display: flex;
+        width: 264px;
+        height: 264px;
+        padding: 10px;
+        border: 3px solid #244f68;
+        border-radius: 14px;
+        background: linear-gradient(145deg, #132d3d, #08151f 72%);
+        box-shadow:
+          0 12px 24px rgba(0, 0, 0, 0.35),
+          inset 0 1px 0 rgba(158, 224, 255, 0.2),
+          inset 0 -2px 0 rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+      }
+
+      .desktop-pokemon-preview::before {
+        content: '';
+        position: absolute;
+        inset: 6px;
+        border: 1px solid rgba(103, 220, 230, 0.22);
+        border-radius: 9px;
+        pointer-events: none;
+        z-index: 4;
+      }
+
+      .desktop-pokemon-preview-screen {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        border-radius: 8px;
+        background:
+          radial-gradient(circle at 50% 45%, rgba(80, 220, 204, 0.2), transparent 45%),
+          repeating-linear-gradient(0deg, rgba(173, 255, 241, 0.035) 0 1px, transparent 1px 4px),
+          linear-gradient(145deg, #0a3540, #071824 72%);
+        box-shadow:
+          inset 0 0 28px rgba(0, 0, 0, 0.75),
+          inset 0 0 8px rgba(83, 225, 210, 0.24);
+      }
+
+      .desktop-pokemon-preview-screen::before,
+      .desktop-pokemon-preview-screen::after {
+        content: '';
+        position: absolute;
+        inset: -18%;
+        pointer-events: none;
+      }
+
+      .desktop-pokemon-preview-screen::before {
+        background:
+          repeating-radial-gradient(circle at 20% 35%, rgba(180, 255, 242, 0.08) 0 1px, transparent 1px 5px),
+          repeating-linear-gradient(105deg, transparent 0 7px, rgba(88, 183, 255, 0.055) 8px 9px);
+        opacity: 0.68;
+        animation: pc-screen-static-shift 0.34s steps(2, end) infinite;
+      }
+
+      .desktop-pokemon-preview-screen::after {
+        background: linear-gradient(
+          180deg,
+          transparent 0%,
+          rgba(116, 255, 223, 0.11) 48%,
+          rgba(116, 255, 223, 0.22) 50%,
+          transparent 53%
+        );
+        animation: pc-screen-scan 3.2s linear infinite;
+      }
+
+      .desktop-pokemon-preview-sprite {
+        position: relative;
+        z-index: 3;
+        width: 200px;
+        height: 200px;
+        transform: none;
+        filter: drop-shadow(0 8px 5px rgba(0, 0, 0, 0.42));
+      }
+
+      .desktop-pokemon-preview-standby {
+        position: relative;
+        z-index: 2;
+        color: rgba(147, 255, 231, 0.55);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-shadow: 0 0 8px rgba(57, 217, 138, 0.5);
+      }
+
+      .desktop-pokemon-preview.has-sprite .desktop-pokemon-preview-standby {
+        display: none;
+      }
+    }
+
     @media (max-width: 600px) {
       .encounter-browser-fields {
         grid-template-columns: minmax(0, 1fr);
@@ -536,8 +729,24 @@
       }
     }
 
+    @keyframes pc-screen-static-shift {
+      0% { transform: translate(0, 0); }
+      50% { transform: translate(7px, -4px); }
+      100% { transform: translate(-5px, 6px); }
+    }
+
+    @keyframes pc-screen-scan {
+      from { transform: translateY(-58%); }
+      to { transform: translateY(58%); }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .encounter-browser-disclosure[open] > .encounter-browser-panel {
+        animation: none;
+      }
+
+      .desktop-pokemon-preview-screen::before,
+      .desktop-pokemon-preview-screen::after {
         animation: none;
       }
     }
@@ -2128,6 +2337,13 @@
 
       <div id="builderSetupStage" class="builder-setup-stage">
 
+      <div id="desktopPokemonPreview" class="desktop-pokemon-preview" aria-label="Pokémon PC preview">
+        <div class="desktop-pokemon-preview-screen">
+          <span class="desktop-pokemon-preview-standby" aria-hidden="true">NO SIGNAL</span>
+          <img id="desktopPokemonPreviewSprite" class="species-sprite desktop-pokemon-preview-sprite" alt="" />
+        </div>
+      </div>
+
       <div class="row builder-species-row">
         <div class="species-discovery-layout">
           <div class="species-search-panel">
@@ -2162,12 +2378,17 @@
                 </label>
                 <label class="encounter-browser-field" for="encounterBrowseSpecies">
                   <span class="encounter-browser-label">Available Pokémon</span>
-                  <select id="encounterBrowseSpecies" disabled>
-                    <option value="">Choose Pokémon</option>
-                  </select>
+                  <span class="encounter-browser-species-control">
+                    <select id="encounterBrowseSpecies" disabled>
+                      <option value="">Choose Pokémon</option>
+                    </select>
+                  </span>
                 </label>
               </div>
-              <p id="encounterBrowseStatus" class="encounter-browser-status" aria-live="polite">Choose a source, then a category, to see compatible Pokémon.</p>
+              <div class="encounter-browser-footer">
+                <p id="encounterBrowseStatus" class="encounter-browser-status" aria-live="polite">Choose a source, then a category, to see compatible Pokémon.</p>
+                <img id="encounterBrowseSprite" class="species-sprite encounter-browser-sprite" alt="" />
+              </div>
             </fieldset>
           </details>
         </div>

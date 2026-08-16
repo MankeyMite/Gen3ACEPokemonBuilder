@@ -3218,8 +3218,7 @@ function highlightMissingFields({ scrollToFirst = true } = {}) {
   return missingFields;
 }
 
-function updateSpeciesSprite(speciesId) {
-  const img = $('#speciesSprite');
+function renderSpeciesSprite(img, speciesId) {
   if (!img) return;
   img.onerror = null;
   const isShiny = $('#shiny')?.checked || false;
@@ -3264,6 +3263,36 @@ function updateSpeciesSprite(speciesId) {
   }
 }
 
+function updateSpeciesSprite(speciesId) {
+  renderSpeciesSprite($('#speciesSprite'), speciesId);
+  updateDesktopPokemonPreviewSprite(speciesId);
+}
+
+function updateEncounterBrowseSprite(speciesId) {
+  renderSpeciesSprite(document.getElementById('encounterBrowseSprite'), speciesId);
+  updateDesktopPokemonPreviewSprite(speciesId);
+}
+
+function updateDesktopPokemonPreviewSprite(speciesId) {
+  const img = document.getElementById('desktopPokemonPreviewSprite');
+  const preview = document.getElementById('desktopPokemonPreview');
+  renderSpeciesSprite(img, speciesId);
+  preview?.classList.toggle('has-sprite', Boolean(img?.classList.contains('visible')));
+}
+
+function updateUnownPreviewSprites(formIndex) {
+  const spritePath = getUnownSpritePath(formIndex);
+  const altText = `Unown ${UNOWN_FORMS[formIndex]}`;
+  for (const imageId of ['speciesSprite', 'encounterBrowseSprite', 'desktopPokemonPreviewSprite']) {
+    const img = document.getElementById(imageId);
+    if (!img) continue;
+    img.src = spritePath;
+    img.alt = altText;
+    img.classList.add('visible');
+  }
+  document.getElementById('desktopPokemonPreview')?.classList.add('has-sprite');
+}
+
 // â”€â”€ Unown form helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 /** Populate and show/hide the Unown form dropdown based on current species. */
 function updateUnownFormVisibility(speciesId) {
@@ -3302,12 +3331,7 @@ function updateUnownFormFromPID() {
   const sel = document.getElementById('unownForm');
   if (sel) sel.value = String(formIndex);
   // Update sprite to matching form
-  const img = $('#speciesSprite');
-  if (img) {
-    img.src = getUnownSpritePath(formIndex);
-    img.alt = `Unown ${UNOWN_FORMS[formIndex]}`;
-    img.classList.add('visible');
-  }
+  updateUnownPreviewSprites(formIndex);
 }
 
 /**
@@ -3363,12 +3387,7 @@ function filterUnownLocationsByForm() {
 /** Update sprite to match the currently selected Unown form. */
 function updateUnownFormSprite() {
   const formIndex = Number(document.getElementById('unownForm')?.value ?? 0);
-  const img = $('#speciesSprite');
-  if (img) {
-    img.src = getUnownSpritePath(formIndex);
-    img.alt = `Unown ${UNOWN_FORMS[formIndex]}`;
-    img.classList.add('visible');
-  }
+  updateUnownPreviewSprites(formIndex);
 }
 
 // When user manually picks a form, update sprite + filter locations
@@ -3560,6 +3579,7 @@ function boot(){
       option.textContent = 'Choose Pokémon';
       speciesSelect.appendChild(option);
       speciesSelect.disabled = true;
+      updateEncounterBrowseSprite(0);
       status.textContent = source
         ? 'Choose a category to see compatible Pokémon.'
         : 'Choose a source, then a category, to see compatible Pokémon.';
@@ -3591,6 +3611,7 @@ function boot(){
     speciesSelect.value = availableSpecies.some(([id]) => String(id) === preferredValue)
       ? preferredValue
       : '';
+    updateEncounterBrowseSprite(Number(speciesSelect.value) || 0);
     status.textContent = `${availableSpecies.length} Pokémon available in ${subcategory.label}.`;
   }
 
@@ -3701,6 +3722,7 @@ function boot(){
     });
     speciesSelect.addEventListener('change', () => {
       const speciesId = Number(speciesSelect.value) || 0;
+      updateEncounterBrowseSprite(speciesId);
       if (!speciesId || !speciesAutocomplete?.selectById?.(speciesId)) return;
       $('#species').value = String(speciesId);
 
