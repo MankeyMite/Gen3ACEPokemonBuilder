@@ -3633,6 +3633,36 @@ function boot(){
     return true;
   }
 
+  function resetPokemonSelectionModeState() {
+    for (const key of Object.keys(encounterModeStateCache)) delete encounterModeStateCache[key];
+    preserveSpeciesOnNextModeChange = false;
+    deferExactPresetOnNextModeChange = false;
+    if (hasPidFinderSelectionState()) unlockPidFinderFields({ clearPid: true });
+
+    currentEncounterMode = '';
+    const internalModeSelect = document.getElementById('encounterMode');
+    if (internalModeSelect) internalModeSelect.value = '';
+    const originSelect = document.getElementById('pokemonOrigin');
+    if (originSelect) originSelect.value = '';
+    syncEncounterModeBodyClasses('');
+
+    if (speciesAutocomplete) speciesAutocomplete.value = '';
+    const sourceSelect = document.getElementById('encounterBrowseCategory');
+    if (sourceSelect) sourceSelect.value = '';
+    populateEncounterBrowserSubcategories({ preserveSelection: false });
+    refreshEncounterBrowserResults({ preserveSelection: false });
+
+    clearExactEncounterSelections();
+    resetAllModeState();
+    syncPokemonFirstOriginUi(0, {
+      mode: '',
+      preserveCurrent: false,
+      preserveExact: false,
+    });
+    validateForm();
+    updateLegalityStatus();
+  }
+
   function initializeEncounterBrowser() {
     const sourceSelect = document.getElementById('encounterBrowseCategory');
     const subcategorySelect = document.getElementById('encounterBrowseSubcategory');
@@ -3641,9 +3671,14 @@ function boot(){
 
     const disclosure = document.getElementById('encounterBrowserDisclosure');
     const disclosureSummary = disclosure?.querySelector('summary');
-    const syncBrowseMode = () => {
+    let previousBrowseMode = false;
+    const syncBrowseMode = ({ resetSelection = true } = {}) => {
       const browseMode = Boolean(disclosure?.open);
       document.body.classList.toggle('encounter-browser-mode', browseMode);
+      if (resetSelection && browseMode !== previousBrowseMode) {
+        resetPokemonSelectionModeState();
+      }
+      previousBrowseMode = browseMode;
       disclosureSummary?.setAttribute(
         'aria-label',
         browseMode
@@ -3652,8 +3687,8 @@ function boot(){
       );
     };
     if (disclosure) disclosure.open = false;
-    syncBrowseMode();
-    disclosure?.addEventListener('toggle', syncBrowseMode);
+    syncBrowseMode({ resetSelection: false });
+    disclosure?.addEventListener('toggle', () => syncBrowseMode());
 
     populateEncounterBrowserCategories();
     populateEncounterBrowserSubcategories();
