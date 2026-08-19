@@ -405,7 +405,7 @@ function updateStatGraph() {
               newLevel = Math.max(70, Number(newLevel));
             } else if (tU === 'POKEMON_ROCKS_METANG') {
               newLevel = Math.max(30, Number(newLevel));
-            } else if (tU === 'WISHMKR_BEST' || tU === 'WISHMKR_SHINY' || tU === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') {
+            } else if (tU === 'WISHMKR_BEST' || tU === 'WISHMKR_SHINY' || isBerryFixMysteryTag(tU)) {
               newLevel = Math.max(5, Number(newLevel));
             } else if (tU === 'CHANNEL_JIRACHI') {
               newLevel = Math.max(5, Number(newLevel));
@@ -713,7 +713,7 @@ function updateStatGraph() {
       // Force English-only languages for specific events where only English
       // game versions are supported in this dataset.
       try {
-        const englishOnly = ['POKEMON_ROCKS_METANG','WISHMKR_BEST','WISHMKR_SHINY','DOEL_DEOXYS','SPACE_CENTER_DEOXYS','BERRY_PROGRAM_UPDATE_ZIGZAGOON','CHANNEL_JIRACHI','PCNY_WISH_EGGS','MYSTRY_MEW'];
+        const englishOnly = ['POKEMON_ROCKS_METANG','WISHMKR_BEST','WISHMKR_SHINY','DOEL_DEOXYS','SPACE_CENTER_DEOXYS','BERRY_PROGRAM_UPDATE_ZIGZAGOON','BERRY_PROGRAM_UPDATE_ZIGZAGOON_RUBY','CHANNEL_JIRACHI','PCNY_WISH_EGGS','MYSTRY_MEW'];
         if (englishOnly.includes(String(tag).toUpperCase())) {
           const langSel = $('#language');
           if (langSel && langSel.options) {
@@ -1500,7 +1500,9 @@ function shouldUnlockCelebiShinyLock(tag, evt) {
 
 function isBerryFixMysteryTag(tag) {
   const t = String(tag || '').toUpperCase();
-  return t === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON' || t === 'BERRY_FIX_ZIGZAGOON';
+  return t === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON' ||
+    t === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON_RUBY' ||
+    t === 'BERRY_FIX_ZIGZAGOON';
 }
 
 function isBerryFixMysteryEventSelected() {
@@ -2029,8 +2031,9 @@ function updateBerryFixOtPreferenceUi() {
     return;
   }
 
-  pref.value = getBerryFixOtPreference();
-  pref.disabled = !!pidFinderResultActive;
+  const fixedPreference = String(getSelectedMysteryEvent().event?.berryFixOtPreference || '').toUpperCase();
+  pref.value = fixedPreference === 'RUBY' ? 'RUBY' : 'SAPHIRE';
+  pref.disabled = Boolean(fixedPreference) || !!pidFinderResultActive;
 }
 
 function getMysteryPidMethod() {
@@ -2043,7 +2046,7 @@ function getMysteryPidMethod() {
   if (tag === 'CHANNEL_JIRACHI') return 'CHANNEL';
   if (tag === 'AGETO_CELEBI') return 'CXD';
   if (tag === 'MITSURIN_CELEBI') return 'BACD_R_A';
-  if (tag === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') return 'BACD_RBCD';
+  if (isBerryFixMysteryTag(tag)) return 'BACD_RBCD';
   if (tag === 'MYSTRY_MEW') return 'BACD_M';
   if (tag === BOX_EVENT_TAG) return 'BACD_U';
   if (tag === PCNY_WISH_EGGS_TAG) return 'METHOD_2';
@@ -7621,7 +7624,7 @@ function boot(){
             el.value = eventMoveIds[i] ? String(eventMoveIds[i]) : '';
             try { el.dispatchEvent(new Event('change')); } catch (e) {}
           }
-        } else if (String(rawTag || '').toUpperCase() === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') {
+        } else if (isBerryFixMysteryTag(rawTag)) {
           const fallbackMoves = [33, 45, 39];
           for (let i = 0; i < 4; i++) {
             const el = $(`#move${i+1}`);
@@ -8886,7 +8889,7 @@ function boot(){
           else if (tag === 'JOURNEY_ACROSS_AMERICA' && val < 70) val = 70;
           else if (tag === 'PARTY_OF_THE_DECADE' && val < 70) val = 70;
           else if (tag === 'POKEMON_ROCKS_METANG' && val < 30) val = 30;
-          else if ((tag === 'WISHMKR_BEST' || tag === 'WISHMKR_SHINY' || tag === 'BERRY_PROGRAM_UPDATE_ZIGZAGOON') && val < 5) val = 5;
+          else if ((tag === 'WISHMKR_BEST' || tag === 'WISHMKR_SHINY' || isBerryFixMysteryTag(tag)) && val < 5) val = 5;
           }
           // Legendary Mew: if in legendaries mode and species is Mew (151), enforce min level 30
           else if (currentEncounterMode === 'static') {

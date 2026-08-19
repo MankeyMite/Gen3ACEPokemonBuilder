@@ -180,6 +180,39 @@ const tsResults = runSearch({
 assert(tsResults.length > 0, 'BACD_TS should produce forced-shiny table results');
 assert(tsResults.every(result => ((((result.pid >>> 16) ^ (result.pid & 0xFFFF)) ^ 0) < 8)), 'every BACD_TS result should be shiny');
 
+const berryProgramBase = {
+  ability: -1,
+  genderThreshold: -1,
+  targetGender: 3,
+  tid: 30317,
+  sid: 0,
+  wantShiny: true,
+  noShiny: false,
+  minIVs: [0, 0, 0, 0, 0, 0],
+  maxIVs: [31, 31, 31, 31, 31, 31],
+  method: 'BACD_RBCD',
+  startSeed: 0,
+  endSeed: 0x10000,
+  maxResults: 250,
+};
+
+for (const variant of [
+  { otName: 'SAPHIRE', otGender: 'male', seed: 5, pid: 0x48DF3EB5 },
+  { otName: 'RUBY', otGender: 'female', seed: 3, pid: 0xC553B33A },
+]) {
+  const results = runSearch({
+    ...berryProgramBase,
+    nature: variant.pid % 25,
+    berryFixOtPreference: variant.otName,
+  });
+  assert(results.length > 0, `${variant.otName} Berry Program search should produce results`);
+  assert(results.every(result => result.originSeed >= 3 && result.originSeed <= 213), `${variant.otName} results should obey the PKHeX BCD seed range`);
+  assert(results.every(result => result.otName === variant.otName), `${variant.otName} event should only return its OT-name seed branch`);
+  assert(results.every(result => result.otGender === variant.otGender), `${variant.otName} event should only return its OT-gender seed branch`);
+  assert(results.every(result => ((((result.pid >>> 16) ^ (result.pid & 0xFFFF)) ^ 30317) < 8)), `${variant.otName} results should always be shiny`);
+  assert(results.some(result => result.originSeed === variant.seed && result.pid === variant.pid), `${variant.otName} should include its expected legal seed vector`);
+}
+
 if (failed > 0) {
   console.error(`\n${failed} failed, ${passed} passed`);
   process.exit(1);

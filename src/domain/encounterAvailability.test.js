@@ -70,6 +70,76 @@ function modesFor(id) {
   return new Set(getAvailableOriginsForSpecies(id, context).map(origin => origin.mode));
 }
 
+const sapphireBerryProgram = mysteryEvents.BERRY_PROGRAM_UPDATE_ZIGZAGOON;
+const rubyBerryProgram = mysteryEvents.BERRY_PROGRAM_UPDATE_ZIGZAGOON_RUBY;
+assert.deepEqual(
+  {
+    label: sapphireBerryProgram.label,
+    tid: sapphireBerryProgram.fixedTID,
+    sid: sapphireBerryProgram.fixedSID,
+    otName: sapphireBerryProgram.ot_name,
+    otGender: sapphireBerryProgram.ot_gender,
+    language: sapphireBerryProgram.defaultLanguage,
+    originGame: sapphireBerryProgram.defaultOriginGame,
+    method: sapphireBerryProgram.pidMethod,
+    otPreference: sapphireBerryProgram.berryFixOtPreference,
+    moves: sapphireBerryProgram.movesBySpecies['288'],
+  },
+  {
+    label: 'English Berry Program Update — SAPHIRE Zigzagoon',
+    tid: 30317,
+    sid: 0,
+    otName: 'SAPHIRE',
+    otGender: 'male',
+    language: 2,
+    originGame: 1,
+    method: 'BACD_RBCD',
+    otPreference: 'SAPHIRE',
+    moves: [33, 45, 39],
+  },
+  'the existing English SAPHIRE Berry Program variant should retain its fixed identity',
+);
+assert.deepEqual(
+  {
+    label: rubyBerryProgram.label,
+    tid: rubyBerryProgram.fixedTID,
+    sid: rubyBerryProgram.fixedSID,
+    otName: rubyBerryProgram.ot_name,
+    otGender: rubyBerryProgram.ot_gender,
+    language: rubyBerryProgram.defaultLanguage,
+    originGame: rubyBerryProgram.defaultOriginGame,
+    method: rubyBerryProgram.pidMethod,
+    otPreference: rubyBerryProgram.berryFixOtPreference,
+    moves: rubyBerryProgram.movesBySpecies['288'],
+  },
+  {
+    label: 'English Berry Program Update — RUBY Zigzagoon',
+    tid: 30317,
+    sid: 0,
+    otName: 'RUBY',
+    otGender: 'female',
+    language: 2,
+    originGame: 1,
+    method: 'BACD_RBCD',
+    otPreference: 'RUBY',
+    moves: [33, 45, 39],
+  },
+  'the English RUBY Berry Program variant should differ only in its trainer identity and RNG branch',
+);
+assert.deepEqual(
+  getMysteryEventsForSpecies(speciesId('Zigzagoon'), mysteryEvents, mysteryGifts)
+    .map(event => event.tag)
+    .filter(tag => tag.startsWith('BERRY_PROGRAM_UPDATE_ZIGZAGOON')),
+  ['BERRY_PROGRAM_UPDATE_ZIGZAGOON', 'BERRY_PROGRAM_UPDATE_ZIGZAGOON_RUBY'],
+  'both English Berry Program variants should be separately selectable for Zigzagoon',
+);
+const trainerVariantKeys = new Set(['label', 'ot_name', 'ot_gender', 'berryFixOtPreference']);
+assert.deepEqual(
+  Object.fromEntries(Object.entries(rubyBerryProgram).filter(([key]) => !trainerVariantKeys.has(key))),
+  Object.fromEntries(Object.entries(sapphireBerryProgram).filter(([key]) => !trainerVariantKeys.has(key))),
+  'RUBY and SAPHIRE should share all non-trainer event metadata and generation logic',
+);
+
 function lineageFor(id) {
   const result = [];
   const visited = new Set();
