@@ -98,6 +98,47 @@ section('raw .ek3 <-> canonical .pk3 byte-exact roundtrip');
   assert(same, 'raw -> pk3 -> raw must preserve bytes exactly');
 }
 
+section('Japanese name fields use Japanese limits and OT terminator');
+{
+  const cfg = {
+    ...makeSampleCfg(),
+    languageId: 1,
+    nickname: 'ABCDEFGHIJ',
+    otName: 'TRAINER',
+  };
+  const outputs = [
+    ['encrypted output', buildPokemonBytes(cfg).bytes],
+    ['decrypted output', buildDecryptedPokemonFile(cfg)],
+  ];
+
+  for (const [label, bytes] of outputs) {
+    assert(bytes[0x0C] !== 0xFF, `${label} keeps the fifth Japanese nickname character`);
+    assert(bytes.slice(0x0D, 0x12).every(byte => byte === 0xFF), `${label} truncates and pads the Japanese nickname after five characters`);
+    assert(bytes[0x18] !== 0xFF, `${label} keeps the fifth Japanese OT character`);
+    assert(bytes[0x19] === 0xFF, `${label} pads Japanese OT byte 5 with 0xFF`);
+    assert(bytes[0x1A] === 0x00, `${label} writes the required final Japanese OT terminator`);
+  }
+}
+
+section('international name encoding remains unchanged');
+{
+  const cfg = {
+    ...makeSampleCfg(),
+    languageId: 2,
+    nickname: 'ABCDEFGHIJ',
+    otName: 'TRAINER',
+  };
+  const outputs = [
+    ['encrypted output', buildPokemonBytes(cfg).bytes],
+    ['decrypted output', buildDecryptedPokemonFile(cfg)],
+  ];
+
+  for (const [label, bytes] of outputs) {
+    assert(bytes[0x11] !== 0xFF, `${label} keeps the tenth international nickname character`);
+    assert(bytes[0x1A] !== 0x00 && bytes[0x1A] !== 0xFF, `${label} keeps the seventh international OT character`);
+  }
+}
+
 section('glitch-like header bytes remain unchanged');
 {
   const raw = buildPokemonBytes(makeSampleCfg()).bytes;

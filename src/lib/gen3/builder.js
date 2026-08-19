@@ -281,7 +281,7 @@ export function buildPokemonBytes(cfg){
   writeU32LE(total, p, otid); p += 4;             // 0x04-0x07: OT ID
   
   // Nickname (10 bytes) — proper Gen 3 encoding, 0xFF-padded
-  const nick = encodeNickname(cfg.nickname || '');
+  const nick = encodeNickname(cfg.nickname || '', cfg.languageId);
   total.set(nick, p); p += 10;                    // 0x08-0x11: Nickname
   
   total[p++] = cfg.languageId & 0xFF;             // 0x12: Language (1 byte)
@@ -293,7 +293,7 @@ export function buildPokemonBytes(cfg){
   total[p++] = miscFlags;                          // 0x13: Misc Flags
   
   // OT name (7 bytes) — proper Gen 3 encoding, 0xFF-padded
-  const ot = encodeOT(cfg.otName || 'TRAINER');
+  const ot = encodeOT(cfg.otName || 'TRAINER', cfg.languageId);
   total.set(ot, p); p += 7;                       // 0x14-0x1A: OT Name
   
   // Markings (0x1B): bits 0-3 for Circle, Triangle, Square, Heart
@@ -415,14 +415,14 @@ export function buildDecryptedPokemonFile(cfg){
   let p = 0;
   writeU32LE(total, p, pid); p += 4;
   writeU32LE(total, p, otid); p += 4;
-  const nick = encodeNickname(cfg.nickname || '');
+  const nick = encodeNickname(cfg.nickname || '', cfg.languageId);
   total.set(nick, p); p += 10;
   total[p++] = cfg.languageId & 0xFF;
   // 0x13: Misc Flags (bit 1 = has species, bit 2 = use egg name)
   let miscFlags2 = 0x02;
   if (cfg.isEgg) miscFlags2 |= 0x04;
   total[p++] = miscFlags2;
-  const ot = encodeOT(cfg.otName || 'TRAINER');
+  const ot = encodeOT(cfg.otName || 'TRAINER', cfg.languageId);
   total.set(ot, p); p += 7;
   let markings = 0;
   if (cfg.markings?.circle) markings |= (1 << 0);

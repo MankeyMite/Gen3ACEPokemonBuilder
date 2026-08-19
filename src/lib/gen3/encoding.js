@@ -200,11 +200,12 @@ export const CHAR_TABLE = {
 
 // Generic encoder for nicknames / OT names.
 // - str: JS string
-// - maxLen: max bytes (10 for nickname, 7 for OT)
+// - maxLen: fixed field size in bytes (10 for nickname, 7 for OT)
+// - maxChars: maximum characters to encode (defaults to the field size)
 // Output: Uint8Array(maxLen), filled with 0xFF padding.
 // Gen 3 uses 0xFF as string terminator; bytes after the first 0xFF are ignored.
-export function encodeName(str, maxLen) {
-  const capped = (str ?? '').slice(0, maxLen);
+export function encodeName(str, maxLen, maxChars = maxLen) {
+  const capped = (str ?? '').slice(0, maxChars);
 
   // Start with 0xFF padding (terminator + ignored bytes)
   const bytes = new Uint8Array(maxLen).fill(0xFF);
@@ -229,5 +230,15 @@ export function encodeName(str, maxLen) {
 }
 
 // Convenience helpers so the builder doesn’t have to remember lengths.
-export const encodeNickname = (name) => encodeName(name, 10);
-export const encodeOT       = (name) => encodeName(name, 7);
+export const encodeNickname = (name, languageId) =>
+  encodeName(name, 10, Number(languageId) === 1 ? 5 : 10);
+
+export function encodeOT(name, languageId) {
+  if (Number(languageId) !== 1) return encodeName(name, 7);
+
+  const bytes = encodeName(name, 7, 5);
+  // Japanese OT names require byte 6 to be 0x00. Unused bytes through byte 5
+  // retain the normal 0xFF string padding.
+  bytes[6] = 0x00;
+  return bytes;
+}
