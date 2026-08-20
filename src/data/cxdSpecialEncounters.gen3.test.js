@@ -76,12 +76,12 @@ assert.ok(
   'single-ability GameCube encounters must search legal ability number 0',
 );
 assert.ok(
-  mainSource.includes('policy.kind === SHINY_CONTROL_KIND.FINDER'),
-  'correlated GameCube encounters must route the shiny control through the legal finder',
+  mainSource.includes('const autoAllowed = policy.kind === SHINY_CONTROL_KIND.DIRECT && !sidLocked;'),
+  'correlated GameCube encounters must not allow an SID-only shiny change',
 );
 assert.ok(
-  mainSource.includes('if (shinyOnly && !shinyOnly.disabled) shinyOnly.checked = true;'),
-  'the shared shiny control must open the finder with Shiny Only selected',
+  mainSource.includes("document.getElementById('pfShiny')"),
+  'the legal PID window must keep an internal shiny-only search flag',
 );
 assert.ok(
   mainSource.includes('if (enc?.shinyLocked || trade?.shinyLocked)'),
@@ -89,6 +89,8 @@ assert.ok(
 );
 
 const indexSource = await readFile(new URL('../../index.html', import.meta.url), 'utf8');
-assert.ok(indexSource.includes('id="cxdShinyFinderHint"'), 'the CXD shiny PID Finder guidance must exist');
+assert.ok(indexSource.includes('id="pfShinyKeepSid"'), 'the legal PID window must offer Keep SID');
+assert.ok(indexSource.includes('id="pfShinyAutoSid"'), 'the legal PID window must expose Auto-Set SID where legal');
+assert.ok(indexSource.includes('id="pfShinyLockedMessage"'), 'shiny-locked encounters must explain the lock inside the legal PID window');
 
 console.log('special Colosseum/XD encounter tests passed');

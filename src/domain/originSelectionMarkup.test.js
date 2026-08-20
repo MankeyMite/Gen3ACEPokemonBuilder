@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../../index.html', import.meta.url), 'utf8');
 const mainSource = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+const styles = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
 
 const speciesIndex = html.indexOf('id="species"');
 const originIndex = html.indexOf('id="pokemonOrigin"');
@@ -106,6 +107,51 @@ assert.ok(
   selectedCXDHelperIndex >= 0 && selectedCXDHelperIndex < bootFunctionIndex,
   'the selected CXD encounter helper must remain module-scoped for the PID Finder modal',
 );
+
+assert.match(html, /id="pidFinderBtn"[^>]*>Set Legal PID\/Shiny</);
+assert.match(html, /id="pfHatchedNotice"/);
+assert.match(html, /id="pfPid"/);
+assert.match(html, /id="pfConfirm"/);
+assert.match(html, /id="pfWantShiny" type="checkbox"/);
+assert.match(html, /id="pfKeepSidInfoTooltip"/);
+assert.match(html, /id="pfAutoSidInfoTooltip"/);
+assert.match(html, /id="pfKeepSidHatchedRecommendation"[^>]*>Recommended for hatched<\/span>/);
+assert.match(html, /id="pfMinHp"[^>]*value="20"/);
+assert.match(html, /<th class="pid-finder-action">Select<\/th>/);
+assert.match(html, /class="pid-shiny-switch"/);
+assert.match(html, /class="pid-shiny-switch-star"/);
+assert.match(html, /<b>Auto-Set SID<\/b>[\s\S]*<b>Keep SID<\/b>/);
+assert.match(html, /Recommended if you want high IVs and do not care about the SID/);
+assert.match(html, /fewer high-IV PID choices/);
+assert.doesNotMatch(html, /id="pfRandomPid"/);
+assert.match(html, /id="pfAbility" hidden/);
+assert.match(html, /id="pfPidParity" hidden/);
+assert.doesNotMatch(html, /id="pfPidParityRow"|<label for="pfAbility"/);
+assert.doesNotMatch(html, /id="makeShinyBtn"|id="makeShinyMethodToggle"|id="makeShinyRow"|class="row shiny-external"/);
+assert.match(mainSource, /pfTidEl\.disabled = Boolean\(mainTidEl\?\.disabled\)/);
+assert.match(mainSource, /pfSidEl\.disabled = Boolean\(mainSidEl\?\.disabled\)/);
+assert.match(styles, /\.pid-finder-identity-grid input:disabled/);
+assert.match(styles, /\.pid-finder-identity-grid select \{[\s\S]*?height:\s*2\.5rem;/);
+assert.match(styles, /\.pid-shiny-option-copy \{[\s\S]*?align-items:\s*center;/);
+assert.match(styles, /grid-template-columns:\s*140px 140px minmax\(0, 290px\)/);
+assert.match(html, /<input id="sid"[^>]+>\s*<\/div>\s*<span id="sidShinyStatus"/);
+assert.match(mainSource, /currentEncounterMode === 'hatched' \|\|\s*currentEncounterMode === 'wild'/);
+assert.match(mainSource, /wantShinyCheckbox\.checked = false/);
+assert.match(mainSource, /keepSidHatchedRecommendation\.hidden = currentEncounterMode !== 'hatched'/);
+assert.match(mainSource, /setMinimumIvDefaults\(radio === keepSidRadio \? 15 : 20\)/);
+assert.match(mainSource, /setMinimumIvDefaults\(20\);/);
+assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.pid-finder-table \.pid-finder-action \{[\s\S]*?position:\s*sticky;[\s\S]*?right:\s*0;/);
+assert.match(styles, /\.pid-finder-table tr\.is-selected \.pid-finder-action,[\s\S]*?background:\s*#0f3a41;/);
+assert.match(mainSource, /natureEl\?\.classList\.add\('field-error'\);\s*scrollToMissingField\(natureEl, natureEl\);/);
+assert.match(mainSource, /PID 0x00000000 is not allowed because it has no valid encryption constant\./);
+assert.match(mainSource, /This Pokémon cannot be shiny\./);
+assert.match(mainSource, /filtered = filtered\.filter\(r => !resultIsShiny\(r\)\)/);
+assert.match(mainSource, /`Showing top \$\{capped\.length\} results by IV total`/);
+assert.match(mainSource, /`Showing all \$\{capped\.length\} result/);
+assert.match(mainSource, /No results match the current filters\./);
+assert.doesNotMatch(mainSource, /resultLabel\(pfAllResults\.length\)|match current filters/);
+assert.doesNotMatch(mainSource, /`\$\{filtered\.length\} result\$\{filtered\.length !== 1 \? 's' : ''\} shown`/);
+assert.match(mainSource, /speciesAbilities\?\.\[ability\]/);
 
 const isEggListenerStart = mainSource.indexOf("isEggCheckbox.addEventListener('change'");
 const isEggListenerEnd = mainSource.indexOf('updateLegalityStatus();', isEggListenerStart);

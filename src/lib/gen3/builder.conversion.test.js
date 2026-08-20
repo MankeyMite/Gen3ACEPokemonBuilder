@@ -98,6 +98,24 @@ section('raw .ek3 <-> canonical .pk3 byte-exact roundtrip');
   assert(same, 'raw -> pk3 -> raw must preserve bytes exactly');
 }
 
+section('zero PID falls back to a generated encryption constant');
+{
+  const cfg = {
+    ...makeSampleCfg(),
+    pid: 0x00000000,
+    tid: 12345,
+    sid: 12345,
+    natureIndex: 0,
+    forceShiny: true,
+  };
+  const raw = buildPokemonBytes(cfg).bytes;
+  const pk3 = buildDecryptedPokemonFile(cfg);
+  const parsed = parsePokemonBytes(toHexString(raw));
+
+  assert(parsed.pid !== 0x00000000, 'normal generation must replace a zero PID');
+  assert(pk3.slice(0, 4).some(byte => byte !== 0), 'PK3 export must replace a zero PID');
+}
+
 section('Japanese name fields use Japanese limits and OT terminator');
 {
   const cfg = {

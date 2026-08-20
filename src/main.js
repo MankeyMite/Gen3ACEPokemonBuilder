@@ -92,7 +92,6 @@ import {
 } from './domain/importedPokemon.js';
 import {
   SHINY_CONTROL_KIND,
-  getShinyButtonPresentation,
   getShinyControlPolicy,
 } from './domain/shinyControl.js';
 import {
@@ -2162,17 +2161,7 @@ function updatePidFinderVisibility() {
 
   const pidFinderBtn = document.getElementById('pidFinderBtn');
 
-  const mysteryMethod = getMysteryPidMethod();
-  const shouldShow =
-    currentEncounterMode === 'wild' ||
-    currentEncounterMode === 'static' ||
-    currentEncounterMode === 'roamer' ||
-    currentEncounterMode === 'cxd_shadow' ||
-    (currentEncounterMode === 'cxd_trade' && isCXDGeneratedTrade(getSelectedCXDTrade())) ||
-    isMysteryMethod2(mysteryMethod) ||
-    mysteryMethod === 'CHANNEL' ||
-    mysteryMethod === 'CXD' ||
-    isMysteryBACDMethod(mysteryMethod);
+  const shouldShow = isPidFinderAvailableForCurrentEncounter();
 
   row.style.display = shouldShow ? 'flex' : '';
 
@@ -2196,6 +2185,22 @@ function updatePidFinderVisibility() {
   }
 
   try { updateBerryFixOtPreferenceUi(); } catch (e) {}
+}
+
+function isPidFinderAvailableForCurrentEncounter() {
+  const mysteryMethod = getMysteryPidMethod();
+  return (
+    currentEncounterMode === 'hatched' ||
+    currentEncounterMode === 'wild' ||
+    currentEncounterMode === 'static' ||
+    currentEncounterMode === 'roamer' ||
+    currentEncounterMode === 'cxd_shadow' ||
+    (currentEncounterMode === 'cxd_trade' && isCXDGeneratedTrade(getSelectedCXDTrade())) ||
+    isMysteryMethod2(mysteryMethod) ||
+    mysteryMethod === 'CHANNEL' ||
+    mysteryMethod === 'CXD' ||
+    isMysteryBACDMethod(mysteryMethod)
+  );
 }
 
 // Gender thresholds are now imported from ./data/genderThresholds.gen3.js
@@ -5134,9 +5139,6 @@ function boot(){
         if (sp) applyRoamerPreset(sp);
       }
     } catch (e) {}
-  });
-  $('#nature').addEventListener('focus', () => {
-    $('#nature').classList.remove('field-error');
   });
   $('#move1').addEventListener('change', () => {
     validateForm();
@@ -8302,45 +8304,27 @@ function boot(){
   function updateMakeShinyVisibility(enc) {
     const row = document.getElementById('makeShinyRow');
     const shinyLockedLabel = document.getElementById('xdShinyLocked');
-    const shinyFinderHint = document.getElementById('cxdShinyFinderHint');
-    const makeShinyBtnLocal = document.getElementById('makeShinyBtn');
     const shinyIndicatorBtnLocal = document.getElementById('shinyIndicatorBtn');
-    const makeShinyStatusLocal = document.getElementById('makeShinyStatus');
     if (!row) return;
 
     const selectedEncounter = enc !== undefined ? enc : getSelectedCXDEncounter();
     if (currentEncounterMode === 'cxd_shadow' && !selectedEncounter) {
       row.style.display = 'none';
       if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
-      if (shinyFinderHint) shinyFinderHint.style.display = 'none';
       return;
     }
 
     const policy = getCurrentShinyControlPolicy(enc);
-    row.style.display = '';
+    row.style.display = policy.kind === SHINY_CONTROL_KIND.LOCKED ? '' : 'none';
     if (shinyLockedLabel) shinyLockedLabel.style.display = 'none';
-    if (shinyFinderHint) shinyFinderHint.style.display = 'none';
-    if (makeShinyBtnLocal) makeShinyBtnLocal.style.display = '';
     if (shinyIndicatorBtnLocal) shinyIndicatorBtnLocal.style.display = '';
-    if (makeShinyStatusLocal) makeShinyStatusLocal.style.display = '';
 
     if (policy.kind === SHINY_CONTROL_KIND.LOCKED) {
-      if (makeShinyBtnLocal) makeShinyBtnLocal.style.display = 'none';
       if (shinyIndicatorBtnLocal) shinyIndicatorBtnLocal.style.display = 'none';
-      if (makeShinyStatusLocal) makeShinyStatusLocal.style.display = 'none';
       if (shinyLockedLabel) {
         shinyLockedLabel.textContent = policy.message;
         shinyLockedLabel.style.display = '';
       }
-      return;
-    }
-
-    if (policy.kind === SHINY_CONTROL_KIND.FINDER && shinyFinderHint) {
-      shinyFinderHint.textContent = policy.message;
-      shinyFinderHint.style.display = '';
-    }
-    if (policy.kind === SHINY_CONTROL_KIND.ALWAYS && makeShinyStatusLocal) {
-      makeShinyStatusLocal.style.display = 'none';
     }
 
     try { updateMakeShinyButton(); } catch (e) {}
@@ -9482,13 +9466,11 @@ function boot(){
     });
   }
 
-  /* â”€â”€ Make Shiny button (hatched: PID, other modes: SID) â”€â”€â”€â”€â”€â”€â”€ */
-  const makeShinyBtn = document.getElementById('makeShinyBtn');
-  const makeShinyStatus = document.getElementById('makeShinyStatus');
+  /* Keep the compact shiny indicator in sync. Shiny changes are configured
+     inside Set Legal PID/Shiny. */
   const shinyIndicatorBtn = document.getElementById('shinyIndicatorBtn');
 
   function updateMakeShinyButton() {
-    if (!makeShinyBtn) return;
     const pid = parsePidInput($('#pid').value);
     const tid = Number($('#tid').value) & 0xFFFF;
     const sid = Number($('#sid').value) & 0xFFFF;
@@ -9496,113 +9478,14 @@ function boot(){
     const pidLow = pid & 0xFFFF;
     const xor = (pidHigh ^ pidLow) ^ (tid ^ sid);
     const isShiny = xor < 8;
-    const undoActive = hasUndoableMakeShinyState(pid, tid, sid, isShiny);
-    const policy = getCurrentShinyControlPolicy();
-    const presentation = getShinyButtonPresentation({
-      policyKind: policy.kind,
-      isShiny,
-      undoActive,
-    });
-
-    makeShinyBtn.textContent = presentation.label;
-    makeShinyBtn.disabled = presentation.disabled;
-    makeShinyBtn.classList.toggle('is-shiny', presentation.active);
     if (shinyIndicatorBtn) {
       shinyIndicatorBtn.classList.toggle('active', isShiny);
     }
   }
 
-  if (makeShinyBtn) {
-    makeShinyBtn.addEventListener('click', () => {
-      const policy = getCurrentShinyControlPolicy();
-      if (policy.kind === SHINY_CONTROL_KIND.LOCKED || policy.kind === SHINY_CONTROL_KIND.ALWAYS) return;
-
-      // Fixed-trainer distributions and GameCube encounters must search a
-      // complete legal tuple. Open the finder with Shiny Only preselected.
-      if (policy.kind === SHINY_CONTROL_KIND.FINDER) {
-        const finderBtn = document.getElementById('pidFinderBtn');
-        if (finderBtn && !finderBtn.disabled) {
-          finderBtn.click();
-          const shinyOnly = document.getElementById('pfShiny');
-          if (shinyOnly && !shinyOnly.disabled) shinyOnly.checked = true;
-        }
-        return;
-      }
-
-      const pid = parsePidInput($('#pid').value);
-      const tid = Number($('#tid').value) & 0xFFFF;
-      const sid = Number($('#sid').value) & 0xFFFF;
-      const pidHigh = (pid >>> 16) & 0xFFFF;
-      const pidLow = pid & 0xFFFF;
-      const xor = (pidHigh ^ pidLow) ^ (tid ^ sid);
-      const isShiny = xor < 8;
-      const undoActive = hasUndoableMakeShinyState(pid, tid, sid, isShiny);
-
-      if (currentEncounterMode === 'hatched') {
-        const shinyCheckbox = $('#shiny');
-        if (shinyCheckbox) {
-          shinyCheckbox.checked = !undoActive;
-          shinyCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        if (makeShinyStatus) {
-          makeShinyStatus.textContent = undoActive
-            ? 'Previous PID restored'
-            : 'PID set to shiny';
-          makeShinyStatus.style.color = undoActive
-            ? 'var(--text-muted, #94a3b8)'
-            : 'var(--emerald, #10b981)';
-        }
-        updateMakeShinyButton();
-        return;
-      }
-
-      if (!undoActive && !isShiny) {
-        // Make shiny: set SID so xor = 0 (pidHigh ^ pidLow ^ tid ^ newSid) = 0
-        const preferredSid = (pidHigh ^ pidLow ^ tid) & 0xFFFF;
-        const sidAdjustment = adjustShinySidForOriginGame(tid, pid, preferredSid);
-        const newSid = sidAdjustment.sid;
-        rememberSidBeforeMakeShiny(pid, tid, sid, newSid);
-        setInputValueForMakeShiny($('#sid'), newSid);
-        if (makeShinyStatus) {
-          if (sidAdjustment.adjusted) {
-            const sign = sidAdjustment.direction > 0 ? '+1' : '-1';
-            makeShinyStatus.textContent = `SID set to ${newSid} (R/S legal ${sign})`;
-            makeShinyStatus.style.color = 'var(--emerald, #10b981)';
-          } else if (!sidAdjustment.valid) {
-            makeShinyStatus.textContent = `SID set to ${newSid} (R/S legality warning)`;
-            makeShinyStatus.style.color = 'var(--warning, #f59e0b)';
-          } else {
-            makeShinyStatus.textContent = `SID set to ${newSid}`;
-            makeShinyStatus.style.color = 'var(--emerald, #10b981)';
-          }
-
-        }
-      } else if (undoActive) {
-        const restoredSid = restoreSidBeforeMakeShiny(pid, tid);
-        const newSid = restoredSid ?? ((pidHigh ^ pidLow ^ tid ^ 8) & 0xFFFF);
-        setInputValueForMakeShiny($('#sid'), newSid);
-        if (makeShinyStatus) {
-          makeShinyStatus.textContent = restoredSid == null
-            ? `SID set to ${newSid}`
-            : `SID restored to ${newSid}`;
-          makeShinyStatus.style.color = 'var(--text-muted, #94a3b8)';
-        }
-      }
-
-      checkShiny();
-      updateMakeShinyButton();
-      try { updateGCTidSidWarning(); } catch (e) {}
-      try { updateRSTidSidWarning(); } catch (e) {}
-      try { updatePidTidSidWarning(); } catch (e) {}
-      try { validateForm(); } catch (e) {}
-      try { updateLegalityStatus(); } catch (e) {}
-    });
-
-    // Keep button state in sync when TID/SID change
-    $('#tid').addEventListener('input', updateMakeShinyButton);
-    $('#sid').addEventListener('input', updateMakeShinyButton);
-    updateMakeShinyButton(); // Initial state
-  }
+  $('#tid').addEventListener('input', updateMakeShinyButton);
+  $('#sid').addEventListener('input', updateMakeShinyButton);
+  updateMakeShinyButton();
 
   // Wire nature/gender changes to apply preset PID when in simple mode
   const natureEl = document.querySelector('#nature');
@@ -10596,8 +10479,190 @@ function initPidFinder() {
   const summaryEl    = document.getElementById('pidFinderSummary');
   const statusSpan   = document.getElementById('pidFinderStatus');
   const berryFixOtPrefEl = document.getElementById('berryFixOtPreference');
+  const confirmBtn = document.getElementById('pfConfirm');
+  const cancelBtn = document.getElementById('pfCancel');
+  const pendingStatus = document.getElementById('pfPendingStatus');
+  const pfPidInput = document.getElementById('pfPid');
+  const wantShinyCheckbox = document.getElementById('pfWantShiny');
+  const keepSidRadio = document.getElementById('pfShinyKeepSid');
+  const autoSidRadio = document.getElementById('pfShinyAutoSid');
+  const keepSidHatchedRecommendation = document.getElementById('pfKeepSidHatchedRecommendation');
+  const shinyLockedMessage = document.getElementById('pfShinyLockedMessage');
+  const searchWorkspace = document.getElementById('pfSearchWorkspace');
+  const hatchedNotice = document.getElementById('pfHatchedNotice');
+  const pfOriginGameRow = document.getElementById('pfOriginGameRow');
+  const pfOriginGame = document.getElementById('pfOriginGame');
+  let pendingPidFinderResult = null;
+  let pendingPidFinderRow = null;
+  let modalConfirmed = false;
+  let modalOriginalOriginGame = '';
 
   if (!btn || !overlay) return;
+
+  for (const id of ['tid', 'sid', 'pid']) {
+    document.getElementById(id)?.addEventListener('input', () => {
+      const sidStatus = document.getElementById('sidShinyStatus');
+      if (sidStatus) sidStatus.textContent = '';
+    });
+  }
+
+  const formatPidHex = pid => `0x${(Number(pid) >>> 0).toString(16).toUpperCase().padStart(8, '0')}`;
+  const hasValidPidFormat = value => /^(?:0x)?[0-9a-f]{1,8}$/i.test(String(value || '').trim());
+  const hasValidPidText = value => hasValidPidFormat(value) && parsePidInput(value) !== 0;
+  const invalidPidMessage = value => hasValidPidFormat(value) && parsePidInput(value) === 0
+    ? 'PID 0x00000000 is not allowed because it has no valid encryption constant.'
+    : 'Enter a PID from 0x00000001 to 0xFFFFFFFF.';
+  const isShinyForIds = (pid, tid, sid) => {
+    const value = Number(pid) >>> 0;
+    return ((((value >>> 16) & 0xFFFF) ^ (value & 0xFFFF)) ^ ((Number(tid) & 0xFFFF) ^ (Number(sid) & 0xFFFF))) < 8;
+  };
+  const setMainSidValue = value => {
+    const sidEl = $('#sid');
+    if (!sidEl) return;
+    sidEl.value = String(Number(value) & 0xFFFF);
+    sidEl.dispatchEvent(new Event('input', { bubbles: true }));
+    sidEl.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  const setMinimumIvDefaults = value => {
+    const normalized = String(Math.max(0, Math.min(31, Number(value) || 0)));
+    for (const id of ['pfMinHp', 'pfMinAtk', 'pfMinDef', 'pfMinSpA', 'pfMinSpD', 'pfMinSpe']) {
+      const input = document.getElementById(id);
+      if (input && !input.disabled) input.value = normalized;
+    }
+  };
+
+  function getModalShinyPolicy() {
+    const { tag, event } = currentEncounterMode === 'mystery'
+      ? getSelectedMysteryEvent()
+      : { tag: '', event: null };
+    const encounter = currentEncounterMode === 'cxd_shadow'
+      ? getSelectedCXDEncounter()
+      : currentEncounterMode === 'cxd_trade'
+        ? getSelectedCXDTrade()
+        : null;
+    return getShinyControlPolicy({
+      encounterMode: currentEncounterMode,
+      eventTag: tag,
+      event,
+      pidMethod: getMysteryPidMethod(),
+      encounter,
+      unlockShinyLock: shouldUnlockCelebiShinyLock(tag, event),
+    });
+  }
+
+  function resetPendingResult(message = '') {
+    pendingPidFinderResult = null;
+    pendingPidFinderRow?.classList.remove('is-selected');
+    pendingPidFinderRow = null;
+    if (resultsBody) resultsBody.innerHTML = '';
+    if (resultCount) resultCount.textContent = '';
+    pfAllResults = [];
+    if (confirmBtn) confirmBtn.disabled = currentEncounterMode !== 'hatched';
+    if (pendingStatus && message) pendingStatus.textContent = message;
+  }
+
+  function generateHatchedPid() {
+    if (currentEncounterMode !== 'hatched' || !pfPidInput) return;
+    const speciesId = Number($('#species')?.value) || 0;
+    const tid = Number(document.getElementById('pfTid')?.value) & 0xFFFF;
+    const sid = Number(document.getElementById('pfSid')?.value) & 0xFFFF;
+    const nature = Number($('#nature')?.value) || 0;
+    const gender = $('#gender')?.value || 'male';
+    const ability = Number($('#ability')?.value) || 0;
+    const parity = normalizePidParityPreference($('#pidParityPreference')?.value);
+    const wantsShiny = Boolean(wantShinyCheckbox?.checked);
+    let pid = 0;
+    for (let attempt = 0; attempt < 16 && pid === 0; attempt++) {
+      pid = wantsShiny
+        ? calculateShinyPID(tid, sid, nature, gender, speciesId, ability, parity)
+        : calculateNonShinyPID(tid, sid, nature, gender, speciesId, ability, parity);
+    }
+    if (pid === 0) {
+      if (confirmBtn) confirmBtn.disabled = true;
+      if (pendingStatus) pendingStatus.textContent = 'Could not generate a valid non-zero PID. Try again.';
+      return;
+    }
+    pfPidInput.value = formatPidHex(pid);
+    if (confirmBtn) confirmBtn.disabled = false;
+    if (pendingStatus) pendingStatus.textContent = `${wantsShiny ? 'Shiny' : 'Non-shiny'} PID ready. Confirm to apply it.`;
+  }
+
+  function syncShinyModeUi({ generateHatched = false } = {}) {
+    const policy = getModalShinyPolicy();
+    const pfShinyEl = document.getElementById('pfShiny');
+    const pfSidEl = document.getElementById('pfSid');
+    const sidLocked = pfSidEl?.dataset.encounterLocked === '1';
+    const autoAllowed = policy.kind === SHINY_CONTROL_KIND.DIRECT && !sidLocked;
+    const shinyLocked = policy.kind === SHINY_CONTROL_KIND.LOCKED;
+    const alwaysShiny = policy.kind === SHINY_CONTROL_KIND.ALWAYS;
+
+    if (keepSidHatchedRecommendation) {
+      keepSidHatchedRecommendation.hidden = currentEncounterMode !== 'hatched';
+    }
+
+    if (wantShinyCheckbox) {
+      if (shinyLocked) wantShinyCheckbox.checked = false;
+      if (alwaysShiny) wantShinyCheckbox.checked = true;
+      wantShinyCheckbox.disabled = shinyLocked || alwaysShiny;
+    }
+    const wantsShiny = Boolean(wantShinyCheckbox?.checked);
+    wantShinyCheckbox?.closest('label')?.classList.toggle('is-disabled', Boolean(wantShinyCheckbox.disabled));
+    if (shinyLockedMessage) {
+      shinyLockedMessage.hidden = !shinyLocked;
+      shinyLockedMessage.textContent = policy.message || 'This Pokémon cannot be shiny.';
+    }
+
+    if (alwaysShiny && keepSidRadio) keepSidRadio.checked = true;
+    if (!wantsShiny || shinyLocked) {
+      if (keepSidRadio) keepSidRadio.checked = false;
+      if (autoSidRadio) autoSidRadio.checked = false;
+    } else if (!autoAllowed && autoSidRadio?.checked && keepSidRadio) {
+      keepSidRadio.checked = true;
+    }
+    if (keepSidRadio) keepSidRadio.disabled = !wantsShiny || shinyLocked || alwaysShiny;
+    if (autoSidRadio) autoSidRadio.disabled = !wantsShiny || !autoAllowed || shinyLocked || alwaysShiny;
+    keepSidRadio?.closest('.pid-shiny-option')?.classList.toggle('is-disabled', Boolean(keepSidRadio.disabled));
+    autoSidRadio?.closest('.pid-shiny-option')?.classList.toggle('is-disabled', Boolean(autoSidRadio.disabled));
+
+    const hasShinyStrategy = Boolean(keepSidRadio?.checked || autoSidRadio?.checked);
+    const autoMode = Boolean(wantsShiny && autoSidRadio?.checked && !autoSidRadio.disabled);
+    if (pfShinyEl) {
+      pfShinyEl.checked = Boolean(wantsShiny && !autoMode);
+      pfShinyEl.disabled = false;
+    }
+
+    if (pfSidEl) {
+      pfSidEl.disabled = sidLocked || autoMode;
+    }
+    if (currentEncounterMode === 'hatched') {
+      if (wantsShiny && !hasShinyStrategy) {
+        if (confirmBtn) confirmBtn.disabled = true;
+        if (pendingStatus) pendingStatus.textContent = 'Choose Auto-Set SID or Keep SID to continue.';
+      } else if (autoMode) {
+        if (pfPidInput && !hasValidPidText(pfPidInput.value)) generateHatchedPid();
+        const validPid = hasValidPidText(pfPidInput?.value);
+        if (confirmBtn) confirmBtn.disabled = !validPid;
+        if (pendingStatus) pendingStatus.textContent = validPid
+          ? 'Confirm to calculate an SID for this PID.'
+          : invalidPidMessage(pfPidInput?.value);
+      } else if (generateHatched) {
+        const pid = parsePidInput(pfPidInput?.value || '0');
+        const tid = Number(document.getElementById('pfTid')?.value) & 0xFFFF;
+        const sid = Number(document.getElementById('pfSid')?.value) & 0xFFFF;
+        if (!hasValidPidText(pfPidInput?.value) || isShinyForIds(pid, tid, sid) !== wantsShiny) {
+          generateHatchedPid();
+        } else {
+          if (confirmBtn) confirmBtn.disabled = false;
+          if (pendingStatus) pendingStatus.textContent = `${wantsShiny ? 'Shiny' : 'Non-shiny'} PID ready. Confirm to apply it.`;
+        }
+      }
+    } else {
+      resetPendingResult(wantsShiny && !hasShinyStrategy
+        ? 'Choose Auto-Set SID or Keep SID before searching.'
+        : `Search and select a legal ${wantsShiny ? 'shiny ' : 'non-shiny '}PID, then confirm your changes.`);
+      if (searchBtn) searchBtn.disabled = Boolean(wantsShiny && !hasShinyStrategy);
+    }
+  }
 
   function clearActivePidFinderResult(reasonText) {
     const hasStatus = !!String(statusSpan?.textContent || '').trim();
@@ -10648,6 +10713,50 @@ function initPidFinder() {
   const pfSidInput = document.getElementById('pfSid');
   if (pfTidInput) pfTidInput.addEventListener('input', pfClampId);
   if (pfSidInput) pfSidInput.addEventListener('input', pfClampId);
+  for (const input of [pfTidInput, pfSidInput]) {
+    input?.addEventListener('input', () => {
+      if (currentEncounterMode === 'hatched' && !autoSidRadio?.checked) {
+        if (confirmBtn) confirmBtn.disabled = true;
+        if (pendingStatus) pendingStatus.textContent = `TID or SID changed. Enter a ${wantShinyCheckbox?.checked ? 'shiny' : 'non-shiny'} PID for the new IDs before confirming.`;
+      } else if (currentEncounterMode !== 'hatched') {
+        resetPendingResult('Trainer IDs changed. Search and select a new legal PID.');
+      }
+    });
+  }
+  wantShinyCheckbox?.addEventListener('change', () => {
+    if (keepSidRadio) keepSidRadio.checked = false;
+    if (autoSidRadio) autoSidRadio.checked = false;
+    setMinimumIvDefaults(20);
+    syncShinyModeUi({ generateHatched: true });
+  });
+  for (const radio of [keepSidRadio, autoSidRadio]) {
+    radio?.addEventListener('change', () => {
+      if (radio.checked) {
+        setMinimumIvDefaults(radio === keepSidRadio ? 15 : 20);
+        syncShinyModeUi({ generateHatched: true });
+      }
+    });
+  }
+  pfPidInput?.addEventListener('input', () => {
+    if (currentEncounterMode !== 'hatched') return;
+    const valid = hasValidPidText(pfPidInput.value);
+    const wantsShiny = Boolean(wantShinyCheckbox?.checked);
+    const hasStrategy = Boolean(keepSidRadio?.checked || autoSidRadio?.checked);
+    const autoMode = Boolean(wantsShiny && autoSidRadio?.checked && !autoSidRadio.disabled);
+    const tid = Number(document.getElementById('pfTid')?.value) & 0xFFFF;
+    const sid = Number(document.getElementById('pfSid')?.value) & 0xFFFF;
+    const matches = valid && (autoMode || isShinyForIds(parsePidInput(pfPidInput.value), tid, sid) === wantsShiny);
+    if (confirmBtn) confirmBtn.disabled = !valid || (wantsShiny && !hasStrategy) || !matches;
+    if (pendingStatus) pendingStatus.textContent = !valid
+      ? invalidPidMessage(pfPidInput.value)
+      : wantsShiny && !hasStrategy
+        ? 'Choose Auto-Set SID or Keep SID to continue.'
+        : !matches
+          ? `That PID is ${wantsShiny ? 'not shiny' : 'shiny'} for this TID/SID.`
+          : autoMode
+            ? 'Confirm to calculate an SID for this PID.'
+            : 'Confirm to apply this PID.';
+  });
   // Live re-filter when HP type / HP power filters change
   const pfHpTypeSelect = document.getElementById('pfHpType');
   const pfHpPowerInput = document.getElementById('pfHpPower');
@@ -10679,6 +10788,18 @@ function initPidFinder() {
   /* â”€â”€ Open / Close â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   function openModal() {
+    modalConfirmed = false;
+    modalOriginalOriginGame = String($('#originGame')?.value || '');
+    pendingPidFinderResult = null;
+    pendingPidFinderRow = null;
+    if (wantShinyCheckbox) wantShinyCheckbox.checked = false;
+    if (keepSidRadio) keepSidRadio.checked = false;
+    if (autoSidRadio) autoSidRadio.checked = false;
+    if (confirmBtn) confirmBtn.disabled = true;
+    if (pendingStatus) pendingStatus.textContent = currentEncounterMode === 'hatched'
+      ? 'The current non-shiny PID will be used when possible.'
+      : 'Choose settings, then search for a legal PID.';
+
     // Populate summary from current form values
     const speciesId   = Number($('#species').value) || 0;
     const speciesEntry = SPECIES.find(s => s[0] === speciesId);
@@ -10689,17 +10810,40 @@ function initPidFinder() {
     const natureIndex  = Number($('#nature').value || 0);
     const natureName   = NATURES[natureIndex] || '\u2014';
     const ability      = Number($('#ability').value);
-
-    const originGameText = $('#originGame')?.selectedOptions?.[0]?.text || '\u2014';
+    let abilityName = '\u2014';
+    try {
+      const speciesAbilities = getSpeciesAbilities(speciesId);
+      const abilityId = speciesAbilities?.[ability] ?? speciesAbilities?.[0];
+      abilityName = getAbilityName(abilityId) || `Ability slot ${ability + 1}`;
+    } catch (_) {}
 
     summaryEl.innerHTML = [
-      `<span class="pf-tag">Species: <b>${speciesName}</b></span>`,
+      `<span class="pf-summary-primary"><b>${speciesName}</b><span>\u2013</span><b>${natureName}</b><span>\u2013</span><b>${abilityName}</b></span>`,
       sourceSpeciesId && sourceSpeciesId !== speciesId
         ? `<span class="pf-tag">Encounter source: <b>${sourceSpeciesName}</b></span>`
-        : '',
-      `<span class="pf-tag">Nature: <b>${natureName}</b></span>`,
-      `<span class="pf-tag">Game: <b>${originGameText}</b></span>`
+        : ''
     ].filter(Boolean).join('');
+
+    const isHatchedMode = currentEncounterMode === 'hatched';
+    if (searchWorkspace) searchWorkspace.hidden = isHatchedMode;
+    if (hatchedNotice) hatchedNotice.hidden = !isHatchedMode;
+    if (pfPidInput) {
+      pfPidInput.value = formatPidHex(parsePidInput($('#pid')?.value || '0'));
+      pfPidInput.readOnly = !isHatchedMode;
+    }
+
+    const mainOriginGame = $('#originGame');
+    if (pfOriginGame && mainOriginGame) {
+      const availableGames = Array.from(mainOriginGame.options || []).filter(option => !option.disabled);
+      pfOriginGame.innerHTML = availableGames
+        .map(option => `<option value="${option.value}">${option.textContent}</option>`)
+        .join('');
+      pfOriginGame.value = String(mainOriginGame.value || '');
+      const canChooseGame = !mainOriginGame.disabled && availableGames.length > 1;
+      if (pfOriginGameRow) pfOriginGameRow.hidden = !canChooseGame;
+    } else if (pfOriginGameRow) {
+      pfOriginGameRow.hidden = true;
+    }
 
     /* â”€â”€ Populate PID Finder Gender selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     const pfGenderSel     = document.getElementById('pfGender');
@@ -10773,14 +10917,24 @@ function initPidFinder() {
         : 'any';
     }
 
-    /* â”€â”€ Populate TID / SID / Shiny from main form â”€â”€â”€â”€ */
+    /* Populate trainer IDs and reset the internal shiny-search flag. */
     const pfTidEl   = document.getElementById('pfTid');
     const pfSidEl   = document.getElementById('pfSid');
     const pfShinyEl = document.getElementById('pfShiny');
-    if (pfTidEl) { pfTidEl.value = String(Number($('#tid').value) || 0); pfTidEl.disabled = false; }
-    if (pfSidEl) { pfSidEl.value = String(Number($('#sid').value) || 0); pfSidEl.disabled = false; }
+    const mainTidEl = $('#tid');
+    const mainSidEl = $('#sid');
+    if (pfTidEl) {
+      pfTidEl.value = String(Number(mainTidEl?.value) || 0);
+      pfTidEl.disabled = Boolean(mainTidEl?.disabled);
+      pfTidEl.dataset.encounterLocked = pfTidEl.disabled ? '1' : '0';
+    }
+    if (pfSidEl) {
+      pfSidEl.value = String(Number(mainSidEl?.value) || 0);
+      pfSidEl.disabled = Boolean(mainSidEl?.disabled);
+      pfSidEl.dataset.encounterLocked = pfSidEl.disabled ? '1' : '0';
+    }
     if (pfShinyEl) {
-      pfShinyEl.checked = !!$('#shiny')?.checked;
+      pfShinyEl.checked = false;
       pfShinyEl.disabled = false;
     }
 
@@ -11009,6 +11163,10 @@ function initPidFinder() {
       if (pfM4) { pfM4.checked = true; pfM4.parentElement.style.display = ''; relabelCheckbox(pfM4, 'Method H-4'); }
     }
 
+    if (pfTidEl) pfTidEl.dataset.encounterLocked = pfTidEl.disabled ? '1' : '0';
+    if (pfSidEl) pfSidEl.dataset.encounterLocked = pfSidEl.disabled ? '1' : '0';
+    setMinimumIvDefaults(20);
+
     // Reset state
     resultsBody.innerHTML = '';
     resultCount.textContent = '';
@@ -11019,7 +11177,9 @@ function initPidFinder() {
     pfAllResults = [];
 
     try { updateBerryFixOtPreferenceUi(); } catch (e) {}
+    syncShinyModeUi({ generateHatched: true });
 
+    overlay.scrollTop = 0;
     overlay.classList.add('open');
   }
 
@@ -11028,15 +11188,41 @@ function initPidFinder() {
     stopSearch();
   }
 
+  function cancelModal() {
+    if (!modalConfirmed && modalOriginalOriginGame && String($('#originGame')?.value || '') !== modalOriginalOriginGame) {
+      const mainOriginGame = $('#originGame');
+      if (mainOriginGame) {
+        mainOriginGame.value = modalOriginalOriginGame;
+        try { mainOriginGame.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
+      }
+    }
+    closeModal();
+  }
+
+  pfOriginGame?.addEventListener('change', () => {
+    const mainOriginGame = $('#originGame');
+    if (!mainOriginGame || !pfOriginGame.value) return;
+    mainOriginGame.value = pfOriginGame.value;
+    try { mainOriginGame.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
+    resetPendingResult('Origin game changed. Search and select a legal PID.');
+  });
+
   btn.addEventListener('click', () => {
     if (btn.disabled) return;
+    const natureEl = $('#nature');
+    if (!natureEl || !String(natureEl.value || '').trim()) {
+      natureEl?.classList.add('field-error');
+      scrollToMissingField(natureEl, natureEl);
+      return;
+    }
     btn.classList.remove('field-error');
     openModal();
   });
-  closeBtn.addEventListener('click', closeModal);
-  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  closeBtn.addEventListener('click', cancelModal);
+  cancelBtn?.addEventListener('click', cancelModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) cancelModal(); });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+    if (e.key === 'Escape' && overlay.classList.contains('open')) cancelModal();
   });
 
   /* â”€â”€ Stop running workers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -11054,6 +11240,11 @@ function initPidFinder() {
     searchBtn.disabled = false;
     stopBtn.disabled   = true;
     progressText.textContent = pfAllResults.length ? 'Stopped (partial)' : 'Stopped';
+    if (overlay.classList.contains('open') && pendingStatus) {
+      pendingStatus.textContent = pfAllResults.length
+        ? 'Partial results are available. Select one or search again.'
+        : 'Search stopped before any matching PIDs were found.';
+    }
   }
   stopBtn.addEventListener('click', stopSearch);
 
@@ -11116,6 +11307,11 @@ function initPidFinder() {
     }
 
     // Reset UI
+    pendingPidFinderResult = null;
+    pendingPidFinderRow?.classList.remove('is-selected');
+    pendingPidFinderRow = null;
+    if (confirmBtn) confirmBtn.disabled = true;
+    if (pendingStatus) pendingStatus.textContent = 'Searching for matching legal PIDs…';
     resultsBody.innerHTML = '';
     resultCount.textContent = '';
     pfAllResults = [];
@@ -11205,6 +11401,9 @@ function initPidFinder() {
             searchBtn.disabled = false;
             stopBtn.disabled   = true;
             progressText.textContent = 'Done';
+            if (pendingStatus) pendingStatus.textContent = pfAllResults.length
+              ? 'Select a legal PID result, then confirm your changes.'
+              : 'No matching legal PIDs were found. Adjust the filters and search again.';
             pfWorkers = [];
           }
         }
@@ -11218,6 +11417,9 @@ function initPidFinder() {
           searchBtn.disabled = false;
           stopBtn.disabled   = true;
           progressText.textContent = 'Done (with errors)';
+          if (pendingStatus) pendingStatus.textContent = pfAllResults.length
+            ? 'Select a legal PID result, then confirm your changes.'
+            : 'No matching legal PIDs were found. Adjust the filters and search again.';
           pfWorkers = [];
         }
       };
@@ -11377,10 +11579,27 @@ function initPidFinder() {
       }
     }
 
-    // Apply HP type and HP power filters
+    // A non-shiny choice is explicit, not merely the absence of a shiny-only
+    // filter. Remove any rare shiny rows returned by the general RNG search.
+    const wantsShiny = Boolean(wantShinyCheckbox?.checked);
+    const autoShinySid = Boolean(wantsShiny && autoSidRadio?.checked && !autoSidRadio.disabled);
+    const modalTid = Number(document.getElementById('pfTid')?.value) & 0xFFFF;
+    const modalSid = Number(document.getElementById('pfSid')?.value) & 0xFFFF;
+    const resultIsShiny = r => isShinyForIds(
+      r.pid,
+      Number.isFinite(Number(r.tid)) ? r.tid : modalTid,
+      Number.isFinite(Number(r.sid)) ? r.sid : modalSid,
+    );
+
+    // Apply shiny-state, HP type, and HP power filters.
     const filterHpType  = document.getElementById('pfHpType')?.value || 'any';
     const filterHpPower = Number(document.getElementById('pfHpPower')?.value) || 30;
-    let filtered = pfAllResults;
+    let filtered = pfAllResults.filter(r => (Number(r.pid) >>> 0) !== 0);
+    if (!wantsShiny) {
+      filtered = filtered.filter(r => !resultIsShiny(r));
+    } else if (!autoShinySid) {
+      filtered = filtered.filter(resultIsShiny);
+    }
     if (filterHpType !== 'any') {
       filtered = filtered.filter(r => r.hpt === filterHpType);
     }
@@ -11394,13 +11613,21 @@ function initPidFinder() {
     const hadValidation = !!(ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]);
 
     const capped = filtered.slice(0, 25);
-
-    resultCount.textContent = pfAllResults.length === 0
-      ? 'No results found. Try lowering minimum IVs.' + (hadValidation ? ' (encounter-chain validated)' : '')
-      : `${filtered.length} result${filtered.length !== 1 ? 's' : ''} shown`
-        + (filtered.length < pfAllResults.length ? ` (${pfAllResults.length} total)` : '')
-        + (hadValidation ? ' \u2714 encounter-valid' : '')
-        + (filtered.length > 25 ? ' (showing top 25 by IV total)' : '');
+    if (pfAllResults.length === 0) {
+      resultCount.textContent = 'No results found. Try lowering minimum IVs.'
+        + (hadValidation ? ' \u00B7 \u2714 encounter-valid' : '');
+    } else if (capped.length === 0) {
+      resultCount.textContent = 'No results match the current filters.'
+        + (hadValidation ? ' \u00B7 \u2714 encounter-valid' : '');
+    } else {
+      const resultSummary = [
+        capped.length < filtered.length
+          ? `Showing top ${capped.length} results by IV total`
+          : `Showing all ${capped.length} result${capped.length === 1 ? '' : 's'}`,
+      ];
+      if (hadValidation) resultSummary.push('\u2714 encounter-valid');
+      resultCount.textContent = resultSummary.join(' \u00B7 ');
+    }
 
     resultsBody.innerHTML = '';
     const speciesId = Number($('#species').value) || 0;
@@ -11474,7 +11701,7 @@ function initPidFinder() {
           `<td>${r.sid}</td>` +
           `<td>${gameName}</td>` +
           `<td>${itemName}</td>` +
-          `<td><button type="button" class="select-btn">Select</button></td>`;
+          `<td class="pid-finder-action"><button type="button" class="select-btn">Select</button></td>`;
       } else {
       tr.innerHTML =
         `<td class="pid-cell">0x${(r.pid >>> 0).toString(16).toUpperCase().padStart(8, '0')}</td>` +
@@ -11487,9 +11714,9 @@ function initPidFinder() {
         `<td>${r.metLevels ? r.metLevels.join('/') : '\u2014'}</td>` +
         `<td>${genderStr}</td>` +
         `<td>${abilityName}</td>` +
-        `<td><button type="button" class="select-btn">Select</button></td>`;
+        `<td class="pid-finder-action"><button type="button" class="select-btn">Select</button></td>`;
       }
-      tr.querySelector('.select-btn').addEventListener('click', () => selectResult(r));
+      tr.querySelector('.select-btn').addEventListener('click', () => selectResult(r, tr));
       resultsBody.appendChild(tr);
     }
   }
@@ -11501,7 +11728,23 @@ function initPidFinder() {
 
   /* â”€â”€ Apply selected result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-  function selectResult(r) {
+  function selectResult(r, row) {
+    pendingPidFinderRow?.classList.remove('is-selected');
+    pendingPidFinderResult = r;
+    pendingPidFinderRow = row || null;
+    pendingPidFinderRow?.classList.add('is-selected');
+    if (pfPidInput) pfPidInput.value = formatPidHex(r.pid);
+    if (confirmBtn) confirmBtn.disabled = false;
+    if (pendingStatus) {
+      pendingStatus.textContent = wantShinyCheckbox?.checked && autoSidRadio?.checked
+        ? 'Legal PID selected. Confirm to apply it and calculate a shiny SID.'
+        : wantShinyCheckbox?.checked
+          ? 'Legal shiny PID selected. Confirm to apply it.'
+          : 'Legal non-shiny PID selected. Confirm to apply it.';
+    }
+  }
+
+  function applySelectedResult(r) {
     // Mark PID Finder result as active — this guards preset-application paths
     // from overwriting the selected PID/IVs without enabling full Manual Override.
     pidFinderResultActive = true;
@@ -11701,8 +11944,89 @@ function initPidFinder() {
     }
     try { _validateForm?.(); } catch (e) {}
     try { updateLegalityStatus(); } catch (e) {}
-    closeModal();
   }
+
+  confirmBtn?.addEventListener('click', () => {
+    const sidStatus = document.getElementById('sidShinyStatus');
+    const wantsShiny = Boolean(wantShinyCheckbox?.checked);
+    const hasShinyStrategy = Boolean(keepSidRadio?.checked || autoSidRadio?.checked);
+    const autoMode = Boolean(wantsShiny && autoSidRadio?.checked && !autoSidRadio.disabled);
+
+    if (wantsShiny && !hasShinyStrategy) {
+      if (pendingStatus) pendingStatus.textContent = 'Choose Auto-Set SID or Keep SID before confirming.';
+      return;
+    }
+
+    if (currentEncounterMode === 'hatched') {
+      if (!hasValidPidText(pfPidInput?.value)) {
+        if (pendingStatus) pendingStatus.textContent = invalidPidMessage(pfPidInput?.value);
+        return;
+      }
+      const pid = parsePidInput(pfPidInput.value);
+      const tid = Number(document.getElementById('pfTid')?.value) & 0xFFFF;
+      let sid = Number(document.getElementById('pfSid')?.value) & 0xFFFF;
+      const isCurrentlyShiny = isShinyForIds(pid, tid, sid);
+      if (!autoMode && isCurrentlyShiny !== wantsShiny) {
+        if (pendingStatus) pendingStatus.textContent = wantsShiny
+          ? 'That PID is not shiny for this TID/SID. Enter a different PID or choose Auto-Set SID.'
+          : 'That PID is shiny for this TID/SID. Enter a non-shiny PID.';
+        return;
+      }
+      if (autoMode) {
+        const preferredSid = (((pid >>> 16) & 0xFFFF) ^ (pid & 0xFFFF) ^ tid) & 0xFFFF;
+        sid = adjustShinySidForOriginGame(tid, pid, preferredSid).sid;
+      }
+
+      const tidEl = $('#tid');
+      const sidEl = $('#sid');
+      const pidEl = $('#pid');
+      if (tidEl) {
+        tidEl.value = String(tid);
+        tidEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      if (sidEl) setMainSidValue(sid);
+      if (pidEl) {
+        pidEl.value = formatPidHex(pid);
+        pidEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      const mainShiny = $('#shiny');
+      if (mainShiny) mainShiny.checked = wantsShiny;
+      if (statusSpan) statusSpan.textContent = 'PID set (Hatched)';
+      if (sidStatus) sidStatus.textContent = autoMode
+        ? `SID was set to ${sid} to make this PID shiny.`
+        : '';
+      checkShiny();
+      try { _validateForm?.(); } catch (e) {}
+      try { updateLegalityStatus(); } catch (e) {}
+    } else {
+      if (!pendingPidFinderResult) {
+        if (pendingStatus) pendingStatus.textContent = 'Select a legal PID result before confirming.';
+        return;
+      }
+      applySelectedResult(pendingPidFinderResult);
+      if (autoMode) {
+        const pid = Number(pendingPidFinderResult.pid) >>> 0;
+        const tid = Number($('#tid')?.value) & 0xFFFF;
+        const preferredSid = (((pid >>> 16) & 0xFFFF) ^ (pid & 0xFFFF) ^ tid) & 0xFFFF;
+        const newSid = adjustShinySidForOriginGame(tid, pid, preferredSid).sid;
+        setMainSidValue(newSid);
+        pidFinderOriginalTid = tid;
+        pidFinderOriginalSid = newSid;
+        const mainShiny = $('#shiny');
+        if (mainShiny) mainShiny.checked = true;
+        if (sidStatus) sidStatus.textContent = `SID was set to ${newSid} to make this PID shiny.`;
+        checkShiny();
+        try { updateRSTidSidWarning(); } catch (e) {}
+        try { updatePidTidSidWarning(); } catch (e) {}
+        try { _validateForm?.(); } catch (e) {}
+      } else if (sidStatus) {
+        sidStatus.textContent = '';
+      }
+    }
+
+    modalConfirmed = true;
+    closeModal();
+  });
 }
 
 function collect(){
@@ -11785,7 +12109,7 @@ function collect(){
       square: $('#markSquare')?.checked || false,
       heart: $('#markHeart')?.checked || false
     },
-    // If we're in simple mode, prefer the preset's IVs (and PID) to avoid mismatches.
+    // If we're in simple mode, prefer the preset's IVs to avoid mismatches.
     // BUT skip this when a PID Finder result is active — the finder already set the
     // correct correlated IVs in the DOM fields.
     ivs: (function(){
@@ -11798,9 +12122,6 @@ function collect(){
           const entry = PID_PRESETS[natureName];
           const preset = entry ? (entry[gender] || entry.male || entry.female || entry.genderless) : null;
           if(preset && preset.ivs){
-            // also ensure the PID field is set to the preset PID if empty
-            const pidEl = document.querySelector('#pid');
-            if(pidEl && (!pidEl.value || Number(pidEl.value) === 0)) pidEl.value = String(preset.pid >>> 0);
             return {
               hp: Number(preset.ivs.hp) || 0,
               atk: Number(preset.ivs.atk) || 0,

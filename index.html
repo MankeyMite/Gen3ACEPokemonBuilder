@@ -1150,17 +1150,6 @@
     body.encounter-cxd_shadow .show-when-cxd { display: flex; }
     .show-when-cxd-trade { display: none; }
     body.encounter-cxd_trade .show-when-cxd-trade { display: flex; }
-    #makeShinyRow { display: none; }
-    body.encounter-hatched #makeShinyRow,
-    body.encounter-wild #makeShinyRow,
-    body.encounter-static #makeShinyRow,
-    body.encounter-cxd_shadow #makeShinyRow,
-    body.encounter-cxd_trade #makeShinyRow,
-    body.encounter-roamer #makeShinyRow,
-    body.encounter-mystery #makeShinyRow,
-    body.encounter-imported #makeShinyRow {
-      display: flex;
-    }
     .shiny-external {
       display: none;
     }
@@ -1952,17 +1941,6 @@
       body.encounter-static .wild-or-legend,
       body.encounter-cxd_shadow .wild-or-legend,
       body.encounter-roamer .wild-or-legend,
-      body.encounter-hatched #makeShinyRow,
-      body.encounter-wild #makeShinyRow,
-      body.encounter-static #makeShinyRow,
-      body.encounter-cxd_shadow #makeShinyRow,
-      body.encounter-cxd_trade #makeShinyRow,
-      body.encounter-roamer #makeShinyRow,
-      body.encounter-mystery #makeShinyRow,
-      body.encounter-imported #makeShinyRow {
-        display: grid;
-      }
-
       body.encounter-wild .wild-only {
         display: grid;
       }
@@ -2078,6 +2056,11 @@
 
       .row.two.trainer-id-row > div {
         width: 100%;
+      }
+
+      .trainer-id-row .sid-shiny-status {
+        grid-column: 1 / -1;
+        min-height: 0;
       }
 
       .ability-control-group {
@@ -2598,6 +2581,7 @@
           </label>
           <input id="sid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="54321" />
         </div>
+        <span id="sidShinyStatus" class="sid-shiny-status" role="status"></span>
       </div>
       <div id="gcTidSidWarning" class="profanity-warning" style="display:none;">
         &#x26A0;&#xFE0F; This TID/SID combination is <b>not obtainable</b> in Colosseum/XD. It must come from consecutive GC&nbsp;RNG outputs reachable from the player-name screen.
@@ -2669,23 +2653,11 @@
           Legality
           <span class="inline-tooltip">
             <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Legal encounter finder info" aria-describedby="pidIvToolsInfoTooltip" aria-expanded="false">?</button>
-            <span id="pidIvToolsInfoTooltip" class="inline-tooltip-content" role="tooltip">Use this window to find PID, IV, ability, gender, and shiny combinations that match the selected encounter type or event. This is important for legality: for many Gen 3 encounters, PID and IVs are linked by RNG, so manually typing preferred values can create an illegal Pokémon. This button is highly recommended for legal results.</span>
+            <span id="pidIvToolsInfoTooltip" class="inline-tooltip-content" role="tooltip">Set a legal PID and IV spread for the selected encounter, and choose whether shininess should keep the current SID or automatically calculate a new SID. Hatched non-event Pokémon do not require an RNG search.</span>
           </span>
         </label>
-        <button id="pidFinderBtn" type="button" class="pid-finder-btn">&#x1F50D; Find Legal Encounter</button>
+        <button id="pidFinderBtn" type="button" class="pid-finder-btn">Set Legal PID/Shiny</button>
         <span id="pidFinderStatus" class="pid-finder-status"></span>
-      </div>
-
-      <div class="row shiny-external">
-        <label for="shiny">
-          Shiny
-          <span class="inline-tooltip">
-            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Shiny info" aria-describedby="shinyInfoTooltip" aria-expanded="false">?</button>
-            <span id="shinyInfoTooltip" class="inline-tooltip-content" role="tooltip">In Gen 3, a Pokémon is shiny when TID ^ SID ^ PID high ^ PID low is less than 8, giving 1 in 8192 odds. Changing TID, SID, or PID can change shininess. Forcing it to become shiny attempts to adjust SID to match the current TID and PID, or changes the PID in the Hatched encounter type. Use the Find Legal Encounter button in encounter types where it is available to filter for shinies with your preferred TID and SID.</span>
-          </span>
-        </label>
-        <input id="shiny" type="checkbox" />
-        <span id="shinyIndicatorSimple" class="shiny-indicator" title="This Pokémon is shiny!" style="margin-left: 0.5rem;">✨</span>
       </div>
 
       <div class="row">
@@ -2698,21 +2670,6 @@
         </label>
         <input id="pid" type="text" placeholder="0x12345678" value="0x0" />
         <span id="shinyIndicator" class="shiny-indicator" title="This Pokémon is shiny!">✨</span>
-      </div>
-
-      <div class="row wild-or-legend" id="makeShinyRow">
-        <label>
-          Shiny
-          <span class="inline-tooltip">
-            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Shiny info" aria-describedby="makeShinyInfoTooltip" aria-expanded="false">?</button>
-            <span id="makeShinyInfoTooltip" class="inline-tooltip-content" role="tooltip">In Gen 3, a Pokémon is shiny when TID ^ SID ^ PID high ^ PID low is less than 8, giving 1 in 8192 odds. Changing TID, SID, or PID can change shininess. Forcing it to become shiny attempts to adjust SID to match the current TID and PID, or changes the PID in the Hatched encounter type. Use the Find Legal Encounter button in encounter types where it is available to filter for shinies with your preferred TID and SID.</span>
-          </span>
-        </label>
-        <button id="makeShinyBtn" type="button" class="make-shiny-btn">&#x2728; Make Shiny</button>
-        <span id="shinyIndicatorBtn" class="shiny-indicator" title="This Pokémon is shiny!" style="margin-left: 0.5rem;">✨</span>
-        <span id="makeShinyStatus" class="make-shiny-status"></span>
-        <span id="xdShinyLocked" class="shiny-locked-message" style="display:none;">&#x1F512; This Pok&eacute;mon cannot be shiny.</span>
-        <span id="cxdShinyFinderHint" class="make-shiny-status" style="display:none; margin-left:0.5rem; font-size:0.85rem;">&#x2728; Shiny is possible — choose Shiny in Find Legal Encounter.</span>
       </div>
 
       <div class="row">
@@ -3268,11 +3225,87 @@ Trailing = padding is restored automatically.</pre>
     <div id="pidFinderOverlay" class="pid-finder-overlay">
       <div class="pid-finder-modal">
         <div class="pid-finder-header">
-          <h3>&#x1F50D; PID Finder</h3>
-          <button id="pidFinderClose" class="pid-finder-close" type="button">&times;</button>
+          <h3>Set Legal PID/Shiny</h3>
+          <button id="pidFinderClose" class="pid-finder-close" type="button" aria-label="Cancel and close">&times;</button>
         </div>
         <div class="pid-finder-body">
           <div class="pid-finder-summary" id="pidFinderSummary"></div>
+
+          <section class="pid-shiny-panel" aria-labelledby="pfShinyHeading">
+            <div class="pid-shiny-primary">
+              <h4 id="pfShinyHeading">Shiny</h4>
+              <label class="pid-shiny-switch" for="pfWantShiny">
+                <input id="pfWantShiny" type="checkbox" aria-label="Make Pok&eacute;mon shiny">
+                <span class="pid-shiny-switch-no">No</span>
+                <span class="pid-shiny-switch-track" aria-hidden="true"><span></span></span>
+                <span class="pid-shiny-switch-yes">Yes</span>
+                <span class="pid-shiny-switch-star" aria-hidden="true">✨</span>
+              </label>
+            </div>
+            <div class="pid-shiny-options" role="radiogroup" aria-label="Shiny handling">
+              <div class="pid-shiny-option">
+                <label for="pfShinyAutoSid"><input id="pfShinyAutoSid" type="radio" name="pfShinyMode" value="auto" disabled> <b>Auto-Set SID</b></label>
+                <span class="inline-tooltip">
+                  <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Auto-Set SID info" aria-describedby="pfAutoSidInfoTooltip" aria-expanded="false">?</button>
+                  <span id="pfAutoSidInfoTooltip" class="inline-tooltip-content" role="tooltip">Recommended if you want high IVs and do not care about the SID. Choose any matching legal PID, then calculate an SID that makes it shiny when you confirm.</span>
+                </span>
+              </div>
+              <div class="pid-shiny-option">
+                <label for="pfShinyKeepSid">
+                  <input id="pfShinyKeepSid" type="radio" name="pfShinyMode" value="keep" disabled>
+                  <span class="pid-shiny-option-copy">
+                    <b>Keep SID</b>
+                    <span id="pfKeepSidHatchedRecommendation" class="pid-shiny-recommendation" hidden>Recommended for hatched</span>
+                  </span>
+                </label>
+                <span class="inline-tooltip">
+                  <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Keep SID info" aria-describedby="pfKeepSidInfoTooltip" aria-expanded="false">?</button>
+                  <span id="pfKeepSidInfoTooltip" class="inline-tooltip-content" role="tooltip">Keep the current SID. This is recommended for hatched non-event Pok&eacute;mon because they do not require a correlated PID search. For encounters that require a search, keeping SID usually results in fewer high-IV PID choices.</span>
+                </span>
+              </div>
+            </div>
+            <p id="pfShinyLockedMessage" class="pid-shiny-locked-message" hidden>&#x1F512; This Pok&eacute;mon cannot be shiny.</p>
+            <input id="shiny" type="checkbox" hidden>
+            <input id="pfShiny" type="checkbox" hidden>
+          </section>
+
+          <div class="pid-finder-identity-grid">
+            <div>
+              <label for="pfTid">TID</label>
+              <input id="pfTid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="0">
+            </div>
+            <div>
+              <label for="pfSid">SID</label>
+              <input id="pfSid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="0">
+            </div>
+            <div class="pf-pid-field">
+              <label for="pfPid">PID</label>
+              <input id="pfPid" type="text" spellcheck="false" placeholder="0x12345678">
+            </div>
+            <div id="pfOriginGameRow" hidden>
+              <label for="pfOriginGame">Origin Game</label>
+              <select id="pfOriginGame"></select>
+            </div>
+          </div>
+
+          <div id="pfHatchedNotice" class="pid-finder-hatched-notice" hidden>
+            <strong>&#x2713; No PID search required</strong>
+            <span>Hatched non-event Pok&eacute;mon can have any PID/IV combination in Generation III.</span>
+          </div>
+
+          <div id="pfSearchWorkspace">
+
+          <!-- Inherited from the main builder and kept only as PID-search constraints. -->
+          <select id="pfAbility" hidden>
+            <option value="0">Slot 0</option>
+            <option value="1">Slot 1</option>
+            <option value="-1">Any</option>
+          </select>
+          <select id="pfPidParity" hidden>
+            <option value="any" selected>Any PID parity</option>
+            <option value="even">Even PID</option>
+            <option value="odd">Odd PID</option>
+          </select>
 
           <div class="pid-finder-filters" style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:0.5rem;">
             <div>
@@ -3282,42 +3315,6 @@ Trailing = padding is restored automatically.</pre>
                 <option value="female">Female</option>
                 <option value="any">Any</option>
               </select>
-            </div>
-            <div>
-              <label for="pfAbility" style="font-size:0.85rem;color:#94a3b8;">Ability</label>
-              <select id="pfAbility" style="width:auto; min-width:140px;">
-                <option value="0">Slot 0</option>
-                <option value="1">Slot 1</option>
-                <option value="-1">Any</option>
-              </select>
-            </div>
-            <div id="pfPidParityRow" hidden>
-              <label for="pfPidParity" style="font-size:0.85rem;color:#94a3b8;">
-                <span class="pid-parity-label-text">
-                  PID parity
-                  <span class="inline-tooltip">
-                    <button type="button" class="tooltip-icon tooltip-toggle" aria-label="PID parity filter info" aria-describedby="pfPidParityInfoTooltip" aria-expanded="false">?</button>
-                    <span id="pfPidParityInfoTooltip" class="inline-tooltip-content" role="tooltip">PID is a hidden number saved on every Pokémon. Most users should choose Any. Even or Odd filters legal PID results without changing the current Gen 3 ability. Use Odd only if you specifically want future slot 2 behavior after transfer/evolution.</span>
-                  </span>
-                </span>
-              </label>
-              <select id="pfPidParity" style="width:auto; min-width:230px;">
-                <option value="any" selected>Any PID parity</option>
-                <option value="even">Even PID / future slot 1</option>
-                <option value="odd">Odd PID / future slot 2 after transfer/evolution</option>
-              </select>
-            </div>
-            <div>
-              <label for="pfTid" style="font-size:0.85rem;color:#94a3b8;">TID</label>
-              <input id="pfTid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="0" style="width:80px;">
-            </div>
-            <div>
-              <label for="pfSid" style="font-size:0.85rem;color:#94a3b8;">SID</label>
-              <input id="pfSid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="0" style="width:80px;">
-            </div>
-            <div style="display:flex; align-items:flex-end; gap:0.35rem;">
-              <label for="pfShiny" style="font-size:0.85rem;color:#94a3b8;">Shiny Only</label>
-              <input id="pfShiny" type="checkbox" style="margin:0 0 2px 0;">
             </div>
             <div id="berryFixOtFilterRow" style="display:none; min-width:260px;">
               <label for="berryFixOtPreference" style="font-size:0.85rem;color:#94a3b8;">Berry Fix OT</label>
@@ -3412,11 +3409,20 @@ Trailing = padding is restored automatically.</pre>
                     <th>Lv</th>
                     <th>Gender</th>
                     <th>Ability</th>
-                    <th></th>
+                    <th class="pid-finder-action">Select</th>
                   </tr>
                 </thead>
                 <tbody id="pfResults"></tbody>
               </table>
+            </div>
+          </div>
+          </div>
+
+          <div class="pid-finder-footer">
+            <span id="pfPendingStatus" role="status">Choose settings, then search for a legal PID.</span>
+            <div>
+              <button id="pfCancel" type="button" class="pid-finder-secondary">Cancel</button>
+              <button id="pfConfirm" type="button" disabled>Confirm</button>
             </div>
           </div>
         </div>
