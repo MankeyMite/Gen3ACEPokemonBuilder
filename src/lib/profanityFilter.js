@@ -80,6 +80,7 @@ const MANUAL_BOUNDARY_ONLY = new Set([
 const MANUAL_STRONG_SUBSTRING = new Set([
   'bv',
   'dp',
+  'nlq',
   'fag',
   'sex',
   'shit',

@@ -43,6 +43,7 @@ const TEST_PATTERNS = [
   '^sa$',         // exact → boundary-only
   '^bv$',         // exact in PKHeX, but manually overridden to strong
   '^dp$',         // exact in PKHeX, but manually overridden to strong
+  '.*nlq.*',      // short substring, manually overridden to strong
   '.*wix.*',      // substring len 3 -> boundary (digit-bridged regression case)
   '.*kz.*',       // substring len 2 -> boundary (Nintendo digit-isolated behavior)
   '.*fag.*',      // substring, len 3, but manually overridden to strong
@@ -168,6 +169,7 @@ assert(classifyPattern('^ass$').ruleClass === 'boundary', '^ass$ → boundary (e
 assert(classifyPattern('^sa$').ruleClass === 'boundary', '^sa$ → boundary (exact match)');
 assert(classifyPattern('^bv$').ruleClass === 'strong', '^bv$ → strong (manual override)');
 assert(classifyPattern('^dp$').ruleClass === 'strong', '^dp$ → strong (manual override)');
+assert(classifyPattern('.*nlq.*').ruleClass === 'strong', '.*nlq.* → strong (manual override)');
 assert(classifyPattern('.*fag.*').ruleClass === 'strong', '.*fag.* → strong (manual override)');
 assert(classifyPattern('.*sex.*').ruleClass === 'strong', '.*sex.* → strong (manual override)');
 assert(classifyPattern('.*shit.*').ruleClass === 'strong', '.*shit.* → strong (manual override)');
@@ -256,6 +258,12 @@ section('Full filter: "bv" (strong override)');
 
 assert(filter.check('bv') === true, '"bv" = banned');
 assert(filter.check('b42?v9C?') === true, '"b42?v9C?" = banned (digit/separator bridged)');
+
+section('Full filter: "nlq" (strong override)');
+
+assert(filter.check('nlq') === true, '"nlq" = banned');
+assert(filter.check('anlqb') === true, '"anlqb" = banned (embedded substring)');
+assert(filter.check('n1?l2q3A') === true, '"n1?l2q3A" = banned (digit/separator bridged)');
 
 section('Full filter: "sex" (strong override)');
 
