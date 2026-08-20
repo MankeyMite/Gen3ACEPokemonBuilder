@@ -1,3 +1,17 @@
+Patch Notes - (V.0.4.8) - August 21, 2026.
+- Reworked the Shiny configuration into the new "Set Legal PID/Shiny" button to make it easier to use.
+- Added a favicon to the page.
+- Made a "switch" to toggle between search and browse mode for finding the Pokémon you want to make.
+- Added a sprite box with soft animation.
+- Added the separate English RUBY Berry Program Zigzagoon variant that was missing. Both RUBY and SAPHIRE now appear separately in the event selector.
+- Added "nlq" to the Switch profanity filter.
+- Fixed Japanese Gen 3 name handling by setting the final byte to 0x00 instead of 0xFF.
+- fixed a bug where the PID finder would not give legal results from evolved event pokemon.
+- Fixed the DexReg payload guide for FR/LG on consoles.
+- Fixed a menu hirarchi problem where a pokemon could exist in a category where it did not belong. Also changed effects of the sprite box.
+- Fixed other minor issues.
+
+
 Patch Notes - (V.0.4.7) - August 14, 2026.
 - Added a new encounter browser beside the Pokémon search. Pokémon can now be browsed by event distributions, in-game events, in-game trades, Pokémon Colosseum, Pokémon XD, roamers, wild encounters, and hatched or Egg origins.
 - Completely reworked Generation III ribbon legality. Legal Mode now automatically allows, requires, clears, or locks ribbons according to the selected species, exact encounter or event, met level, and Egg state.
@@ -10,16 +24,16 @@ Patch Notes - (V.0.4.6) - August 13, 2026.
 - Added the nine preserved Trade and Battle Day JEREMY specimens as exact fixed presets, including the Machoke-to-Machamp and Haunter-to-Gengar trade evolutions.
 - Added every Generation III NPC in-game trade from Ruby, Sapphire, Emerald, FireRed, LeafGreen, and Pokémon XD, with fixed trainer, nickname, PID, IV, move, item, contest, encounter, and localization data where applicable.
 - updated the switch profanity filter to include some new words.
-- Improvements to the setup guide for the base64 writer
-- bugfixes
+- Improvements to the setup guide for the base64 writer.
+- bugfixes.
 
 Patch Notes - (V.0.4.5) - August 6. 2026.
 - Added Japanese Base64 setup guide for Emerald!
-- Improved mobile view
+- Improved mobile view.
 - Added a payload to the Base64 writer guide that lets you register spawned Pokémon to the pokedex. This will now replace the test code.
-- Improved the UI for the code section and Base64 writer guide
+- Improved the UI for the code section and Base64 writer guide.
 - You will now select game, then language in the guide, since the DexReg payload has different code for each language.
-- Fixed some mistakes in the guides
+- Fixed some mistakes in the guides.
 
 Patch Notes - (V.0.4.4) - August 5, 2026.
 - Added 195 new distribution event Pokémon, including mystery gifts, PCJP, Poképark, PCNY, Colosseum, XD, starters, gifts, e-Reader shadows, trades and Poké Spot encounters! 
