@@ -1,6 +1,7 @@
 ﻿// IV input selectors (used for visibility and clamping)
 const ivIds = ['#ivHp','#ivAtk','#ivDef','#ivSpAtk','#ivSpDef','#ivSpe'];
 import { NATURES, LANGUAGES } from './lib/gen3/constants.js';
+import { formatNatureOption, getAdjustedStatBarValue, getNatureEffect, getNatureMultiplier } from './domain/naturePresentation.js';
 import { SPECIES } from './data/species.gen3.js';
 import { getLocalizedSpeciesName } from './data/localizedSpeciesNames.gen3.js';
 import { BASE_STATS, DEOXYS_FORM_BASE_STATS } from './data/baseStats.gen3.js';
@@ -92,6 +93,8 @@ import {
 } from './domain/importedPokemon.js';
 import {
   SHINY_CONTROL_KIND,
+  SHINY_SID_MODE,
+  getDefaultShinySidMode,
   getShinyControlPolicy,
 } from './domain/shinyControl.js';
 import {
@@ -125,19 +128,12 @@ const STATIC_LOCKED_MET_FIELD_CATEGORIES = new Set(['starters', 'fossils', 'gift
 const STATIC_LOCKED_BALL_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner']);
 const STAT_GRAPH_MAX_BASE = 180;
 const STAT_GRAPH_ROWS = [
-  { key: 'hp', ivId: 'ivHp', evId: 'evHp', baseId: 'baseStatHp', barId: 'baseStatBarHp', finalId: 'finalStatHp' },
-  { key: 'atk', ivId: 'ivAtk', evId: 'evAtk', baseId: 'baseStatAtk', barId: 'baseStatBarAtk', finalId: 'finalStatAtk' },
-  { key: 'def', ivId: 'ivDef', evId: 'evDef', baseId: 'baseStatDef', barId: 'baseStatBarDef', finalId: 'finalStatDef' },
-  { key: 'spa', ivId: 'ivSpAtk', evId: 'evSpAtk', baseId: 'baseStatSpAtk', barId: 'baseStatBarSpAtk', finalId: 'finalStatSpAtk' },
-  { key: 'spd', ivId: 'ivSpDef', evId: 'evSpDef', baseId: 'baseStatSpDef', barId: 'baseStatBarSpDef', finalId: 'finalStatSpDef' },
-  { key: 'spe', ivId: 'ivSpe', evId: 'evSpe', baseId: 'baseStatSpe', barId: 'baseStatBarSpe', finalId: 'finalStatSpe' },
-];
-const NATURE_STAT_EFFECTS = [
-  {}, { up: 'atk', down: 'def' }, { up: 'atk', down: 'spe' }, { up: 'atk', down: 'spa' }, { up: 'atk', down: 'spd' },
-  { up: 'def', down: 'atk' }, {}, { up: 'def', down: 'spe' }, { up: 'def', down: 'spa' }, { up: 'def', down: 'spd' },
-  { up: 'spe', down: 'atk' }, { up: 'spe', down: 'def' }, {}, { up: 'spe', down: 'spa' }, { up: 'spe', down: 'spd' },
-  { up: 'spa', down: 'atk' }, { up: 'spa', down: 'def' }, { up: 'spa', down: 'spe' }, {}, { up: 'spa', down: 'spd' },
-  { up: 'spd', down: 'atk' }, { up: 'spd', down: 'def' }, { up: 'spd', down: 'spe' }, { up: 'spd', down: 'spa' }, {},
+  { key: 'hp', label: 'HP', ivId: 'ivHp', evId: 'evHp', baseId: 'baseStatHp', baseBarId: 'baseStatBarHp', powerBarId: 'powerStatBarHp', markerId: 'baseStatMarkerHp', trackId: 'statBarTrackHp', finalId: 'finalStatHp' },
+  { key: 'atk', label: 'Attack', ivId: 'ivAtk', evId: 'evAtk', baseId: 'baseStatAtk', baseBarId: 'baseStatBarAtk', powerBarId: 'powerStatBarAtk', markerId: 'baseStatMarkerAtk', trackId: 'statBarTrackAtk', finalId: 'finalStatAtk' },
+  { key: 'def', label: 'Defense', ivId: 'ivDef', evId: 'evDef', baseId: 'baseStatDef', baseBarId: 'baseStatBarDef', powerBarId: 'powerStatBarDef', markerId: 'baseStatMarkerDef', trackId: 'statBarTrackDef', finalId: 'finalStatDef' },
+  { key: 'spa', label: 'Special Attack', ivId: 'ivSpAtk', evId: 'evSpAtk', baseId: 'baseStatSpAtk', baseBarId: 'baseStatBarSpAtk', powerBarId: 'powerStatBarSpAtk', markerId: 'baseStatMarkerSpAtk', trackId: 'statBarTrackSpAtk', finalId: 'finalStatSpAtk' },
+  { key: 'spd', label: 'Special Defense', ivId: 'ivSpDef', evId: 'evSpDef', baseId: 'baseStatSpDef', baseBarId: 'baseStatBarSpDef', powerBarId: 'powerStatBarSpDef', markerId: 'baseStatMarkerSpDef', trackId: 'statBarTrackSpDef', finalId: 'finalStatSpDef' },
+  { key: 'spe', label: 'Speed', ivId: 'ivSpe', evId: 'evSpe', baseId: 'baseStatSpe', baseBarId: 'baseStatBarSpe', powerBarId: 'powerStatBarSpe', markerId: 'baseStatMarkerSpe', trackId: 'statBarTrackSpe', finalId: 'finalStatSpe' },
 ];
 const STAT_BAR_COLORS = [
   { max: 39, color: '#ef4444', soft: '#fb7185' },
@@ -196,10 +192,7 @@ function getDisplayedBaseStats(speciesId) {
 
 function getNatureStatMultiplier(statKey) {
   const natureIndex = clampNumber($('#nature')?.value, 0, 24, 0);
-  const effect = NATURE_STAT_EFFECTS[natureIndex] || {};
-  if (effect.up === statKey && effect.down !== statKey) return 110;
-  if (effect.down === statKey && effect.up !== statKey) return 90;
-  return 100;
+  return Math.round(getNatureMultiplier(natureIndex, statKey) * 100);
 }
 
 function calculateDisplayedStat({ speciesId, statKey, base, iv, ev, level }) {
@@ -218,14 +211,24 @@ function updateStatGraph() {
   const speciesId = Number($('#species')?.value || 0);
   const baseStats = getDisplayedBaseStats(speciesId);
   const level = clampNumber($('#level')?.value, 1, 100, 1);
+  const natureIndex = clampNumber($('#nature')?.value, 0, 24, 0);
+  const natureName = NATURES[natureIndex] || 'neutral nature';
+  const natureEffect = getNatureEffect(natureIndex);
 
   for (const row of STAT_GRAPH_ROWS) {
     const baseEl = document.getElementById(row.baseId);
-    const barEl = document.getElementById(row.barId);
+    const baseBarEl = document.getElementById(row.baseBarId);
+    const powerBarEl = document.getElementById(row.powerBarId);
+    const markerEl = document.getElementById(row.markerId);
+    const trackEl = document.getElementById(row.trackId);
     const finalEl = document.getElementById(row.finalId);
+    const rowEl = baseEl?.closest('.stat-graph-row');
     if (!baseStats) {
       if (baseEl) baseEl.textContent = '--';
-      if (barEl) barEl.style.width = '0%';
+      if (baseBarEl) baseBarEl.style.width = '0%';
+      if (powerBarEl) powerBarEl.style.width = '0%';
+      if (markerEl) markerEl.style.left = '0%';
+      if (rowEl) rowEl.dataset.natureEffect = 'neutral';
       if (finalEl) finalEl.textContent = '--';
       continue;
     }
@@ -234,13 +237,28 @@ function updateStatGraph() {
     const iv = clampNumber(document.getElementById(row.ivId)?.value, 0, 31, 0);
     const ev = clampNumber(document.getElementById(row.evId)?.value, 0, 252, 0);
     const finalStat = calculateDisplayedStat({ speciesId, statKey: row.key, base, iv, ev, level });
-    const barColor = getStatBarColor(base);
+    const powerValue = getAdjustedStatBarValue({ base, ev, natureIndex, statKey: row.key });
+    const baseBarColor = getStatBarColor(base);
+    const powerBarColor = getStatBarColor(powerValue);
+    const baseWidth = Math.min(100, (base / STAT_GRAPH_MAX_BASE) * 100);
+    const powerWidth = Math.min(100, (powerValue / STAT_GRAPH_MAX_BASE) * 100);
+    const natureState = natureEffect.up === row.key
+      ? 'boosted'
+      : natureEffect.down === row.key
+        ? 'lowered'
+        : 'neutral';
     if (baseEl) baseEl.textContent = String(base);
-    if (barEl) {
-      barEl.style.width = `${Math.min(100, Math.round((base / STAT_GRAPH_MAX_BASE) * 100))}%`;
-      barEl.style.setProperty('--stat-bar-color', barColor.color);
-      barEl.style.setProperty('--stat-bar-color-soft', barColor.soft);
+    if (baseBarEl) baseBarEl.style.width = `${baseWidth}%`;
+    if (powerBarEl) powerBarEl.style.width = `${powerWidth}%`;
+    if (markerEl) markerEl.style.left = `${baseWidth}%`;
+    if (trackEl) {
+      trackEl.style.setProperty('--stat-base-bar-color', baseBarColor.color);
+      trackEl.style.setProperty('--stat-base-bar-color-soft', baseBarColor.soft);
+      trackEl.style.setProperty('--stat-power-bar-color', powerBarColor.color);
+      trackEl.style.setProperty('--stat-power-bar-color-soft', powerBarColor.soft);
+      trackEl.setAttribute('aria-label', `${row.label}: the line marks base ${base}; the filled bar includes ${ev} EVs and the ${natureName} nature.`);
     }
+    if (rowEl) rowEl.dataset.natureEffect = natureState;
     if (finalEl) finalEl.textContent = String(finalStat);
   }
 }
@@ -5018,7 +5036,7 @@ function boot(){
   $('#metLocation').value = '9';
   
   // Keep these as regular selects (small lists)
-  fillSelect($('#nature'), NATURES.map((n,i)=>[n, String(i)]), { placeholder: null });
+  fillSelect($('#nature'), NATURES.map((n,i)=>[formatNatureOption(n, i), String(i)]), { placeholder: null });
   fillSelect($('#language'), LANGUAGES.map(([name,id])=>[name,String(id)]), { placeholder: null });
   
   // Set default language to English (ID 2)
@@ -9028,6 +9046,12 @@ function boot(){
         evSpAtk: '0',
         evSpDef: '0',
         evSpe: '0',
+        contestCool: '0',
+        contestBeauty: '0',
+        contestCute: '0',
+        contestSmart: '0',
+        contestTough: '0',
+        contestSheen: '0',
         pp1: DEFAULT_PP_UPS,
         pp2: DEFAULT_PP_UPS,
         pp3: DEFAULT_PP_UPS,
@@ -10746,10 +10770,13 @@ function initPidFinder() {
     });
   }
   wantShinyCheckbox?.addEventListener('change', () => {
-    if (keepSidRadio) keepSidRadio.checked = false;
-    if (autoSidRadio) autoSidRadio.checked = false;
-    setMinimumIvDefaults(20);
+    const defaultSidMode = wantShinyCheckbox.checked
+      ? getDefaultShinySidMode(currentEncounterMode)
+      : '';
+    if (keepSidRadio) keepSidRadio.checked = defaultSidMode === SHINY_SID_MODE.KEEP;
+    if (autoSidRadio) autoSidRadio.checked = defaultSidMode === SHINY_SID_MODE.AUTO;
     syncShinyModeUi({ generateHatched: true });
+    setMinimumIvDefaults(keepSidRadio?.checked ? 15 : 20);
   });
   for (const radio of [keepSidRadio, autoSidRadio]) {
     radio?.addEventListener('change', () => {

@@ -5,6 +5,17 @@ export const SHINY_CONTROL_KIND = Object.freeze({
   ALWAYS: 'always',
 });
 
+export const SHINY_SID_MODE = Object.freeze({
+  AUTO: 'auto',
+  KEEP: 'keep',
+});
+
+export function getDefaultShinySidMode(encounterMode = '') {
+  return String(encounterMode || '').toLowerCase() === 'hatched'
+    ? SHINY_SID_MODE.KEEP
+    : SHINY_SID_MODE.AUTO;
+}
+
 /**
  * Choose the legal shiny interaction for the current encounter.
  *

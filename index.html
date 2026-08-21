@@ -936,6 +936,17 @@
       color: var(--text);
       font-size: 0.9rem;
       font-weight: 700;
+      transition: color 0.16s ease, text-shadow 0.16s ease;
+    }
+
+    .stat-graph-row[data-nature-effect="boosted"] .stat-graph-stat {
+      color: #fb7185;
+      text-shadow: 0 0 12px rgba(251, 113, 133, 0.28);
+    }
+
+    .stat-graph-row[data-nature-effect="lowered"] .stat-graph-stat {
+      color: #60a5fa;
+      text-shadow: 0 0 12px rgba(96, 165, 250, 0.28);
     }
 
     .stat-graph-base,
@@ -954,6 +965,7 @@
     }
 
     .stat-bar-track {
+      position: relative;
       width: 100%;
       min-width: 0;
       height: 1.05rem;
@@ -964,12 +976,45 @@
       box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
     }
 
-    .stat-bar-fill {
+    .stat-bar-base-fill,
+    .stat-bar-power-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
       width: 0%;
       height: 100%;
       border-radius: inherit;
-      background: linear-gradient(90deg, var(--stat-bar-color, #22c55e), var(--stat-bar-color-soft, #4ade80));
-      transition: width 0.16s ease;
+    }
+
+    .stat-bar-base-fill {
+      background: linear-gradient(90deg, var(--stat-base-bar-color, #22c55e), var(--stat-base-bar-color-soft, #4ade80));
+      opacity: 0.28;
+    }
+
+    .stat-bar-power-fill {
+      background: linear-gradient(90deg, var(--stat-power-bar-color, #22c55e), var(--stat-power-bar-color-soft, #4ade80));
+      transition: width 0.16s ease, background 0.16s ease;
+    }
+
+    .stat-bar-base-marker {
+      position: absolute;
+      top: -1px;
+      bottom: -1px;
+      left: 0%;
+      z-index: 2;
+      width: 2px;
+      border-radius: 2px;
+      background: rgba(232, 243, 255, 0.92);
+      box-shadow: 0 0 0 1px rgba(7, 17, 31, 0.58), 0 0 5px rgba(232, 243, 255, 0.38);
+      transform: translateX(-1px);
+      transition: left 0.16s ease;
+    }
+
+    .stat-graph-row[data-nature-effect="boosted"] .stat-bar-track {
+      border-color: rgba(251, 113, 133, 0.62);
+    }
+
+    .stat-graph-row[data-nature-effect="lowered"] .stat-bar-track {
+      border-color: rgba(96, 165, 250, 0.62);
     }
 
     .stat-graph-input {
@@ -2741,50 +2786,74 @@
           </span>
           <span style="text-align:right;">Total</span>
         </div>
-        <div class="stat-graph-row">
+        <div class="stat-graph-row" data-nature-effect="neutral">
           <span class="stat-graph-stat">HP</span>
           <span id="baseStatHp" class="stat-graph-base">--</span>
-          <div class="stat-bar-track" aria-hidden="true"><div id="baseStatBarHp" class="stat-bar-fill"></div></div>
+          <div id="statBarTrackHp" class="stat-bar-track" role="img" aria-label="HP stat visualization">
+            <div id="baseStatBarHp" class="stat-bar-base-fill"></div>
+            <div id="powerStatBarHp" class="stat-bar-power-fill"></div>
+            <span id="baseStatMarkerHp" class="stat-bar-base-marker"></span>
+          </div>
           <input id="ivHp" class="stat-graph-input" type="number" min="0" max="31" value="31" aria-label="HP IV" />
           <input id="evHp" class="stat-graph-input" type="number" min="0" max="255" value="0" aria-label="HP EV" />
           <span id="finalStatHp" class="stat-graph-final">--</span>
         </div>
-        <div class="stat-graph-row">
+        <div class="stat-graph-row" data-nature-effect="neutral">
           <span class="stat-graph-stat">ATK</span>
           <span id="baseStatAtk" class="stat-graph-base">--</span>
-          <div class="stat-bar-track" aria-hidden="true"><div id="baseStatBarAtk" class="stat-bar-fill"></div></div>
+          <div id="statBarTrackAtk" class="stat-bar-track" role="img" aria-label="Attack stat visualization">
+            <div id="baseStatBarAtk" class="stat-bar-base-fill"></div>
+            <div id="powerStatBarAtk" class="stat-bar-power-fill"></div>
+            <span id="baseStatMarkerAtk" class="stat-bar-base-marker"></span>
+          </div>
           <input id="ivAtk" class="stat-graph-input" type="number" min="0" max="31" value="31" aria-label="Attack IV" />
           <input id="evAtk" class="stat-graph-input" type="number" min="0" max="255" value="0" aria-label="Attack EV" />
           <span id="finalStatAtk" class="stat-graph-final">--</span>
         </div>
-        <div class="stat-graph-row">
+        <div class="stat-graph-row" data-nature-effect="neutral">
           <span class="stat-graph-stat">DEF</span>
           <span id="baseStatDef" class="stat-graph-base">--</span>
-          <div class="stat-bar-track" aria-hidden="true"><div id="baseStatBarDef" class="stat-bar-fill"></div></div>
+          <div id="statBarTrackDef" class="stat-bar-track" role="img" aria-label="Defense stat visualization">
+            <div id="baseStatBarDef" class="stat-bar-base-fill"></div>
+            <div id="powerStatBarDef" class="stat-bar-power-fill"></div>
+            <span id="baseStatMarkerDef" class="stat-bar-base-marker"></span>
+          </div>
           <input id="ivDef" class="stat-graph-input" type="number" min="0" max="31" value="31" aria-label="Defense IV" />
           <input id="evDef" class="stat-graph-input" type="number" min="0" max="255" value="0" aria-label="Defense EV" />
           <span id="finalStatDef" class="stat-graph-final">--</span>
         </div>
-        <div class="stat-graph-row">
+        <div class="stat-graph-row" data-nature-effect="neutral">
           <span class="stat-graph-stat">SPA</span>
           <span id="baseStatSpAtk" class="stat-graph-base">--</span>
-          <div class="stat-bar-track" aria-hidden="true"><div id="baseStatBarSpAtk" class="stat-bar-fill"></div></div>
+          <div id="statBarTrackSpAtk" class="stat-bar-track" role="img" aria-label="Special Attack stat visualization">
+            <div id="baseStatBarSpAtk" class="stat-bar-base-fill"></div>
+            <div id="powerStatBarSpAtk" class="stat-bar-power-fill"></div>
+            <span id="baseStatMarkerSpAtk" class="stat-bar-base-marker"></span>
+          </div>
           <input id="ivSpAtk" class="stat-graph-input" type="number" min="0" max="31" value="31" aria-label="Special Attack IV" />
           <input id="evSpAtk" class="stat-graph-input" type="number" min="0" max="255" value="0" aria-label="Special Attack EV" />
           <span id="finalStatSpAtk" class="stat-graph-final">--</span>
         </div>
-        <div class="stat-graph-row">
+        <div class="stat-graph-row" data-nature-effect="neutral">
           <span class="stat-graph-stat">SPD</span>
           <span id="baseStatSpDef" class="stat-graph-base">--</span>
-          <div class="stat-bar-track" aria-hidden="true"><div id="baseStatBarSpDef" class="stat-bar-fill"></div></div>
+          <div id="statBarTrackSpDef" class="stat-bar-track" role="img" aria-label="Special Defense stat visualization">
+            <div id="baseStatBarSpDef" class="stat-bar-base-fill"></div>
+            <div id="powerStatBarSpDef" class="stat-bar-power-fill"></div>
+            <span id="baseStatMarkerSpDef" class="stat-bar-base-marker"></span>
+          </div>
           <input id="ivSpDef" class="stat-graph-input" type="number" min="0" max="31" value="31" aria-label="Special Defense IV" />
           <input id="evSpDef" class="stat-graph-input" type="number" min="0" max="255" value="0" aria-label="Special Defense EV" />
           <span id="finalStatSpDef" class="stat-graph-final">--</span>
         </div>
-        <div class="stat-graph-row">
+        <div class="stat-graph-row" data-nature-effect="neutral">
           <span class="stat-graph-stat">SPE</span>
           <span id="baseStatSpe" class="stat-graph-base">--</span>
-          <div class="stat-bar-track" aria-hidden="true"><div id="baseStatBarSpe" class="stat-bar-fill"></div></div>
+          <div id="statBarTrackSpe" class="stat-bar-track" role="img" aria-label="Speed stat visualization">
+            <div id="baseStatBarSpe" class="stat-bar-base-fill"></div>
+            <div id="powerStatBarSpe" class="stat-bar-power-fill"></div>
+            <span id="baseStatMarkerSpe" class="stat-bar-base-marker"></span>
+          </div>
           <input id="ivSpe" class="stat-graph-input" type="number" min="0" max="31" value="31" aria-label="Speed IV" />
           <input id="evSpe" class="stat-graph-input" type="number" min="0" max="255" value="0" aria-label="Speed EV" />
           <span id="finalStatSpe" class="stat-graph-final">--</span>

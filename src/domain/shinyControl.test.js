@@ -1,9 +1,17 @@
 import assert from 'node:assert/strict';
 import {
   SHINY_CONTROL_KIND,
+  SHINY_SID_MODE,
+  getDefaultShinySidMode,
   getShinyButtonPresentation,
   getShinyControlPolicy,
 } from './shinyControl.js';
+
+assert.equal(getDefaultShinySidMode('hatched'), SHINY_SID_MODE.KEEP);
+assert.equal(getDefaultShinySidMode('HATCHED'), SHINY_SID_MODE.KEEP);
+assert.equal(getDefaultShinySidMode('wild'), SHINY_SID_MODE.AUTO);
+assert.equal(getDefaultShinySidMode('static'), SHINY_SID_MODE.AUTO);
+assert.equal(getDefaultShinySidMode('mystery'), SHINY_SID_MODE.AUTO);
 
 assert.equal(getShinyControlPolicy({ encounterMode: 'hatched' }).kind, SHINY_CONTROL_KIND.DIRECT);
 
