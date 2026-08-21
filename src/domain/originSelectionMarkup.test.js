@@ -122,6 +122,8 @@ assert.match(html, /id="pfKeepSidHatchedRecommendation"[^>]*>Recommended for hat
 assert.match(html, /id="pfMinHp"[^>]*value="20"/);
 assert.match(html, /<th class="pid-finder-action">Select<\/th>/);
 assert.match(html, /<th title="PKHeX-style RNG frame from the relevant Gen III initial seed \(1-indexed\)">Frame<\/th>/);
+assert.match(html, /<th title="16-bit initial seed used for the PKHeX-style frame calculation">Init Seed<\/th>/);
+assert.match(mainSource, /initialSeed & 0xFFFF[\s\S]*?padStart\(4, '0'\)/);
 assert.match(html, /id="pfRngManipulation" class="pid-rng-panel"/);
 assert.match(html, /id="pfRngWindowEnabled" type="checkbox"/);
 assert.match(html, /id="pfRngStartSeed"[^>]*placeholder="0x00000000"/);

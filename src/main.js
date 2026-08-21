@@ -11854,8 +11854,8 @@ function initPidFinder() {
       const thead = resultsBody.closest('table')?.querySelector('thead tr');
       if (thead) {
         const ths = thead.querySelectorAll('th');
-        // Columns: PID(0) HP(1) Atk(2) Def(3) SpA(4) SpD(5) Spe(6) Total(7) HPType(8) HPPwr(9) Mth(10) Lv(11) Gender(12) Ability(13) Frame(14) ManipFrame(15) btn(16)
-        if (ths.length >= 15) {
+        // Columns: PID(0) HP(1) Atk(2) Def(3) SpA(4) SpD(5) Spe(6) Total(7) HPType(8) HPPwr(9) Mth(10) Lv(11) Gender(12) Ability(13) Frame(14) InitSeed(15) ManipFrame(16) btn(17)
+        if (ths.length >= 18) {
           ths[11].textContent = isChannelResults ? 'SID' : 'Lv';
           ths[12].textContent = isChannelResults ? 'Game' : 'Gender';
           ths[13].textContent = isChannelResults ? 'Item' : 'Ability';
@@ -11881,8 +11881,11 @@ function initPidFinder() {
         encounterMode: currentEncounterMode,
       });
       const frameCell = frameInfo
-        ? `<td class="pid-frame-cell" title="Initial seed: 0x${frameInfo.initialSeed.toString(16).toUpperCase().padStart(8, '0')}">${frameInfo.frame.toLocaleString('en-US')}</td>`
+        ? `<td class="pid-frame-cell">${frameInfo.frame.toLocaleString('en-US')}</td>`
         : '<td class="pid-frame-cell">—</td>';
+      const seedCell = frameInfo
+        ? `<td class="pid-seed-cell">${(frameInfo.initialSeed & 0xFFFF).toString(16).toUpperCase().padStart(4, '0')}</td>`
+        : '<td class="pid-seed-cell">—</td>';
       const manipFrame = Number.isFinite(Number(r.rngAdvances)) ? Number(r.rngAdvances) + 1 : null;
       const manipFrameCell = activeRngWindow && manipFrame !== null
         ? `<td class="pid-frame-cell pid-manip-frame-cell" title="${Number(r.rngAdvances).toLocaleString('en-US')} RNG advances from ${formatRngSeed(activeRngWindow.startSeed)}">${manipFrame.toLocaleString('en-US')}</td>`
@@ -11918,6 +11921,7 @@ function initPidFinder() {
           `<td>${gameName}</td>` +
           `<td>${itemName}</td>` +
           frameCell +
+          seedCell +
           manipFrameCell +
           `<td class="pid-finder-action"><button type="button" class="select-btn">Select</button></td>`;
       } else {
@@ -11933,6 +11937,7 @@ function initPidFinder() {
         `<td>${genderStr}</td>` +
         `<td>${abilityName}</td>` +
         frameCell +
+        seedCell +
         manipFrameCell +
         `<td class="pid-finder-action"><button type="button" class="select-btn">Select</button></td>`;
       }

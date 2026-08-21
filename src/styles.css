@@ -848,6 +848,12 @@ body.encounter-roamer .shiny-external { display: none; }
   font-size: 0.8rem;
 }
 .pid-finder-table .pid-frame-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pid-finder-table .pid-seed-cell {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .pid-finder-table .iv-perfect { color: var(--emerald); font-weight: 600; }
 .pid-finder-table .iv-zero    { color: var(--ruby);    font-weight: 600; }
 .pid-finder-table .select-btn {
