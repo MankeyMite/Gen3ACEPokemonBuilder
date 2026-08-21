@@ -31,18 +31,17 @@ The tool generates proper Gen III Pokémon data structures:
 
 ### Development Note
 
-This tool was created primarily using GitHub Copilot in Visual Studio Code. While extensive testing has been done, there may be undiscovered bugs or edge cases. Please report any issues you encounter!
+This tool was created primarily using agentic coding inside Visual Studio Code. While extensive testing has been done, there may be undiscovered bugs or edge cases. Please report any issues you encounter!
 
 
 ## 🙏 Acknowledgments
 
 - Bulbapedia, Pokeemerald, Pokefirered and similar projects for Gen III data documentation.
-- PKHeX for legality checking insights
-- Adrichu00 for helping with the distribution event pokemon calculations for legality, as well as providing a list of high avg. IVs for all natures for BACD_R_A PID type Pokemon.
-- 
+- PKHeX for legality checking insights.
+- Mettrich, Adrichu00 and other commmunity profiles for helping with useful information.
 
 ## 📧 Contact
 
 For bug reports and feature requests, please contact me on Discord: MankeyMite#9981
 
-**Disclaimer**: This tool is for educational purposes. Use only with legally obtained games and save files. The author is not responsible for any damage to save files or game cartridges.
+**Disclaimer**: This tool is for educational purposes. Use only with legally obtained games and save files. The author is not responsible for any damage to save files, game cartridges or the risk of a ban from Pokémon Home if an illegal Pokémon was created and transferred.
