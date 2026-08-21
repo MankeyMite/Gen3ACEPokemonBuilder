@@ -6,7 +6,7 @@
 ### Export Formats
 
 #### Base64 Box Names
-The primary export format for ACE injection. Box names are encoded using a custom Gen III character set and can be entered directly into Pokémon Emerald using the ACE glitch.
+The primary export format for ACE injection. Box names are encoded using a custom Gen III character set and can be entered directly into gen 3 games like Pokémon Emerald, or FireRed and LeafGreen on Nintendo Switch using the ACE glitch.
 
 #### Hex Data
 Raw hexadecimal representation of the Pokémon data structure (80 bytes). Useful for debugging or custom ACE implementations.
