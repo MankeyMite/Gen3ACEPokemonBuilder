@@ -31,7 +31,7 @@ The tool generates proper Gen III Pokémon data structures:
 
 ### Development Note
 
-This tool was created primarily using agentic coding inside Visual Studio Code. While extensive testing has been done, there may be undiscovered bugs or edge cases. Please report any issues you encounter!
+This tool is a work in progress, and has been created primarily using agentic coding inside Visual Studio Code. While extensive testing has been done, there may be undiscovered bugs or edge cases. Please report any issues you encounter!
 
 
 ## 🙏 Acknowledgments
