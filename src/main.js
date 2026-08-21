@@ -4852,6 +4852,17 @@ function boot(){
   });
 
   // Create autocomplete fields for searchable dropdowns
+  const earlySpeciesState = window.__aceEarlySpeciesState || {};
+  const startupSpeciesControl = $('#species');
+  const startupSpeciesInput = startupSpeciesControl?.querySelector?.('.autocomplete-input');
+  const startupSpeciesId = String(
+    startupSpeciesControl?.value
+      || startupSpeciesControl?.dataset?.earlySelectedId
+      || earlySpeciesState.selectedId
+      || ''
+  );
+  const startupSpeciesQuery = String(startupSpeciesInput?.value || earlySpeciesState.query || '');
+  const startupSpeciesHadFocus = document.activeElement === startupSpeciesInput;
   speciesAutocomplete = createAutocomplete($('#species'), getSupportedSpecies(), {
     blurOnSelect: true,
     onSelect: (item) => {
@@ -10147,6 +10158,17 @@ function boot(){
   document.addEventListener('change', markImportedDirty, true);
 
   initPidFinder();
+  if (startupSpeciesId) {
+    speciesAutocomplete?.selectById?.(startupSpeciesId);
+  } else if (startupSpeciesQuery) {
+    const upgradedInput = speciesAutocomplete?.querySelector?.('.autocomplete-input');
+    if (upgradedInput) {
+      upgradedInput.value = startupSpeciesQuery;
+      upgradedInput.dispatchEvent(new Event('input', { bubbles: true }));
+      if (startupSpeciesHadFocus) requestAnimationFrame(() => upgradedInput.focus());
+    }
+  }
+  delete window.__aceEarlySpeciesState;
 }
 
 function copy(text){

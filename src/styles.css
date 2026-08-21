@@ -750,6 +750,14 @@ body.encounter-roamer .shiny-external { display: none; }
   cursor: pointer;
 }
 
+.autocomplete-more-results {
+  padding: 0.5rem 0.65rem;
+  border-top: 1px solid var(--border-soft);
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
 /* Discreet project support link, kept in normal footer flow. */
 .site-footer {
   display: flex;
