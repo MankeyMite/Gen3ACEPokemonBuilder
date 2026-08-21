@@ -51,6 +51,16 @@ async function main() {
   const generatorPath = path.join(__dirname, 'cxd-generator.js');
   const { generateCXDPokemon } = await import(pathToFileURL(generatorPath).href);
 
+  const { context: rngContext } = loadWorker('rng-worker.js');
+  const advanceSeed = seed => (Math.imul(seed, 0x41C64E6D) + 0x6073) >>> 0;
+  const distanceStart = 0x12345678;
+  let distanceTarget = distanceStart;
+  for (let i = 0; i < 1000; i++) distanceTarget = advanceSeed(distanceTarget);
+  assert(rngContext.getLcrngDistance(distanceStart, advanceSeed(distanceStart)) === 1,
+    'RNG distance should report one advance to the next state');
+  assert(rngContext.getLcrngDistance(distanceStart, distanceTarget) === 1000,
+    'RNG distance should match a known 1,000-advance target');
+
   const baseGbaSearch = {
     nature: 0,
     ability: -1,
@@ -77,6 +87,18 @@ async function main() {
     anyResults.some((result) => (result.pid & 1) === 0) &&
       anyResults.some((result) => (result.pid & 1) === 1),
     'single-ability Zigzagoon any parity should allow both even and odd PIDs'
+  );
+
+  const exactRngState = anyResults[0].seed >>> 0;
+  const practicalFrameResults = runSearch('rng-worker.js', {
+    ...baseGbaSearch,
+    rngStartSeed: exactRngState,
+    rngMaxAdvances: 0,
+  });
+  assert(practicalFrameResults.length > 0, 'an exact starting state should return its frame-1 result');
+  assert(
+    practicalFrameResults.every((result) => result.seed === exactRngState && result.rngAdvances === 0),
+    'RNG-window filtering should happen before results enter the priority buffer'
   );
 
   const evenResults = runSearch('rng-worker.js', {
@@ -167,7 +189,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`All RNG worker PID parity tests passed (${passed} assertions).`);
+  console.log(`All RNG worker PID parity and frame-window tests passed (${passed} assertions).`);
 }
 
 main().catch((error) => {

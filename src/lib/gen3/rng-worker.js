@@ -24,6 +24,34 @@ const RADD  = 0x0A3561A1;          // (-ADD * RMULT) & 0xFFFFFFFF
 function advance(s) { return (Math.imul(s, MULT) + ADD)   >>> 0; }
 function reverse(s) { return (Math.imul(s, RMULT) + RADD) >>> 0; }
 
+const LCRNG_JUMP_MULT = [
+  0x41C64E6D,0xC2A29A69,0xEE067F11,0xCFDDDF21,0x5F748241,0x8B2E1481,0x76006901,0x1711D201,
+  0xBE67A401,0xDDDF4801,0x3FFE9001,0x90FD2001,0x65FA4001,0xDBF48001,0xF7E90001,0xEFD20001,
+  0xDFA40001,0xBF480001,0x7E900001,0xFD200001,0xFA400001,0xF4800001,0xE9000001,0xD2000001,
+  0xA4000001,0x48000001,0x90000001,0x20000001,0x40000001,0x80000001,0x00000001,0x00000001,
+];
+const LCRNG_JUMP_ADD = [
+  0x00006073,0xE97E7B6A,0x31B0DDE4,0x67DBB608,0xCBA72510,0x1D29AE20,0xBA84EC40,0x79F01880,
+  0x08793100,0x6B566200,0x803CC400,0xA6B98800,0xE6731000,0x30E62000,0xF1CC4000,0x23988000,
+  0x47310000,0x8E620000,0x1CC40000,0x39880000,0x73100000,0xE6200000,0xCC400000,0x98800000,
+  0x31000000,0x62000000,0xC4000000,0x88000000,0x10000000,0x20000000,0x40000000,0x80000000,
+];
+
+function getLcrngDistance(startSeed, endSeed) {
+  let seed = startSeed >>> 0;
+  const end = endSeed >>> 0;
+  let distance = 0;
+  let bit = 1;
+  for (let i = 0; i < 32 && seed !== end; i++) {
+    if (((seed ^ end) & bit) !== 0) {
+      seed = (Math.imul(seed, LCRNG_JUMP_MULT[i]) + LCRNG_JUMP_ADD[i]) >>> 0;
+      distance = (distance | bit) >>> 0;
+    }
+    bit = (bit << 1) >>> 0;
+  }
+  return distance >>> 0;
+}
+
 /* ── Hidden-Power helpers ─────────────────────────────── */
 const HP_TYPES = [
   'Fighting','Flying','Poison','Ground','Rock','Bug',
@@ -219,18 +247,26 @@ function checkSlotWithLevel(slotState, speciesSlots, allSlotTables, targetSpecie
 
 /* ── Priority-buffer helper ────────────────────────────── */
 
-function makePriorityBuffer(cap) {
+function makePriorityBuffer(cap, preferEarlierRngFrames = false) {
   const buf = [];
   let worstTotal = -1;
 
+  function getPriority(entry, total) {
+    if (!preferEarlierRngFrames) return total;
+    // IV total remains the primary rank. For equal totals, keep the result
+    // requiring fewer advances from the user's selected starting state.
+    return (total * 0x100000000) + (0xFFFFFFFF - entry.rngAdvances);
+  }
+
   function tryAdd(entry, total) {
-    if (buf.length >= cap && total <= worstTotal) return;
+    if (buf.length >= cap && (total < worstTotal || (!preferEarlierRngFrames && total === worstTotal))) return;
     entry._t = total;
+    entry._p = getPriority(entry, total);
     buf.push(entry);
     if (buf.length > cap) {
-      let mi = 0, mv = buf[0]._t;
+      let mi = 0, mv = buf[0]._p;
       for (let j = 1; j < buf.length; j++) {
-        if (buf[j]._t < mv) { mv = buf[j]._t; mi = j; }
+        if (buf[j]._p < mv) { mv = buf[j]._p; mi = j; }
       }
       buf.splice(mi, 1);
     }
@@ -243,6 +279,28 @@ function makePriorityBuffer(cap) {
   }
 
   return { buf, tryAdd, getWorst: () => worstTotal, full: () => buf.length >= cap };
+}
+
+function getRngWindow(params) {
+  if (!Number.isInteger(params.rngStartSeed)) return null;
+  if (!Number.isFinite(params.rngMaxAdvances)) return null;
+  return {
+    startSeed: params.rngStartSeed >>> 0,
+    maxAdvances: Math.max(0, Math.min(0xFFFFFFFF, Number(params.rngMaxAdvances))),
+  };
+}
+
+function tryAddRngResult(pb, entry, total, rngWindow) {
+  if (rngWindow) {
+    const hasEncounterSeed = entry.initSeed !== null && entry.initSeed !== undefined &&
+      Number.isFinite(Number(entry.initSeed));
+    const targetSeed = hasEncounterSeed ? entry.initSeed : entry.seed;
+    const advances = getLcrngDistance(rngWindow.startSeed, Number(targetSeed) >>> 0);
+    if (advances > rngWindow.maxAdvances) return;
+    entry.rngAdvances = advances;
+    entry.rngStartSeed = rngWindow.startSeed;
+  }
+  pb.tryAdd(entry, total);
 }
 
 /* ── PID + shiny helpers ──────────────────────────────── */
@@ -310,7 +368,8 @@ function fastSearch(params, isStopped) {
   const hasAnySlots  = speciesSlots && Object.keys(speciesSlots).length > 0;
   const canSync      = (gameId === 3);
 
-  const pb = makePriorityBuffer(maxResults || 50);
+  const rngWindow = getRngWindow(params);
+  const pb = makePriorityBuffer(maxResults || 50, Boolean(rngWindow));
   const m1 = methods[0], m2 = methods[1], m4 = methods[2];
   const trainerXor = (tid ^ sid) >>> 0;
 
@@ -405,12 +464,12 @@ function fastSearch(params, isStopped) {
                     if (h1spe >= 0) {
                       const t = ivPartial + h1spe + h1spa + h1spd;
                       const ivs = { hp, atk, def, spa: h1spa, spd: h1spd, spe: h1spe };
-                      pb.tryAdd({ seed: seed0, pid, method: 'H1', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels }, t);
+                      tryAddRngResult(pb, { seed: seed0, pid, method: 'H1', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels }, t, rngWindow);
                     }
                     if (h4spe >= 0) {
                       const t = ivPartial + h4spe + h4spa + h4spd;
                       const ivs = { hp, atk, def, spa: h4spa, spd: h4spd, spe: h4spe };
-                      pb.tryAdd({ seed: seed0, pid, method: 'H4', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels }, t);
+                      tryAddRngResult(pb, { seed: seed0, pid, method: 'H4', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels }, t, rngWindow);
                     }
                   }
                 }
@@ -452,7 +511,7 @@ function fastSearch(params, isStopped) {
 
               const t = ivPartial + spe + spa + spd;
               const ivs = { hp, atk, def, spa, spd, spe };
-              pb.tryAdd({ seed: seed0, pid, method: 'H2', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels }, t);
+              tryAddRngResult(pb, { seed: seed0, pid, method: 'H2', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels }, t, rngWindow);
             }
           }
         }
@@ -486,7 +545,8 @@ function bruteForceSearch(params, isStopped) {
   const hasAnySlots  = speciesSlots && Object.keys(speciesSlots).length > 0;
   const canSync      = (gameId === 3);
 
-  const pb = makePriorityBuffer(maxResults || 50);
+  const rngWindow = getRngWindow(params);
+  const pb = makePriorityBuffer(maxResults || 50, Boolean(rngWindow));
   const TICK = 0x400000;
   const tickMask = TICK - 1;
   const trainerXor = (tid ^ sid) >>> 0;
@@ -576,7 +636,7 @@ function bruteForceSearch(params, isStopped) {
     const t2 = h2 ? (h2.hp + h2.atk + h2.def + h2.spa + h2.spd + h2.spe) : -1;
     const t4 = h4 ? (h4.hp + h4.atk + h4.def + h4.spa + h4.spd + h4.spe) : -1;
     const bestMethodTotal = Math.max(t1, t2, t4);
-    if (pb.full() && bestMethodTotal <= pb.getWorst()) continue;
+    if (pb.full() && bestMethodTotal < pb.getWorst()) continue;
 
     let initSeed = null, metLevels = null;
     if (doValidation && hasAnySlots) {
@@ -588,9 +648,9 @@ function bruteForceSearch(params, isStopped) {
       metLevels = chain.metLevels;
     }
 
-    if (h1) pb.tryAdd({seed:seed>>>0,pid,method:'H1',ivs:h1,hpt:hpType(h1),hpp:hpPower(h1),initSeed,metLevels}, t1);
-    if (h2) pb.tryAdd({seed:seed>>>0,pid,method:'H2',ivs:h2,hpt:hpType(h2),hpp:hpPower(h2),initSeed,metLevels}, t2);
-    if (h4) pb.tryAdd({seed:seed>>>0,pid,method:'H4',ivs:h4,hpt:hpType(h4),hpp:hpPower(h4),initSeed,metLevels}, t4);
+    if (h1) tryAddRngResult(pb, {seed:seed>>>0,pid,method:'H1',ivs:h1,hpt:hpType(h1),hpp:hpPower(h1),initSeed,metLevels}, t1, rngWindow);
+    if (h2) tryAddRngResult(pb, {seed:seed>>>0,pid,method:'H2',ivs:h2,hpt:hpType(h2),hpp:hpPower(h2),initSeed,metLevels}, t2, rngWindow);
+    if (h4) tryAddRngResult(pb, {seed:seed>>>0,pid,method:'H4',ivs:h4,hpt:hpType(h4),hpp:hpPower(h4),initSeed,metLevels}, t4, rngWindow);
   }
 
   self.postMessage({ type: 'done', results: pb.buf });

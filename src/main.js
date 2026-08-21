@@ -40,6 +40,7 @@ import { getAllowedLevelUpMoveIdsForEncounter, shouldCapHatchedLevelUpMoves } fr
 import { getDirectWildMoveOverride } from './lib/gen3/wildMoveLegality.js';
 import { adjustShinySidForRSTrainerId, findNearestValidRSTrainerSid, isValidRSTrainerId } from './lib/gen3/rsTrainerId.js';
 import { normalizeGeneratedAbilityBit, resolvePidFinderAbilityBit } from './domain/pidFinderAbility.js';
+import { getGen3ResultFrame } from './domain/gen3InitialSeedFrame.js';
 import {
   ROAMER_GAMES_FOR_SPECIES,
   ROAMER_SPECIES,
@@ -166,6 +167,19 @@ let _applyContestSpeciesRequirements = null;
 let _syncLegalModeToggle = null;
 let _syncPokemonFirstOriginUi = null;
 let _createImportedSetPid = null;
+let hasGeneratedCode = false;
+
+function markGeneratedCodeFresh() {
+  hasGeneratedCode = true;
+  const warning = document.getElementById('generatedCodeStaleWarning');
+  if (warning) warning.hidden = true;
+}
+
+function markGeneratedCodeStale() {
+  if (!hasGeneratedCode) return;
+  const warning = document.getElementById('generatedCodeStaleWarning');
+  if (warning) warning.hidden = false;
+}
 
 // Ensure a safe no-op exists early so callers from earlier code don't throw
 function updateMysterySpeciesOptions(/*tag*/) { return; }
@@ -2181,7 +2195,8 @@ function updatePidFinderVisibility() {
 
   const shouldShow = isPidFinderAvailableForCurrentEncounter();
 
-  row.style.display = shouldShow ? 'flex' : '';
+  row.classList.toggle('pid-finder-visible', shouldShow);
+  row.style.display = shouldShow ? '' : 'none';
 
   if (pidFinderBtn) {
     const mysteryTag = String(document.getElementById('mysteryEvent')?.value || '').toUpperCase();
@@ -10022,6 +10037,15 @@ function boot(){
     resetManualSwitchBoxConversion();
     onGenerate();
   });
+  const markStaleFromBuilderField = event => {
+    const target = event.target;
+    if (!target?.matches?.('input, select, textarea')) return;
+    if (target.matches('.autocomplete-input')) return;
+    if (!target.closest('#basicsCard, #builderDetailsCard')) return;
+    markGeneratedCodeStale();
+  };
+  document.addEventListener('input', markStaleFromBuilderField);
+  document.addEventListener('change', markStaleFromBuilderField);
   $('#convertSwitchBoxBtn')?.addEventListener('click', convertSelectedSwitchBox);
   $('#undoSwitchBoxConversionsBtn')?.addEventListener('click', undoSwitchBoxConversions);
   $('#copyHexBtn').addEventListener('click', ()=> {
@@ -10538,10 +10562,18 @@ function initPidFinder() {
   const hatchedNotice = document.getElementById('pfHatchedNotice');
   const pfOriginGameRow = document.getElementById('pfOriginGameRow');
   const pfOriginGame = document.getElementById('pfOriginGame');
+  const rngPanel = document.getElementById('pfRngManipulation');
+  const rngWindowEnabled = document.getElementById('pfRngWindowEnabled');
+  const rngStartSeedInput = document.getElementById('pfRngStartSeed');
+  const rngMaxFrameInput = document.getElementById('pfRngMaxFrame');
+  const rngPresetBtn = document.getElementById('pfRngPreset');
+  const rngStatusBadge = document.getElementById('pfRngStatusBadge');
+  const manipFrameHeader = document.getElementById('pfManipFrameHeader');
   let pendingPidFinderResult = null;
   let pendingPidFinderRow = null;
   let modalConfirmed = false;
   let modalOriginalOriginGame = '';
+  let activeRngWindow = null;
 
   if (!btn || !overlay) return;
 
@@ -10576,6 +10608,64 @@ function initPidFinder() {
       if (input && !input.disabled) input.value = normalized;
     }
   };
+  const formatRngSeed = seed => `0x${(Number(seed) >>> 0).toString(16).toUpperCase().padStart(8, '0')}`;
+  const parseRngSeed = value => {
+    const text = String(value || '').trim();
+    if (!/^(?:0x)?[0-9a-f]{1,8}$/i.test(text)) return null;
+    return Number.parseInt(text.replace(/^0x/i, ''), 16) >>> 0;
+  };
+  const getRngPresetForGame = gameId => {
+    if (Number(gameId) === 3) return { seed: 0, label: 'Use Emerald startup seed (0x00000000)' };
+    if (Number(gameId) === 1 || Number(gameId) === 2) {
+      return { seed: 0x05A0, label: 'Use R/S dry-battery seed (0x000005A0)' };
+    }
+    return null;
+  };
+  const isRngManipulationAvailable = () => {
+    const gameId = Number($('#originGame')?.value) || 0;
+    return gameId >= 1 && gameId <= 5 &&
+      (currentEncounterMode === 'wild' || currentEncounterMode === 'static' || currentEncounterMode === 'roamer');
+  };
+
+  function syncRngManipulationUi({ resetSeed = false } = {}) {
+    const available = isRngManipulationAvailable();
+    const enabled = Boolean(available && rngWindowEnabled?.checked);
+    const gameId = Number($('#originGame')?.value) || 0;
+    const preset = getRngPresetForGame(gameId);
+
+    if (rngPanel) rngPanel.hidden = !available;
+    if (rngStartSeedInput) rngStartSeedInput.disabled = !enabled;
+    if (rngMaxFrameInput) rngMaxFrameInput.disabled = !enabled;
+    if (rngPresetBtn) {
+      rngPresetBtn.hidden = !preset;
+      rngPresetBtn.disabled = !enabled;
+      rngPresetBtn.textContent = preset?.label || '';
+    }
+    if (rngStatusBadge) {
+      rngStatusBadge.textContent = enabled ? 'Active' : 'Optional';
+      rngStatusBadge.classList.toggle('is-active', enabled);
+    }
+    if (resetSeed || !String(rngStartSeedInput?.value || '').trim()) {
+      if (rngStartSeedInput) rngStartSeedInput.value = preset ? formatRngSeed(preset.seed) : '';
+    }
+    if (!available) activeRngWindow = null;
+  }
+
+  function readRngWindow() {
+    if (!rngWindowEnabled?.checked || !isRngManipulationAvailable()) return null;
+    const startSeed = parseRngSeed(rngStartSeedInput?.value);
+    const maxFrame = Number(rngMaxFrameInput?.value);
+    rngStartSeedInput?.classList.toggle('field-error', startSeed === null);
+    rngMaxFrameInput?.classList.toggle(
+      'field-error',
+      !Number.isInteger(maxFrame) || maxFrame < 1 || maxFrame > 0x100000000,
+    );
+    if (startSeed === null || !Number.isInteger(maxFrame) || maxFrame < 1 || maxFrame > 0x100000000) {
+      if (pendingStatus) pendingStatus.textContent = 'Enter a valid 1–8 digit hex starting state and maximum frame.';
+      return false;
+    }
+    return { startSeed, maxFrame, maxAdvances: maxFrame - 1 };
+  }
 
   function getModalShinyPolicy() {
     const { tag, event } = currentEncounterMode === 'mystery'
@@ -10604,7 +10694,15 @@ function initPidFinder() {
     if (resultCount) resultCount.textContent = '';
     pfAllResults = [];
     if (confirmBtn) confirmBtn.disabled = currentEncounterMode !== 'hatched';
+    setConfirmNextStep(false);
     if (pendingStatus && message) pendingStatus.textContent = message;
+  }
+
+  function setConfirmNextStep(active) {
+    if (!confirmBtn) return;
+    confirmBtn.classList.toggle('is-next-step', Boolean(active));
+    if (active) confirmBtn.setAttribute('aria-current', 'step');
+    else confirmBtn.removeAttribute('aria-current');
   }
 
   function generateHatchedPid() {
@@ -10813,6 +10911,35 @@ function initPidFinder() {
   if (pfHpTypeSelect) pfHpTypeSelect.addEventListener('change', refilter);
   if (pfHpPowerInput) pfHpPowerInput.addEventListener('input', refilter);
 
+  const resetForRngWindowChange = () => {
+    activeRngWindow = null;
+    if (manipFrameHeader) manipFrameHeader.hidden = true;
+    resetPendingResult('RNG frame window changed. Search and select a new legal PID.');
+  };
+  rngWindowEnabled?.addEventListener('change', () => {
+    syncRngManipulationUi();
+    resetForRngWindowChange();
+  });
+  rngStartSeedInput?.addEventListener('input', () => {
+    rngStartSeedInput.classList.remove('field-error');
+    resetForRngWindowChange();
+  });
+  rngStartSeedInput?.addEventListener('blur', () => {
+    const seed = parseRngSeed(rngStartSeedInput.value);
+    if (seed !== null) rngStartSeedInput.value = formatRngSeed(seed);
+  });
+  rngMaxFrameInput?.addEventListener('input', () => {
+    rngMaxFrameInput.classList.remove('field-error');
+    resetForRngWindowChange();
+  });
+  rngPresetBtn?.addEventListener('click', () => {
+    const preset = getRngPresetForGame(Number($('#originGame')?.value) || 0);
+    if (!preset || !rngStartSeedInput) return;
+    rngStartSeedInput.value = formatRngSeed(preset.seed);
+    rngStartSeedInput.classList.remove('field-error');
+    resetForRngWindowChange();
+  });
+
   if (berryFixOtPrefEl) {
     berryFixOtPrefEl.addEventListener('change', () => {
       if (isBerryFixMysteryEventSelected()) {
@@ -10845,6 +10972,7 @@ function initPidFinder() {
     if (keepSidRadio) keepSidRadio.checked = false;
     if (autoSidRadio) autoSidRadio.checked = false;
     if (confirmBtn) confirmBtn.disabled = true;
+    setConfirmNextStep(false);
     if (pendingStatus) pendingStatus.textContent = currentEncounterMode === 'hatched'
       ? 'The current non-shiny PID will be used when possible.'
       : 'Choose settings, then search for a legal PID.';
@@ -11013,6 +11141,10 @@ function initPidFinder() {
     if (pfM1) pfM1.disabled = false;
     if (pfM2) pfM2.disabled = false;
     if (pfM4) pfM4.disabled = false;
+    syncRngManipulationUi({
+      resetSeed: String(rngStartSeedInput?.dataset.gameId || '') !== String(currentGameId),
+    });
+    if (rngStartSeedInput) rngStartSeedInput.dataset.gameId = String(currentGameId);
 
     // Fixed-IV GameCube encounters (the Japanese e-Reader shadows) must
     // search their exact spread. Restore normal editability for every other
@@ -11224,6 +11356,8 @@ function initPidFinder() {
     searchBtn.disabled = false;
     stopBtn.disabled   = true;
     pfAllResults = [];
+    activeRngWindow = null;
+    if (manipFrameHeader) manipFrameHeader.hidden = true;
 
     try { updateBerryFixOtPreferenceUi(); } catch (e) {}
     syncShinyModeUi({ generateHatched: true });
@@ -11233,6 +11367,7 @@ function initPidFinder() {
   }
 
   function closeModal() {
+    setConfirmNextStep(false);
     overlay.classList.remove('open');
     stopSearch();
   }
@@ -11253,6 +11388,8 @@ function initPidFinder() {
     if (!mainOriginGame || !pfOriginGame.value) return;
     mainOriginGame.value = pfOriginGame.value;
     try { mainOriginGame.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
+    syncRngManipulationUi({ resetSeed: true });
+    if (rngStartSeedInput) rngStartSeedInput.dataset.gameId = String(pfOriginGame.value);
     resetPendingResult('Origin game changed. Search and select a legal PID.');
   });
 
@@ -11337,6 +11474,9 @@ function initPidFinder() {
       document.getElementById('pfMethod4').checked
     ];
     if (!methods[0] && !methods[1] && !methods[2]) { alert('Select at least one method.'); return; }
+    const rngWindow = readRngWindow();
+    if (rngWindow === false) return;
+    activeRngWindow = rngWindow;
 
     // For CXD mode, warn the user if TID/SID is not a valid GameCube RNG pair.
     // An invalid TID/SID will produce no results (or only results that are
@@ -11360,6 +11500,7 @@ function initPidFinder() {
     pendingPidFinderRow?.classList.remove('is-selected');
     pendingPidFinderRow = null;
     if (confirmBtn) confirmBtn.disabled = true;
+    setConfirmNextStep(false);
     if (pendingStatus) pendingStatus.textContent = 'Searching for matching legal PIDs…';
     resultsBody.innerHTML = '';
     resultCount.textContent = '';
@@ -11584,6 +11725,8 @@ function initPidFinder() {
           targetSpecies: slotSpecies,
           slotTables,
           gameId,
+          rngStartSeed: rngWindow?.startSeed,
+          rngMaxAdvances: rngWindow?.maxAdvances,
           unownForm: speciesId === 201 ? Number($('#unownForm')?.value ?? -1) : -1
         });
       }
@@ -11617,6 +11760,11 @@ function initPidFinder() {
       const tA = a.ivs.hp + a.ivs.atk + a.ivs.def + a.ivs.spa + a.ivs.spd + a.ivs.spe;
       const tB = b.ivs.hp + b.ivs.atk + b.ivs.def + b.ivs.spa + b.ivs.spd + b.ivs.spe;
       if (tB !== tA) return tB - tA;
+      if (activeRngWindow) {
+        const aAdvances = Number.isFinite(Number(a.rngAdvances)) ? Number(a.rngAdvances) : 0xFFFFFFFF;
+        const bAdvances = Number.isFinite(Number(b.rngAdvances)) ? Number(b.rngAdvances) : 0xFFFFFFFF;
+        if (aAdvances !== bAdvances) return aAdvances - bAdvances;
+      }
       return (a.method < b.method) ? -1 : (a.method > b.method) ? 1 : 0;
     });
 
@@ -11663,7 +11811,9 @@ function initPidFinder() {
 
     const capped = filtered.slice(0, 25);
     if (pfAllResults.length === 0) {
-      resultCount.textContent = 'No results found. Try lowering minimum IVs.'
+      resultCount.textContent = (activeRngWindow
+        ? 'No results in this frame window. Increase the maximum frame or lower minimum IVs.'
+        : 'No results found. Try lowering minimum IVs.')
         + (hadValidation ? ' \u00B7 \u2714 encounter-valid' : '');
     } else if (capped.length === 0) {
       resultCount.textContent = 'No results match the current filters.'
@@ -11675,10 +11825,16 @@ function initPidFinder() {
           : `Showing all ${capped.length} result${capped.length === 1 ? '' : 's'}`,
       ];
       if (hadValidation) resultSummary.push('\u2714 encounter-valid');
+      if (activeRngWindow) {
+        resultSummary.push(
+          `frame \u2264 ${activeRngWindow.maxFrame.toLocaleString('en-US')} from ${formatRngSeed(activeRngWindow.startSeed)}`,
+        );
+      }
       resultCount.textContent = resultSummary.join(' \u00B7 ');
     }
 
     resultsBody.innerHTML = '';
+    if (manipFrameHeader) manipFrameHeader.hidden = !activeRngWindow;
     const speciesId = Number($('#species').value) || 0;
     const rGenderThreshold = getGenderThreshold(speciesId);
     let rAbility0Name = 'Slot 0', rAbility1Name = 'Slot 1';
@@ -11698,8 +11854,8 @@ function initPidFinder() {
       const thead = resultsBody.closest('table')?.querySelector('thead tr');
       if (thead) {
         const ths = thead.querySelectorAll('th');
-        // Columns: PID(0) HP(1) Atk(2) Def(3) SpA(4) SpD(5) Spe(6) Total(7) HPType(8) HPPwr(9) Mth(10) Lv(11) Gender(12) Ability(13) btn(14)
-        if (ths.length >= 14) {
+        // Columns: PID(0) HP(1) Atk(2) Def(3) SpA(4) SpD(5) Spe(6) Total(7) HPType(8) HPPwr(9) Mth(10) Lv(11) Gender(12) Ability(13) Frame(14) ManipFrame(15) btn(16)
+        if (ths.length >= 15) {
           ths[11].textContent = isChannelResults ? 'SID' : 'Lv';
           ths[12].textContent = isChannelResults ? 'Game' : 'Gender';
           ths[13].textContent = isChannelResults ? 'Item' : 'Ability';
@@ -11720,6 +11876,17 @@ function initPidFinder() {
       // CXD stores an RNG-derived ability slot independently of PID parity.
       const abilitySlot = Number.isInteger(r.abilityBit) ? r.abilityBit : (r.pid & 1);
       const abilityName = abilitySlot === 0 ? rAbility0Name : rAbility1Name;
+      const frameInfo = getGen3ResultFrame(r, {
+        gameId: Number($('#originGame')?.value) || 3,
+        encounterMode: currentEncounterMode,
+      });
+      const frameCell = frameInfo
+        ? `<td class="pid-frame-cell" title="Initial seed: 0x${frameInfo.initialSeed.toString(16).toUpperCase().padStart(8, '0')}">${frameInfo.frame.toLocaleString('en-US')}</td>`
+        : '<td class="pid-frame-cell">—</td>';
+      const manipFrame = Number.isFinite(Number(r.rngAdvances)) ? Number(r.rngAdvances) + 1 : null;
+      const manipFrameCell = activeRngWindow && manipFrame !== null
+        ? `<td class="pid-frame-cell pid-manip-frame-cell" title="${Number(r.rngAdvances).toLocaleString('en-US')} RNG advances from ${formatRngSeed(activeRngWindow.startSeed)}">${manipFrame.toLocaleString('en-US')}</td>`
+        : '<td class="pid-frame-cell pid-manip-frame-cell" hidden>—</td>';
 
       // For static encounters, show method without 'H' prefix; for roamer, show 'H-1-Roaming'
       // CXD results already have method='CXD' so no replacement needed
@@ -11750,6 +11917,8 @@ function initPidFinder() {
           `<td>${r.sid}</td>` +
           `<td>${gameName}</td>` +
           `<td>${itemName}</td>` +
+          frameCell +
+          manipFrameCell +
           `<td class="pid-finder-action"><button type="button" class="select-btn">Select</button></td>`;
       } else {
       tr.innerHTML =
@@ -11763,6 +11932,8 @@ function initPidFinder() {
         `<td>${r.metLevels ? r.metLevels.join('/') : '\u2014'}</td>` +
         `<td>${genderStr}</td>` +
         `<td>${abilityName}</td>` +
+        frameCell +
+        manipFrameCell +
         `<td class="pid-finder-action"><button type="button" class="select-btn">Select</button></td>`;
       }
       tr.querySelector('.select-btn').addEventListener('click', () => selectResult(r, tr));
@@ -11784,12 +11955,18 @@ function initPidFinder() {
     pendingPidFinderRow?.classList.add('is-selected');
     if (pfPidInput) pfPidInput.value = formatPidHex(r.pid);
     if (confirmBtn) confirmBtn.disabled = false;
+    setConfirmNextStep(true);
     if (pendingStatus) {
       pendingStatus.textContent = wantShinyCheckbox?.checked && autoSidRadio?.checked
         ? 'Legal PID selected. Confirm to apply it and calculate a shiny SID.'
         : wantShinyCheckbox?.checked
           ? 'Legal shiny PID selected. Confirm to apply it.'
           : 'Legal non-shiny PID selected. Confirm to apply it.';
+    }
+    if (confirmBtn && window.matchMedia('(max-width: 700px)').matches) {
+      requestAnimationFrame(() => {
+        confirmBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
     }
   }
 
@@ -12708,6 +12885,7 @@ function inspectBase64DisplayCharacter(event) {
 }
 
 function clearGeneratedOutputs() {
+  markGeneratedCodeStale();
   resetManualSwitchBoxConversion();
   const hexOut = document.getElementById('hexOutput');
   if (hexOut) hexOut.value = '';
@@ -12800,6 +12978,7 @@ function onGenerate(){
     setOutputTroubleshootingVisible(true);
     updateBase64SafetyWarnings(pristineOutput.base64Text, pristineOutput.substitutionUsed);
     hideBase64CharacterInspector();
+    markGeneratedCodeFresh();
     return pristineOutput;
   }
 
@@ -12823,6 +13002,7 @@ function onGenerate(){
   setOutputTroubleshootingVisible(true);
   updateBase64SafetyWarnings(b64Result.text, b64Result.substitutionUsed);
   hideBase64CharacterInspector();
+  markGeneratedCodeFresh();
   return b64Result;
 }
 

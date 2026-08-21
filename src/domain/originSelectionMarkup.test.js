@@ -109,6 +109,9 @@ assert.ok(
 );
 
 assert.match(html, /id="pidFinderBtn"[^>]*>Set Legal PID\/Shiny</);
+assert.match(mainSource, /row\.classList\.toggle\('pid-finder-visible', shouldShow\)/);
+assert.match(styles, /#pidFinderRow\.pid-finder-visible[\s\S]*?grid-template-columns:/);
+assert.match(styles, /#pidFinderRow \.pid-finder-status[\s\S]*?grid-column:\s*2/);
 assert.match(html, /id="pfHatchedNotice"/);
 assert.match(html, /id="pfPid"/);
 assert.match(html, /id="pfConfirm"/);
@@ -118,6 +121,16 @@ assert.match(html, /id="pfAutoSidInfoTooltip"/);
 assert.match(html, /id="pfKeepSidHatchedRecommendation"[^>]*>Recommended for hatched<\/span>/);
 assert.match(html, /id="pfMinHp"[^>]*value="20"/);
 assert.match(html, /<th class="pid-finder-action">Select<\/th>/);
+assert.match(html, /<th title="PKHeX-style RNG frame from the relevant Gen III initial seed \(1-indexed\)">Frame<\/th>/);
+assert.match(html, /id="pfRngManipulation" class="pid-rng-panel"/);
+assert.match(html, /id="pfRngWindowEnabled" type="checkbox"/);
+assert.match(html, /id="pfRngStartSeed"[^>]*placeholder="0x00000000"/);
+assert.match(html, /id="pfRngMaxFrame"[^>]*value="1000000"/);
+assert.match(html, /id="pfManipFrameHeader"[^>]*hidden>Manip Frame<\/th>/);
+assert.match(mainSource, /const frameInfo = getGen3ResultFrame\(r, \{/);
+assert.match(mainSource, /rngStartSeed:\s*rngWindow\?\.startSeed/);
+assert.match(mainSource, /rngMaxAdvances:\s*rngWindow\?\.maxAdvances/);
+assert.match(styles, /\.pid-rng-fields\s*\{[\s\S]*?grid-template-columns:/);
 assert.match(html, /class="pid-shiny-switch"/);
 assert.match(html, /class="pid-shiny-switch-star"/);
 assert.match(html, /<b>Auto-Set SID<\/b>[\s\S]*<b>Keep SID<\/b>/);

@@ -1049,6 +1049,17 @@
       background: rgba(88,183,255,0.22);
     }
 
+    .generated-code-stale-warning {
+      color: #fbbf24;
+      font-size: 0.82rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .generated-code-stale-warning[hidden] {
+      display: none;
+    }
+
     /* Required field validation */
     .field-error {
       border: 2px solid #ef4444 !important;
@@ -3109,6 +3120,7 @@
       <!-- Legality Checker -->
       <div class="row" style="align-items: center; gap: 1rem; margin-bottom: 1rem;">
         <button id="generateBtn" type="button" data-disabled="true">Generate</button>
+        <span id="generatedCodeStaleWarning" class="generated-code-stale-warning" role="status" aria-live="polite" hidden>Changes made — generate again.</span>
         <div id="legalityStatus" style="display: none; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; border-radius: 4px; background: var(--card-2);">
           <span id="legalityIcon" style="font-size: 1.2rem;">✓</span>
           <span id="legalityText" style="font-weight: 500; color: var(--success, #22c55e);">Legal</span>
@@ -3424,6 +3436,34 @@ Trailing = padding is restored automatically.</pre>
             </div>
           </div>
 
+          <details id="pfRngManipulation" class="pid-rng-panel">
+            <summary>
+              <span>RNG manipulation</span>
+              <span id="pfRngStatusBadge" class="pid-rng-status-badge">Optional</span>
+            </summary>
+            <div class="pid-rng-panel-body">
+              <label class="pid-rng-enable" for="pfRngWindowEnabled">
+                <input id="pfRngWindowEnabled" type="checkbox">
+                <span>
+                  <b>Use a practical frame window</b>
+                  <small>Keep the best-IV results reachable from a chosen RNG starting state.</small>
+                </span>
+              </label>
+              <div class="pid-rng-fields">
+                <label for="pfRngStartSeed">
+                  Starting RNG state
+                  <input id="pfRngStartSeed" type="text" inputmode="text" spellcheck="false" maxlength="10" placeholder="0x00000000" disabled>
+                </label>
+                <label for="pfRngMaxFrame">
+                  Maximum frame
+                  <input id="pfRngMaxFrame" type="number" inputmode="numeric" min="1" max="4294967296" step="1" value="1000000" disabled>
+                </label>
+                <button id="pfRngPreset" type="button" class="pid-rng-preset" disabled hidden></button>
+              </div>
+              <p id="pfRngHelp">Frame 1 is the selected starting state. Wild results are measured to the encounter start; static and roaming results are measured to PID generation. Results are ranked by IV total, then earliest manipulation frame. This filters practical reachability only and does not change legality.</p>
+            </div>
+          </details>
+
           <div class="pid-finder-iv-section">
             <label class="pid-finder-label">Minimum IVs</label>
             <div class="pid-finder-iv-grid">
@@ -3478,6 +3518,8 @@ Trailing = padding is restored automatically.</pre>
                     <th>Lv</th>
                     <th>Gender</th>
                     <th>Ability</th>
+                    <th title="PKHeX-style RNG frame from the relevant Gen III initial seed (1-indexed)">Frame</th>
+                    <th id="pfManipFrameHeader" title="Frame from the RNG starting state selected above" hidden>Manip Frame</th>
                     <th class="pid-finder-action">Select</th>
                   </tr>
                 </thead>
