@@ -77,6 +77,7 @@ import {
   shouldSynchronizeSpeciesNickname,
 } from './domain/nicknameLocalization.js';
 import { getSeedDerivedMysteryOtGender } from './domain/mysteryGiftOtGender.js';
+import { getWishmkrHeldItemId } from './domain/wishmkrHeldItem.js';
 import {
   getCuratedMysteryMovesForSpecies,
   getMysteryMovesetEventAlias,
@@ -1938,6 +1939,16 @@ function isWishmkrMysteryTag(tag) {
 function isWishmkrMysteryEventSelected() {
   if (currentEncounterMode !== 'mystery') return false;
   return isWishmkrMysteryTag(getSelectedMysteryEvent().tag);
+}
+
+function applyWishmkrHeldItemFromSeed(originSeed) {
+  const itemId = getWishmkrHeldItemId(originSeed);
+  const itemEl = $('#item');
+  if (itemId === null || !itemEl) return false;
+
+  itemEl.value = String(itemId);
+  try { itemEl.dispatchEvent(new Event('change')); } catch (e) {}
+  return true;
 }
 
 function applyWishmkrOriginGameConstraints() {
@@ -7619,6 +7630,7 @@ function boot(){
         if (entry.fixedSID !== undefined) $('#sid').value = String(entry.fixedSID);
         if (entry.ot_name) $('#otName').value = entry.ot_name;
         if (entry.ot_gender) $('#otGender').value = entry.ot_gender.toLowerCase();
+        if (isWishmkrMysteryTag(rawTag)) applyWishmkrHeldItemFromSeed(entry.seed);
       }
       // Apply moveset from external moveset mapping if available.
       // Use a resilient lookup: try the resolved tag, the raw selected tag,
@@ -12038,6 +12050,10 @@ function initPidFinder() {
           berryFixOtEl.value = String(r.otName).toUpperCase() === 'RUBY' ? 'RUBY' : 'SAPHIRE';
           berryFixOtEl.disabled = true;
         }
+      }
+
+      if (isWishmkrMysteryEventSelected()) {
+        applyWishmkrHeldItemFromSeed(r.originSeed ?? r.seed);
       }
     }
 
