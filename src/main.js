@@ -18,7 +18,6 @@ import EXP_GROUPS from './data/expGroups.gen3.js';
 import { ABILITIES, getAbilityName } from './data/abilities.gen3.js';
 import { hasDualAbilities, getSpeciesAbilities } from './data/pokemonAbilities.gen3.js';
 import { LEARNSETS } from './data/learnsets.gen3.js';
-import { LEARNSETS_FRLG } from './data/learnsets.frlg.js';
 import { WILD_ENCOUNTERS } from './data/wildEncounters.gen3.js';
 import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
 import { getMinimumHatchedLevel, getWildAncestor, PRE_EVOLUTIONS } from './data/evolutions.gen3.js';
@@ -38,6 +37,8 @@ import { findNearestBoxNameCharacterAtTextOffset } from './lib/gen3/gbaTextPrevi
 import { getLegalSheenRangeGen3 } from './lib/gen3/contestSheen.js';
 import { getAllowedLevelUpMoveIdsForEncounter, shouldCapHatchedLevelUpMoves } from './lib/gen3/hatchedMoveLegality.js';
 import { getDirectWildMoveOverride } from './lib/gen3/wildMoveLegality.js';
+import { getDefaultLevelUpMoveIds } from './lib/gen3/defaultLevelUpMoves.js';
+import { getLevelUpLearnsetForOriginGame } from './lib/gen3/levelUpLearnsets.js';
 import { adjustShinySidForRSTrainerId, findNearestValidRSTrainerSid, isValidRSTrainerId } from './lib/gen3/rsTrainerId.js';
 import { normalizeGeneratedAbilityBit, resolvePidFinderAbilityBit } from './domain/pidFinderAbility.js';
 import { getGen3ResultFrame } from './domain/gen3InitialSeedFrame.js';
@@ -2976,6 +2977,9 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
   let effectivePreserveValue = (preserveValue || currentEncounterMode === 'imported') &&
     !clearOutOfLevelHatchedMoves;
   const data = LEARNSETS[speciesId];
+  const level = Number($('#level')?.value) || 100;
+  const originGame = Number($('#originGame')?.value) || 0;
+  const levelUpMoves = getLevelUpLearnsetForOriginGame(speciesId, originGame);
   let baseMoves;
 
   if (manualOverrideActive) {
@@ -2985,25 +2989,13 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
     baseMoves = MOVES;
   } else if (data) {
     const mode = currentEncounterMode;
-    const level = Number($('#level')?.value) || 100;
-    const originGame = Number($('#originGame')?.value) || 0;
 
     // Collect move IDs that are legal for the current mode + level
     const idSet = new Set();
 
     // Determine the correct level-up moves based on origin game.
-    // FireRed (4) and LeafGreen (5) have different level-up learnsets from Emerald.
-    // Deoxys (410) always uses the merged FRLG entry which combines all three
-    // forms' moves (Normal + Attack + Defense), since it changes form on trade.
-    let levelUpMoves = data.l;
-    if (speciesId === 410 && LEARNSETS_FRLG[410]) {
-      levelUpMoves = LEARNSETS_FRLG[410];
-    } else if (originGame === 4 || originGame === 5) {
-      if (LEARNSETS_FRLG[speciesId]) {
-        levelUpMoves = LEARNSETS_FRLG[speciesId];
-      }
-    }
-
+    // Ruby/Sapphire, Emerald, FireRed, and LeafGreen may use different
+    // level-up learnsets (most notably each game's Deoxys form).
     // Level-up moves. Normal hatched breeding can inherit late level-up moves
     // from both parents; genderless Ditto-only species are capped by level.
     if (levelUpMoves) {
@@ -3053,9 +3045,22 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
   }
   baseMoves = sortMoveListAlphabetically(baseMoves);
 
-  // A fresh Smeargle selection starts with Sketch in move slot 1. Imported,
-  // Mystery Gift, and CXD presets pass preserveValue so their moves stay intact.
-  const defaultMoveIds = preserveValue ? null : getDefaultMoveIdsForSpecies(speciesId);
+  // Fresh ordinary encounters start with the last four level-up moves learned
+  // at their current level. Keep curated distribution, import, and CXD moves
+  // intact; Smeargle retains its explicit Sketch default.
+  const selectedStaticSourceSpecies = Number(
+    selectedStaticEncounterDetail?.encounter?.species || getSelectedStaticEncounter()?.species || speciesId
+  );
+  const hasFixedStaticMoves = currentEncounterMode === 'static' &&
+    Array.isArray(STATIC_ENCOUNTERS[selectedStaticSourceSpecies]?.fixedMoves) &&
+    STATIC_ENCOUNTERS[selectedStaticSourceSpecies].fixedMoves.length > 0;
+  let defaultMoveIds = null;
+  if (!preserveValue && !hasFixedStaticMoves) {
+    defaultMoveIds = getDefaultMoveIdsForSpecies(speciesId)
+      || (directWildMoveOverride
+        ? directWildMoveOverride.slice(-4)
+        : getDefaultLevelUpMoveIds(levelUpMoves, level));
+  }
   if (defaultMoveIds) {
     moveAutocompletes.forEach((ac, index) => {
       if (ac) ac.value = defaultMoveIds[index] ? String(defaultMoveIds[index]) : '';
@@ -5343,9 +5348,9 @@ function boot(){
         }
         if (!pidFinderResultActive) applyRoamerPreset(speciesId);
       }
-      // Refresh move list — FRLG have different level-up learnsets
+      // Reload defaults from the newly selected origin game's learnset.
       const sp = Number($('#species').value) || 0;
-      if (sp) updateMovesForSpecies(sp, { preserveValue: true });
+      if (sp) updateMovesForSpecies(sp, { preserveValue: manualOverrideActive });
       refreshOriginDependentLegality();
       return;
     }
@@ -5354,8 +5359,8 @@ function boot(){
     if (currentEncounterMode === 'wild') {
       const speciesId = Number($('#species').value) || 0;
       updateWildEncounterFilters(speciesId);
-      // Refresh move list — FRLG have different level-up learnsets
-      if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
+      // Reload defaults from the newly selected origin game's learnset.
+      if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: manualOverrideActive });
       try { updateBallLocking(); } catch (e) {}
       refreshOriginDependentLegality();
       return;
@@ -5462,9 +5467,9 @@ function boot(){
       metLocationWrapper.updateList(filteredLocations);
     }
     
-    // Refresh move list — FRLG have different level-up learnsets from Emerald
+    // Reload defaults from the newly selected origin game's learnset.
     const speciesId = Number($('#species').value) || 0;
-    if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: true });
+    if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: manualOverrideActive });
 
     try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
 
@@ -8723,6 +8728,13 @@ function boot(){
     updateLegalityStatus();
 
     console.log(`Applied static preset for species ${speciesId} from encounter species ${sourceSpeciesId}`);
+
+    // The exact encounter determines the current level and sometimes the game,
+    // so populate ordinary defaults only after those values have been applied.
+    // Fixed event moves remain authoritative.
+    if (!encounter.fixedMoves?.length) {
+      updateMovesForSpecies(speciesId, { preserveValue: false });
+    }
   }
 
   /**

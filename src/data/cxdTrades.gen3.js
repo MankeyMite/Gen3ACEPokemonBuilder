@@ -10,8 +10,7 @@
  * one CXD RNG sequence, so those fields remain finder-generated.
  */
 
-import { LEARNSETS } from './learnsets.gen3.js';
-import { LEARNSETS_FRLG } from './learnsets.frlg.js';
+import { getLevelUpLearnsetForOriginGame } from '../lib/gen3/levelUpLearnsets.js';
 
 const EN = 2;
 const LANGUAGES = Object.freeze([1, 2, 3, 4, 5, 7]);
@@ -25,9 +24,7 @@ const GAME_NAMES = Object.freeze({
 });
 
 function initialMoves(species, level, originGame) {
-  const learnset = ([4, 5].includes(Number(originGame)) && LEARNSETS_FRLG[species])
-    || LEARNSETS[species]?.l
-    || [];
+  const learnset = getLevelUpLearnsetForOriginGame(species, originGame);
   return learnset
     .filter(([, learnedAt]) => Number(learnedAt) <= Number(level))
     .map(([move]) => Number(move))
