@@ -1,3 +1,13 @@
+Patch Notes - (V.0.4.9) - August 23, 2026.
+- Implemented oroin-game specific movesets for each non-mystery gift Pokémon. The moveset depends on the game and level upon loading the species.
+- Added a nature helper (+- to the correct stat, red color text of the boosted stat, along with a blue text on the lowered stat in the stat section), as well as a dynamic stat bar that scales with your selected nature and EVs.
+- Added init seed and frame to the PID finder window.
+- Added a RNG manipulation setting in the PID finder window, to help search initial seeds and max frames.
+- Improved startup flow, to prevent long load times.
+- Fixed empty contest stats, and should now be 0 by default.
+- Fixed WISHMKR Jirachi from not having its PID derived berry upon selecting a PID. This berry does not change legality, but makes it more legit-looking.
+
+
 Patch Notes - (V.0.4.8) - August 21, 2026.
 - Reworked the Shiny configuration into the new "Set Legal PID/Shiny" button to make it easier to use.
 - Added a favicon to the page.
