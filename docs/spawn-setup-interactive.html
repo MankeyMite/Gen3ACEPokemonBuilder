@@ -39,6 +39,14 @@
     .code-box-main{grid-area:code;display:flex;align-items:center;gap:.16em;width:max-content;color:#f5f7f2;white-space:pre}
     .code-box-main>span{flex:0 0 auto}
     .code-box-annotation{grid-area:note;display:block;min-width:0;color:#b7c5bf;white-space:normal;overflow-wrap:break-word}
+    .code-color-legend{display:flex;flex-wrap:wrap;align-items:center;gap:7px 18px;margin:0 6px 4px;padding:0 0 11px;border-bottom:1px solid rgba(255,255,255,.08);color:var(--muted);font:600 .82rem/1.35 system-ui,Segoe UI,Roboto,Arial}
+    .code-color-key{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+    .code-color-key strong{color:var(--fg)}
+    .code-color-swatch{display:inline-block;width:.72rem;height:.72rem;box-sizing:border-box;border:1px solid rgba(255,255,255,.2);border-radius:2px;flex:0 0 auto}
+    .code-color-swatch-blue{background:#8ed8f8}
+    .code-color-swatch-red{background:#f4b183}
+    .code-color-swatch-green{background:#b7e27a}
+    .code-color-swatch-white{background:#f5f7f2}
     .code-line-unchanged .code-box-prefix,
     .code-line-unchanged .code-box-main{opacity:.62}
     .code-line-unchanged .code-box-annotation{color:#8fa59e}
@@ -57,12 +65,9 @@
     .code-char-jp-katakana,.japanese-legend-katakana{color:#f4b183;font-weight:700}
     .code-char-jp-alphabet,.japanese-legend-alphabet{color:#b7e27a;font-weight:700}
     .code-char-japanese-space{display:inline-block;width:1em;min-height:1.15em;border-bottom:2px solid rgba(245,247,242,.48);background:rgba(245,247,242,.06)}
+    .japanese-code-panel .code-line{grid-template-columns:8ch 10.5em minmax(0,1fr)}
     .japanese-code-panel .code-box-main{font-family:"Yu Gothic UI","Meiryo","Noto Sans JP",sans-serif}
     .japanese-code-panel .char-red{color:#b7e27a}
-    .japanese-page-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 10px;padding:9px 12px;border:1px solid rgba(255,255,255,.06);border-radius:8px;background:rgba(255,255,255,.025);color:var(--muted);font-size:.88rem}
-    .japanese-page-legend strong{color:var(--fg);width:100%}
-    .japanese-page-key{white-space:nowrap}
-    .japanese-page-key .code-char-japanese-space{margin-right:.3em;vertical-align:-.12em}
     @media (max-width:900px){
       .setup-selectors{grid-template-columns:repeat(2,minmax(0,1fr))}
       .setup-language-field{grid-column:1 / -1}
@@ -78,6 +83,7 @@
       .guide-version-control{padding:10px}
       .setup-selectors{grid-template-columns:1fr;gap:10px}
       .codes-box{padding:10px;gap:4px}
+      .code-color-legend{display:grid;grid-template-columns:1fr;align-items:start;gap:6px}
       .codes-box .code-line{min-height:0;padding:8px 4px;grid-template-columns:7.5ch minmax(0,1fr);grid-template-areas:"prefix code" ". note";column-gap:.75ch;row-gap:2px;align-items:baseline}
       .code-box-prefix,.code-box-main{width:auto}
       .code-box-main{min-width:0}
@@ -411,7 +417,13 @@
       // Language-specific DexReg payloads imported from the supplied .b64 files.
       // Only Boxes 1-4 and "A " in Box 5 are required; Boxes 6-14 are left alone.
       function makeDexRegPayloadRows(firstFour){
-        var rows = firstFour.map(function(text, index){ return {box: index + 1, text: text}; });
+        var rows = firstFour.map(function(text, index){
+          return {
+            box: index + 1,
+            text: text,
+            note: text.indexOf('O') >= 0 ? 'upper case O (O)' : ''
+          };
+        });
         rows.push({
           box: 5,
           text: 'A _',
@@ -792,7 +804,9 @@
         if(usesJapaneseKeyboard()){
           var plainCodeText = String(text || '').replace(/<[^>]*>/g, '');
           var ambiguityNotes = [];
-          if(/[OＯ]/.test(plainCodeText)) ambiguityNotes.push('upper case O (O)');
+          if(/[OＯ]/.test(plainCodeText) && cleanNote.indexOf('upper case O (O)') < 0){
+            ambiguityNotes.push('upper case O (O)');
+          }
           if(/[0０]/.test(plainCodeText)) ambiguityNotes.push('zero (0), not O');
           if(ambiguityNotes.length){
             cleanNote += (cleanNote ? '; ' : '') + ambiguityNotes.join('; ');
@@ -812,7 +826,7 @@
       }
 
       function buildPanelHTML(rows, useHTML){
-        var html = '<div class="panel-inner"><div class="codes-box">';
+        var html = '<div class="panel-inner"><div class="codes-box">' + buildCodeColorLegendHTML();
         rows.forEach(function(r){
           html += buildCodeLineHTML(r.box, r.text, useHTML, !!r.highlightBoxNum, r.note);
           if(r.helper) html += '<div class="code-box-helper">' + escHTML(r.helper) + '</div>';
@@ -832,19 +846,23 @@
         return '<li>Execute the code with your ace species.</li>';
       }
 
-      function buildJapanesePageLegendHTML(){
-        var html = '<div class="japanese-page-legend" aria-label="Japanese keyboard page colors">';
-        html += '<strong>Keyboard page colors</strong>';
-        html += '<span class="japanese-page-key"><span class="japanese-legend-hiragana">あ</span> Hiragana</span>';
-        html += '<span class="japanese-page-key"><span class="japanese-legend-katakana">ア</span> Katakana</span>';
-        html += '<span class="japanese-page-key"><span class="japanese-legend-alphabet">Ａ</span> Alphabet / numbers / symbols</span>';
-        html += '<span class="japanese-page-key"><span class="code-char-japanese-space">　</span> Space</span>';
+      function buildCodeColorLegendHTML(){
+        var labels = usesJapaneseKeyboard()
+          ? ['Hiragana', 'Katakana', 'Alphabet / numbers / symbols', 'Spaces (any space works)']
+          : ['Upper case letters', 'Lower case letters', 'Symbols', 'Spaces (any space works)'];
+        var colors = ['blue', 'red', 'green', 'white'];
+        var colorNames = ['Blue', 'Red', 'Green', 'White'];
+        var html = '<div class="code-color-legend" aria-label="Box name color guide">';
+        labels.forEach(function(label, index){
+          html += '<span class="code-color-key"><span class="code-color-swatch code-color-swatch-' + colors[index] + '" aria-hidden="true"></span>';
+          html += '<span><strong>' + colorNames[index] + '</strong> = ' + label + '</span></span>';
+        });
         html += '</div>';
         return html;
       }
 
       function buildTestPanelHTML(includeImages){
-        var htmlT = '<div class="panel-inner"><div class="codes-box">';
+        var htmlT = '<div class="panel-inner"><div class="codes-box">' + buildCodeColorLegendHTML();
         htmlT += buildCodeLineHTML(1, 'A Q D ? P w _ _  ', false, false, 'two spaces at the end!');
         htmlT += '</div></div>';
         htmlT += '<div class="panel-tip">Execute this code to confirm WELDR is working:';
@@ -871,9 +889,7 @@
         var rows = getDexRegPayloadRows();
         if(!config || !rows) return buildTestPanelHTML(true);
 
-        var htmlT = '';
-        if(usesJapaneseKeyboard()) htmlT += buildJapanesePageLegendHTML();
-        htmlT += buildPanelHTML(rows, false);
+        var htmlT = buildPanelHTML(rows, false);
         htmlT += '<div class="panel-tip">This payload installs the Pokédex registration helper used by Pokémon created later with the Base64 writer.';
         htmlT += '<ol style="margin:8px 0 0 20px;padding:0;color:var(--muted)">';
         htmlT += '<li>After typing the five box names above, save the game and execute the code with your stable ACE species.</li>';
@@ -915,8 +931,7 @@
 
       function renderJapanesePanel(){
         var p1 = document.getElementById('code1');
-        var html = buildJapanesePageLegendHTML();
-        html += buildPanelHTML(japaneseEmeraldRows, false);
+        var html = buildPanelHTML(japaneseEmeraldRows, false);
         html += '<div class="panel-tip"><strong>Japanese spaces:</strong> the highlighted blank cells are part of the box name.';
         html += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
         html += '<li>Make sure there are no Pokémon in Boxes 11–14.</li>';
@@ -990,8 +1005,7 @@
         // --- Code 1 ---
         var p1 = document.getElementById('code1');
         var rows1 = getCode1Rows();
-        var html1 = usesJapaneseKeyboard() ? buildJapanesePageLegendHTML() : '';
-        html1 += buildPanelHTML(rows1, false);
+        var html1 = buildPanelHTML(rows1, false);
         html1 += '<div class="remember-list"><ul>';
         html1 += '<li>Do not add spaces at the end of a box name unless the code specifically shows them.</li>';
         html1 += '<li>Save the game</li>';

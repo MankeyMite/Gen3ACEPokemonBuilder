@@ -86,6 +86,16 @@ assert.doesNotMatch(
   /jap[01]:/,
   'regular FireRed/LeafGreen should not expose Japanese DexReg payloads',
 );
+assert.match(
+  inlineScript,
+  /function makeDexRegPayloadRows\(firstFour\)\{[\s\S]*?note: text\.indexOf\('O'\) >= 0 \? 'upper case O \(O\)' : ''/,
+  'DexReg box names containing uppercase O should receive the standard clarification',
+);
+assert.match(
+  inlineScript,
+  /\[OＯ\]\/\.test\(plainCodeText\) && cleanNote\.indexOf\('upper case O \(O\)'\) < 0/,
+  'Japanese keyboard rendering should not duplicate an existing uppercase-O clarification',
+);
 
 assert.match(
   inlineScript,
@@ -150,6 +160,34 @@ assert.match(
   html,
   /grid-template-columns:8ch 11ch minmax\(0,1fr\)/,
   'desktop helper notes should begin after one fixed-width code column',
+);
+assert.match(
+  html,
+  /\.japanese-code-panel \.code-line\{grid-template-columns:8ch 10\.5em minmax\(0,1fr\)\}/,
+  'Japanese full-width codes should reserve enough space before helper text',
+);
+assert.match(
+  inlineScript,
+  /function buildPanelHTML\(rows, useHTML\)\{\s*var html = '<div class="panel-inner"><div class="codes-box">' \+ buildCodeColorLegendHTML\(\);/,
+  'each code box should begin with the color legend',
+);
+assert.match(
+  inlineScript,
+  /\['Upper case letters', 'Lower case letters', 'Symbols', 'Spaces \(any space works\)'\]/,
+  'standard guides should explain the requested blue, red, green, and white meanings',
+);
+assert.match(
+  inlineScript,
+  /\['Hiragana', 'Katakana', 'Alphabet \/ numbers \/ symbols', 'Spaces \(any space works\)'\]/,
+  'Japanese guides should describe their keyboard-page color meanings accurately',
+);
+for (const color of ['blue', 'red', 'green', 'white']) {
+  assert.match(html, new RegExp(`\\.code-color-swatch-${color}\\{background:`));
+}
+assert.match(
+  html,
+  /@media \(max-width:640px\)\{[\s\S]*?\.code-color-legend\{display:grid;grid-template-columns:1fr;align-items:start;gap:6px\}/,
+  'mobile color helpers should stack in one left-aligned column',
 );
 assert.match(inlineScript, /isUnchangedNote = \/\^Same as Code 1\\b\/i\.test\(cleanNote\)/);
 assert.match(
