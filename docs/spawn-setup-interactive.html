@@ -33,12 +33,15 @@
     .char-red{color:#ff6b6b;font-weight:700}
     .panel-inner{display:block}
     .codes-box{min-width:0;background:linear-gradient(180deg,#102a43 0%,#0c2135 100%);border:1px solid rgba(112,190,239,.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 8px 22px rgba(0,0,0,.14);padding:21px;border-radius:14px;display:flex;flex-direction:column;gap:8px;color:#f5f7f2}
-    .codes-box .code-line{min-height:44px;box-sizing:border-box;padding:8px 6px;font:14px/2 "Atkinson Hyperlegible Mono",Consolas,monospace;font-variant-ligatures:none;display:grid;grid-template-columns:8ch max-content minmax(0,1fr);grid-template-areas:"prefix code note";column-gap:1ch;align-items:center;white-space:normal;overflow:visible}
+    .codes-box .code-line{min-height:44px;box-sizing:border-box;padding:8px 6px;font:14px/2 "Atkinson Hyperlegible Mono",Consolas,monospace;font-variant-ligatures:none;display:grid;grid-template-columns:8ch 11ch minmax(0,1fr);grid-template-areas:"prefix code note";column-gap:1ch;align-items:center;white-space:normal;overflow:visible}
     .code-box-prefix{grid-area:prefix;display:block;width:8ch;color:#f5f7f2;font-weight:800;white-space:nowrap}
     .code-box-prefix-warning{color:#f2c94c;font-weight:800}
     .code-box-main{grid-area:code;display:flex;align-items:center;gap:.16em;width:max-content;color:#f5f7f2;white-space:pre}
     .code-box-main>span{flex:0 0 auto}
     .code-box-annotation{grid-area:note;display:block;min-width:0;color:#b7c5bf;white-space:normal;overflow-wrap:break-word}
+    .code-line-unchanged .code-box-prefix,
+    .code-line-unchanged .code-box-main{opacity:.62}
+    .code-line-unchanged .code-box-annotation{color:#8fa59e}
     .code-box-helper{margin:-4px 6px 2px;padding:5px 8px;border-left:2px solid rgba(159,183,201,.32);color:var(--muted);font:500 .85rem/1.4 system-ui,Segoe UI,Roboto,Arial}
     .code-char-upper{color:#8ed8f8;font-weight:700}
     .code-char-lower{color:#f4b183}
@@ -305,15 +308,16 @@
         7: 'required: two trailing spaces'
       };
 
-      // Code 2: only box 5 + boxes 9-14 change
+      // Code 2 changes Box 5 and Boxes 9-14. The renderer fills in the
+      // unchanged Code 1 rows so users can still follow Boxes 1-14 in order.
       var code2Rows = [
         {box: 5,  text: '_ H B … c L Q ♂'},
-        {box: 9,  text: 'I H F J D U I G', note: 'skip boxes 6-8!', highlightBoxNum: true},
+        {box: 9,  text: 'I H F J D U I G'},
         {box: 10, text: 'C U J O I L L G', note: 'upper case O (O)'},
         {box: 11, text: 'H N K O I J F Q', note: 'upper case O (O)'},
         {box: 12, text: 'H N L O L T I F', note: 'upper case O (O)'},
         {box: 13, text: 'D T M F J L P F'},
-        {box: 14, text: 'H G L H G Q G M'}
+        {box: 14, text: 'H G L H G Q G M', note: 'G-Q-G — middle letter is Q, not G'}
       ];
 
       var code2Box5 = {
@@ -321,10 +325,11 @@
         old:    '_ H B … e L Q ♂'
       };
 
-      // Code 3: only box 5 + boxes 9-14 change
+      // Code 3 changes Box 5 and Boxes 9-14. The renderer fills in the
+      // unchanged Code 1 rows so users can still follow Boxes 1-14 in order.
       var code3Rows = [
         {box: 5,  text: '_ H B … 6 L Q ♂'},
-        {box: 9,  text: 'H K G F I F H U', note: 'skip boxes 6-8!', highlightBoxNum: true},
+        {box: 9,  text: 'H K G F I F H U'},
         {box: 10, text: 'H R E G B U G H'},
         {box: 11, text: 'E G D U E L D T'},
         {box: 12, text: 'D R H U I F I F'},
@@ -731,19 +736,33 @@
 
       function getCode2Rows(){
         var mode = effectiveMode();
-        return code2Rows.map(function(r){
+        var changedRows = code2Rows.map(function(r){
           var text = r.text;
           if(r.box === 5 && code2Box5[mode]) text = code2Box5[mode];
-          return {box: r.box, text: text, note: r.note || '', hasHTML: r.text.indexOf('<') >= 0, highlightBoxNum: !!r.highlightBoxNum};
+          return {box: r.box, text: text, note: r.note || '', hasHTML: r.text.indexOf('<') >= 0};
         });
+        return fillUnchangedCode1Rows(changedRows);
       }
 
       function getCode3Rows(){
         var mode = effectiveMode();
-        return code3Rows.map(function(r){
+        var changedRows = code3Rows.map(function(r){
           var text = r.text;
           if(r.box === 5 && code3Box5[mode]) text = code3Box5[mode];
-          return {box: r.box, text: text, note: r.note || '', hasHTML: r.text.indexOf('<') >= 0, highlightBoxNum: !!r.highlightBoxNum};
+          return {box: r.box, text: text, note: r.note || '', hasHTML: r.text.indexOf('<') >= 0};
+        });
+        return fillUnchangedCode1Rows(changedRows);
+      }
+
+      function fillUnchangedCode1Rows(changedRows){
+        var changedByBox = {};
+        changedRows.forEach(function(row){ changedByBox[row.box] = row; });
+        return getCode1Rows().map(function(code1Row){
+          return changedByBox[code1Row.box] || {
+            box: code1Row.box,
+            text: code1Row.text,
+            note: 'Same as Code 1 — no change needed.'
+          };
         });
       }
 
@@ -783,7 +802,10 @@
         var hasHTML = compactText.indexOf('<') >= 0;
         var codeHTML = useHTML && hasHTML ? compactText : escHTML(compactText);
         var isSkipNote = /^skip boxes?\b/i.test(cleanNote);
-        var lineClass = 'code-line' + (isSkipNote ? ' code-line-has-skip-note' : '');
+        var isUnchangedNote = /^Same as Code 1\b/i.test(cleanNote);
+        var lineClass = 'code-line'
+          + (isSkipNote ? ' code-line-has-skip-note' : '')
+          + (isUnchangedNote ? ' code-line-unchanged' : '');
         var noteHTML = cleanNote ? '<span class="code-box-annotation">' + escHTML(cleanNote) + '</span>' : '';
         var boxHTML = '<span class="code-box-prefix">' + prefixHTML + '</span><span class="code-box-main">' + codeHTML + '</span>';
         return '<div class="' + lineClass + '">' + (isSkipNote ? noteHTML + boxHTML : boxHTML + noteHTML) + '</div>';
@@ -991,7 +1013,7 @@
         var p2 = document.getElementById('code2');
         var rows2 = getCode2Rows();
         var html2 = buildPanelHTML(rows2, true);
-        html2 += '<div class="panel-tip">Codes in boxes 1-4 + 6-8 will be the same as before';
+        html2 += '<div class="panel-tip">';
         html2 += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
         if(selectedGame === 'EM'){
           html2 += '<li>Execute the code with your stable ace species with no trailing spaces.</li>';
@@ -1006,7 +1028,7 @@
         var p3 = document.getElementById('code3');
         var rows3 = getCode3Rows();
         var html3 = buildPanelHTML(rows3, true);
-        html3 += '<div class="panel-tip">Codes in boxes 1-4 + 6-8 will be the same as before';
+        html3 += '<div class="panel-tip">';
         html3 += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
         if(selectedGame === 'EM'){
           html3 += '<li>Execute the code with your stable ace species with no trailing spaces.</li>';

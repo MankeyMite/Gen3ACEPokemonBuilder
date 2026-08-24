@@ -125,4 +125,37 @@ const platformHandler = inlineScript.slice(
 assert.match(platformHandler, /selectedLanguage = '';/);
 assert.match(platformHandler, /populateLanguageOptions\(\);/);
 
+const standardCode2And3Data = inlineScript.slice(
+  inlineScript.indexOf('// Code 2 changes Box 5'),
+  inlineScript.indexOf('var myBoyCode1Rows'),
+);
+assert.doesNotMatch(
+  standardCode2And3Data,
+  /skip boxes 6-8|highlightBoxNum/,
+  'standard Codes 2 and 3 should no longer skip to a highlighted Box 9',
+);
+assert.match(
+  standardCode2And3Data,
+  /\{box:\s*14, text: 'H G L H G Q G M', note: 'G-Q-G — middle letter is Q, not G'\}/,
+  'the shared Code 2 Box 14 should distinguish its Q from the surrounding G characters',
+);
+assert.match(inlineScript, /function getCode2Rows\([\s\S]*?return fillUnchangedCode1Rows\(changedRows\);/);
+assert.match(inlineScript, /function getCode3Rows\([\s\S]*?return fillUnchangedCode1Rows\(changedRows\);/);
+assert.match(
+  inlineScript,
+  /function fillUnchangedCode1Rows\([\s\S]*?return getCode1Rows\(\)\.map[\s\S]*?Same as Code 1 — no change needed\./,
+  'unchanged continuation rows should be copied from Code 1 and clearly labelled',
+);
+assert.match(
+  html,
+  /grid-template-columns:8ch 11ch minmax\(0,1fr\)/,
+  'desktop helper notes should begin after one fixed-width code column',
+);
+assert.match(inlineScript, /isUnchangedNote = \/\^Same as Code 1\\b\/i\.test\(cleanNote\)/);
+assert.match(
+  html,
+  /\.code-line-unchanged \.code-box-prefix,[\s\S]*?\.code-line-unchanged \.code-box-main\{opacity:\.62\}/,
+  'unchanged Code 1 rows should be visually subdued',
+);
+
 console.log('Interactive Base64 setup selector checks passed.');
