@@ -35,7 +35,7 @@ assert.match(mainSource, /#nickname'\)\.addEventListener\('input', markNicknameA
 assert.match(mainSource, /#language'\)\.addEventListener\('change',[\s\S]*?setLocalizedSpeciesNickname\(/);
 assert.match(mainSource, /markNicknameAsImported\(data\.speciesId\)/);
 assert.match(mainSource, /function setDistributionNicknameDefault\([\s\S]*?nickname !== undefined[\s\S]*?NICKNAME_SOURCE\.PRESET[\s\S]*?force: true/);
-assert.match(mainSource, /function syncLanguageTextLimits\([\s\S]*?isJapanese \? 5 : 10[\s\S]*?isJapanese \? 5 : 7/);
+assert.match(mainSource, /function syncLanguageTextLimits\([\s\S]*?applyLanguageTextLimits\(\{/);
 assert.equal(
   (mainSource.match(/setDistributionNicknameDefault\(\{/g) || []).length,
   3,

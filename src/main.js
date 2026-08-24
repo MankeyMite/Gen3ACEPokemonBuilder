@@ -85,6 +85,7 @@ import {
   resolveMysteryMoveIds,
 } from './domain/mysteryGiftMoves.js';
 import { canSelectJapaneseLanguage } from './domain/languageAvailability.js';
+import { applyLanguageTextLimits } from './domain/languageTextLimits.js';
 import { getOtGenderLockPolicy } from './domain/otGenderLocking.js';
 import {
   getDefaultMoveIdsForSpecies,
@@ -1052,21 +1053,11 @@ function setLocalizedSpeciesNickname(speciesId, languageId, { force = false } = 
 }
 
 function syncLanguageTextLimits() {
-  const isJapanese = String($('#language')?.value || '') === '1';
-  const nicknameEl = $('#nickname');
-  const otNameEl = $('#otName');
-  if (nicknameEl) {
-    nicknameEl.maxLength = isJapanese ? 5 : 10;
-    if (nicknameEl.value.length > nicknameEl.maxLength) {
-      nicknameEl.value = nicknameEl.value.slice(0, nicknameEl.maxLength);
-    }
-  }
-  if (otNameEl) {
-    otNameEl.maxLength = isJapanese ? 5 : 7;
-    if (otNameEl.value.length > otNameEl.maxLength) {
-      otNameEl.value = otNameEl.value.slice(0, otNameEl.maxLength);
-    }
-  }
+  applyLanguageTextLimits({
+    languageId: $('#language')?.value,
+    nicknameInput: $('#nickname'),
+    otNameInput: $('#otName'),
+  });
 }
 
 // Distribution presets may provide a genuinely fixed nickname. When they do
@@ -5262,6 +5253,9 @@ function boot(){
     $('#move4').parentElement.classList.remove('field-error');
   });
   $('#otName').addEventListener('input', () => {
+    // Programmatic encounter-language changes do not emit a native change
+    // event. Re-assert the active language limit before validating user input.
+    syncLanguageTextLimits();
     validateForm();
     updateLegalityStatus();
     $('#otName').classList.remove('field-error');
@@ -6158,7 +6152,12 @@ function boot(){
       }
       try { updateMysteryFixedSpecimenLocking(); } catch (e) {}
       try { updateCXDEncounterPersonalityLocking(); } catch (e) {}
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      // Encounter presets (notably Faraway Island Mew) set language through
+      // code, so the language select's change listener does not run.
+      syncLanguageTextLimits();
+    }
   }
 
   // Lock fixed Mystery Gift and Colosseum/XD OT genders in Legal Mode. Event
@@ -6824,7 +6823,10 @@ function boot(){
           }
         } catch (e) {}
       }
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      syncLanguageTextLimits();
+    }
   }
 
   // Enforce minimum level and UI constraints for every selected legal origin.
