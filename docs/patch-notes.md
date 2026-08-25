@@ -1,5 +1,11 @@
+Patch Notes - (V.0.5.0) - August 26, 2026.
+- Added a builder tool panel to the site, including trainer profiles and viewing recent generations that is saved locally. This can be very useful if you don't want to input your TID, SID, OT name and OT gender every time you create a new Pokémon.
+- Added color explanation to the Base64 guide, as well as making code 2 and 3 easier to type correctly.
+- Fixed a bug where Japanese OT name character limit would not load properly.
+
+
 Patch Notes - (V.0.4.9) - August 23, 2026.
-- Implemented oroin-game specific movesets for each non-mystery gift Pokémon. The moveset depends on the game and level upon loading the species.
+- Implemented origin-game specific movesets for each non-mystery gift Pokémon. The moveset depends on the game and level upon loading the species.
 - Added a nature helper (+- to the correct stat, red color text of the boosted stat, along with a blue text on the lowered stat in the stat section), as well as a dynamic stat bar that scales with your selected nature and EVs.
 - Added init seed and frame to the PID finder window.
 - Added a RNG manipulation setting in the PID finder window, to help search initial seeds and max frames.
