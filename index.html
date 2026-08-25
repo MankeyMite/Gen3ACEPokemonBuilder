@@ -2704,30 +2704,6 @@
         </select>
       </div>
 
-      <div class="row wild-or-legend" id="pidFinderRow">
-        <label>
-          Legality
-          <span class="inline-tooltip">
-            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Legal encounter finder info" aria-describedby="pidIvToolsInfoTooltip" aria-expanded="false">?</button>
-            <span id="pidIvToolsInfoTooltip" class="inline-tooltip-content" role="tooltip">Set a legal PID and IV spread for the selected encounter, and choose whether shininess should keep the current SID or automatically calculate a new SID. Hatched non-event Pokémon do not require an RNG search.</span>
-          </span>
-        </label>
-        <button id="pidFinderBtn" type="button" class="pid-finder-btn">Set Legal PID/Shiny</button>
-        <span id="pidFinderStatus" class="pid-finder-status"></span>
-      </div>
-
-      <div class="row">
-        <label for="pid">
-          PID (hex)
-          <span class="inline-tooltip">
-            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="PID info" aria-describedby="pidInfoTooltip" aria-expanded="false">?</button>
-            <span id="pidInfoTooltip" class="inline-tooltip-content" role="tooltip">Personality ID is a 32-bit value from 0x00000000 to 0xFFFFFFFF. In Gen 3, it affects nature, ability slot, gender, Unown form, Spinda spots, and shininess together with TID and SID.</span>
-          </span>
-        </label>
-        <input id="pid" type="text" placeholder="0x12345678" value="0x0" />
-        <span id="shinyIndicator" class="shiny-indicator" title="This Pokémon is shiny!">✨</span>
-      </div>
-
       <div class="row">
         <label for="metLocation-input">Met Location</label>
         <select id="metLocation"></select>
@@ -2761,6 +2737,30 @@
           </span>
         </label>
         <input id="fatefulEncounter" type="checkbox" disabled />
+      </div>
+
+      <div class="row wild-or-legend" id="pidFinderRow">
+        <label>
+          Legality
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Legal encounter finder info" aria-describedby="pidIvToolsInfoTooltip" aria-expanded="false">?</button>
+            <span id="pidIvToolsInfoTooltip" class="inline-tooltip-content" role="tooltip">Set a legal PID and IV spread for the selected encounter, and choose whether shininess should keep the current SID or automatically calculate a new SID. Hatched non-event Pokémon do not require an RNG search.</span>
+          </span>
+        </label>
+        <button id="pidFinderBtn" type="button" class="pid-finder-btn">Set Legal PID/Shiny <span class="pid-finder-btn-shiny-star" aria-hidden="true">✨</span></button>
+        <span id="pidFinderStatus" class="pid-finder-status"></span>
+      </div>
+
+      <div class="row">
+        <label for="pid">
+          PID (hex)
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="PID info" aria-describedby="pidInfoTooltip" aria-expanded="false">?</button>
+            <span id="pidInfoTooltip" class="inline-tooltip-content" role="tooltip">Personality ID is a 32-bit value from 0x00000000 to 0xFFFFFFFF. In Gen 3, it affects nature, ability slot, gender, Unown form, Spinda spots, and shininess together with TID and SID.</span>
+          </span>
+        </label>
+        <input id="pid" type="text" placeholder="0x12345678" value="0x0" />
+        <span id="shinyIndicator" class="shiny-indicator" title="This Pokémon is shiny!">✨</span>
       </div>
 
       <div class="row checkbox-row">

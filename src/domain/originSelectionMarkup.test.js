@@ -108,7 +108,20 @@ assert.ok(
   'the selected CXD encounter helper must remain module-scoped for the PID Finder modal',
 );
 
-assert.match(html, /id="pidFinderBtn"[^>]*>Set Legal PID\/Shiny</);
+assert.match(html, /id="pidFinderBtn"[^>]*>Set Legal PID\/Shiny\s*<span[^>]*>✨<\/span>/);
+const encounterFieldOrder = [
+  'id="originGame"',
+  'id="metLocation"',
+  'id="metLevel"',
+  'id="ball"',
+  'id="fatefulEncounter"',
+  'id="pidFinderRow"',
+  'id="pid"',
+].map(marker => html.indexOf(marker));
+assert.ok(
+  encounterFieldOrder.every((position, index) => position >= 0 && (index === 0 || position > encounterFieldOrder[index - 1])),
+  'encounter fields must appear in origin, location, level, ball, fateful, legality, PID order',
+);
 assert.match(mainSource, /row\.classList\.toggle\('pid-finder-visible', shouldShow\)/);
 assert.match(styles, /#pidFinderRow\.pid-finder-visible[\s\S]*?grid-template-columns:/);
 assert.match(styles, /#pidFinderRow \.pid-finder-status[\s\S]*?grid-column:\s*2/);

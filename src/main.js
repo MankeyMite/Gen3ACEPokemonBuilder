@@ -87,6 +87,8 @@ import {
 import { canSelectJapaneseLanguage } from './domain/languageAvailability.js';
 import { applyLanguageTextLimits } from './domain/languageTextLimits.js';
 import { getOtGenderLockPolicy } from './domain/otGenderLocking.js';
+import { BUILDER_SNAPSHOT_SCHEMA_VERSION } from './domain/profileWorkspaceData.js';
+import { initProfileWorkspace } from './profileWorkspace.js';
 import {
   getDefaultMoveIdsForSpecies,
   getSelectableMovesForSpecies,
@@ -170,6 +172,12 @@ let _applyContestSpeciesRequirements = null;
 let _syncLegalModeToggle = null;
 let _syncPokemonFirstOriginUi = null;
 let _createImportedSetPid = null;
+let _captureProfileWorkspaceSnapshot = null;
+let _restoreProfileWorkspaceSnapshot = null;
+let profileWorkspaceController = null;
+let suppressProfileTrainerDefaults = false;
+let profileTrainerDefaultsQueued = false;
+let lastProfileTrainerSignature = '';
 let hasGeneratedCode = false;
 
 function markGeneratedCodeFresh() {
@@ -182,6 +190,88 @@ function markGeneratedCodeStale() {
   if (!hasGeneratedCode) return;
   const warning = document.getElementById('generatedCodeStaleWarning');
   if (warning) warning.hidden = false;
+}
+
+function getProfileTrainerSignature() {
+  const ids = ['species', 'originGame', 'mysteryEvent', 'staticCategory', 'staticEncounter', 'shadowEncounter', 'cxdTradeEncounter'];
+  const selection = ids.map(id => String(document.getElementById(id)?.value || '')).join('|');
+  return `${profileWorkspaceController?.getActiveProfile()?.id || ''}|${currentEncounterMode}|${selection}`;
+}
+
+function isProfileEditableField(element) {
+  return Boolean(element && !element.disabled && element.dataset.profileLocked !== '1');
+}
+
+function applyActiveProfileTrainerDefaults({ force = false } = {}) {
+  if (!profileWorkspaceController || suppressProfileTrainerDefaults || currentEncounterMode === 'imported') return false;
+  if (!Number(document.getElementById('species')?.value || 0)) return false;
+  const signature = getProfileTrainerSignature();
+  if (!force && signature === lastProfileTrainerSignature) return false;
+  lastProfileTrainerSignature = signature;
+
+  const gameId = Number(document.getElementById('originGame')?.value || 0);
+  const identity = profileWorkspaceController.getActiveIdentity(gameId);
+  if (!identity) return false;
+
+  let changed = false;
+  const setValue = (id, value) => {
+    const element = document.getElementById(id);
+    if (!isProfileEditableField(element) || value == null) return;
+    const nextValue = String(value);
+    if (String(element.value) === nextValue) return;
+    element.value = nextValue;
+    changed = true;
+  };
+
+  // Distribution encounters can have broader UI choices while still owning
+  // their language. Only regular recipient-owned encounters inherit profile
+  // language automatically.
+  if (!['mystery', 'cxd_shadow', 'cxd_trade'].includes(currentEncounterMode)) {
+    const language = document.getElementById('language');
+    const languageOption = Array.from(language?.options || [])
+      .find(option => String(option.value) === String(identity.languageId));
+    if (languageOption && !languageOption.disabled && isProfileEditableField(language)) {
+      setValue('language', identity.languageId);
+      if (changed) {
+        language.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+  }
+  setValue('tid', identity.tid);
+  setValue('sid', identity.sid);
+  setValue('otGender', identity.otGender);
+  syncLanguageTextLimits();
+  const otNameElement = document.getElementById('otName');
+  const maxOtLength = Number(otNameElement?.maxLength || 7);
+  setValue('otName', String(identity.otName || '').slice(0, maxOtLength > 0 ? maxOtLength : 7));
+
+  if (changed) {
+    markGeneratedCodeStale();
+    try { _validateForm?.(); } catch (error) {}
+  }
+  return changed;
+}
+
+function queueActiveProfileTrainerDefaults({ force = false } = {}) {
+  if (profileTrainerDefaultsQueued) return;
+  profileTrainerDefaultsQueued = true;
+  queueMicrotask(() => {
+    profileTrainerDefaultsQueued = false;
+    applyActiveProfileTrainerDefaults({ force });
+  });
+}
+
+function recordRecentGeneration(bytes, base64Text) {
+  if (!profileWorkspaceController || typeof _captureProfileWorkspaceSnapshot !== 'function') return;
+  try {
+    const captured = _captureProfileWorkspaceSnapshot(bytes, base64Text);
+    if (!captured) return;
+    profileWorkspaceController.recordGeneration(captured).catch(error => {
+      console.warn('Could not save recent generation:', error);
+    });
+  } catch (error) {
+    console.warn('Could not capture recent generation:', error);
+  }
 }
 
 // Ensure a safe no-op exists early so callers from earlier code don't throw
@@ -6102,9 +6192,12 @@ function boot(){
       }
       const hasSeedDerivedStarterIds = pidFinderResultActive &&
         String(shadowEncounter?.pidType || '').includes('STARTER');
-      const shouldLockTid = !manualOverrideActive && Boolean(hasSeedDerivedStarterIds || trade || shadowEncounter?.tid !== undefined || locksRepresentativeTrainer || (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData && !Array.isArray(evt?.tidRange)));
-      const shouldLockSid = !manualOverrideActive && Boolean(hasSeedDerivedStarterIds || trade?.fixedSID !== undefined || shadowEncounter?.fixedSID !== undefined || (!trade && currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData));
-      const shouldLockOtName = !manualOverrideActive && Boolean(trade || shadowEncounter?.otNames || locksRepresentativeTrainer || (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesHatcherTrainerData && !Array.isArray(evt?.allowedOtNames)));
+      const profileLockTid = Boolean(hasSeedDerivedStarterIds || trade || shadowEncounter?.tid !== undefined || locksRepresentativeTrainer || (currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData && !Array.isArray(evt?.tidRange)));
+      const profileLockSid = Boolean(hasSeedDerivedStarterIds || trade?.fixedSID !== undefined || shadowEncounter?.fixedSID !== undefined || (!trade && currentEncounterMode === 'mystery' && tag && tag !== 'BOX_EVENT' && !usesHatcherTrainerData));
+      const profileLockOtName = Boolean(trade || shadowEncounter?.otNames || locksRepresentativeTrainer || (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesHatcherTrainerData && !Array.isArray(evt?.allowedOtNames)));
+      const shouldLockTid = !manualOverrideActive && profileLockTid;
+      const shouldLockSid = !manualOverrideActive && profileLockSid;
+      const shouldLockOtName = !manualOverrideActive && profileLockOtName;
       const shouldLockOriginGame = !manualOverrideActive && (
         (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesEditableOriginGame) ||
         shouldLockStaticEncounterOriginFields() ||
@@ -6114,18 +6207,21 @@ function boot(){
         try { updateStaticOriginGameLocking(Number($('#species')?.value || 0)); } catch (e) {}
       }
       if (tidEl) {
+        tidEl.dataset.profileLocked = profileLockTid ? '1' : '0';
         tidEl.disabled = Boolean(shouldLockTid);
         tidEl.style.pointerEvents = shouldLockTid ? 'none' : '';
         tidEl.style.opacity = shouldLockTid ? '0.6' : '';
         tidEl.style.cursor = shouldLockTid ? 'not-allowed' : '';
       }
       if (sidEl) {
+        sidEl.dataset.profileLocked = profileLockSid ? '1' : '0';
         sidEl.disabled = Boolean(shouldLockSid);
         sidEl.style.pointerEvents = shouldLockSid ? 'none' : '';
         sidEl.style.opacity = shouldLockSid ? '0.6' : '';
         sidEl.style.cursor = shouldLockSid ? 'not-allowed' : '';
       }
       if (otEl) {
+        otEl.dataset.profileLocked = profileLockOtName ? '1' : '0';
         otEl.disabled = Boolean(shouldLockOtName);
         otEl.style.pointerEvents = shouldLockOtName ? 'none' : '';
         otEl.style.opacity = shouldLockOtName ? '0.6' : '';
@@ -6157,6 +6253,7 @@ function boot(){
       // Encounter presets (notably Faraway Island Mew) set language through
       // code, so the language select's change listener does not run.
       syncLanguageTextLimits();
+      queueActiveProfileTrainerDefaults();
     }
   }
 
@@ -6168,6 +6265,16 @@ function boot(){
       if (!otGenderEl) return;
 
       const { tag, event } = getSelectedMysteryEvent();
+      const profilePolicy = getOtGenderLockPolicy({
+        encounterMode: currentEncounterMode,
+        manualOverride: false,
+        tradeOtGender: getSelectedCXDTrade()?.otGender,
+        mysteryTag: tag,
+        mysteryUsesHatcherTrainerData: Boolean(event?.usesHatcherTrainerData),
+        mysteryUsesRecipientOtGender: Boolean(event?.usesRecipientOtGender || event?.otGenderMethod === 'RECIPIENT'),
+        isEgg: shouldApplyIsEggOverrides(),
+      });
+      otGenderEl.dataset.profileLocked = profilePolicy.locked ? '1' : '0';
       const policy = getOtGenderLockPolicy({
         encounterMode: currentEncounterMode,
         manualOverride: manualOverrideActive,
@@ -6357,6 +6464,15 @@ function boot(){
     unlock($('#otGender'));
     unlock($('#otName'));
     unlock($('#originGame'));
+    const metLocationEl = $('#metLocation');
+    if (metLocationEl) {
+      setControlLockState(metLocationEl, false);
+      if (metLocationEl.dataset.pidFinderLocationLock === '1') {
+        delete metLocationEl.dataset.pidFinderLocationLock;
+        delete metLocationEl.dataset.pidFinderLocationId;
+        metLocationEl.title = '';
+      }
+    }
 
     if (clearPid) {
       const pidEl = $('#pid');
@@ -6370,6 +6486,7 @@ function boot(){
     try { updateTidSidLocking(); } catch (e) {}
     try { updateOtGenderLocking(); } catch (e) {}
     try { updateMetLevelLocking(); } catch (e) {}
+    try { updateBallLocking(); } catch (e) {}
     try { updateIvLocking(); } catch (e) {}
     try { updateMysteryFixedSpecimenLocking(); } catch (e) {}
     try { updateCXDEncounterPersonalityLocking(); } catch (e) {}
@@ -6553,7 +6670,12 @@ function boot(){
             }
           };
           const setMetLocationLock = (shouldLock) => {
-            setControlLockState(metLocationEl, shouldLock);
+            const pidFinderWildLock = !manualOverrideActive &&
+              currentEncounterMode === 'wild' && pidFinderResultActive;
+            if (pidFinderWildLock && metLocationEl?.dataset.pidFinderLocationId !== undefined) {
+              metLocationEl.value = metLocationEl.dataset.pidFinderLocationId;
+            }
+            setControlLockState(metLocationEl, shouldLock || pidFinderWildLock);
           };
 
           if (manualOverrideActive) {
@@ -6705,6 +6827,13 @@ function boot(){
         && currentEncounterMode === 'mystery'
         && (mysteryTag === 'MITSURIN_CELEBI' || mysteryTag === 'AGETO_CELEBI');
 
+      const semanticStaticMewLock = currentEncounterMode === 'static' && isMew;
+      const semanticMysteryLanguageLock = currentEncounterMode === 'mystery'
+        && Boolean(mysteryTag)
+        && !Boolean(mysteryEvent?.usesHatcherTrainerData);
+      langSel.dataset.profileLocked = (semanticStaticMewLock || semanticMysteryLanguageLock) ? '1' : '0';
+      if (semanticStaticMewLock && $('#otName')) $('#otName').dataset.profileLocked = '1';
+
       if (shouldLockFixedSpecimenLanguage) {
         langSel.value = String(fixedSpecimenLanguages[0]);
         langSel.disabled = true;
@@ -6756,6 +6885,7 @@ function boot(){
         try {
           const otEl = $('#otName');
           if (otEl) {
+            otEl.dataset.profileLocked = '1';
             otEl.value = 'ミュウ';
             otEl.disabled = true;
             otEl.style.pointerEvents = 'none';
@@ -9067,6 +9197,314 @@ function boot(){
     } catch (e) {}
   }
 
+  function getSelectedOptionLabel(id, fallback = '') {
+    const element = document.getElementById(id);
+    const option = Array.from(element?.options || []).find(candidate => String(candidate.value) === String(element.value));
+    return option?.textContent?.trim() || fallback;
+  }
+
+  function getRecentGenerationLabels() {
+    const speciesId = Number($('#species')?.value || 0);
+    const speciesName = SPECIES.find(([id]) => Number(id) === speciesId)?.[1] || 'Pokémon';
+    const categoryLabels = {
+      hatched: 'Hatched',
+      wild: 'Wild',
+      static: 'Static',
+      roamer: 'Roamer',
+      mystery: 'Event',
+      cxd_shadow: 'Colosseum-XD',
+      cxd_trade: 'In-game trade',
+      imported: 'Imported',
+    };
+    const categoryName = categoryLabels[currentEncounterMode] || 'Encounter';
+    let encounterName = categoryName;
+    if (currentEncounterMode === 'static') encounterName = getSelectedOptionLabel('staticCategory', 'Static');
+    else if (currentEncounterMode === 'mystery') encounterName = getSelectedOptionLabel('mysteryEvent', 'Event');
+    else if (currentEncounterMode === 'cxd_shadow') encounterName = getSelectedOptionLabel('shadowEncounter', 'Shadow');
+    else if (currentEncounterMode === 'cxd_trade') encounterName = getSelectedOptionLabel('cxdTradeEncounter', 'Trade');
+    else if (currentEncounterMode === 'wild') encounterName = `${getSelectedOptionLabel('originGame', 'Game')} wild`;
+    else if (currentEncounterMode === 'hatched') encounterName = `${getSelectedOptionLabel('originGame', 'Game')} egg`;
+    const titlePart = value => String(value || '')
+      .replace(/[^\p{L}\p{N}]+/gu, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 48);
+    return {
+      speciesName,
+      categoryName,
+      encounterName,
+      title: [speciesName, categoryName, encounterName].map(titlePart).filter(Boolean).join('_'),
+    };
+  }
+
+  function createSemanticSnapshot(modeState) {
+    const fields = { ...(modeState?.fields || {}) };
+    const value = id => fields[id] ?? '';
+    return {
+      version: 1,
+      speciesId: Number(value('species')) || 0,
+      encounter: {
+        mode: currentEncounterMode,
+        originGameId: Number(value('originGame')) || 0,
+        mysteryEventId: value('mysteryEvent'),
+        staticCategoryId: value('staticCategory'),
+        staticEncounterId: value('staticEncounter'),
+        shadowEncounterId: value('shadowEncounter'),
+        tradeEncounterId: value('cxdTradeEncounter'),
+      },
+      pokemon: {
+        nickname: value('nickname'),
+        level: Number(value('level')) || 1,
+        experience: Number(value('expTotal')) || 0,
+        pid: value('pid'),
+        natureId: Number(value('nature')) || 0,
+        abilitySlot: Number(value('ability')) || 0,
+        gender: value('gender'),
+        heldItemId: Number(value('item')) || 0,
+        ballId: Number(value('ball')) || 0,
+        metLocationId: Number(value('metLocation')) || 0,
+        metLevel: Number(value('metLevel')) || 0,
+        isEgg: Boolean(value('isEgg')),
+        fatefulEncounter: Boolean(value('fatefulEncounter')),
+        trainer: {
+          tid: Number(value('tid')) || 0,
+          sid: Number(value('sid')) || 0,
+          otName: value('otName'),
+          otGender: value('otGender'),
+          languageId: Number(value('language')) || 2,
+        },
+        ivs: ['ivHp', 'ivAtk', 'ivDef', 'ivSpAtk', 'ivSpDef', 'ivSpe'].map(id => Number(value(id)) || 0),
+        evs: ['evHp', 'evAtk', 'evDef', 'evSpAtk', 'evSpDef', 'evSpe'].map(id => Number(value(id)) || 0),
+        moves: [1, 2, 3, 4].map(index => ({
+          moveId: Number(value(`move${index}`)) || 0,
+          ppUps: Number(value(`pp${index}`)) || 0,
+        })),
+        friendship: Number(value('friendship')) || 0,
+        pokerusStatus: value('pokerusStatus'),
+        contest: {
+          cool: Number(value('contestCool')) || 0,
+          beauty: Number(value('contestBeauty')) || 0,
+          cute: Number(value('contestCute')) || 0,
+          smart: Number(value('contestSmart')) || 0,
+          tough: Number(value('contestTough')) || 0,
+          sheen: Number(value('contestSheen')) || 0,
+        },
+      },
+      // Stable field keys make migrations straightforward even if the visual
+      // builder flow, element order, or grouping changes in a later release.
+      builderFields: fields,
+    };
+  }
+
+  function semanticSnapshotToModeState(semantic) {
+    if (!semantic || typeof semantic !== 'object') return null;
+    const pokemon = semantic.pokemon || {};
+    const trainer = pokemon.trainer || {};
+    const encounter = semantic.encounter || {};
+    const ivs = Array.isArray(pokemon.ivs) ? pokemon.ivs : [];
+    const evs = Array.isArray(pokemon.evs) ? pokemon.evs : [];
+    const moves = Array.isArray(pokemon.moves) ? pokemon.moves : [];
+    const explicitFields = {
+      species: semantic.speciesId,
+      originGame: encounter.originGameId,
+      mysteryEvent: encounter.mysteryEventId,
+      staticCategory: encounter.staticCategoryId,
+      staticEncounter: encounter.staticEncounterId,
+      shadowEncounter: encounter.shadowEncounterId,
+      cxdTradeEncounter: encounter.tradeEncounterId,
+      nickname: pokemon.nickname,
+      level: pokemon.level,
+      expTotal: pokemon.experience,
+      pid: pokemon.pid,
+      nature: pokemon.natureId,
+      ability: pokemon.abilitySlot,
+      gender: pokemon.gender,
+      item: pokemon.heldItemId,
+      ball: pokemon.ballId,
+      metLocation: pokemon.metLocationId,
+      metLevel: pokemon.metLevel,
+      isEgg: pokemon.isEgg,
+      fatefulEncounter: pokemon.fatefulEncounter,
+      tid: trainer.tid,
+      sid: trainer.sid,
+      otName: trainer.otName,
+      otGender: trainer.otGender,
+      language: trainer.languageId,
+      ivHp: ivs[0], ivAtk: ivs[1], ivDef: ivs[2], ivSpAtk: ivs[3], ivSpDef: ivs[4], ivSpe: ivs[5],
+      evHp: evs[0], evAtk: evs[1], evDef: evs[2], evSpAtk: evs[3], evSpDef: evs[4], evSpe: evs[5],
+      move1: moves[0]?.moveId, move2: moves[1]?.moveId, move3: moves[2]?.moveId, move4: moves[3]?.moveId,
+      pp1: moves[0]?.ppUps, pp2: moves[1]?.ppUps, pp3: moves[2]?.ppUps, pp4: moves[3]?.ppUps,
+      friendship: pokemon.friendship,
+      pokerusStatus: pokemon.pokerusStatus,
+      contestCool: pokemon.contest?.cool,
+      contestBeauty: pokemon.contest?.beauty,
+      contestCute: pokemon.contest?.cute,
+      contestSmart: pokemon.contest?.smart,
+      contestTough: pokemon.contest?.tough,
+      contestSheen: pokemon.contest?.sheen,
+    };
+    const compactExplicitFields = Object.fromEntries(
+      Object.entries(explicitFields).filter(([, value]) => value !== undefined && value !== null)
+    );
+    return {
+      manualOverrideActive: false,
+      nicknameState: null,
+      fields: {
+        ...(semantic.builderFields && typeof semantic.builderFields === 'object' ? semantic.builderFields : {}),
+        ...compactExplicitFields,
+      },
+    };
+  }
+
+  function restorePidFinderSnapshot(pidFinder = {}) {
+    pidFinderResultActive = Boolean(pidFinder.resultActive);
+    pidFinderHadSelection = Boolean(pidFinder.hadSelection || pidFinder.resultActive);
+    pidFinderLockedMetLevel = Boolean(pidFinder.lockedMetLevel);
+    pidFinderOriginalTid = Number(pidFinder.originalTid) || 0;
+    pidFinderOriginalSid = Number(pidFinder.originalSid) || 0;
+    pidFinderMysteryTag = String(pidFinder.mysteryTag || '');
+    pidFinderResultAbilityBit = pidFinder.abilityBit == null ? null : Number(pidFinder.abilityBit);
+    const statusElement = document.getElementById('pidFinderStatus');
+    if (statusElement) statusElement.textContent = pidFinder.statusText || (pidFinderResultActive ? 'Legal PID set' : '');
+  }
+
+  function validateRestoredModeState(modeState) {
+    const expectedSpecies = Number(modeState?.fields?.species || 0);
+    if (expectedSpecies && Number($('#species')?.value || 0) !== expectedSpecies) return false;
+    for (const id of ['mysteryEvent', 'staticCategory', 'staticEncounter', 'shadowEncounter', 'cxdTradeEncounter']) {
+      const expected = modeState?.fields?.[id];
+      if (expected != null && String(expected) && String(document.getElementById(id)?.value || '') !== String(expected)) return false;
+    }
+    return true;
+  }
+
+  function applyWorkspaceModeState(mode, modeState, pidFinderState) {
+    const modeSelect = document.getElementById('encounterMode');
+    if (!modeSelect?.querySelector(`option[value="${CSS.escape(String(mode))}"]`)) return false;
+
+    pidFinderResultActive = false;
+    pidFinderHadSelection = false;
+    pidFinderLockedMetLevel = false;
+
+    if (currentEncounterMode !== mode) {
+      encounterModeStateCache[mode] = modeState;
+      modeSelect.value = mode;
+      modeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    } else {
+      applyEncounterModeState(modeState);
+      const speciesId = Number(modeState?.fields?.species || 0);
+      try { updateSpeciesListForMode(); } catch (error) {}
+      try { handleEncounterModeChange(speciesId); } catch (error) {}
+    }
+
+    applyEncounterModeState(modeState);
+    if (mode === 'static') {
+      document.getElementById('staticCategory')?.dispatchEvent(new Event('change', { bubbles: true }));
+      applyEncounterModeState(modeState);
+      document.getElementById('staticEncounter')?.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (mode === 'mystery') {
+      document.getElementById('mysteryEvent')?.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (mode === 'cxd_shadow') {
+      document.getElementById('shadowEncounter')?.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (mode === 'cxd_trade') {
+      document.getElementById('cxdTradeEncounter')?.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    const speciesId = Number(modeState?.fields?.species || 0);
+    try { updateAbilitySelect(speciesId); } catch (error) {}
+    try { updateMovesForSpecies(speciesId, { preserveValue: true }); } catch (error) {}
+    applyEncounterModeState(modeState);
+    restorePidFinderSnapshot(pidFinderState);
+    try { _postImportUpdate?.(speciesId); } catch (error) {}
+    try { updateTidSidLocking(); } catch (error) {}
+    try { updateOtGenderLocking(); } catch (error) {}
+    try { updatePidLocking(); } catch (error) {}
+    try { updateIvLocking(); } catch (error) {}
+    try { updateMetLevelLocking(); } catch (error) {}
+    try { updateMakeShinyButton(); } catch (error) {}
+    try { validateForm(); } catch (error) {}
+    return validateRestoredModeState(modeState);
+  }
+
+  function restoreGeneratedOutput(generated) {
+    if (!generated || typeof generated !== 'object') return;
+    if (generated.codeTarget) setOutputCodeTarget(generated.codeTarget, { regenerate: false });
+    if (generated.rawHex) {
+      const pairs = String(generated.rawHex).match(/[0-9a-fA-F]{2}/g) || [];
+      if (pairs.length >= 80) {
+        $('#hexOutput').value = toFormattedHex(new Uint8Array(pairs.slice(0, 80).map(pair => parseInt(pair, 16))));
+      }
+    }
+    if (generated.base64Text) {
+      setBase64OutputText(generated.base64Text);
+      setOutputTroubleshootingVisible(true);
+      hideBase64CharacterInspector();
+      markGeneratedCodeFresh();
+    }
+  }
+
+  _captureProfileWorkspaceSnapshot = (bytes, base64Text) => {
+    const modeState = captureCurrentEncounterModeState();
+    const rawHex = bytes instanceof Uint8Array ? toHexString(bytes) : '';
+    return {
+      ...getRecentGenerationLabels(),
+      snapshot: {
+        schemaVersion: BUILDER_SNAPSHOT_SCHEMA_VERSION,
+        exact: {
+          mode: currentEncounterMode,
+          uiState: modeState,
+          pidFinder: {
+            resultActive: pidFinderResultActive,
+            hadSelection: pidFinderHadSelection,
+            lockedMetLevel: pidFinderLockedMetLevel,
+            originalTid: pidFinderOriginalTid,
+            originalSid: pidFinderOriginalSid,
+            mysteryTag: pidFinderMysteryTag,
+            abilityBit: pidFinderResultAbilityBit,
+            statusText: String(document.getElementById('pidFinderStatus')?.textContent || ''),
+          },
+        },
+        semantic: createSemanticSnapshot(modeState),
+        generated: {
+          rawHex,
+          base64Text: String(base64Text || ''),
+          codeTarget: outputCodeTarget,
+        },
+      },
+    };
+  };
+
+  _restoreProfileWorkspaceSnapshot = async snapshot => {
+    if (!snapshot || typeof snapshot !== 'object') throw new Error('This generation has no restorable snapshot.');
+    suppressProfileTrainerDefaults = true;
+    let strategy = null;
+    try {
+      if (Number(snapshot.schemaVersion) === BUILDER_SNAPSHOT_SCHEMA_VERSION && snapshot.exact?.uiState) {
+        const exactMode = String(snapshot.exact.mode || snapshot.semantic?.encounter?.mode || '');
+        if (exactMode && exactMode !== 'imported' && applyWorkspaceModeState(exactMode, snapshot.exact.uiState, snapshot.exact.pidFinder)) {
+          strategy = 'exact';
+        }
+      }
+      if (!strategy && snapshot.semantic) {
+        const semanticMode = String(snapshot.semantic.encounter?.mode || snapshot.exact?.mode || '');
+        const semanticState = semanticSnapshotToModeState(snapshot.semantic);
+        if (semanticMode && semanticMode !== 'imported' && semanticState && applyWorkspaceModeState(semanticMode, semanticState, snapshot.exact?.pidFinder)) {
+          strategy = 'semantic';
+        }
+      }
+      if (!strategy && snapshot.generated?.rawHex) {
+        onLoadFromHex(snapshot.generated.rawHex);
+        strategy = 'bytes';
+      }
+      if (!strategy) throw new Error('This generation could not be matched to the current builder.');
+      restoreGeneratedOutput(snapshot.generated);
+      lastProfileTrainerSignature = getProfileTrainerSignature();
+      await new Promise(resolve => setTimeout(resolve, 0));
+      return { strategy };
+    } finally {
+      suppressProfileTrainerDefaults = false;
+    }
+  };
+
   // Reset all mode-specific state to defaults to avoid carryover between modes
   function resetAllModeState() {
     try {
@@ -10242,6 +10680,38 @@ function boot(){
       if (startupSpeciesHadFocus) requestAnimationFrame(() => upgradedInput.focus());
     }
   }
+
+  const profileSelectionFields = new Set([
+    'species', 'originGame', 'encounterMode', 'mysteryEvent', 'staticCategory',
+    'staticEncounter', 'shadowEncounter', 'cxdTradeEncounter',
+  ]);
+  document.addEventListener('change', event => {
+    if (profileSelectionFields.has(String(event.target?.id || ''))) {
+      queueActiveProfileTrainerDefaults();
+    }
+  });
+
+  const games = Array.from(document.getElementById('originGame')?.options || [])
+    .map(option => ({ value: Number(option.value), label: option.textContent.trim() }))
+    .filter(option => option.value);
+  const languages = Array.from(document.getElementById('language')?.options || [])
+    .map(option => ({ value: Number(option.value), label: option.textContent.trim() }))
+    .filter(option => option.value);
+  initProfileWorkspace({
+    games,
+    languages,
+    onActiveProfileChange: () => {
+      lastProfileTrainerSignature = '';
+      applyActiveProfileTrainerDefaults({ force: true });
+    },
+    onLoadRecent: recent => _restoreProfileWorkspaceSnapshot?.(recent.snapshot),
+  }).then(controller => {
+    profileWorkspaceController = controller;
+    lastProfileTrainerSignature = '';
+    applyActiveProfileTrainerDefaults({ force: true });
+  }).catch(error => {
+    console.warn('Trainer profiles are unavailable:', error);
+  });
   delete window.__aceEarlySpeciesState;
 }
 
@@ -10600,6 +11070,7 @@ function initPidFinder() {
   let modalConfirmed = false;
   let modalOriginalOriginGame = '';
   let activeRngWindow = null;
+  let activeSearchMetLocationId = null;
 
   if (!btn || !overlay) return;
 
@@ -10611,6 +11082,21 @@ function initPidFinder() {
   }
 
   const formatPidHex = pid => `0x${(Number(pid) >>> 0).toString(16).toUpperCase().padStart(8, '0')}`;
+  const readCurrentMetLocationId = () => {
+    const metLocation = $('#metLocation');
+    const rawValue = String(metLocation?.value ?? '').trim();
+    if (rawValue !== '') return Number(rawValue);
+
+    // Searchable controls retain their display text separately from their ID.
+    // Resolve that text as a fallback so the search and the eventual lock are
+    // always tied to the location the user can actually see.
+    const displayName = String(document.getElementById('metLocation-input')?.value || '').trim().toLowerCase();
+    if (!displayName) return 0;
+    const gameId = Number($('#originGame')?.value) || 3;
+    const match = getLocationsForGame(gameId)
+      .find(([, name]) => String(name || '').trim().toLowerCase() === displayName);
+    return Number(match?.[0] ?? 0);
+  };
   const hasValidPidFormat = value => /^(?:0x)?[0-9a-f]{1,8}$/i.test(String(value || '').trim());
   const hasValidPidText = value => hasValidPidFormat(value) && parsePidInput(value) !== 0;
   const invalidPidMessage = value => hasValidPidFormat(value) && parsePidInput(value) === 0
@@ -11538,6 +12024,9 @@ function initPidFinder() {
 
     // Determine which worker to use
     const gameId     = Number($('#originGame').value) || 3;
+    activeSearchMetLocationId = currentEncounterMode === 'wild'
+      ? readCurrentMetLocationId()
+      : null;
     const mysteryMethod = getMysteryPidMethod();
 
     const isChannelSearch = currentEncounterMode === 'mystery' && mysteryMethod === 'CHANNEL';
@@ -11643,7 +12132,7 @@ function initPidFinder() {
       // Look up encounter slot tables for this game + location.
       // Static/roamer encounters do NOT use wild encounter slots,
       // so pass null to skip encounter-chain validation.
-      const locationId = Number($('#metLocation').value) || 0;
+      const locationId = activeSearchMetLocationId ?? readCurrentMetLocationId();
       const slotTables = (currentEncounterMode === 'static' || currentEncounterMode === 'roamer' || currentEncounterMode === 'mystery' || currentEncounterMode === 'cxd_trade')
         ? null
         : (ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]) || null;
@@ -11832,7 +12321,7 @@ function initPidFinder() {
 
     // Determine if encounter-chain validation was active
     const gameId     = Number($('#originGame').value) || 3;
-    const locationId = Number($('#metLocation').value) || 0;
+    const locationId = activeSearchMetLocationId ?? readCurrentMetLocationId();
     const hadValidation = !!(ENCOUNTER_SLOTS[gameId] && ENCOUNTER_SLOTS[gameId][locationId]);
 
     const capped = filtered.slice(0, 25);
@@ -11981,7 +12470,9 @@ function initPidFinder() {
 
   function selectResult(r, row) {
     pendingPidFinderRow?.classList.remove('is-selected');
-    pendingPidFinderResult = r;
+    pendingPidFinderResult = currentEncounterMode === 'wild'
+      ? { ...r, searchMetLocationId: activeSearchMetLocationId ?? readCurrentMetLocationId() }
+      : r;
     pendingPidFinderRow = row || null;
     pendingPidFinderRow?.classList.add('is-selected');
     if (pfPidInput) pfPidInput.value = formatPidHex(r.pid);
@@ -12149,6 +12640,19 @@ function initPidFinder() {
     for (const id of ['ivHp','ivAtk','ivDef','ivSpAtk','ivSpDef','ivSpe']) {
       lockStyle($('#' + id));
     }
+    if (currentEncounterMode === 'wild') {
+      const metLocationEl = $('#metLocation');
+      if (metLocationEl) {
+        const searchedLocationId = Number(r.searchMetLocationId);
+        if (Number.isInteger(searchedLocationId) && searchedLocationId >= 0) {
+          metLocationEl.value = String(searchedLocationId);
+          metLocationEl.dataset.pidFinderLocationId = String(searchedLocationId);
+        }
+        setControlLockState(metLocationEl, true);
+        metLocationEl.dataset.pidFinderLocationLock = '1';
+        metLocationEl.title = 'Met location is tied to the selected legal wild PID.';
+      }
+    }
     try { updatePidLocking(); } catch (e) {}
     try { updateIvLocking(); } catch (e) {}
 
@@ -12205,6 +12709,14 @@ function initPidFinder() {
     }
     try { _validateForm?.(); } catch (e) {}
     try { updateLegalityStatus(); } catch (e) {}
+    if (currentEncounterMode === 'wild') {
+      const metLocationEl = $('#metLocation');
+      const searchedLocationId = metLocationEl?.dataset.pidFinderLocationId;
+      if (metLocationEl && searchedLocationId !== undefined) {
+        metLocationEl.value = searchedLocationId;
+        setControlLockState(metLocationEl, true);
+      }
+    }
   }
 
   confirmBtn?.addEventListener('click', () => {
@@ -13014,6 +13526,7 @@ function onGenerate(){
     updateBase64SafetyWarnings(pristineOutput.base64Text, pristineOutput.substitutionUsed);
     hideBase64CharacterInspector();
     markGeneratedCodeFresh();
+    recordRecentGeneration(new Uint8Array(importedRoundTripBytes), pristineOutput.base64Text);
     return pristineOutput;
   }
 
@@ -13036,6 +13549,7 @@ function onGenerate(){
   setBase64OutputText(b64Result.text);
   setOutputTroubleshootingVisible(true);
   updateBase64SafetyWarnings(b64Result.text, b64Result.substitutionUsed);
+  recordRecentGeneration(result.bytes, b64Result.text);
   hideBase64CharacterInspector();
   markGeneratedCodeFresh();
   return b64Result;
