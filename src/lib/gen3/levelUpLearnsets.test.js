@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { getDefaultLevelUpMoveIds } from './defaultLevelUpMoves.js';
-import { GEN3_ORIGIN_GAME, getLevelUpLearnsetForOriginGame } from './levelUpLearnsets.js';
+import {
+  GEN3_ORIGIN_GAME,
+  getDirectLevelUpLearnsetForOriginGame,
+  getLevelUpLearnsetForOriginGame,
+} from './levelUpLearnsets.js';
 
 const DEOXYS = 410;
 const level50Defaults = game => getDefaultLevelUpMoveIds(
@@ -33,6 +37,29 @@ assert.deepEqual(
   getLevelUpLearnsetForOriginGame(43, GEN3_ORIGIN_GAME.RUBY),
   getLevelUpLearnsetForOriginGame(43, GEN3_ORIGIN_GAME.EMERALD),
   'species without an RS override should fall back to the Emerald base table',
+);
+
+const RATICATE = 20;
+const directRaticateAt23 = getDefaultLevelUpMoveIds(
+  getDirectLevelUpLearnsetForOriginGame(RATICATE, GEN3_ORIGIN_GAME.FIRE_RED),
+  23,
+);
+assert.deepEqual(
+  directRaticateAt23,
+  [39, 98, 158, 184],
+  'a directly encountered level-23 Raticate should use only Raticate level-up moves',
+);
+assert.equal(
+  getDirectLevelUpLearnsetForOriginGame(RATICATE, GEN3_ORIGIN_GAME.FIRE_RED)
+    .some(([moveId]) => moveId === 116),
+  false,
+  'direct Raticate must not inherit Rattata Focus Energy',
+);
+assert.equal(
+  getLevelUpLearnsetForOriginGame(RATICATE, GEN3_ORIGIN_GAME.FIRE_RED)
+    .some(([moveId]) => moveId === 116),
+  true,
+  'the merged table should retain pre-evolution moves for evolved/hatched paths',
 );
 
 console.log('All origin-game level-up learnset tests passed.');

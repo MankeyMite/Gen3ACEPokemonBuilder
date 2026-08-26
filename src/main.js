@@ -38,7 +38,7 @@ import { getLegalSheenRangeGen3 } from './lib/gen3/contestSheen.js';
 import { getAllowedLevelUpMoveIdsForEncounter, shouldCapHatchedLevelUpMoves } from './lib/gen3/hatchedMoveLegality.js';
 import { getDirectWildMoveOverride } from './lib/gen3/wildMoveLegality.js';
 import { getDefaultLevelUpMoveIds } from './lib/gen3/defaultLevelUpMoves.js';
-import { getLevelUpLearnsetForOriginGame } from './lib/gen3/levelUpLearnsets.js';
+import { getDirectLevelUpLearnsetForOriginGame, getLevelUpLearnsetForOriginGame } from './lib/gen3/levelUpLearnsets.js';
 import { adjustShinySidForRSTrainerId, findNearestValidRSTrainerSid, isValidRSTrainerId } from './lib/gen3/rsTrainerId.js';
 import { normalizeGeneratedAbilityBit, resolvePidFinderAbilityBit } from './domain/pidFinderAbility.js';
 import { getGen3ResultFrame } from './domain/gen3InitialSeedFrame.js';
@@ -178,6 +178,7 @@ let profileWorkspaceController = null;
 let suppressProfileTrainerDefaults = false;
 let profileTrainerDefaultsQueued = false;
 let lastProfileTrainerSignature = '';
+let preserveManualOriginGameSelection = false;
 let hasGeneratedCode = false;
 
 function markGeneratedCodeFresh() {
@@ -207,13 +208,34 @@ function applyActiveProfileTrainerDefaults({ force = false } = {}) {
   if (!Number(document.getElementById('species')?.value || 0)) return false;
   const signature = getProfileTrainerSignature();
   if (!force && signature === lastProfileTrainerSignature) return false;
-  lastProfileTrainerSignature = signature;
 
-  const gameId = Number(document.getElementById('originGame')?.value || 0);
-  const identity = profileWorkspaceController.getActiveIdentity(gameId);
+  const activeProfile = profileWorkspaceController.getActiveProfile();
+  const preferredIdentity = activeProfile?.saves?.[0] || null;
+  const originGameElement = document.getElementById('originGame');
+  let originGameChangedForProfile = false;
+  let gameId = Number(originGameElement?.value || 0);
+  let identity = profileWorkspaceController.getActiveIdentity(gameId);
+
+  // A profile stores one game's trainer identity. Prefer that game when it is
+  // a legal, editable choice for this encounter. Fixed distributions and
+  // encounters with a different game never receive mismatched profile data.
+  if (!identity && preferredIdentity && (force || !preserveManualOriginGameSelection) && isProfileEditableField(originGameElement)) {
+    const preferredGameId = Number(preferredIdentity.gameId) || 0;
+    const preferredOption = Array.from(originGameElement?.options || [])
+      .find(option => Number(option.value) === preferredGameId);
+    if (preferredOption && !preferredOption.disabled && !preferredOption.hidden) {
+      originGameElement.value = String(preferredGameId);
+      originGameChangedForProfile = true;
+      try { originGameElement.dispatchEvent(new Event('change', { bubbles: true })); } catch (error) {}
+      gameId = Number(originGameElement.value || 0);
+      identity = profileWorkspaceController.getActiveIdentity(gameId);
+    }
+  }
+
+  lastProfileTrainerSignature = getProfileTrainerSignature();
   if (!identity) return false;
 
-  let changed = false;
+  let changed = originGameChangedForProfile;
   const setValue = (id, value) => {
     const element = document.getElementById(id);
     if (!isProfileEditableField(element) || value == null) return;
@@ -3052,6 +3074,37 @@ function resetOriginGameOptions() {
  * `preserveValue` keeps the current selection even when it is not in the
  * new filtered list (used for mystery-gift preset moves & imports).
  */
+let currentLegalMoveIds = new Set();
+
+function shouldValidateCurrentMoveLegality() {
+  if (manualOverrideActive || currentEncounterMode === 'imported') return false;
+  if (!['wild', 'static', 'roamer'].includes(currentEncounterMode)) return false;
+  const speciesId = Number($('#species')?.value || 0);
+  const fixedStaticMoves = currentEncounterMode === 'static'
+    ? STATIC_ENCOUNTERS[speciesId]?.fixedMoves
+    : null;
+  return !Array.isArray(fixedStaticMoves) || fixedStaticMoves.length === 0;
+}
+
+function getInvalidMoveSlotIndexes() {
+  if (!shouldValidateCurrentMoveLegality()) return [];
+  const invalid = [];
+  for (let index = 0; index < 4; index += 1) {
+    const moveId = Number($(`#move${index + 1}`)?.value || 0);
+    if (moveId > 0 && !currentLegalMoveIds.has(moveId)) invalid.push(index);
+  }
+  return invalid;
+}
+
+function updateMoveLegalityUi() {
+  const invalidSlots = new Set(getInvalidMoveSlotIndexes());
+  for (let index = 0; index < 4; index += 1) {
+    const flag = document.getElementById(`move${index + 1}LegalityFlag`);
+    if (flag) flag.hidden = !invalidSlots.has(index);
+  }
+  return [...invalidSlots];
+}
+
 function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
   const clearOutOfLevelHatchedMoves = !manualOverrideActive &&
     shouldCapHatchedLevelUpMoves(speciesId, currentEncounterMode);
@@ -3060,7 +3113,12 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
   const data = LEARNSETS[speciesId];
   const level = Number($('#level')?.value) || 100;
   const originGame = Number($('#originGame')?.value) || 0;
-  const levelUpMoves = getLevelUpLearnsetForOriginGame(speciesId, originGame);
+  const inheritedLevelUpMoves = getLevelUpLearnsetForOriginGame(speciesId, originGame);
+  const directLevelUpMoves = getDirectLevelUpLearnsetForOriginGame(speciesId, originGame);
+  const sourceSpeciesId = getCurrentOriginSourceSpeciesId(speciesId);
+  const directEncounter = ['wild', 'static', 'roamer'].includes(currentEncounterMode) &&
+    sourceSpeciesId === Number(speciesId);
+  const levelUpMoves = directEncounter ? directLevelUpMoves : inheritedLevelUpMoves;
   let baseMoves;
 
   if (manualOverrideActive) {
@@ -3124,6 +3182,9 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
   if (!manualOverrideActive) {
     baseMoves = getSelectableMovesForSpecies(speciesId, baseMoves, MOVES);
   }
+  currentLegalMoveIds = manualOverrideActive
+    ? new Set(MOVES.map(([id]) => Number(id)).filter(id => id > 0))
+    : new Set(baseMoves.map(([id]) => Number(id)).filter(id => id > 0));
   baseMoves = sortMoveListAlphabetically(baseMoves);
 
   // Fresh ordinary encounters start with the last four level-up moves learned
@@ -3137,10 +3198,13 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
     STATIC_ENCOUNTERS[selectedStaticSourceSpecies].fixedMoves.length > 0;
   let defaultMoveIds = null;
   if (!preserveValue && !hasFixedStaticMoves) {
+    const defaultLevelUpMoves = currentEncounterMode === 'hatched'
+      ? inheritedLevelUpMoves
+      : directLevelUpMoves;
     defaultMoveIds = getDefaultMoveIdsForSpecies(speciesId)
       || (directWildMoveOverride
         ? directWildMoveOverride.slice(-4)
-        : getDefaultLevelUpMoveIds(levelUpMoves, level));
+        : getDefaultLevelUpMoveIds(defaultLevelUpMoves, level));
   }
   if (defaultMoveIds) {
     moveAutocompletes.forEach((ac, index) => {
@@ -3162,6 +3226,7 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
       : baseMoves;
     ac.updateList(filtered, { preserveValue: effectivePreserveValue });
   }
+  updateMoveLegalityUi();
 }
 
 /**
@@ -3320,6 +3385,11 @@ function highlightMissingFields({ scrollToFirst = true } = {}) {
   
   if (!hasMove) {
     markMissing('At least one Move', move1ErrorTarget, getFieldFocusTarget(move1El));
+  }
+
+  for (const slotIndex of updateMoveLegalityUi()) {
+    const moveEl = $(`#move${slotIndex + 1}`);
+    markMissing('Invalid move', moveEl?.parentElement, getFieldFocusTarget(moveEl));
   }
 
   if (!otNameValue || otNameValue.trim() === '') {
@@ -4119,6 +4189,7 @@ function boot(){
                     (move2Value && move2Value !== '0') || 
                     (move3Value && move3Value !== '0') || 
                     (move4Value && move4Value !== '0');
+    const hasLegalMoves = updateMoveLegalityUi().length === 0;
     const hasMysteryGiftLegalPid = hasRequiredMysteryGiftPidFinderSelection();
     const hasLegalRSTrainerId = getRSTrainerIdValidation().valid;
     const hasRequiredParityPid = hasRequiredPidFinderForPidParitySelection();
@@ -4138,7 +4209,7 @@ function boot(){
     
     // Enable generate button only if all conditions are met
     const generateBtn = $('#generateBtn');
-    if (hasSpecies && hasResolvedOrigin && hasNature && hasMove && hasOTName && hasMysteryGiftLegalPid && hasLegalRSTrainerId && hasRequiredParityPid && hasRequiredCXDEncounterPid) {
+    if (hasSpecies && hasResolvedOrigin && hasNature && hasMove && hasLegalMoves && hasOTName && hasMysteryGiftLegalPid && hasLegalRSTrainerId && hasRequiredParityPid && hasRequiredCXDEncounterPid) {
       generateBtn.setAttribute('data-disabled', 'false');
     } else {
       generateBtn.setAttribute('data-disabled', 'true');
@@ -4202,6 +4273,10 @@ function boot(){
 
     if (speciesId === MILOTIC_SPECIES_ID && clampContestByte($('#contestBeauty')?.value) < MILOTIC_MIN_BEAUTY) {
       errors.push(`Milotic must have at least ${MILOTIC_MIN_BEAUTY} Beauty`);
+    }
+
+    for (const slotIndex of updateMoveLegalityUi()) {
+      errors.push(`Move ${slotIndex + 1} is invalid for this encounter`);
     }
 
     const rsTrainerIdValidation = getRSTrainerIdValidation();
@@ -5281,67 +5356,16 @@ function boot(){
       }
     } catch (e) {}
   });
-  $('#move1').addEventListener('change', () => {
-    validateForm();
-    updateLegalityStatus();
-    refreshMoveExclusions();
-    // Clear all move errors immediately
-    $('#move1').parentElement.classList.remove('field-error');
-    $('#move2').parentElement.classList.remove('field-error');
-    $('#move3').parentElement.classList.remove('field-error');
-    $('#move4').parentElement.classList.remove('field-error');
-  });
-  $('#move1').addEventListener('focus', () => {
-    $('#move1').parentElement.classList.remove('field-error');
-    $('#move2').parentElement.classList.remove('field-error');
-    $('#move3').parentElement.classList.remove('field-error');
-    $('#move4').parentElement.classList.remove('field-error');
-  });
-  $('#move2').addEventListener('change', () => {
-    validateForm();
-    updateLegalityStatus();
-    refreshMoveExclusions();
-    $('#move1').parentElement.classList.remove('field-error');
-    $('#move2').parentElement.classList.remove('field-error');
-    $('#move3').parentElement.classList.remove('field-error');
-    $('#move4').parentElement.classList.remove('field-error');
-  });
-  $('#move2').addEventListener('focus', () => {
-    $('#move1').parentElement.classList.remove('field-error');
-    $('#move2').parentElement.classList.remove('field-error');
-    $('#move3').parentElement.classList.remove('field-error');
-    $('#move4').parentElement.classList.remove('field-error');
-  });
-  $('#move3').addEventListener('change', () => {
-    validateForm();
-    updateLegalityStatus();
-    refreshMoveExclusions();
-    $('#move1').parentElement.classList.remove('field-error');
-    $('#move2').parentElement.classList.remove('field-error');
-    $('#move3').parentElement.classList.remove('field-error');
-    $('#move4').parentElement.classList.remove('field-error');
-  });
-  $('#move3').addEventListener('focus', () => {
-    $('#move1').parentElement.classList.remove('field-error');
-    $('#move2').parentElement.classList.remove('field-error');
-    $('#move3').parentElement.classList.remove('field-error');
-    $('#move4').parentElement.classList.remove('field-error');
-  });
-  $('#move4').addEventListener('change', () => {
-    validateForm();
-    updateLegalityStatus();
-    refreshMoveExclusions();
-    $('#move1').parentElement.classList.remove('field-error');
-    $('#move2').parentElement.classList.remove('field-error');
-    $('#move3').parentElement.classList.remove('field-error');
-    $('#move4').parentElement.classList.remove('field-error');
-  });
-  $('#move4').addEventListener('focus', () => {
-    $('#move1').parentElement.classList.remove('field-error');
-    $('#move2').parentElement.classList.remove('field-error');
-    $('#move3').parentElement.classList.remove('field-error');
-    $('#move4').parentElement.classList.remove('field-error');
-  });
+  for (const moveId of ['move1', 'move2', 'move3', 'move4']) {
+    const moveEl = $('#' + moveId);
+    moveEl.addEventListener('change', () => {
+      refreshMoveExclusions();
+      updateMoveLegalityUi();
+      validateForm();
+      updateLegalityStatus();
+      moveEl.parentElement.classList.remove('field-error');
+    });
+  }
   $('#otName').addEventListener('input', () => {
     // Programmatic encounter-language changes do not emit a native change
     // event. Re-assert the active language limit before validating user input.
@@ -6199,6 +6223,7 @@ function boot(){
       const shouldLockSid = !manualOverrideActive && profileLockSid;
       const shouldLockOtName = !manualOverrideActive && profileLockOtName;
       const shouldLockOriginGame = !manualOverrideActive && (
+        pidFinderResultActive ||
         (currentEncounterMode === 'mystery' && tag !== 'BOX_EVENT' && !usesEditableOriginGame) ||
         shouldLockStaticEncounterOriginFields() ||
         Boolean(cxdEncounter)
@@ -10686,7 +10711,13 @@ function boot(){
     'staticEncounter', 'shadowEncounter', 'cxdTradeEncounter',
   ]);
   document.addEventListener('change', event => {
-    if (profileSelectionFields.has(String(event.target?.id || ''))) {
+    const selectionId = String(event.target?.id || '');
+    if (selectionId === 'originGame' && event.isTrusted) {
+      preserveManualOriginGameSelection = true;
+    } else if (selectionId && selectionId !== 'originGame' && profileSelectionFields.has(selectionId)) {
+      preserveManualOriginGameSelection = false;
+    }
+    if (profileSelectionFields.has(selectionId)) {
       queueActiveProfileTrainerDefaults();
     }
   });
@@ -12636,6 +12667,7 @@ function initPidFinder() {
     lockStyle($('#nature'));
     lockStyle($('#gender'));
     lockStyle($('#pid'));
+    lockStyle($('#originGame'));
     lockStyle(abilitySel);
     for (const id of ['ivHp','ivAtk','ivDef','ivSpAtk','ivSpDef','ivSpe']) {
       lockStyle($('#' + id));
@@ -12675,6 +12707,8 @@ function initPidFinder() {
     }
 
     checkShiny();
+    try { refreshMoveExclusions(); } catch (e) {}
+    try { updateMoveLegalityUi(); } catch (e) {}
     try { updateGCTidSidWarning(); } catch (e) {}
     try { updateRSTidSidWarning(); } catch (e) {}
     try { updatePidTidSidWarning(); } catch (e) {}
