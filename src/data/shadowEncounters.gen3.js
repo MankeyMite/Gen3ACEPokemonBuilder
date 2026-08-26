@@ -256,3 +256,22 @@ export function isValidGCTidSid(tid, sid) {
   }
   return false;
 }
+
+/**
+ * Find a GameCube-reachable SID that makes a PID shiny for the supplied TID.
+ * Generation III has exactly eight shiny SID candidates (shiny XOR 0-7).
+ * Prefer the lowest shiny XOR so Auto-Set remains deterministic.
+ *
+ * @returns {{sid:number, shinyXor:number}|null}
+ */
+export function findValidGCShinySid(tid, pid) {
+  const normalizedTid = Number(tid) & 0xFFFF;
+  const normalizedPid = Number(pid) >>> 0;
+  const pidXor = ((normalizedPid >>> 16) ^ (normalizedPid & 0xFFFF)) & 0xFFFF;
+  const baseSid = (normalizedTid ^ pidXor) & 0xFFFF;
+  for (let shinyXor = 0; shinyXor < 8; shinyXor++) {
+    const sid = (baseSid ^ shinyXor) & 0xFFFF;
+    if (isValidGCTidSid(normalizedTid, sid)) return { sid, shinyXor };
+  }
+  return null;
+}

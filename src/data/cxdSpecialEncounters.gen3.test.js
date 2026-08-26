@@ -76,8 +76,22 @@ assert.ok(
   'single-ability GameCube encounters must search legal ability number 0',
 );
 assert.ok(
-  mainSource.includes('const autoAllowed = policy.kind === SHINY_CONTROL_KIND.DIRECT && !sidLocked;'),
-  'correlated GameCube encounters must not allow an SID-only shiny change',
+  mainSource.includes('(policy.kind === SHINY_CONTROL_KIND.FINDER && canAutoSetGameCubeSid())'),
+  'eligible GameCube encounters should allow Auto-Set only through the GameCube SID validator',
+);
+assert.ok(
+  mainSource.includes('gameCubeSidResult = findValidGCShinySid(tid, pid);'),
+  'GameCube Auto-Set must validate the selected TID/PID before applying an SID',
+);
+const acceptedAutoSidIndex = mainSource.indexOf('pidFinderOriginalSid = newSid;');
+const dispatchedAutoSidIndex = mainSource.indexOf('setMainSidValue(newSid);', acceptedAutoSidIndex);
+assert.ok(
+  acceptedAutoSidIndex >= 0 && dispatchedAutoSidIndex > acceptedAutoSidIndex,
+  'Auto-Set must accept the validated SID before its input event checks for manual ID changes',
+);
+assert.ok(
+  mainSource.includes('_updatePidTidSidWarning = updatePidTidSidWarning;'),
+  'the PID Finder must be able to refresh the trainer-ID warning after applying a result',
 );
 assert.ok(
   mainSource.includes("document.getElementById('pfShiny')"),

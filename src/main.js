@@ -23,7 +23,7 @@ import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
 import { getMinimumHatchedLevel, getWildAncestor, PRE_EVOLUTIONS } from './data/evolutions.gen3.js';
 import { PROFANITY_LIST } from './data/profanity.gen3.js';
 import { createProfanityFilter } from './lib/profanityFilter.js';
-import { isValidGCTidSid } from './data/shadowEncounters.gen3.js';
+import { findValidGCShinySid, isValidGCTidSid } from './data/shadowEncounters.gen3.js';
 import { COLO_SHADOW_LOCKS, XD_SHADOW_LOCKS, COLO_NO_LOCK_SPECIES, XD_NO_LOCK_SPECIES } from './data/cxdLocks.gen3.js';
 import { getCXDTradeLocalizedText, isCXDGeneratedTrade } from './data/cxdTrades.gen3.js';
 import {
@@ -167,6 +167,7 @@ let _postImportUpdate = null;
 let _setEncounterModeDescription = null;
 let _updateSpeciesListForMode = null;
 let _validateForm = null;
+let _updatePidTidSidWarning = null;
 let _updateContestSheenAuto = null;
 let _applyContestSpeciesRequirements = null;
 let _syncLegalModeToggle = null;
@@ -8685,6 +8686,7 @@ function boot(){
 
     warningEl.style.display = 'none';
   }
+  _updatePidTidSidWarning = updatePidTidSidWarning;
 
   /**
    * Apply static encounter preset for a species.
@@ -11229,6 +11231,15 @@ function initPidFinder() {
     });
   }
 
+  function canAutoSetGameCubeSid() {
+    if (currentEncounterMode !== 'cxd_shadow') return false;
+    const encounter = getSelectedCXDEncounter();
+    if (!encounter || encounter.shinyLocked || encounter.fixedSID !== undefined) return false;
+    // GameCube starters derive TID, SID, PID, and IVs from one encounter RNG
+    // tuple, so changing only their SID would break that correlation.
+    return !String(encounter.pidType || '').includes('STARTER');
+  }
+
   function resetPendingResult(message = '') {
     pendingPidFinderResult = null;
     pendingPidFinderRow?.classList.remove('is-selected');
@@ -11279,7 +11290,10 @@ function initPidFinder() {
     const pfShinyEl = document.getElementById('pfShiny');
     const pfSidEl = document.getElementById('pfSid');
     const sidLocked = pfSidEl?.dataset.encounterLocked === '1';
-    const autoAllowed = policy.kind === SHINY_CONTROL_KIND.DIRECT && !sidLocked;
+    const autoAllowed = !sidLocked && (
+      policy.kind === SHINY_CONTROL_KIND.DIRECT ||
+      (policy.kind === SHINY_CONTROL_KIND.FINDER && canAutoSetGameCubeSid())
+    );
     const shinyLocked = policy.kind === SHINY_CONTROL_KIND.LOCKED;
     const alwaysShiny = policy.kind === SHINY_CONTROL_KIND.ALWAYS;
 
@@ -11381,7 +11395,7 @@ function initPidFinder() {
     try { updateBerryFixOtPreferenceUi(); } catch (e) {}
     try { checkShiny(); } catch (e) {}
     try { updateMakeShinyButton(); } catch (e) {}
-    try { updatePidTidSidWarning(); } catch (e) {}
+    try { _updatePidTidSidWarning?.(); } catch (e) {}
     try { _validateForm?.(); } catch (e) {}
   }
 
@@ -12028,7 +12042,11 @@ function initPidFinder() {
       (currentEncounterMode === 'static' && (Number($('#originGame').value) || 3) === 15);
     const selectedCXDForTrainerCheck = currentEncounterMode === 'cxd_shadow' ? getSelectedCXDEncounter() : null;
     const starterSearchDerivesTrainerIds = String(selectedCXDForTrainerCheck?.pidType || '').includes('STARTER');
-    if (isCXDPreSearch && !starterSearchDerivesTrainerIds && selectedCXDForTrainerCheck?.fixedSID === undefined && !isValidGCTidSid(tid, sid)) {
+    const willAutoSetGameCubeSid = Boolean(
+      wantShinyCheckbox?.checked && autoSidRadio?.checked &&
+      !autoSidRadio.disabled && canAutoSetGameCubeSid()
+    );
+    if (isCXDPreSearch && !willAutoSetGameCubeSid && !starterSearchDerivesTrainerIds && selectedCXDForTrainerCheck?.fixedSID === undefined && !isValidGCTidSid(tid, sid)) {
       const proceed = confirm(
         'Warning: This TID/SID combination is not possible in Colosseum/XD.\n\n' +
         'The IDs must be consecutive GC RNG outputs reachable from the ' +
@@ -12326,6 +12344,7 @@ function initPidFinder() {
     // filter. Remove any rare shiny rows returned by the general RNG search.
     const wantsShiny = Boolean(wantShinyCheckbox?.checked);
     const autoShinySid = Boolean(wantsShiny && autoSidRadio?.checked && !autoSidRadio.disabled);
+    const autoGameCubeSid = Boolean(autoShinySid && canAutoSetGameCubeSid());
     const modalTid = Number(document.getElementById('pfTid')?.value) & 0xFFFF;
     const modalSid = Number(document.getElementById('pfSid')?.value) & 0xFFFF;
     const resultIsShiny = r => isShinyForIds(
@@ -12342,6 +12361,16 @@ function initPidFinder() {
       filtered = filtered.filter(r => !resultIsShiny(r));
     } else if (!autoShinySid) {
       filtered = filtered.filter(resultIsShiny);
+    }
+    if (autoGameCubeSid) {
+      filtered = filtered.filter(r => {
+        const resultTid = Number.isFinite(Number(r.tid)) ? (Number(r.tid) & 0xFFFF) : modalTid;
+        const validSid = findValidGCShinySid(resultTid, r.pid);
+        if (!validSid) return false;
+        r.autoShinySid = validSid.sid;
+        r.autoShinyXor = validSid.shinyXor;
+        return true;
+      });
     }
     if (filterHpType !== 'any') {
       filtered = filtered.filter(r => r.hpt === filterHpType);
@@ -12711,7 +12740,7 @@ function initPidFinder() {
     try { updateMoveLegalityUi(); } catch (e) {}
     try { updateGCTidSidWarning(); } catch (e) {}
     try { updateRSTidSidWarning(); } catch (e) {}
-    try { updatePidTidSidWarning(); } catch (e) {}
+    try { _updatePidTidSidWarning?.(); } catch (e) {}
     try { updateTidSidLocking(); } catch (e) {}
     try { updateCXDTradeIdentityLocking(); } catch (e) {}
     try { updateMakeShinyButton(); } catch (e) {}
@@ -12810,21 +12839,41 @@ function initPidFinder() {
         if (pendingStatus) pendingStatus.textContent = 'Select a legal PID result before confirming.';
         return;
       }
+      let gameCubeSidResult = null;
+      if (autoMode && canAutoSetGameCubeSid()) {
+        const pid = Number(pendingPidFinderResult.pid) >>> 0;
+        const modalTid = Number(document.getElementById('pfTid')?.value) & 0xFFFF;
+        const tid = Number.isFinite(Number(pendingPidFinderResult.tid))
+          ? (Number(pendingPidFinderResult.tid) & 0xFFFF)
+          : modalTid;
+        gameCubeSidResult = findValidGCShinySid(tid, pid);
+        if (!gameCubeSidResult) {
+          if (pendingStatus) {
+            pendingStatus.textContent = 'This PID has no GameCube-valid shiny SID for the selected TID. Choose another result.';
+          }
+          return;
+        }
+      }
       applySelectedResult(pendingPidFinderResult);
       if (autoMode) {
         const pid = Number(pendingPidFinderResult.pid) >>> 0;
         const tid = Number($('#tid')?.value) & 0xFFFF;
         const preferredSid = (((pid >>> 16) & 0xFFFF) ^ (pid & 0xFFFF) ^ tid) & 0xFFFF;
-        const newSid = adjustShinySidForOriginGame(tid, pid, preferredSid).sid;
-        setMainSidValue(newSid);
+        const newSid = gameCubeSidResult?.sid ?? adjustShinySidForOriginGame(tid, pid, preferredSid).sid;
         pidFinderOriginalTid = tid;
         pidFinderOriginalSid = newSid;
+        // Accept the validated Auto-Set pair before dispatching the SID input
+        // event, so the manual-change warning never flashes for this flow.
+        setMainSidValue(newSid);
         const mainShiny = $('#shiny');
         if (mainShiny) mainShiny.checked = true;
-        if (sidStatus) sidStatus.textContent = `SID was set to ${newSid} to make this PID shiny.`;
+        if (sidStatus) sidStatus.textContent = gameCubeSidResult
+          ? `SID set to ${newSid} — shiny and GameCube-valid.`
+          : `SID was set to ${newSid} to make this PID shiny.`;
         checkShiny();
+        try { updateGCTidSidWarning(); } catch (e) {}
         try { updateRSTidSidWarning(); } catch (e) {}
-        try { updatePidTidSidWarning(); } catch (e) {}
+        try { _updatePidTidSidWarning?.(); } catch (e) {}
         try { _validateForm?.(); } catch (e) {}
       } else if (sidStatus) {
         sidStatus.textContent = '';
