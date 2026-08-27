@@ -96,6 +96,7 @@
     .kbd{background:rgba(255,255,255,0.04);padding:0 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.02);font-family:ui-monospace,Menlo,Consolas}
     .footer{margin-top:12px;color:var(--muted);font-size:0.95rem}
     .panel-tip{margin-top:10px;color:var(--muted);font-size:0.9rem}
+    .dexreg-test-code{display:inline-block;white-space:pre;color:var(--fg);font-family:"Atkinson Hyperlegible Mono",Consolas,monospace;font-weight:700;font-variant-ligatures:none}
     .instructions{margin-top:18px;padding:0;border-radius:8px}
     details.instructions{background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(0,0,0,0.02));border:1px solid rgba(255,255,255,0.03);overflow:hidden}
     details.instructions[open] summary{border-bottom:1px solid rgba(255,255,255,0.03)}
@@ -895,9 +896,14 @@
         htmlT += '<li>After typing the five box names above, save the game and execute the code with your stable ACE species.</li>';
         htmlT += '<li>A Porygon2 should spawn in Box 14, Slot 30.</li>';
         htmlT += '<li>Replace the Pokémon in Box 14, Slot 29 with this Porygon2. Keep the nicknamed Pokemon somewhere in box 1-10 until you confirm the Porygon2 payload works.</li>';
-        htmlT += '<li>Execute ACE again. Another Porygon2 should spawn in Box 14, Slot 30 and, if it was not already owned, be registered in the Pokédex.</li>';
-        htmlT += '<li>You may release the newly spawned copy of Porygon2 from Slot 30.</li>';
-        htmlT += '<li>The setup is now complete. The earlier nicknamed Pokémon is no longer needed and can be deleted. You can now use the main builder website to create Pokémon in box 14 slot 30.</li>';
+        if(isBaseFRLGGame()){
+          htmlT += '<li>You can test if it is working by typing this test code: <strong>Box 1:</strong> <span class="dexreg-test-code"><span class="code-char-upper">AQD</span><span class="code-char-symbol">?</span><span class="code-char-upper">P</span><span class="code-char-lower">w</span><span class="code-char-underscore">__</span>&#32;&#32;</span> <strong>(two spaces at the end!)</strong>. Save the game, then execute. This should spawn a Bulbasaur in Box 14, Slot 30. You should delete it afterward, as it does not have enough data to be used normally. If you did not already have Bulbasaur, check that it was registered in the Pokédex. If you do not want it registered, reset the game instead. If you ever want to create Pokémon without registering them in the Pokédex, swap this Porygon2 for the previous J7VC Pokémon.</li>';
+          htmlT += '<li>The setup is now complete. You can now use the main builder website to create Pokémon in box 14 slot 30.</li>';
+        } else {
+          htmlT += '<li>Execute ACE again. Another Porygon2 should spawn in Box 14, Slot 30 and, if it was not already owned, be registered in the Pokédex.</li>';
+          htmlT += '<li>You may release the newly spawned copy of Porygon2 from Slot 30.</li>';
+          htmlT += '<li>The setup is now complete. The earlier nicknamed Pokémon is no longer needed and can be deleted. You can now use the main builder website to create Pokémon in box 14 slot 30.</li>';
+        }
         htmlT += '<li><strong>Important:</strong> If you want to execute regular ACE codes in the future, make sure to move WELDR and the Porygon2 out of Box 14 first.</li>';
         htmlT += '<li><a class="builder-start-link" href="https://mankeymite.github.io/Gen3ACEPokemonBuilder/">Open the Gen 3 ACE Pokémon Builder</a></li>';
         htmlT += '</ol></div>';

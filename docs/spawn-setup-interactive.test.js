@@ -93,6 +93,16 @@ assert.match(
 );
 assert.match(
   inlineScript,
+  /if\(isBaseFRLGGame\(\)\)\{[\s\S]*?AQD[\s\S]*?&#32;&#32;[\s\S]*?This should spawn a Bulbasaur in Box 14, Slot 30\.[\s\S]*?The setup is now complete\./,
+  'FireRed/LeafGreen DexReg instructions should include the two-space Bulbasaur test and the renumbered completion step',
+);
+assert.match(
+  inlineScript,
+  /If you ever want to create Pokémon without registering them in the Pokédex, swap this Porygon2 for the previous J7VC Pokémon\./,
+  'FireRed/LeafGreen should explain how to restore the non-registering J7VC setup',
+);
+assert.match(
+  inlineScript,
   /\[OＯ\]\/\.test\(plainCodeText\) && cleanNote\.indexOf\('upper case O \(O\)'\) < 0/,
   'Japanese keyboard rendering should not duplicate an existing uppercase-O clarification',
 );
