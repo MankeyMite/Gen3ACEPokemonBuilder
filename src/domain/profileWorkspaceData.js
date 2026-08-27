@@ -55,6 +55,15 @@ export function normalizeSaveIdentity(value = {}, fallbackGameLabel = '') {
   };
 }
 
+export function profileIdentityMatchesEncounter(identity, defaultGameId, currentGameId) {
+  const profileGameId = Number(identity?.gameId) || 0;
+  const normalizedDefaultGameId = Number(defaultGameId) || 0;
+  const normalizedCurrentGameId = Number(currentGameId) || 0;
+  return profileGameId > 0 &&
+    profileGameId === normalizedDefaultGameId &&
+    normalizedCurrentGameId === normalizedDefaultGameId;
+}
+
 export function normalizeProfile(value = {}) {
   const now = new Date().toISOString();
   let saveIdentity = null;

@@ -87,7 +87,7 @@ import {
 import { canSelectJapaneseLanguage } from './domain/languageAvailability.js';
 import { applyLanguageTextLimits } from './domain/languageTextLimits.js';
 import { getOtGenderLockPolicy } from './domain/otGenderLocking.js';
-import { BUILDER_SNAPSHOT_SCHEMA_VERSION } from './domain/profileWorkspaceData.js';
+import { BUILDER_SNAPSHOT_SCHEMA_VERSION, profileIdentityMatchesEncounter } from './domain/profileWorkspaceData.js';
 import { initProfileWorkspace } from './profileWorkspace.js';
 import {
   getDefaultMoveIdsForSpecies,
@@ -179,7 +179,8 @@ let profileWorkspaceController = null;
 let suppressProfileTrainerDefaults = false;
 let profileTrainerDefaultsQueued = false;
 let lastProfileTrainerSignature = '';
-let preserveManualOriginGameSelection = false;
+let lastProfileEncounterSignature = '';
+let profileEncounterDefaultGameId = 0;
 let hasGeneratedCode = false;
 
 function markGeneratedCodeFresh() {
@@ -194,10 +195,23 @@ function markGeneratedCodeStale() {
   if (warning) warning.hidden = false;
 }
 
-function getProfileTrainerSignature() {
-  const ids = ['species', 'originGame', 'mysteryEvent', 'staticCategory', 'staticEncounter', 'shadowEncounter', 'cxdTradeEncounter'];
+function getProfileEncounterSignature() {
+  const ids = ['species', 'mysteryEvent', 'staticCategory', 'staticEncounter', 'shadowEncounter', 'cxdTradeEncounter'];
   const selection = ids.map(id => String(document.getElementById(id)?.value || '')).join('|');
-  return `${profileWorkspaceController?.getActiveProfile()?.id || ''}|${currentEncounterMode}|${selection}`;
+  return `${currentEncounterMode}|${selection}`;
+}
+
+function getProfileEncounterDefaultGameId() {
+  const encounterSignature = getProfileEncounterSignature();
+  if (encounterSignature !== lastProfileEncounterSignature) {
+    lastProfileEncounterSignature = encounterSignature;
+    profileEncounterDefaultGameId = Number(document.getElementById('originGame')?.value || 0);
+  }
+  return profileEncounterDefaultGameId;
+}
+
+function getProfileTrainerSignature() {
+  return `${profileWorkspaceController?.getActiveProfile()?.id || ''}|${getProfileEncounterSignature()}|${getProfileEncounterDefaultGameId()}`;
 }
 
 function isProfileEditableField(element) {
@@ -210,33 +224,18 @@ function applyActiveProfileTrainerDefaults({ force = false } = {}) {
   const signature = getProfileTrainerSignature();
   if (!force && signature === lastProfileTrainerSignature) return false;
 
-  const activeProfile = profileWorkspaceController.getActiveProfile();
-  const preferredIdentity = activeProfile?.saves?.[0] || null;
   const originGameElement = document.getElementById('originGame');
-  let originGameChangedForProfile = false;
-  let gameId = Number(originGameElement?.value || 0);
-  let identity = profileWorkspaceController.getActiveIdentity(gameId);
-
-  // A profile stores one game's trainer identity. Prefer that game when it is
-  // a legal, editable choice for this encounter. Fixed distributions and
-  // encounters with a different game never receive mismatched profile data.
-  if (!identity && preferredIdentity && (force || !preserveManualOriginGameSelection) && isProfileEditableField(originGameElement)) {
-    const preferredGameId = Number(preferredIdentity.gameId) || 0;
-    const preferredOption = Array.from(originGameElement?.options || [])
-      .find(option => Number(option.value) === preferredGameId);
-    if (preferredOption && !preferredOption.disabled && !preferredOption.hidden) {
-      originGameElement.value = String(preferredGameId);
-      originGameChangedForProfile = true;
-      try { originGameElement.dispatchEvent(new Event('change', { bubbles: true })); } catch (error) {}
-      gameId = Number(originGameElement.value || 0);
-      identity = profileWorkspaceController.getActiveIdentity(gameId);
-    }
-  }
+  const defaultGameId = getProfileEncounterDefaultGameId();
+  const currentGameId = Number(originGameElement?.value || 0);
+  const activeIdentity = profileWorkspaceController.getActiveProfile()?.saves?.[0] || null;
+  const identity = profileIdentityMatchesEncounter(activeIdentity, defaultGameId, currentGameId)
+    ? activeIdentity
+    : null;
 
   lastProfileTrainerSignature = getProfileTrainerSignature();
   if (!identity) return false;
 
-  let changed = originGameChangedForProfile;
+  let changed = false;
   const setValue = (id, value) => {
     const element = document.getElementById(id);
     if (!isProfileEditableField(element) || value == null) return;
@@ -10714,11 +10713,6 @@ function boot(){
   ]);
   document.addEventListener('change', event => {
     const selectionId = String(event.target?.id || '');
-    if (selectionId === 'originGame' && event.isTrusted) {
-      preserveManualOriginGameSelection = true;
-    } else if (selectionId && selectionId !== 'originGame' && profileSelectionFields.has(selectionId)) {
-      preserveManualOriginGameSelection = false;
-    }
     if (profileSelectionFields.has(selectionId)) {
       queueActiveProfileTrainerDefaults();
     }

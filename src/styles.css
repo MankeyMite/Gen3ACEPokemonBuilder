@@ -82,6 +82,7 @@ body.profile-drawer-open .profile-drawer-toggle-label {
   width: 330px;
   max-width: calc(100vw - 2.75rem);
   padding: 1rem;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   border-right: 1px solid #285270;
@@ -459,12 +460,16 @@ body.profile-drawer-open {
 
 .workspace-tree {
   display: grid;
+  width: 100%;
+  min-width: 0;
   gap: 0.15rem;
   margin-top: 0.6rem;
 }
 
 .workspace-folder {
   position: relative;
+  width: 100%;
+  min-width: 0;
   border-bottom: 1px solid #1e4059;
 }
 
@@ -505,14 +510,18 @@ body.profile-drawer-open {
 }
 
 .workspace-folder-content {
+  width: 100%;
+  min-width: 0;
   padding: 0.2rem 0.25rem 0.95rem 1.35rem;
 }
 
 .workspace-folder-note {
+  max-width: 100%;
   margin: 0.2rem 0 0.65rem;
   color: #91aabe;
   font-size: 0.72rem;
   line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .profile-panel-block {
@@ -539,6 +548,9 @@ body.profile-drawer-open {
 .recent-generation-picker {
   position: relative;
   z-index: 10;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .recent-generation-picker-button {
@@ -547,6 +559,8 @@ body.profile-drawer-open {
   justify-content: space-between;
   gap: 0.5rem;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 2.55rem;
   padding: 0.55rem 0.7rem;
   border: 1px solid #326487;
@@ -588,6 +602,8 @@ body.profile-drawer-open {
   left: 0;
   z-index: 20;
   max-height: 15rem;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.3rem;
   overflow-y: auto;
   border: 1px solid #39749a;
@@ -621,6 +637,9 @@ body.profile-drawer-open {
 
 .recent-generation-detail {
   display: grid;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   gap: 0.2rem;
   margin-top: 0.6rem;
   padding: 0.65rem;
@@ -630,17 +649,23 @@ body.profile-drawer-open {
 }
 
 .recent-generation-detail strong {
+  min-width: 0;
+  max-width: 100%;
   color: #e0edf6;
   font-size: 0.78rem;
   overflow-wrap: anywhere;
 }
 
 .recent-generation-detail > span {
+  min-width: 0;
+  max-width: 100%;
   color: #91aabe;
   font-size: 0.7rem;
 }
 
 .workspace-folder-content .profile-backup-actions {
+  min-width: 0;
+  max-width: 100%;
   justify-content: flex-start;
   padding-top: 0.65rem;
   border-top: 1px solid #24465e;
@@ -648,6 +673,17 @@ body.profile-drawer-open {
 
 .workspace-folder-content .profile-empty-state {
   margin: 0.55rem 0 0;
+}
+
+.recent-generation-actions {
+  min-width: 0;
+  max-width: 100%;
+  justify-content: flex-start;
+}
+
+.profile-drawer .recent-generation-actions button {
+  flex: 0 1 auto;
+  max-width: 100%;
 }
 
 @media (max-width: 820px) {

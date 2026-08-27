@@ -6,9 +6,15 @@ import {
   createWorkspaceBackup,
   importWorkspaceBackup,
   normalizeWorkspace,
+  profileIdentityMatchesEncounter,
   upsertProfile,
   upsertSaveIdentity,
 } from './profileWorkspaceData.js';
+
+const fireRedIdentity = { gameId: 4 };
+assert.equal(profileIdentityMatchesEncounter(fireRedIdentity, 4, 4), true);
+assert.equal(profileIdentityMatchesEncounter(fireRedIdentity, 3, 3), false, 'a profile must not replace a different default game');
+assert.equal(profileIdentityMatchesEncounter(fireRedIdentity, 3, 4), false, 'changing the game later must not trigger a mismatched profile');
 
 let workspace = createEmptyWorkspace();
 workspace = upsertProfile(workspace, { id: 'emerald-profile', name: 'Emerald', saves: [] });
