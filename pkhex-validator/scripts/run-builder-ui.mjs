@@ -128,6 +128,42 @@ try {
   await client.send('Runtime.enable');
   await waitFor(client, "document.documentElement.classList.contains('builder-ready')");
 
+  const moveDiscoveryHints = await evaluate(client, `(() => {
+    const encounterMode = document.querySelector('#encounterMode');
+    encounterMode.value = 'wild';
+    encounterMode.dispatchEvent(new Event('change', { bubbles: true }));
+    const species = document.querySelector('#species');
+    if (!species.selectById(395)) return { error: 'Could not select Bagon.' };
+    const level = document.querySelector('#level');
+    level.value = '23';
+    level.dispatchEvent(new Event('input', { bubbles: true }));
+    level.dispatchEvent(new Event('change', { bubbles: true }));
+
+    const moveInput = document.querySelector('#move1-input');
+    moveInput.focus();
+    const dropdown = document.querySelector('#move1 .autocomplete-dropdown');
+    const alternatives = [...dropdown.querySelectorAll('.autocomplete-item.disabled')].map(item => ({
+      name: item.querySelector('.autocomplete-item-name')?.textContent,
+      hint: item.querySelector('.autocomplete-item-hint')?.textContent,
+    }));
+    const heading = dropdown.querySelector('.autocomplete-group-label')?.textContent;
+    const selectedBefore = document.querySelector('#move1').value;
+    dropdown.querySelector('.autocomplete-item.disabled')?.dispatchEvent(
+      new MouseEvent('mousedown', { bubbles: true, cancelable: true }),
+    );
+    return {
+      heading,
+      alternatives,
+      disabledSelectionBlocked: document.querySelector('#move1').value === selectedBefore,
+    };
+  })()`);
+  if (moveDiscoveryHints.error || moveDiscoveryHints.heading !== 'Available with a different encounter' ||
+      !moveDiscoveryHints.alternatives.some(item => item.hint === 'Level 25') ||
+      !moveDiscoveryHints.alternatives.some(item => item.hint === 'Egg move') ||
+      !moveDiscoveryHints.disabledSelectionBlocked) {
+    throw new Error(`Unexpected legal-mode move discovery hints: ${JSON.stringify(moveDiscoveryHints)}`);
+  }
+
   const legalHex = JSON.stringify(fixtures.knownLegal.hex);
   await evaluate(client, `(() => {
     document.querySelector('#importHexInput').value = ${legalHex};
@@ -158,10 +194,12 @@ try {
       version: document.querySelector('#pkhexReportVersion').textContent,
       checksum: document.querySelector('#pkhexReportChecksum').textContent,
       verboseLength: document.querySelector('#pkhexVerboseReport').textContent.length,
+      validLineCount: document.querySelectorAll('#pkhexVerboseReport .pkhex-verbose-line-valid').length,
     };
   })()`);
   if (!gbaReport.open || gbaReport.result !== 'Verified' || !gbaReport.environment.includes('gba-cartridge') ||
-      gbaReport.version !== '26.8.26' || gbaReport.checksum !== 'Valid' || gbaReport.verboseLength < 10) {
+      gbaReport.version !== '26.8.26' || gbaReport.checksum !== 'Valid' || gbaReport.verboseLength < 10 ||
+      gbaReport.validLineCount === 0) {
     throw new Error(`Unexpected GBA report: ${JSON.stringify(gbaReport)}`);
   }
   await evaluate(client, "document.querySelector('#pkhexReportClose').click()");
@@ -180,9 +218,11 @@ try {
       result: document.querySelector('#pkhexReportResult').textContent,
       checksum: document.querySelector('#pkhexReportChecksum').textContent,
       verbose: document.querySelector('#pkhexVerboseReport').textContent,
+      invalidLineCount: document.querySelectorAll('#pkhexVerboseReport .pkhex-verbose-line-invalid').length,
     };
   })()`);
-  if (illegalReport.result !== 'Failed' || illegalReport.checksum !== 'Valid' || !illegalReport.verbose.includes('Invalid')) {
+  if (illegalReport.result !== 'Failed' || illegalReport.checksum !== 'Valid' || !illegalReport.verbose.includes('Invalid') ||
+      illegalReport.invalidLineCount === 0) {
     throw new Error(`Unexpected illegal-Pokémon report: ${JSON.stringify(illegalReport)}`);
   }
   await evaluate(client, "document.querySelector('#pkhexReportClose').click()");

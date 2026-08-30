@@ -14,6 +14,10 @@ assert.match(mainSource, /beginPkhexVerification\(new Uint8Array\(importedRoundT
 assert.match(mainSource, /const requestToken = \+\+pkhexGenerationToken/);
 assert.match(mainSource, /if \(requestToken !== pkhexGenerationToken\) return/);
 assert.match(mainSource, /markPkhexVerificationStale\(\)/);
+assert.match(mainSource, /function getPkhexVerboseLineSeverity\(line\)[\s\S]*?invalid[\s\S]*?fishy[\s\S]*?valid/);
+assert.match(mainSource, /function renderPkhexVerboseReport\(result\)[\s\S]*?element\.replaceChildren\(\)[\s\S]*?line\.textContent = part/);
+assert.match(mainSource, /renderPkhexVerboseReport\(latestPkhexResult\)/);
+assert.match(await readFile(new URL('./styles.css', import.meta.url), 'utf8'), /\.pkhex-verbose-line-valid[\s\S]*?\.pkhex-verbose-line-invalid[\s\S]*?\.pkhex-verbose-line-fishy/);
 assert.match(clientSource, /const exactCopy = sourceBytes\.slice\(\)/);
 assert.doesNotMatch(clientSource, /convertEk3RawToPk3Canonical\(/);
 assert.match(workerSource, /fifo = fifo\.then\(\(\) => processMessage\(event\.data\)\)/);

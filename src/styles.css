@@ -1138,6 +1138,9 @@ body.encounter-roamer .shiny-external { display: none; }
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.pkhex-verbose-line-valid { color: #86efac; }
+.pkhex-verbose-line-invalid { color: #fca5a5; font-weight: 700; }
+.pkhex-verbose-line-fishy { color: #fde047; font-weight: 700; }
 .pkhex-structured-checks {
   margin-top: 0.85rem;
   color: var(--muted);
@@ -1165,6 +1168,7 @@ body.encounter-roamer .shiny-external { display: none; }
 .pkhex-check-severity { color: var(--muted); font-size: 0.75rem; }
 .pkhex-check-severity[data-severity="valid"] { color: #86efac; }
 .pkhex-check-severity[data-severity="invalid"] { color: #fca5a5; }
+.pkhex-check-severity[data-severity="fishy"] { color: #fde047; }
 .pkhex-check-row p {
   margin: 0.35rem 0 0;
   color: var(--muted);

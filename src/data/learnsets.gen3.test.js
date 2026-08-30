@@ -12,9 +12,18 @@ function tutorSpeciesFor(moveId) {
     .map(([speciesId]) => Number(speciesId));
 }
 
+function xdTutorSpeciesFor(moveId) {
+  return Object.entries(LEARNSETS)
+    .filter(([, learnset]) => learnset.x.includes(moveId))
+    .map(([speciesId]) => Number(speciesId));
+}
+
 assert.equal(tutorSpeciesFor(SELF_DESTRUCT).length, 48, 'XD Self-Destruct compatibility count');
 assert.equal(tutorSpeciesFor(SKY_ATTACK).length, 27, 'XD Sky Attack compatibility count');
 assert.equal(tutorSpeciesFor(NIGHTMARE).length, 69, 'XD Nightmare compatibility count');
+assert.equal(xdTutorSpeciesFor(SELF_DESTRUCT).length, 48, 'XD Self-Destruct provenance count');
+assert.equal(xdTutorSpeciesFor(SKY_ATTACK).length, 27, 'XD Sky Attack provenance count');
+assert.equal(xdTutorSpeciesFor(NIGHTMARE).length, 69, 'XD Nightmare provenance count');
 
 // Kanto IDs are unchanged, while Hoenn species must resolve through names to
 // this builder's non-National Gen III internal order.
@@ -35,6 +44,7 @@ for (const moveId of MEW_XD_TUTORS) {
 }
 for (const moveId of [SELF_DESTRUCT, SKY_ATTACK, NIGHTMARE, ...MEW_XD_TUTORS]) {
   assert.ok(LEARNSETS[151].u.includes(moveId), `Mew should learn XD tutor move ${moveId}`);
+  assert.ok(LEARNSETS[151].x.includes(moveId), `Mew should retain XD-only provenance for move ${moveId}`);
 }
 
 console.log('All Gen 3 XD tutor learnset tests passed.');

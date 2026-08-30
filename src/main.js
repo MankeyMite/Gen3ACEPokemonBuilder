@@ -93,6 +93,7 @@ import {
   getDefaultMoveIdsForSpecies,
   getSelectableMovesForSpecies,
 } from './domain/smeargleMoveRules.js';
+import { getAlternativeMoveHints } from './domain/moveDiscoveryHints.js';
 import {
   resolveImportedProgression,
   resolveShowdownAbilitySlot,
@@ -258,6 +259,34 @@ function setPkhexReportValue(id, value) {
   if (element) element.textContent = value;
 }
 
+function getPkhexVerboseLineSeverity(line) {
+  const normalized = String(line || '').toLowerCase();
+  if (/\b(invalid|illegal|not valid|fail(?:ed|ure)?|error)\b/.test(normalized)) return 'invalid';
+  if (/\b(fishy|suspicious|warning|unverified)\b/.test(normalized)) return 'fishy';
+  if (/\bvalid\b/.test(normalized)) return 'valid';
+  return '';
+}
+
+function renderPkhexVerboseReport(result) {
+  const element = document.getElementById('pkhexVerboseReport');
+  if (!element) return;
+
+  const report = String(
+    result?.verboseReport || result?.simpleReport || 'No legality report was returned.',
+  );
+  element.replaceChildren();
+
+  for (const part of report.split(/(\r?\n)/)) {
+    const line = document.createElement('span');
+    const severity = getPkhexVerboseLineSeverity(part);
+    line.className = severity
+      ? `pkhex-verbose-line pkhex-verbose-line-${severity}`
+      : 'pkhex-verbose-line';
+    line.textContent = part;
+    element.appendChild(line);
+  }
+}
+
 function renderPkhexChecks(result) {
   const section = document.getElementById('pkhexStructuredChecks');
   const container = document.getElementById('pkhexChecksList');
@@ -297,10 +326,7 @@ function openPkhexLegalityReport() {
   setPkhexReportValue('pkhexReportEnvironment', formatPkhexEnvironment(latestPkhexResult.environment));
   setPkhexReportValue('pkhexReportVersion', latestPkhexResult.pkhexVersion || 'Unknown');
   setPkhexReportValue('pkhexReportChecksum', checksum ? 'Valid' : 'Invalid');
-  setPkhexReportValue(
-    'pkhexVerboseReport',
-    latestPkhexResult.verboseReport || latestPkhexResult.simpleReport || 'No legality report was returned.',
-  );
+  renderPkhexVerboseReport(latestPkhexResult);
   renderPkhexChecks(latestPkhexResult);
 
   const overlay = document.getElementById('pkhexReportOverlay');
@@ -2644,6 +2670,9 @@ function parsePidInput(s){
 
 // Turn any entry into [name, id], supporting both [name,id] and [id,name]
 function toNameId(entry) {
+  if (entry && typeof entry === 'object' && !Array.isArray(entry) && 'id' in entry) {
+    return [String(entry.name ?? ''), Number(entry.id)];
+  }
   if (!Array.isArray(entry) || entry.length < 2) return [String(entry), 0];
   const [a, b] = entry;
 
@@ -2719,10 +2748,18 @@ function createAutocomplete(selectEl, list, opts = {}) {
   const masterList = opts.masterList || null;
   
   // Store the data - make it mutable so we can update it
-  let items = list.map(row => {
+  const toAutocompleteItem = row => {
     const [name, id] = toNameId(row);
-    return { name, id: String(id) };
-  });
+    return {
+      name,
+      id: String(id),
+      disabled: Boolean(row?.disabled),
+      hint: typeof row?.hint === 'string' ? row.hint : '',
+      group: typeof row?.group === 'string' ? row.group : '',
+    };
+  };
+  const itemIsDisabled = item => Boolean(item?.disabled) || isItemDisabled(item);
+  let items = list.map(toAutocompleteItem);
   let masterItems = masterList ? masterList.map(row => {
     const [name, id] = toNameId(row);
     return { name, id: String(id) };
@@ -2777,10 +2814,7 @@ function createAutocomplete(selectEl, list, opts = {}) {
   // Expose method to update the list
   // opts.preserveValue — keep current selection even if it's not in the new list
   wrapper.updateList = function(newList, opts = {}) {
-    items = newList.map(row => {
-      const [name, id] = toNameId(row);
-      return { name, id: String(id) };
-    });
+    items = newList.map(toAutocompleteItem);
     // Clear current selection if it's not in the new list
     // (unless preserveValue is set — keeps e.g. mystery-gift moves visible)
     if (!opts.preserveValue) {
@@ -2797,7 +2831,7 @@ function createAutocomplete(selectEl, list, opts = {}) {
   // browsing so every existing species-change side effect remains intact.
   wrapper.selectById = function(value) {
     const item = items.find(candidate => candidate.id === String(value));
-    if (!item || isItemDisabled(item)) return false;
+    if (!item || itemIsDisabled(item)) return false;
     selectItem(item);
     return true;
   };
@@ -2831,15 +2865,32 @@ function createAutocomplete(selectEl, list, opts = {}) {
     }
     
     // Show all filtered items, but dropdown is scrollable and visually limited to 5
+    let activeGroup = '';
     filtered.forEach((item, idx) => {
+      if (item.group && item.group !== activeGroup) {
+        const group = document.createElement('div');
+        group.className = 'autocomplete-group-label';
+        group.textContent = item.group;
+        dropdown.appendChild(group);
+        activeGroup = item.group;
+      }
       const div = document.createElement('div');
       div.className = 'autocomplete-item';
-      const disabled = Boolean(isItemDisabled(item));
+      const disabled = itemIsDisabled(item);
       if (disabled) {
         div.classList.add('disabled');
         div.setAttribute('aria-disabled', 'true');
       }
-      div.textContent = item.name;
+      const name = document.createElement('span');
+      name.className = 'autocomplete-item-name';
+      name.textContent = item.name;
+      div.appendChild(name);
+      if (item.hint) {
+        const hint = document.createElement('span');
+        hint.className = 'autocomplete-item-hint';
+        hint.textContent = item.hint;
+        div.appendChild(hint);
+      }
       div.dataset.id = item.id;
       div.dataset.index = idx;
       div.addEventListener('mousedown', (e) => {
@@ -2852,7 +2903,7 @@ function createAutocomplete(selectEl, list, opts = {}) {
   }
   
   function selectItem(item) {
-    if (isItemDisabled(item)) return;
+    if (itemIsDisabled(item)) return;
     selectedId = item.id;
     input.value = item.name;
     dropdown.classList.remove('show');
@@ -2923,7 +2974,7 @@ function createAutocomplete(selectEl, list, opts = {}) {
         const exactMatch = items.find(item => 
           item.name.toLowerCase() === input.value.toLowerCase()
         );
-        if (exactMatch && !isItemDisabled(exactMatch)) {
+        if (exactMatch && !itemIsDisabled(exactMatch)) {
           selectItem(exactMatch);
         } else {
           // Clear invalid input
@@ -3325,9 +3376,16 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
         pokemonLevel: level,
       })) idSet.add(mid);
     }
-    // TM/HM & tutor moves — always allowed (no level restriction)
+    // TM/HM and Game Boy Advance tutors have no level restriction. Pokémon XD
+    // tutors are recorded separately so ordinary GBA encounters can show them
+    // as an accurate disabled "XD only" discovery hint instead of selectable.
     if (data.t) for (const mid of data.t) idSet.add(mid);
-    if (data.u) for (const mid of data.u) idSet.add(mid);
+    const xdTutorMoveIds = new Set(data.x || []);
+    if (data.u) {
+      for (const mid of data.u) {
+        if (String(mode).startsWith('cxd_') || !xdTutorMoveIds.has(mid)) idSet.add(mid);
+      }
+    }
     // Egg moves — only in hatched mode
     // Include egg moves from this species and all pre-evolutions in the chain
     if (mode === 'hatched') {
@@ -3367,6 +3425,21 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
     ? new Set(MOVES.map(([id]) => Number(id)).filter(id => id > 0))
     : new Set(baseMoves.map(([id]) => Number(id)).filter(id => id > 0));
   baseMoves = sortMoveListAlphabetically(baseMoves);
+  const supportsAlternativeMoveHints = !manualOverrideActive &&
+    !directWildMoveOverride &&
+    ['wild', 'static', 'roamer', 'hatched'].includes(currentEncounterMode);
+  if (supportsAlternativeMoveHints) {
+    baseMoves = baseMoves.concat(getAlternativeMoveHints({
+      moves: MOVES,
+      learnsets: LEARNSETS,
+      preEvolutions: PRE_EVOLUTIONS,
+      speciesId,
+      levelUpMoves,
+      legalMoveIds: currentLegalMoveIds,
+      encounterMode: currentEncounterMode,
+      pokemonLevel: level,
+    }));
+  }
 
   // Fresh ordinary encounters start with the last four level-up moves learned
   // at their current level. Keep curated distribution, import, and CXD moves
@@ -3403,7 +3476,10 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
       selected.filter((id, j) => j !== i && id && id !== '0' && id !== '')
     );
     const filtered = othersSelected.size > 0
-      ? baseMoves.filter(([id]) => id === 0 || !othersSelected.has(String(id)))
+      ? baseMoves.filter(row => {
+        const [, id] = toNameId(row);
+        return id === 0 || !othersSelected.has(String(id));
+      })
       : baseMoves;
     ac.updateList(filtered, { preserveValue: effectivePreserveValue });
   }
