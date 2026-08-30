@@ -1,3 +1,12 @@
+Patch Notes - (V.0.5.1) - August 30, 2026.
+- Fixed Ruby/Sapphire Base64 guide displaying wrong codes for console.
+- Added a PkHex.core powered legality checker inside the builder! You no longer need to export ek3/pk3 files to PkHex for validation.
+- Set default PP ups to 0 instead of 3.
+- Updated the base64 writer guide for FR/LG. 
+- Trainer profiles now only load when the selected Pokémon has a matching Origin game. Recent generations now also stay contained within the tool menu.
+- Shadow XD Pokemon may now use the Auto-set SID button to make them shiny, by making sure the TID/SID combo is Gamecube legal when a PID is selected.
+- Fixed an issue where wild evolved pokemon would load a move from a previous evolution that is not possible to find on a wild encounter.
+
 Patch Notes - (V.0.5.0) - August 26, 2026.
 - Added a builder tool panel to the site, including trainer profiles and viewing recent generations that is saved locally. This can be very useful if you don't want to input your TID, SID, OT name and OT gender every time you create a new Pokémon.
 - Added color explanation to the Base64 guide, as well as making code 2 and 3 easier to type correctly.

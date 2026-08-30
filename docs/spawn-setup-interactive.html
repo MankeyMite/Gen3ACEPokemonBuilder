@@ -227,7 +227,7 @@
               <li>Box 10 slot 22 is empty.</li>
             </ul>
 
-            <p>Choose your setup using the Platform / emulator menu above. A Game Boy Advance, Nintendo DS with a real cartridge, or mGBA version 0.9 or newer uses "GBA / Nintendo DS / mGBA". Most other emulators use "Old Emulator".</p>
+            <p>Ruby and Sapphire use the same 0x44FC ACE offsets on every platform. Select "GBA / Nintendo DS / mGBA"; the guide automatically uses the required Ruby/Sapphire offsets for all three setup codes.</p>
             <p>You may now start typing the first code. Then execute it and keep going with the next codes until your setup is complete.</p>
           </div>
 
@@ -643,6 +643,9 @@
 
       // Emulator mode: 'modern' or 'old'
       function effectiveMode(){
+        // Ruby/Sapphire 0x44FC ACE always uses the old-emulator offsets,
+        // including on a real console or modern emulator.
+        if(isRSGame()) return 'old';
         if(isFRLGSwitchGame()) return 'modern';
         return selectedMode || 'modern';
       }
@@ -1166,18 +1169,25 @@
       function updateModeOptionVisibility(){
         if(!deviceSelect) return;
         var switchOption = deviceSelect.querySelector('option[value="switch"]');
+        var oldOption = deviceSelect.querySelector('option[value="old"]');
         var myBoyOption = deviceSelect.querySelector('option[value="myboy"]');
         var switchAllowed = isBaseFRLGGame();
+        var oldAllowed = !isRSGame();
         var myBoyAllowed = isMyBoySupportedGame();
         if(switchOption){
           switchOption.hidden = !switchAllowed;
           switchOption.disabled = !switchAllowed;
+        }
+        if(oldOption){
+          oldOption.hidden = !oldAllowed;
+          oldOption.disabled = !oldAllowed;
         }
         if(myBoyOption){
           myBoyOption.hidden = !myBoyAllowed;
           myBoyOption.disabled = !myBoyAllowed;
         }
         if(!switchAllowed && selectedMode === 'switch') selectedMode = null;
+        if(!oldAllowed && selectedMode === 'old') selectedMode = null;
         if(!myBoyAllowed && selectedMode === 'myboy') selectedMode = null;
       }
 

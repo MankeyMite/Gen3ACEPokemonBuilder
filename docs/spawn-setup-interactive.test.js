@@ -37,6 +37,37 @@ const platformSelectorMarkup = html.slice(
 assert.match(platformSelectorMarkup, /value="switch">Nintendo Switch/);
 assert.match(platformSelectorMarkup, /value="modern">GBA \/ Nintendo DS \/ mGBA/);
 
+assert.match(
+  inlineScript,
+  /function effectiveMode\(\)\{[\s\S]*?if\(isRSGame\(\)\) return 'old';/,
+  'Ruby/Sapphire must use the old-emulator offsets for every 0x44FC setup code',
+);
+assert.match(
+  inlineScript,
+  /var code1Box1 = \{[\s\S]*?old:\s+'B C U n x 0 E H'/,
+  'Ruby/Sapphire Code 1 should keep its existing old-emulator offset',
+);
+assert.match(
+  inlineScript,
+  /var code2Box5 = \{[\s\S]*?old:\s+'_ H B [^']* e L Q [^']*'/,
+  'Ruby/Sapphire Code 2 should use the old-emulator offset',
+);
+assert.match(
+  inlineScript,
+  /var code3Box5 = \{[\s\S]*?old:\s+'_ H B [^']* 8 L Q [^']*'/,
+  'Ruby/Sapphire Code 3 should use the old-emulator offset',
+);
+assert.match(
+  inlineScript,
+  /var oldAllowed = !isRSGame\(\);[\s\S]*?oldOption\.hidden = !oldAllowed;[\s\S]*?oldOption\.disabled = !oldAllowed;/,
+  'Ruby/Sapphire should not offer a separate Old Emulator platform choice',
+);
+assert.match(
+  html,
+  /Ruby and Sapphire use the same 0x44FC ACE offsets on every platform\./,
+  'Ruby/Sapphire instructions should explain why Old Emulator is not selectable',
+);
+
 const switchLanguageLists = inlineScript.slice(
   inlineScript.indexOf('var fireRedSwitchLanguageOptions'),
   inlineScript.indexOf('var rsLanguageOptions'),
