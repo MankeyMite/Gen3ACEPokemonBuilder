@@ -5,10 +5,17 @@ import { spawn } from 'node:child_process';
 import fixtures from '../wwwroot/fixtures.generated.js';
 
 const chromeCandidates = [
+  process.env.CHROME_BIN,
+  process.env.GOOGLE_CHROME_BIN,
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
   'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-];
+  '/usr/bin/google-chrome',
+  '/usr/bin/google-chrome-stable',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+].filter(Boolean);
 const chromePath = chromeCandidates.find(candidate => fs.existsSync(candidate));
 if (!chromePath) throw new Error('Chrome or Edge was not found.');
 

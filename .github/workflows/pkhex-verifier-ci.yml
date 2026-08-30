@@ -1,0 +1,129 @@
+name: Build PKHeX verifier future site
+
+on:
+  push:
+    branches:
+      - pkhex-verifier
+  pull_request:
+    branches:
+      - pkhex-verifier
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pkhex-verifier-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_NOLOGO: '1'
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+    steps:
+      - name: Check out the feature branch
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Run existing JavaScript tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r test_file; do
+            node "$test_file"
+          done < <(rg --files -g '*.test.js' | sort)
+
+      - name: Regenerate and verify PKHeX fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          node ./pkhex-validator/scripts/generate-fixtures.mjs
+          git diff --exit-code -- pkhex-validator/wwwroot/fixtures.generated.js
+
+      - name: Set up pinned .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.400'
+          cache: true
+          cache-dependency-path: pkhex-validator/packages.lock.json
+
+      - name: Confirm .NET SDK pin and install wasm-tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(dotnet --version)" = '10.0.400'
+          dotnet workload install wasm-tools --skip-manifest-update
+          dotnet workload list
+
+      - name: Restore PKHeX validator with locked NuGet packages
+        run: dotnet restore ./pkhex-validator/PkhexValidator.Browser.csproj --locked-mode
+
+      - name: Publish PKHeX validator from source
+        run: dotnet publish ./pkhex-validator/PkhexValidator.Browser.csproj -c Release --no-restore -o ./pkhex-validator/dist
+
+      - name: Locate Chrome for browser-WASM tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          chrome_bin="$(command -v google-chrome || command -v google-chrome-stable)"
+          test -n "$chrome_bin"
+          echo "CHROME_BIN=$chrome_bin" >> "$GITHUB_ENV"
+          "$chrome_bin" --version
+
+      - name: Run PKHeX.Core browser-WASM feasibility spike
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            cd ./pkhex-validator/dist/wwwroot
+            node ../../../qa-server.cjs > "$RUNNER_TEMP/pkhex-spike-server.log" 2>&1 &
+            server_pid=$!
+            trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+            for attempt in {1..30}; do
+              curl --fail --silent http://127.0.0.1:8012/ > /dev/null && break
+              sleep 1
+            done
+            curl --fail --silent http://127.0.0.1:8012/ > /dev/null
+            node "$GITHUB_WORKSPACE/pkhex-validator/scripts/run-browser-spike.mjs"
+          )
+
+      - name: Assemble the future GitHub Pages site artifact
+        run: node ./scripts/assemble-pkhex-site.mjs ./.pkhex-site
+
+      - name: Verify artifact structure, Pages-relative paths, and sizes
+        shell: bash
+        run: node ./scripts/verify-pkhex-site-artifact.mjs ./.pkhex-site | tee ./.pkhex-site/pkhex-artifact-metrics.json
+
+      - name: Run complete PKHeX-enabled UI against a Pages-style project path
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ./.pkhex-preview/Gen3ACEPokemonBuilder
+          cp -a ./.pkhex-site/. ./.pkhex-preview/Gen3ACEPokemonBuilder/
+          (
+            cd ./.pkhex-preview
+            node ../qa-server.cjs > "$RUNNER_TEMP/pkhex-preview-server.log" 2>&1 &
+            server_pid=$!
+            trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+            for attempt in {1..30}; do
+              curl --fail --silent http://127.0.0.1:8012/Gen3ACEPokemonBuilder/index.html > /dev/null && break
+              sleep 1
+            done
+            curl --fail --silent http://127.0.0.1:8012/Gen3ACEPokemonBuilder/index.html > /dev/null
+            node "$GITHUB_WORKSPACE/pkhex-validator/scripts/run-builder-ui.mjs" http://127.0.0.1:8012/Gen3ACEPokemonBuilder/index.html
+          )
+
+      - name: Upload future PKHeX-enabled site artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkhex-verifier-future-site
+          path: ./.pkhex-site
+          if-no-files-found: error
+          retention-days: 14
