@@ -109,6 +109,7 @@ import {
   getGen3RibbonLegality,
   validateGen3RibbonSelection,
 } from './domain/ribbonLegality.js';
+import { preloadPkhexValidator, validateExactStoredPokemon } from './lib/pkhexValidator.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -183,6 +184,185 @@ let lastProfileEncounterSignature = '';
 let profileEncounterDefaultGameId = 0;
 let hasGeneratedCode = false;
 
+const PKHEX_ENVIRONMENT = Object.freeze({
+  GBA_CARTRIDGE: 'gba-cartridge',
+  SWITCH_FRLG: 'switch-frlg',
+});
+let pkhexLegalityEnvironment = PKHEX_ENVIRONMENT.GBA_CARTRIDGE;
+let pkhexGenerationToken = 0;
+let pkhexVerificationState = 'idle';
+let latestPkhexResult = null;
+let latestPkhexAttempt = null;
+
+function getPkhexChecksumCheck(result) {
+  return Array.isArray(result?.checks)
+    ? result.checks.find(check => String(check?.identifier || '').toLowerCase() === 'checksum') || null
+    : null;
+}
+
+function isPkhexChecksumValid(result) {
+  return String(getPkhexChecksumCheck(result)?.severity || '').toLowerCase() === 'valid';
+}
+
+function isFullyPkhexVerified(result) {
+  return result?.valid === true && result?.parsed === true && isPkhexChecksumValid(result);
+}
+
+function setPkhexLegalityEnvironment(environment) {
+  if (!Object.values(PKHEX_ENVIRONMENT).includes(environment)) {
+    throw new TypeError(`Unsupported PKHeX legality environment: ${environment}`);
+  }
+  pkhexLegalityEnvironment = environment;
+}
+
+function renderPkhexVerificationStatus(state, result = latestPkhexResult) {
+  const container = document.getElementById('pkhexVerificationStatus');
+  const label = document.getElementById('pkhexVerificationText');
+  const reportButton = document.getElementById('pkhexReportBtn');
+  const retryButton = document.getElementById('pkhexRetryBtn');
+  if (!container || !label || !reportButton || !retryButton) return;
+
+  pkhexVerificationState = state;
+  container.dataset.state = state;
+  container.hidden = state === 'idle';
+  reportButton.hidden = true;
+  retryButton.hidden = true;
+
+  if (state === 'checking') {
+    label.textContent = '⏳ Verifying with PKHeX...';
+  } else if (state === 'verified') {
+    label.textContent = '✓ Verified by PKHeX.Core';
+    reportButton.hidden = false;
+  } else if (state === 'failed') {
+    label.textContent = '✕ PKHeX verification failed';
+    reportButton.hidden = false;
+  } else if (state === 'unavailable') {
+    label.textContent = '⚠ PKHeX verification unavailable';
+    retryButton.hidden = !latestPkhexAttempt;
+  } else if (state === 'stale') {
+    label.textContent = '○ Verification outdated';
+    reportButton.hidden = !result;
+  } else {
+    label.textContent = '';
+  }
+}
+
+function formatPkhexEnvironment(environment) {
+  if (environment === PKHEX_ENVIRONMENT.SWITCH_FRLG) return 'Nintendo Switch FRLG (switch-frlg)';
+  if (environment === PKHEX_ENVIRONMENT.GBA_CARTRIDGE) return 'Original GBA / cartridge (gba-cartridge)';
+  return environment || 'Unknown';
+}
+
+function setPkhexReportValue(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = value;
+}
+
+function renderPkhexChecks(result) {
+  const section = document.getElementById('pkhexStructuredChecks');
+  const container = document.getElementById('pkhexChecksList');
+  if (!section || !container) return;
+
+  container.replaceChildren();
+  const checks = Array.isArray(result?.checks) ? result.checks : [];
+  section.hidden = checks.length === 0;
+  for (const check of checks) {
+    const row = document.createElement('div');
+    row.className = 'pkhex-check-row';
+
+    const heading = document.createElement('div');
+    heading.className = 'pkhex-check-heading';
+    const identifier = document.createElement('strong');
+    identifier.textContent = check?.identifier || 'Check';
+    const severity = document.createElement('span');
+    severity.className = 'pkhex-check-severity';
+    severity.dataset.severity = String(check?.severity || '').toLowerCase();
+    severity.textContent = check?.severity || 'Unknown';
+    heading.append(identifier, severity);
+
+    const message = document.createElement('p');
+    message.textContent = check?.message || '';
+    row.append(heading, message);
+    container.appendChild(row);
+  }
+}
+
+function openPkhexLegalityReport() {
+  if (!latestPkhexResult) return;
+
+  const verified = isFullyPkhexVerified(latestPkhexResult);
+  const checksum = isPkhexChecksumValid(latestPkhexResult);
+  const staleSuffix = pkhexVerificationState === 'stale' ? ' (outdated)' : '';
+  setPkhexReportValue('pkhexReportResult', `${verified ? 'Verified' : 'Failed'}${staleSuffix}`);
+  setPkhexReportValue('pkhexReportEnvironment', formatPkhexEnvironment(latestPkhexResult.environment));
+  setPkhexReportValue('pkhexReportVersion', latestPkhexResult.pkhexVersion || 'Unknown');
+  setPkhexReportValue('pkhexReportChecksum', checksum ? 'Valid' : 'Invalid');
+  setPkhexReportValue(
+    'pkhexVerboseReport',
+    latestPkhexResult.verboseReport || latestPkhexResult.simpleReport || 'No legality report was returned.',
+  );
+  renderPkhexChecks(latestPkhexResult);
+
+  const overlay = document.getElementById('pkhexReportOverlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  document.getElementById('pkhexReportClose')?.focus();
+}
+
+function closePkhexLegalityReport() {
+  const overlay = document.getElementById('pkhexReportOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden', 'true');
+  document.getElementById('pkhexReportBtn')?.focus();
+}
+
+function beginPkhexVerification(sourceBytes, environment = pkhexLegalityEnvironment) {
+  if (!(sourceBytes instanceof Uint8Array) || sourceBytes.byteLength !== 80) {
+    latestPkhexAttempt = null;
+    renderPkhexVerificationStatus('unavailable');
+    return;
+  }
+
+  // This is the exact final encrypted stored-Pokémon buffer used by the ACE
+  // payload. Copy it at the Generate boundary and do not reinterpret it here.
+  const exactBytes = sourceBytes.slice();
+  const requestToken = ++pkhexGenerationToken;
+  latestPkhexAttempt = { bytes: exactBytes.slice(), environment };
+  latestPkhexResult = null;
+  renderPkhexVerificationStatus('checking', null);
+
+  void validateExactStoredPokemon(exactBytes, environment)
+    .then(result => {
+      if (requestToken !== pkhexGenerationToken) return;
+      if (!result || result.error) {
+        renderPkhexVerificationStatus('unavailable', null);
+        return;
+      }
+
+      latestPkhexResult = result;
+      renderPkhexVerificationStatus(isFullyPkhexVerified(result) ? 'verified' : 'failed', result);
+    })
+    .catch(error => {
+      if (requestToken !== pkhexGenerationToken) return;
+      console.warn('PKHeX verification unavailable:', error);
+      renderPkhexVerificationStatus('unavailable', null);
+    });
+}
+
+function retryPkhexVerification() {
+  if (!latestPkhexAttempt) return;
+  beginPkhexVerification(latestPkhexAttempt.bytes, latestPkhexAttempt.environment);
+}
+
+function markPkhexVerificationStale() {
+  if (pkhexVerificationState === 'idle' || pkhexVerificationState === 'stale') return;
+  pkhexGenerationToken += 1;
+  latestPkhexAttempt = null;
+  renderPkhexVerificationStatus('stale', latestPkhexResult);
+}
+
 function markGeneratedCodeFresh() {
   hasGeneratedCode = true;
   const warning = document.getElementById('generatedCodeStaleWarning');
@@ -193,6 +373,7 @@ function markGeneratedCodeStale() {
   if (!hasGeneratedCode) return;
   const warning = document.getElementById('generatedCodeStaleWarning');
   if (warning) warning.hidden = false;
+  markPkhexVerificationStale();
 }
 
 function getProfileEncounterSignature() {
@@ -10523,9 +10704,28 @@ function boot(){
     setOutputTroubleshootingVisible(true);
   }
 
-  $('#generateBtn').addEventListener('click', () => {
+  const generateButton = $('#generateBtn');
+  generateButton.addEventListener('click', () => {
     resetManualSwitchBoxConversion();
     onGenerate();
+  });
+  const preloadValidator = () => {
+    void preloadPkhexValidator().catch(() => {
+      // Generate still performs a normal lazy load and exposes Retry on error.
+    });
+  };
+  generateButton.addEventListener('pointerenter', preloadValidator);
+  generateButton.addEventListener('focus', preloadValidator);
+  $('#pkhexReportBtn')?.addEventListener('click', openPkhexLegalityReport);
+  $('#pkhexRetryBtn')?.addEventListener('click', retryPkhexVerification);
+  $('#pkhexReportClose')?.addEventListener('click', closePkhexLegalityReport);
+  document.getElementById('pkhexReportOverlay')?.addEventListener('click', event => {
+    if (event.target === event.currentTarget) closePkhexLegalityReport();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && document.getElementById('pkhexReportOverlay')?.classList.contains('open')) {
+      closePkhexLegalityReport();
+    }
   });
   const markStaleFromBuilderField = event => {
     const target = event.target;
@@ -13260,6 +13460,11 @@ function undoSwitchBoxConversions() {
 function setOutputCodeTarget(target, options = {}) {
   const previousTarget = outputCodeTarget;
   outputCodeTarget = target === 'console' ? 'console' : 'switch';
+  setPkhexLegalityEnvironment(
+    outputCodeTarget === 'switch'
+      ? PKHEX_ENVIRONMENT.SWITCH_FRLG
+      : PKHEX_ENVIRONMENT.GBA_CARTRIDGE,
+  );
 
   if (previousTarget !== outputCodeTarget) resetManualSwitchBoxConversion();
 
@@ -13604,6 +13809,7 @@ function onGenerate(){
     hideBase64CharacterInspector();
     markGeneratedCodeFresh();
     recordRecentGeneration(new Uint8Array(importedRoundTripBytes), pristineOutput.base64Text);
+    beginPkhexVerification(new Uint8Array(importedRoundTripBytes), pkhexLegalityEnvironment);
     return pristineOutput;
   }
 
@@ -13629,6 +13835,7 @@ function onGenerate(){
   recordRecentGeneration(result.bytes, b64Result.text);
   hideBase64CharacterInspector();
   markGeneratedCodeFresh();
+  beginPkhexVerification(new Uint8Array(result.bytes), pkhexLegalityEnvironment);
   return b64Result;
 }
 
