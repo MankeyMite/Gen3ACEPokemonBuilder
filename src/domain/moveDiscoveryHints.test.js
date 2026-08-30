@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import { MOVES as GEN3_MOVES } from '../data/moves.gen3.js';
 import { LEARNSETS } from '../data/learnsets.gen3.js';
 import { PRE_EVOLUTIONS } from '../data/evolutions.gen3.js';
+import { CXD_SHADOW_ENCOUNTERS } from '../data/shadowEncounters.gen3.js';
+import { CXD_SPECIAL_ENCOUNTERS } from '../data/cxdSpecialEncounters.gen3.js';
+import { CXD_TRADE_ENCOUNTERS } from '../data/cxdTrades.gen3.js';
 import { getAllowedLevelUpMoveIdsForEncounter } from '../lib/gen3/hatchedMoveLegality.js';
 import { getAlternativeMoveHints, getEggMoveIdsForSpecies } from './moveDiscoveryHints.js';
 
@@ -87,5 +90,51 @@ const pidgeyHints = getAlternativeMoveHints({
   pokemonLevel: 100,
 });
 assert.ok(pidgeyHints.some(move => move.name === 'Sky Attack' && move.hint === 'XD only'));
+
+const moltres = LEARNSETS[146];
+const moltresLegalMoveIds = new Set([
+  ...getAllowedLevelUpMoveIdsForEncounter(moltres.d, {
+    speciesId: 146,
+    encounterMode: 'static',
+    pokemonLevel: 50,
+  }),
+  ...moltres.t,
+  ...moltres.u.filter(moveId => !moltres.x.includes(moveId)),
+]);
+const moltresHints = getAlternativeMoveHints({
+  moves: GEN3_MOVES,
+  learnsets: LEARNSETS,
+  preEvolutions: PRE_EVOLUTIONS,
+  xdEncounterLists: [CXD_SHADOW_ENCOUNTERS, CXD_SPECIAL_ENCOUNTERS, CXD_TRADE_ENCOUNTERS],
+  speciesId: 146,
+  levelUpMoves: moltres.d,
+  legalMoveIds: moltresLegalMoveIds,
+  encounterMode: 'static',
+  pokemonLevel: 50,
+});
+assert.ok(moltresHints.some(move => move.name === 'Will-O-Wisp' && move.hint === 'XD only'));
+
+const chikorita = LEARNSETS[152];
+const chikoritaLegalMoveIds = new Set([
+  ...getAllowedLevelUpMoveIdsForEncounter(chikorita.d, {
+    speciesId: 152,
+    encounterMode: 'static',
+    pokemonLevel: 5,
+  }),
+  ...chikorita.t,
+  ...chikorita.u.filter(moveId => !chikorita.x.includes(moveId)),
+]);
+const chikoritaHints = getAlternativeMoveHints({
+  moves: GEN3_MOVES,
+  learnsets: LEARNSETS,
+  preEvolutions: PRE_EVOLUTIONS,
+  xdEncounterLists: [CXD_SHADOW_ENCOUNTERS, CXD_SPECIAL_ENCOUNTERS, CXD_TRADE_ENCOUNTERS],
+  speciesId: 152,
+  levelUpMoves: chikorita.d,
+  legalMoveIds: chikoritaLegalMoveIds,
+  encounterMode: 'static',
+  pokemonLevel: 5,
+});
+assert.ok(chikoritaHints.some(move => move.name === 'Frenzy Plant' && move.hint === 'XD only'));
 
 console.log('Move discovery hint tests passed.');

@@ -20,6 +20,9 @@ import { hasDualAbilities, getSpeciesAbilities } from './data/pokemonAbilities.g
 import { LEARNSETS } from './data/learnsets.gen3.js';
 import { WILD_ENCOUNTERS } from './data/wildEncounters.gen3.js';
 import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
+import { CXD_SHADOW_ENCOUNTERS } from './data/shadowEncounters.gen3.js';
+import { CXD_SPECIAL_ENCOUNTERS } from './data/cxdSpecialEncounters.gen3.js';
+import { CXD_TRADE_ENCOUNTERS } from './data/cxdTrades.gen3.js';
 import { getMinimumHatchedLevel, getWildAncestor, PRE_EVOLUTIONS } from './data/evolutions.gen3.js';
 import { PROFANITY_LIST } from './data/profanity.gen3.js';
 import { createProfanityFilter } from './lib/profanityFilter.js';
@@ -3438,6 +3441,7 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
       legalMoveIds: currentLegalMoveIds,
       encounterMode: currentEncounterMode,
       pokemonLevel: level,
+      xdEncounterLists: [CXD_SHADOW_ENCOUNTERS, CXD_SPECIAL_ENCOUNTERS, CXD_TRADE_ENCOUNTERS],
     }));
   }
 

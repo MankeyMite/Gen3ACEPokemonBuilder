@@ -21,6 +21,18 @@ export function getEggMoveIdsForSpecies(speciesId, learnsets, preEvolutions) {
   return result;
 }
 
+export function getXdEncounterMoveIdsForSpecies(speciesId, encounterLists) {
+  const result = new Set();
+  for (const encounters of encounterLists || []) {
+    for (const encounter of encounters || []) {
+      const isXdEncounter = encounter?.game === 'xd' || encounter?.tradeKind === 'xd';
+      if (!isXdEncounter || Number(encounter.species) !== Number(speciesId)) continue;
+      for (const moveId of encounter.moves || []) result.add(Number(moveId));
+    }
+  }
+  return result;
+}
+
 /**
  * Return disabled, explanatory move-picker entries for moves that are not
  * legal for the current encounter but could be learned through another Gen III
@@ -35,6 +47,7 @@ export function getAlternativeMoveHints({
   legalMoveIds,
   encounterMode,
   pokemonLevel,
+  xdEncounterLists,
 }) {
   const legalIds = new Set([...legalMoveIds || []].map(Number));
   const alternatives = new Map();
@@ -69,6 +82,9 @@ export function getAlternativeMoveHints({
 
   if (!canUseXdTutors) {
     for (const moveId of learnsets[speciesId]?.x || []) {
+      offer(moveId, 'XD only', 2);
+    }
+    for (const moveId of getXdEncounterMoveIdsForSpecies(speciesId, xdEncounterLists)) {
       offer(moveId, 'XD only', 2);
     }
   }
