@@ -54,6 +54,20 @@ Open `http://127.0.0.1:8012/`. VS Code Live Server also works when its root is
 this repository and `pkhex-validator/dist` has been created by the publish
 script. The generated validator bundle is local-only and ignored by Git.
 
+## PKHeX.Core
+
+Legality verification is powered by [PKHeX.Core](https://github.com/kwsch/PKHeX),
+created by Kaphotics and contributors.
+
+This project currently uses PKHeX.Core for in-browser Gen III legality analysis.
+
+PKHeX.Core is licensed under GPL-3.0-or-later. The legality checker runs
+locally in the browser through WebAssembly; generated Pokémon data is not sent
+to a server.
+
+Huge thanks to the PKHeX project and its contributors for making such an
+extensive legality engine available as open-source software.
+
 
 ## 🙏 Acknowledgments
 
