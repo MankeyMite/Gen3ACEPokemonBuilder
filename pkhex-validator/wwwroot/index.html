@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PKHeX.Core browser-WASM feasibility spike</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    body { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; background: #111827; color: #e5e7eb; }
+    h1 { font-size: 1.5rem; }
+    #summary { padding: 1rem; border-radius: .5rem; background: #1f2937; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: .6rem; border-bottom: 1px solid #374151; text-align: left; vertical-align: top; }
+    .pass { color: #86efac; }
+    .fail { color: #fca5a5; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8rem; }
+  </style>
+  <script>window.pkhexSpikePageStarted = performance.now();</script>
+</head>
+<body>
+  <h1>PKHeX.Core browser-WASM feasibility spike</h1>
+  <p>This isolated harness passes exact 80-byte encrypted stored Pokémon buffers to <code>new PK3(bytes)</code>.</p>
+  <div id="summary">Loading .NET and PKHeX.Core…</div>
+  <div id="results"></div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

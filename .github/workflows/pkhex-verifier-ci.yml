@@ -1,9 +1,11 @@
-name: Build and deploy GitHub Pages site
+name: Build PKHeX verifier future site
 
 on:
   push:
     branches:
-      - main
+      - pkhex-verifier
+  pull_request:
+    branches:
       - pkhex-verifier
   workflow_dispatch:
 
@@ -11,18 +13,18 @@ permissions:
   contents: read
 
 concurrency:
-  group: github-pages-${{ github.ref }}
-  cancel-in-progress: false
+  group: pkhex-verifier-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  test-and-build:
     runs-on: ubuntu-latest
     env:
       DOTNET_NOLOGO: '1'
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
     steps:
-      - name: Check out the site
+      - name: Check out the feature branch
         uses: actions/checkout@v6
 
       - name: Set up Node.js
@@ -30,7 +32,7 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Run JavaScript tests
+      - name: Run existing JavaScript tests
         shell: bash
         run: |
           set -euo pipefail
@@ -64,7 +66,7 @@ jobs:
         run: dotnet restore ./pkhex-validator/PkhexValidator.Browser.csproj --locked-mode
 
       - name: Publish PKHeX validator from source
-        run: dotnet publish ./pkhex-validator/PkhexValidator.Browser.csproj -c Release --no-restore -p:RunAOTCompilation=false -p:PublishTrimmed=false -o ./pkhex-validator/dist
+        run: dotnet publish ./pkhex-validator/PkhexValidator.Browser.csproj -c Release --no-restore -o ./pkhex-validator/dist
 
       - name: Locate Chrome for browser-WASM tests
         shell: bash
@@ -92,21 +94,22 @@ jobs:
             node "$GITHUB_WORKSPACE/pkhex-validator/scripts/run-browser-spike.mjs"
           )
 
-      - name: Assemble the complete static site
-        run: node ./scripts/assemble-pkhex-site.mjs ./pkhex-site
+      - name: Assemble the future GitHub Pages site artifact
+        run: node ./scripts/assemble-pkhex-site.mjs ./.pkhex-site
 
-      - name: Verify Pages artifact structure and paths
-        run: node ./scripts/verify-pkhex-site-artifact.mjs ./pkhex-site
+      - name: Verify artifact structure, Pages-relative paths, and sizes
+        shell: bash
+        run: node ./scripts/verify-pkhex-site-artifact.mjs ./.pkhex-site | tee ./.pkhex-site/pkhex-artifact-metrics.json
 
       - name: Run complete PKHeX-enabled UI against a Pages-style project path
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p ./pkhex-preview/Gen3ACEPokemonBuilder
-          cp -a ./pkhex-site/. ./pkhex-preview/Gen3ACEPokemonBuilder/
+          mkdir -p ./.pkhex-preview/Gen3ACEPokemonBuilder
+          cp -a ./.pkhex-site/. ./.pkhex-preview/Gen3ACEPokemonBuilder/
           (
-            cd ./pkhex-preview
-            node ../qa-server.cjs > "$RUNNER_TEMP/pkhex-pages-preview-server.log" 2>&1 &
+            cd ./.pkhex-preview
+            node ../qa-server.cjs > "$RUNNER_TEMP/pkhex-preview-server.log" 2>&1 &
             server_pid=$!
             trap 'kill "$server_pid" 2>/dev/null || true' EXIT
             for attempt in {1..30}; do
@@ -117,27 +120,11 @@ jobs:
             node "$GITHUB_WORKSPACE/pkhex-validator/scripts/run-builder-ui.mjs" http://127.0.0.1:8012/Gen3ACEPokemonBuilder/index.html
           )
 
-      - name: Configure GitHub Pages
-        if: github.ref == 'refs/heads/main'
-        uses: actions/configure-pages@v5
-
-      - name: Upload the complete Pages artifact
-        uses: actions/upload-pages-artifact@v4
+      - name: Upload future PKHeX-enabled site artifact
+        uses: actions/upload-artifact@v4
         with:
-          path: ./pkhex-site
-
-  deploy:
-    if: github.ref == 'refs/heads/main'
-    needs: build
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    permissions:
-      pages: write
-      id-token: write
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          name: pkhex-verifier-future-site
+          path: ./.pkhex-site
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

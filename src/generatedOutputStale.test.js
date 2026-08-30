@@ -15,6 +15,6 @@ assert.match(mainSource, /target\.matches\('\.autocomplete-input'\)/);
 assert.match(mainSource, /target\.closest\('#basicsCard, #builderDetailsCard'\)/);
 assert.match(mainSource, /document\.addEventListener\('input', markStaleFromBuilderField\)/);
 assert.match(mainSource, /document\.addEventListener\('change', markStaleFromBuilderField\)/);
-assert.match(mainSource, /hideBase64CharacterInspector\(\);\s*markGeneratedCodeFresh\(\);\s*return b64Result;/);
+assert.match(mainSource, /hideBase64CharacterInspector\(\);\s*markGeneratedCodeFresh\(\);\s*beginPkhexVerification\(new Uint8Array\(result\.bytes\), pkhexLegalityEnvironment\);\s*return b64Result;/);
 
 console.log('generated output stale-warning tests passed');

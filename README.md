@@ -33,6 +33,27 @@ The tool generates proper Gen III Pokémon data structures:
 
 This tool is a work in progress, and has been created primarily using agentic coding inside Visual Studio Code. While extensive testing has been done, there may be undiscovered bugs or edge cases. Please report any issues you encounter!
 
+### Local PKHeX.Core verification
+
+The post-generation legality audit runs entirely in the browser through the
+separate .NET 10 WebAssembly project in `pkhex-validator`. Install the .NET 10
+SDK and its `wasm-tools` workload, then publish the local validator assets once:
+
+```powershell
+dotnet workload install wasm-tools
+.\pkhex-validator\scripts\publish-local.ps1
+```
+
+Start the repository-local static server from the repository root:
+
+```powershell
+node .\qa-server.cjs
+```
+
+Open `http://127.0.0.1:8012/`. VS Code Live Server also works when its root is
+this repository and `pkhex-validator/dist` has been created by the publish
+script. The generated validator bundle is local-only and ignored by Git.
+
 
 ## 🙏 Acknowledgments
 

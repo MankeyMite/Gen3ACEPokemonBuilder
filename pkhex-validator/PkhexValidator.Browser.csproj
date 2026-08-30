@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <InvariantGlobalization>true</InvariantGlobalization>
+
+    <!-- Feasibility baseline: correctness first, no AOT or linker trimming. -->
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <PublishTrimmed>false</PublishTrimmed>
+    <TrimMode>copyused</TrimMode>
+
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <PkhexCoreVersion>[26.8.26]</PkhexCoreVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PKHeX.Core" Version="$(PkhexCoreVersion)" />
+  </ItemGroup>
+</Project>

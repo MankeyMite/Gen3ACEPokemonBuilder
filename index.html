@@ -3160,8 +3160,13 @@
       </div>
 
       <!-- Legality Checker -->
-      <div class="row" style="align-items: center; gap: 1rem; margin-bottom: 1rem;">
+      <div class="row generate-output-row">
         <button id="generateBtn" type="button" data-disabled="true">Generate</button>
+        <div id="pkhexVerificationStatus" class="pkhex-verification-status" data-state="idle" hidden>
+          <span id="pkhexVerificationText" role="status" aria-live="polite"></span>
+          <button id="pkhexReportBtn" class="pkhex-inline-action" type="button" hidden>See legality report</button>
+          <button id="pkhexRetryBtn" class="pkhex-inline-action" type="button" hidden>Retry</button>
+        </div>
         <span id="generatedCodeStaleWarning" class="generated-code-stale-warning" role="status" aria-live="polite" hidden>Changes made — generate again.</span>
         <div id="legalityStatus" style="display: none; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; border-radius: 4px; background: var(--card-2);">
           <span id="legalityIcon" style="font-size: 1.2rem;">✓</span>
@@ -3257,6 +3262,30 @@
       </div>
       <input type="file" id="pk3FileInput" accept=".ek3,.pk3" style="display: none;">
     </section>
+
+    <!-- PKHeX.Core post-generation legality report -->
+    <div id="pkhexReportOverlay" class="pid-finder-overlay pkhex-report-overlay" role="dialog" aria-modal="true" aria-labelledby="pkhexReportTitle" aria-hidden="true">
+      <div class="pid-finder-modal pkhex-report-modal">
+        <div class="pid-finder-header">
+          <h3 id="pkhexReportTitle">PKHeX.Core Legality Report</h3>
+          <button id="pkhexReportClose" class="pid-finder-close" type="button" aria-label="Close legality report">&times;</button>
+        </div>
+        <div class="pid-finder-body pkhex-report-body">
+          <div class="pkhex-report-summary" aria-label="PKHeX verification summary">
+            <div><span>Result</span><strong id="pkhexReportResult">Not checked</strong></div>
+            <div><span>Environment</span><strong id="pkhexReportEnvironment">Unknown</strong></div>
+            <div><span>PKHeX.Core</span><strong id="pkhexReportVersion">Unknown</strong></div>
+            <div><span>Checksum</span><strong id="pkhexReportChecksum">Unknown</strong></div>
+          </div>
+          <h4>Verbose report</h4>
+          <pre id="pkhexVerboseReport" class="pkhex-verbose-report"></pre>
+          <details id="pkhexStructuredChecks" class="pkhex-structured-checks" hidden>
+            <summary>Structured checks</summary>
+            <div id="pkhexChecksList" class="pkhex-checks-list"></div>
+          </details>
+        </div>
+      </div>
+    </div>
 
     <!-- ── Import Pokémon Modal ────────────────────────── -->
     <div id="importOverlay" class="pid-finder-overlay">
