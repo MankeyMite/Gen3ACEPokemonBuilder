@@ -134,6 +134,9 @@ const DEFAULT_AUTO_SHEEN_ENABLED = true;
 const DEFAULT_FRIENDSHIP = '70';
 const DEFAULT_PP_UPS = '0';
 const STATIC_DEFAULT_CATEGORY_ID = 'starters';
+const SETUP_ORIGIN_GAME_IDS = [1, 2, 3, 4, 5];
+const HATCHED_RSE_DEFAULT_MET_LOCATION_ID = 9; // Mauville City
+const HATCHED_FRLG_DEFAULT_MET_LOCATION_ID = 146; // Four Island
 const STATIC_LOCKED_ORIGIN_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner', 'stationary']);
 const STATIC_LOCKED_MET_FIELD_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner', 'stationary', 'legends']);
 const STATIC_LOCKED_BALL_CATEGORIES = new Set(['starters', 'fossils', 'gifts', 'game_corner']);
@@ -418,6 +421,12 @@ function getProfileEncounterDefaultGameId() {
     profileEncounterDefaultGameId = Number(document.getElementById('originGame')?.value || 0);
   }
   return profileEncounterDefaultGameId;
+}
+
+function setProfileEncounterDefaultGameFromSetup(gameId) {
+  profileEncounterDefaultGameId = Number(gameId) || 0;
+  lastProfileEncounterSignature = getProfileEncounterSignature();
+  lastProfileTrainerSignature = '';
 }
 
 function getProfileTrainerSignature() {
@@ -3129,6 +3138,55 @@ const MIRAGE_ISLAND_LOCATION_ID = 71;
 const HATCHED_DISABLED_MET_LOCATION_IDS = new Set([253, 254, 255]);
 const COLOSSEUM_XD_ORIGIN_GAME_ID = 15;
 
+function getHatchedDefaultMetLocationId(originGame) {
+  return [4, 5].includes(Number(originGame))
+    ? HATCHED_FRLG_DEFAULT_MET_LOCATION_ID
+    : HATCHED_RSE_DEFAULT_MET_LOCATION_ID;
+}
+
+function applyHatchedOriginGameDefaults(originGame) {
+  const gameId = SETUP_ORIGIN_GAME_IDS.includes(Number(originGame))
+    ? Number(originGame)
+    : 3;
+  const locations = getLocationsForGame(gameId);
+  if (metLocationWrapper?.updateList) metLocationWrapper.updateList(locations);
+
+  const metLocation = $('#metLocation');
+  const defaultLocationId = getHatchedDefaultMetLocationId(gameId);
+  if (metLocation && locations.some(([id]) => Number(id) === defaultLocationId)) {
+    metLocation.value = String(defaultLocationId);
+  }
+}
+
+function syncSetupOriginGameSelector() {
+  const row = document.getElementById('setupOriginGameRow');
+  const setupSelect = document.getElementById('setupOriginGame');
+  const originGameSelect = document.getElementById('originGame');
+  if (!row || !setupSelect || !originGameSelect) return;
+
+  const shouldShow = currentEncounterMode === 'hatched' || currentEncounterMode === 'wild';
+  row.hidden = !shouldShow;
+  if (!shouldShow) return;
+
+  setupSelect.replaceChildren();
+  for (const gameId of SETUP_ORIGIN_GAME_IDS) {
+    const canonicalOption = Array.from(originGameSelect.options || [])
+      .find(option => Number(option.value) === gameId);
+    if (!canonicalOption) continue;
+    const option = document.createElement('option');
+    option.value = String(gameId);
+    option.textContent = canonicalOption.textContent;
+    option.disabled = canonicalOption.disabled;
+    option.hidden = canonicalOption.hidden;
+    setupSelect.appendChild(option);
+  }
+
+  const currentGame = String(originGameSelect.value || '3');
+  const hasCurrentGame = Array.from(setupSelect.options).some(option => option.value === currentGame);
+  setupSelect.value = hasCurrentGame ? currentGame : String(setupSelect.options[0]?.value || '');
+  setupSelect.disabled = !Array.from(setupSelect.options).some(option => !option.disabled);
+}
+
 /**
  * Given an array of merged level ranges [[min,max], ...] and a target level,
  * return the closest valid level that falls inside one of the ranges.
@@ -3292,6 +3350,7 @@ function updateWildEncounterFilters(speciesId, options = {}) {
     filterUnownFormsByLocation();
   }
   try { syncPidParityPreferenceUi(); } catch (e) {}
+  try { syncSetupOriginGameSelector(); } catch (e) {}
 }
 
 /**
@@ -3970,6 +4029,7 @@ function boot(){
     for (const className of ENCOUNTER_BODY_CLASSES) {
       document.body.classList.toggle(className, className === `encounter-${mode}`);
     }
+    syncSetupOriginGameSelector();
   }
 
   function getMysteryEventLabel(tag) {
@@ -5722,6 +5782,16 @@ function boot(){
       updateLegalityStatus();
     };
 
+    if (currentEncounterMode === 'hatched') {
+      applyHatchedOriginGameDefaults(newGame);
+      const speciesId = Number($('#species').value) || 0;
+      if (speciesId) updateMovesForSpecies(speciesId, { preserveValue: manualOverrideActive });
+      try { applyIsEggOverrides({ syncUi: true }); } catch (e) {}
+      try { updateHatchedOriginGameLocking(); } catch (e) {}
+      refreshOriginDependentLegality();
+      return;
+    }
+
     // In roamer mode, re-apply roamer preset for the new game
     if (currentEncounterMode === 'roamer') {
       const speciesId = Number($('#species').value) || 0;
@@ -5860,6 +5930,30 @@ function boot(){
     // Update legality status when origin game changes
     refreshOriginDependentLegality();
   });
+
+  const setupOriginGameSelect = document.getElementById('setupOriginGame');
+  setupOriginGameSelect?.addEventListener('change', () => {
+    const originGameSelect = $('#originGame');
+    const selectedOption = setupOriginGameSelect.selectedOptions?.[0];
+    if (!originGameSelect || !selectedOption || selectedOption.disabled) {
+      syncSetupOriginGameSelector();
+      return;
+    }
+
+    const gameId = Number(setupOriginGameSelect.value) || 0;
+    const canonicalOption = Array.from(originGameSelect.options || [])
+      .find(option => Number(option.value) === gameId);
+    if (!canonicalOption || canonicalOption.disabled) {
+      syncSetupOriginGameSelector();
+      return;
+    }
+
+    setProfileEncounterDefaultGameFromSetup(gameId);
+    originGameSelect.value = String(gameId);
+    originGameSelect.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  $('#originGame')?.addEventListener('change', syncSetupOriginGameSelector);
+  syncSetupOriginGameSelector();
 
   // Global listener to mark user modifications after a mystery preset is applied.
   // Any user-driven `input` or `change` (except `#nickname`) will flip the
@@ -8273,7 +8367,6 @@ function boot(){
       if (!pidFinderResultActive) applyRoamerPreset(speciesId);
     } else if (mode === 'hatched') {
       // Reset to hatched defaults when switching from legendaries
-      const metLocationSelect = $('#metLocation');
       const metLevelInput = $('#metLevel');
       const levelInput = $('#level');
       const fatefulCheckbox = $('#fatefulEncounter');
@@ -8285,10 +8378,6 @@ function boot(){
         genderSelect.style.cursor = '';
       }
       if (!suppressPresetApply) {
-      // Reset met location to Mauville City (location ID 9)
-      if (metLocationSelect) {
-        metLocationSelect.value = '9';
-      }
       // Reset met level to 0 (hatched)
       if (metLevelInput) {
         metLevelInput.value = '0';
@@ -8310,14 +8399,9 @@ function boot(){
         originGameSelect.value = '3';
       }
 
-      // Restore full location list for Emerald
-      if (metLocationWrapper && metLocationWrapper.updateList) {
-        metLocationWrapper.updateList(getLocationsForGame('3'));
-      }
-      // Re-set met location after the list is restored
-      if (metLocationSelect) {
-        metLocationSelect.value = '9';
-      }
+      // Emerald is the default; R/S/E hatch in Mauville City and FR/LG hatch
+      // on Four Island when the Game choice is changed later in the setup.
+      applyHatchedOriginGameDefaults(Number(originGameSelect?.value || 3));
       
       // Reset IVs to 31
       $('#ivHp').value = '31';
@@ -9317,7 +9401,9 @@ function boot(){
         updateMovesForSpecies(speciesId, { preserveValue: true });
       }
       updateLegalityStatus();
-    } catch (e) {}
+    } catch (e) {} finally {
+      syncSetupOriginGameSelector();
+    }
   }
 
   /**

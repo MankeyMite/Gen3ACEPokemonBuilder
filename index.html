@@ -765,7 +765,9 @@
 
     body.encounter-mystery #mysteryEventRow,
     body.encounter-static #staticEncounterRow,
-    body.encounter-cxd_shadow #shadowEncounterRow {
+    body.encounter-cxd_shadow #shadowEncounterRow,
+    body.encounter-hatched #setupOriginGameRow,
+    body.encounter-wild #setupOriginGameRow {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
@@ -833,6 +835,15 @@
 
     #pokemonOrigin {
       width: min(100%, 240px);
+    }
+
+    #setupOriginGame {
+      width: min(100%, 240px);
+    }
+
+    body.encounter-hatched #originGameDetailRow,
+    body.encounter-wild #originGameDetailRow {
+      display: none;
     }
 
     #encounterMode {
@@ -1395,34 +1406,45 @@
     }
 
     .code-target-tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
+      position: relative;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: stretch;
+      gap: 0.4rem;
       margin: 0.25rem 0 1.1rem;
-      padding-bottom: 0.45rem;
-      border-bottom: 2px solid var(--border-soft);
+      padding: 0.35rem;
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      background: rgba(8, 21, 37, 0.42);
     }
 
     .code-target-option {
       position: relative;
-      display: inline-flex;
+      display: flex;
+      width: 100%;
+      min-width: 0;
     }
 
     .code-target-btn {
-      display: inline-flex;
+      display: flex;
       align-items: center;
       justify-content: center;
       gap: 0.4rem;
-      padding: 0.52rem 1.15rem;
+      width: 100%;
+      min-width: 0;
+      min-height: 3.75rem;
+      box-sizing: border-box;
+      padding: 0.52rem 0.75rem;
       background: rgba(8, 21, 37, 0.55);
       border: 1px solid rgba(88, 183, 255, 0.28);
-      border-radius: 8px 8px 0 0;
+      border-radius: 7px;
       color: var(--muted);
       cursor: pointer;
       font-size: 0.95rem;
       font-weight: 600;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -0.55rem;
+      border-bottom: 1px solid rgba(88, 183, 255, 0.28);
+      margin: 0;
       transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
     }
 
@@ -1447,21 +1469,31 @@
       font-weight: 900;
     }
 
-    .code-target-option .code-target-btn {
-      padding-right: 2.85rem;
+    .code-target-option.has-help .code-target-btn {
+      padding-right: 2.5rem;
     }
 
-    .code-target-help {
+    .inline-tooltip.code-target-help {
       position: absolute;
-      top: 50%;
-      right: 1.45rem;
-      transform: translateY(-50%);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      top: 0;
+      right: 0.55rem;
+      bottom: 0;
+      height: 1.05rem;
+      margin-block: auto;
+      transform: none;
       z-index: 2;
     }
 
     .code-target-help .tooltip-icon {
       width: 1.05rem;
+      min-width: 1.05rem;
       height: 1.05rem;
+      min-height: 1.05rem;
+      padding: 0;
+      box-sizing: border-box;
       line-height: 1.05rem;
       margin-left: 0;
       font-size: 0.72rem;
@@ -2175,6 +2207,18 @@
         display: none;
       }
 
+      .inline-tooltip.code-target-help:not(.is-open) .inline-tooltip-content {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .inline-tooltip.code-target-help.is-open .inline-tooltip-content {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
+
       .code-target-help .inline-tooltip-content {
         left: 0.75rem;
         right: 0.75rem;
@@ -2303,14 +2347,7 @@
       }
 
       .code-target-tabs {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        align-items: stretch;
-        gap: 0.4rem;
-        padding: 0.35rem;
-        border: 1px solid var(--border-soft);
-        border-radius: 10px;
-        background: rgba(8, 21, 37, 0.42);
+        gap: 0.35rem;
       }
 
       .code-target-option {
@@ -2323,18 +2360,17 @@
         width: 100%;
         min-width: 0;
         height: 100%;
-        margin-bottom: 0;
         padding: 0.65rem 0.5rem;
         border-radius: 7px;
         line-height: 1.2;
         white-space: normal;
       }
 
-      .code-target-option .code-target-btn {
+      .code-target-option.has-help .code-target-btn {
         padding-right: 2rem;
       }
 
-      .code-target-help {
+      .inline-tooltip.code-target-help {
         right: 0.5rem;
       }
 
@@ -2537,6 +2573,11 @@
           </select>
           <div id="encounterModeDescription" class="mode-desc" aria-live="polite" hidden></div>
         </div>
+      </div>
+
+      <div class="row builder-exact-row" id="setupOriginGameRow" hidden>
+        <label for="setupOriginGame">Game</label>
+        <select id="setupOriginGame"></select>
       </div>
 
       <div class="internal-builder-control" id="encounterModeToggle" aria-hidden="true">
@@ -2791,7 +2832,7 @@
 
       <h3 class="form-section-title">Encounter details</h3>
 
-      <div class="row">
+      <div class="row" id="originGameDetailRow">
         <label for="originGame">
           Origin Game
           <span class="inline-tooltip">
@@ -3253,8 +3294,10 @@
       </div>
 
       <div class="code-target-tabs" role="group" aria-label="Code target">
-        <button id="codeTargetConsole" type="button" class="code-target-btn active" data-code-target="console" aria-pressed="true">Console / Emulator</button>
         <span class="code-target-option">
+          <button id="codeTargetConsole" type="button" class="code-target-btn active" data-code-target="console" aria-pressed="true">Console / Emulator</button>
+        </span>
+        <span class="code-target-option has-help">
           <button id="codeTargetSwitch" type="button" class="code-target-btn" data-code-target="switch" aria-pressed="false">Nintendo Switch</button>
           <span class="inline-tooltip code-target-help">
             <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Nintendo Switch code info" aria-describedby="switchCodeTargetTooltip" aria-expanded="false">?</button>
