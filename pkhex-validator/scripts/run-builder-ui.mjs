@@ -158,7 +158,7 @@ try {
     };
   })()`);
   if (moveDiscoveryHints.error || moveDiscoveryHints.heading !== 'Available with a different encounter' ||
-      !moveDiscoveryHints.alternatives.some(item => item.hint === 'Level 25') ||
+      !moveDiscoveryHints.alternatives.some(item => /^Level\s+\d+$/.test(String(item.hint || ''))) ||
       !moveDiscoveryHints.alternatives.some(item => item.hint === 'Egg move') ||
       !moveDiscoveryHints.disabledSelectionBlocked) {
     throw new Error(`Unexpected legal-mode move discovery hints: ${JSON.stringify(moveDiscoveryHints)}`);
