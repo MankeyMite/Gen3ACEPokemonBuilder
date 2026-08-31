@@ -3950,7 +3950,6 @@ export const PROFANITY_LIST = [
   "^jili$",
   "^jism.*",
   "^jiz$",
-  "^jod.*",
   "^jos$",
   "^judensau$",
   "^judenschwein$",

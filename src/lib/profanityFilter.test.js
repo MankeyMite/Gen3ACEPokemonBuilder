@@ -16,6 +16,7 @@ import {
   buildFilterSets,
   createProfanityFilter,
 } from './profanityFilter.js';
+import { PROFANITY_LIST } from '../data/profanity.gen3.js';
 
 // ─── Minimal test runner ────────────────────────────────────────────────
 let passed = 0;
@@ -55,6 +56,10 @@ const TEST_PATTERNS = [
 ];
 
 const filter = createProfanityFilter(TEST_PATTERNS);
+const productionFilter = createProfanityFilter(PROFANITY_LIST);
+
+assert(!PROFANITY_LIST.includes('^jod.*'), 'the unconfirmed "jod" rule is not in the production list');
+assert(productionFilter.check('jod') === false, '"jod" is allowed by the production filter');
 
 // ═══════════════════════════════════════════════════════════════════════
 // normalizeInput
