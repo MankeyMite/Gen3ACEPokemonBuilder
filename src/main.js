@@ -602,6 +602,21 @@ function updateStatGraph() {
   }
 }
 
+function randomizeHatchedIvs() {
+  if (currentEncounterMode !== 'hatched') return;
+
+  for (const selector of ivIds) {
+    const input = $(selector);
+    if (input) input.value = String(Math.floor(Math.random() * 32));
+  }
+
+  updateHiddenPower();
+  updateStatGraph();
+  try { _validateForm?.(); } catch (e) {}
+  try { updateLegalityStatus(); } catch (e) {}
+  markGeneratedCodeStale();
+}
+
     // Apply event-level defaults (TID/SID, OT name per language, shiny lock, origin, met location/level, ball, fateful flag, default PID)
     function applyEventDefaults(tag) {
       if (!tag) return;
@@ -8279,9 +8294,10 @@ function boot(){
         metLevelInput.value = '0';
       }
       
-      // Reset current level to 100
+      // A hatched Pokémon starts at the earliest level its selected species
+      // could have reached from a Gen III egg (including evolution levels).
       if (levelInput) {
-        levelInput.value = '100';
+        levelInput.value = String(getHatchedLevelFloor(speciesId));
       }
       
       // Reset fateful encounter flag
@@ -8319,7 +8335,7 @@ function boot(){
       $('#evSpDef').value = '0';
       $('#evSpe').value = '0';
       
-      // Update experience to match level 100
+      // Update experience to match the selected hatch-level default.
       computeAndSetExpFromLevel();
       }
     } else if (mode === 'wild') {
@@ -10789,6 +10805,7 @@ function boot(){
     resetManualSwitchBoxConversion();
     onGenerate();
   });
+  $('#randomizeIvsBtn')?.addEventListener('click', randomizeHatchedIvs);
   const preloadValidator = () => {
     void preloadPkhexValidator().catch(() => {
       // Generate still performs a normal lazy load and exposes Retry on error.

@@ -20,6 +20,9 @@ assert.deepEqual(PRE_EVOLUTION_DETAILS[6], {
 });
 
 assert.equal(getMinimumHatchedLevel(6, { directHatchSpeciesIds }), 36, 'Charizard evolves from Charmeleon at level 36');
+assert.equal(getMinimumHatchedLevel(7, { directHatchSpeciesIds }), 5, 'Squirtle can hatch at level 5');
+assert.equal(getMinimumHatchedLevel(8, { directHatchSpeciesIds }), 16, 'Wartortle evolves from Squirtle at level 16');
+assert.equal(getMinimumHatchedLevel(9, { directHatchSpeciesIds }), 36, 'Blastoise evolves from Wartortle at level 36');
 assert.equal(getMinimumHatchedLevel(169, { directHatchSpeciesIds }), 23, 'Crobat needs Golbat level 22 plus a friendship level-up');
 assert.equal(getMinimumHatchedLevel(26, { directHatchSpeciesIds }), 6, 'Raichu needs Pikachu from Pichu plus a Thunder Stone');
 assert.equal(getMinimumHatchedLevel(38, { directHatchSpeciesIds }), 5, 'Ninetales can evolve immediately from a level 5 Vulpix');

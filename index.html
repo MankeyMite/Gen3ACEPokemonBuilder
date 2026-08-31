@@ -928,6 +928,41 @@
       min-width: 0;
     }
 
+    .iv-randomize-btn {
+      display: none;
+      place-items: center;
+      width: 1.2rem;
+      height: 1.2rem;
+      min-height: 1.2rem;
+      padding: 0;
+      border: 1px solid rgba(125, 211, 252, 0.58);
+      border-radius: 3px;
+      background: rgba(8, 21, 37, 0.86);
+      color: #dff5ff;
+      box-shadow: none;
+      cursor: pointer;
+    }
+
+    body.encounter-hatched .iv-randomize-btn {
+      display: grid;
+    }
+
+    .iv-randomize-btn:hover,
+    .iv-randomize-btn:focus-visible {
+      border-color: #7dd3fc;
+      background: rgba(30, 64, 95, 0.9);
+      box-shadow: none;
+      transform: none;
+      outline: none;
+    }
+
+    .iv-randomize-die {
+      display: block;
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+    }
+
     .stat-graph-header .inline-tooltip-content {
       text-transform: none;
     }
@@ -2244,6 +2279,12 @@
         font-size: 0.62rem;
       }
 
+      .iv-randomize-btn {
+        width: 1rem;
+        height: 1rem;
+        min-height: 1rem;
+      }
+
       #hiddenPowerTypeText,
       #hiddenPowerTypeSelect {
         width: 100%;
@@ -2847,6 +2888,15 @@
           <span></span>
           <span class="stat-graph-header-label">
             IV
+            <button id="randomizeIvsBtn" class="iv-randomize-btn" type="button" aria-label="Randomize IVs" title="Randomize IVs">
+              <svg class="iv-randomize-die" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false">
+                <circle cx="3" cy="3" r="1.25"></circle>
+                <circle cx="9" cy="3" r="1.25"></circle>
+                <circle cx="6" cy="6" r="1.25"></circle>
+                <circle cx="3" cy="9" r="1.25"></circle>
+                <circle cx="9" cy="9" r="1.25"></circle>
+              </svg>
+            </button>
             <span class="inline-tooltip">
               <button type="button" class="tooltip-icon tooltip-toggle" aria-label="IV legality info" aria-describedby="ivInfoTooltip" aria-expanded="false">?</button>
               <span id="ivInfoTooltip" class="inline-tooltip-content" role="tooltip">IVs range from 0 to 31 in each stat, and each point equals 1 stat point at level 100. IVs are controlled by the selected legal encounter. In hatched mode, any combination is automatically legal.</span>
