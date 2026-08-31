@@ -2,6 +2,8 @@
 // informational: they never add a move to the legal move set for the current
 // encounter.
 
+import { getCuratedMysteryMovesForSpecies } from './mysteryGiftMoves.js';
+
 function getMoveNameById(moves, moveId) {
   const entry = (moves || []).find(([id]) => Number(id) === Number(moveId));
   return entry ? String(entry[1]) : '';
@@ -33,6 +35,137 @@ export function getXdEncounterMoveIdsForSpecies(speciesId, encounterLists) {
   return result;
 }
 
+function getSpeciesLineageIds(speciesId, preEvolutions) {
+  const lineage = [];
+  const visited = new Set();
+  let currentSpeciesId = Number(speciesId);
+
+  while (currentSpeciesId > 0 && !visited.has(currentSpeciesId)) {
+    lineage.push(currentSpeciesId);
+    visited.add(currentSpeciesId);
+    currentSpeciesId = Number(preEvolutions[currentSpeciesId] || 0);
+  }
+
+  return lineage;
+}
+
+function normalizeMoveIds(moveIds) {
+  const values = Array.isArray(moveIds)
+    ? moveIds
+    : moveIds && typeof moveIds[Symbol.iterator] === 'function'
+      ? [...moveIds]
+      : [];
+  return values
+    .map(move => Number(move && typeof move === 'object' ? move.index : move))
+    .filter(moveId => Number.isInteger(moveId) && moveId > 0);
+}
+
+function getMysteryEventHint(tag, event, moveset) {
+  if (String(tag || '').toUpperCase() === 'BOX_EVENT') return 'Pokémon Box event';
+
+  const label = String(event?.label || moveset?.displayName || tag || 'Mystery Gift')
+    .replace(/_/g, ' ')
+    .trim();
+  if (/\bevent$/i.test(label)) return label;
+  return `${label} event`;
+}
+
+/**
+ * Return every fixed move supplied by a local Gen III Mystery Gift/event
+ * source that can produce the selected species (including an ancestor that
+ * can evolve into it). Event rows, event-level movesBySpecies data, and the
+ * curated event moveset catalog are intentionally combined: different
+ * distributions or preserved variants can have different fixed moves.
+ */
+export function getMysteryEventMoveSourcesForSpecies({
+  speciesId,
+  preEvolutions,
+  species,
+  mysteryEvents,
+  mysteryGifts,
+  mysteryMovesets,
+}) {
+  const lineage = getSpeciesLineageIds(speciesId, preEvolutions || {});
+  const lineageSet = new Set(lineage);
+  const speciesNames = new Map((species || []).map(([id, name]) => [Number(id), String(name)]));
+  const sources = [];
+  const coveredGiftTags = new Set();
+
+  function addSource(sourceSpeciesId, moveIds, hint) {
+    const id = Number(sourceSpeciesId);
+    if (!lineageSet.has(id)) return;
+    const moves = [...new Set(normalizeMoveIds(moveIds))];
+    if (moves.length) sources.push({ speciesId: id, moveIds: moves, hint });
+  }
+
+  for (const [tag, event] of Object.entries(mysteryEvents || {})) {
+    const moveset = mysteryMovesets?.[tag] || null;
+    const giftTags = [...new Set([tag, event?.presetTag].filter(Boolean))];
+    giftTags.forEach(giftTag => coveredGiftTags.add(giftTag));
+    const giftEntries = giftTags.flatMap(giftTag => mysteryGifts?.[giftTag] || []);
+    const sourceSpeciesIds = new Set([
+      ...(event?.species || []).map(Number),
+      ...giftEntries.map(entry => Number(entry?.species)).filter(Number.isInteger),
+    ]);
+    const hint = getMysteryEventHint(tag, event, moveset);
+
+    for (const sourceSpeciesId of sourceSpeciesIds) {
+      if (!lineageSet.has(sourceSpeciesId)) continue;
+      const moveIds = new Set(normalizeMoveIds(event?.movesBySpecies?.[sourceSpeciesId]));
+      for (const entry of giftEntries) {
+        if (entry?.species !== undefined && Number(entry.species) !== sourceSpeciesId) continue;
+        for (const moveId of normalizeMoveIds(entry?.moves)) moveIds.add(moveId);
+      }
+      const curatedMoves = getCuratedMysteryMovesForSpecies(
+        moveset,
+        speciesNames.get(sourceSpeciesId) || '',
+      );
+      for (const moveId of normalizeMoveIds(curatedMoves)) moveIds.add(moveId);
+      addSource(sourceSpeciesId, moveIds, hint);
+    }
+  }
+
+  // Keep working if an event exists only as per-Pokémon rows. This also makes
+  // the helper tolerant of future local data additions that do not need a
+  // separate event metadata object.
+  for (const [tag, giftEntries] of Object.entries(mysteryGifts || {})) {
+    if (coveredGiftTags.has(tag)) continue;
+    for (const entry of giftEntries || []) {
+      const sourceSpeciesId = Number(entry?.species);
+      addSource(sourceSpeciesId, entry?.moves, getMysteryEventHint(tag, null, null));
+    }
+  }
+
+  return sources;
+}
+
+export function getGameCubeEncounterMoveSourcesForSpecies(
+  speciesId,
+  preEvolutions,
+  encounterLists,
+) {
+  const lineage = new Set(getSpeciesLineageIds(speciesId, preEvolutions || {}));
+  const sources = [];
+
+  for (const encounters of encounterLists || []) {
+    for (const encounter of encounters || []) {
+      if (!lineage.has(Number(encounter?.species))) continue;
+      const isXdEncounter = encounter?.game === 'xd' || encounter?.tradeKind === 'xd';
+      const isColosseumEncounter = encounter?.game === 'colo';
+      if (!isXdEncounter && !isColosseumEncounter) continue;
+      const hint = isXdEncounter
+        ? 'XD only'
+        : encounter?.eReader
+          ? 'Colosseum e-Reader'
+          : 'Colosseum only';
+      const moveIds = normalizeMoveIds(encounter?.moves);
+      if (moveIds.length) sources.push({ moveIds, hint });
+    }
+  }
+
+  return sources;
+}
+
 /**
  * Return disabled, explanatory move-picker entries for moves that are not
  * legal for the current encounter but could be learned through another Gen III
@@ -48,6 +181,10 @@ export function getAlternativeMoveHints({
   encounterMode,
   pokemonLevel,
   xdEncounterLists,
+  species,
+  mysteryEvents,
+  mysteryGifts,
+  mysteryMovesets,
 }) {
   const legalIds = new Set([...legalMoveIds || []].map(Number));
   const alternatives = new Map();
@@ -81,11 +218,30 @@ export function getAlternativeMoveHints({
   }
 
   if (!canUseXdTutors) {
-    for (const moveId of learnsets[speciesId]?.x || []) {
-      offer(moveId, 'XD only', 2);
+    for (const sourceSpeciesId of getSpeciesLineageIds(speciesId, preEvolutions)) {
+      for (const moveId of learnsets[sourceSpeciesId]?.x || []) {
+        offer(moveId, 'XD only', 2);
+      }
     }
-    for (const moveId of getXdEncounterMoveIdsForSpecies(speciesId, xdEncounterLists)) {
-      offer(moveId, 'XD only', 2);
+    for (const source of getGameCubeEncounterMoveSourcesForSpecies(
+      speciesId,
+      preEvolutions,
+      xdEncounterLists,
+    )) {
+      for (const moveId of source.moveIds) offer(moveId, source.hint, 2);
+    }
+  }
+
+  for (const source of getMysteryEventMoveSourcesForSpecies({
+    speciesId,
+    preEvolutions,
+    species,
+    mysteryEvents,
+    mysteryGifts,
+    mysteryMovesets,
+  })) {
+    for (const moveId of source.moveIds) {
+      offer(moveId, source.hint, 3);
     }
   }
 

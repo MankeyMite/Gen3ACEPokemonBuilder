@@ -164,8 +164,6 @@ export const STATIC_ENCOUNTER_LIST = [
   // ══════════════════════════════════════════════════════════════════
 
   // Deoxys — different forms per game
-  { category: 'events', species: 410, level: 30, games: [RUB], location: 200, method: 1, fateful: true, form: 0 }, // Deoxys (Normal) @ Birth Island — Ruby
-  { category: 'events', species: 410, level: 30, games: [SAP], location: 200, method: 1, fateful: true, form: 0 }, // Deoxys (Normal) @ Birth Island — Sapphire
   { category: 'events', species: 410, level: 30, games: [EME], location: 200, method: 1, fateful: true, form: 3 }, // Deoxys (Speed) @ Birth Island — Emerald
   { category: 'events', species: 410, level: 30, games: [FR],  location: 187, method: 1, fateful: true, form: 1 }, // Deoxys (Attack) @ Birth Island — FireRed
   { category: 'events', species: 410, level: 30, games: [LG],  location: 187, method: 1, fateful: true, form: 2 }, // Deoxys (Defense) @ Birth Island — LeafGreen

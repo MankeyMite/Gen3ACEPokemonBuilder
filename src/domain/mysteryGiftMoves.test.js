@@ -21,6 +21,10 @@ assert.deepEqual(moveIdsFor('Party of the Decade', 'Pikachu'), [85, 87, 113, 19]
 assert.deepEqual(moveIdsFor('Journey Across America', 'Bulbasaur'), [230, 74, 76, 235]);
 assert.deepEqual(moveIdsFor('Journey Across America', 'Pikachu'), [85, 97, 87, 113]);
 assert.equal(getMysteryMovesetEventAlias('Space Center Deoxys'), 'SPACE_CENTER_DEOXYS');
+assert.equal(getMysteryMovesetEventAlias('Aura Mew'), 'AURA_MEW');
+assert.equal(getMysteryMovesetEventAlias('Top 10 Distribution Pokémon'), '10ANNI');
+assert.equal(getMysteryMovesetEventAlias('Journey Across America'), 'JOURNEY_ACROSS_AMERICA');
+assert.equal(getMysteryMovesetEventAlias('Box Event'), 'BOX_EVENT');
 
 assert.deepEqual(
   resolveMysteryMoveIds({

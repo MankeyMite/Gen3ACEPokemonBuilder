@@ -3516,6 +3516,10 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
       encounterMode: currentEncounterMode,
       pokemonLevel: level,
       xdEncounterLists: [CXD_SHADOW_ENCOUNTERS, CXD_SPECIAL_ENCOUNTERS, CXD_TRADE_ENCOUNTERS],
+      species: SPECIES,
+      mysteryEvents: MYSTERY_EVENTS,
+      mysteryGifts: MYSTERY_GIFTS,
+      mysteryMovesets: MYSTERY_MOVESETS,
     }));
   }
 
@@ -7885,6 +7889,10 @@ function boot(){
           preserveCurrent: true,
           preserveExact: true,
         });
+        const selectedSpeciesId = Number($('#species')?.value || 0);
+        if (selectedSpeciesId) {
+          updateMovesForSpecies(selectedSpeciesId, { preserveValue: true });
+        }
         refreshEncounterBrowserResults();
       } catch (e) {
         console.warn('Failed to load mystery gifts JSON', e);

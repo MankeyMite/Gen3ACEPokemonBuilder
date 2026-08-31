@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { MOVES as GEN3_MOVES } from '../data/moves.gen3.js';
+import { SPECIES } from '../data/species.gen3.js';
 import { LEARNSETS } from '../data/learnsets.gen3.js';
 import { PRE_EVOLUTIONS } from '../data/evolutions.gen3.js';
 import { CXD_SHADOW_ENCOUNTERS } from '../data/shadowEncounters.gen3.js';
@@ -136,5 +137,81 @@ const chikoritaHints = getAlternativeMoveHints({
   pokemonLevel: 5,
 });
 assert.ok(chikoritaHints.some(move => move.name === 'Frenzy Plant' && move.hint === 'XD only'));
+
+const zigzagoon = LEARNSETS[288];
+const ordinaryZigzagoonMoves = new Set([
+  ...zigzagoon.d.map(([moveId]) => moveId),
+  ...zigzagoon.e,
+  ...zigzagoon.t,
+  ...zigzagoon.u,
+]);
+assert.ok(!ordinaryZigzagoonMoves.has(245), 'Extreme Speed should remain a Pokémon Box-only move');
+
+const boxEventContext = {
+  species: SPECIES,
+  mysteryEvents: {
+    BOX_EVENT: { species: [358, 288, 315, 172] },
+  },
+  mysteryGifts: {},
+  mysteryMovesets: {
+    BOX_EVENT: {
+      displayName: 'Box Event',
+      moves: {
+        Zigzagoon: [
+          { name: 'Tackle', index: 33 },
+          { name: 'Growl', index: 45 },
+          { name: 'Tail Whip', index: 39 },
+          { name: 'Extreme Speed', index: 245 },
+        ],
+      },
+    },
+  },
+};
+const zigzagoonHints = getAlternativeMoveHints({
+  moves: GEN3_MOVES,
+  learnsets: LEARNSETS,
+  preEvolutions: PRE_EVOLUTIONS,
+  speciesId: 288,
+  levelUpMoves: zigzagoon.d,
+  legalMoveIds: ordinaryZigzagoonMoves,
+  encounterMode: 'wild',
+  pokemonLevel: 100,
+  ...boxEventContext,
+});
+assert.ok(zigzagoonHints.some(move =>
+  move.name === 'Extreme Speed' && move.hint === 'Pokémon Box event'
+));
+
+const linooneHints = getAlternativeMoveHints({
+  moves: GEN3_MOVES,
+  learnsets: LEARNSETS,
+  preEvolutions: PRE_EVOLUTIONS,
+  speciesId: 289,
+  levelUpMoves: LEARNSETS[289].d,
+  legalMoveIds: new Set(),
+  encounterMode: 'wild',
+  pokemonLevel: 100,
+  ...boxEventContext,
+});
+assert.ok(linooneHints.some(move =>
+  move.name === 'Extreme Speed' && move.hint === 'Pokémon Box event'
+), 'event moves should remain discoverable after the distributed Pokémon evolves');
+
+const gameCubeSourceHints = getAlternativeMoveHints({
+  moves: [[0, '— None —'], [40, 'Sky Attack'], [50, 'Substitute']],
+  learnsets: { 1: { d: [], e: [], t: [], u: [], x: [] } },
+  preEvolutions: {},
+  speciesId: 1,
+  levelUpMoves: [],
+  legalMoveIds: new Set(),
+  encounterMode: 'wild',
+  pokemonLevel: 100,
+  xdEncounterLists: [[
+    { species: 1, game: 'xd', moves: [40] },
+    { species: 1, game: 'colo', eReader: true, moves: [50] },
+  ]],
+});
+assert.ok(gameCubeSourceHints.some(move => move.id === 40 && move.hint === 'XD only'));
+assert.ok(gameCubeSourceHints.some(move => move.id === 50 && move.hint === 'Colosseum e-Reader'));
 
 console.log('Move discovery hint tests passed.');

@@ -12,8 +12,10 @@ function normalizeMoveIds(moves) {
 }
 
 const MYSTERY_MOVESET_EVENT_ALIASES = Object.freeze({
+  auramew: 'AURA_MEW',
   doeldeoxys: 'DOEL_DEOXYS',
   spacecenterdeoxys: 'SPACE_CENTER_DEOXYS',
+  top10distributionpokemon: '10ANNI',
   pokemonrocksamerica2005: 'POKEMON_ROCKS_METANG',
   berryfix: 'BERRY_PROGRAM_UPDATE_ZIGZAGOON',
   berryfixzigzagoon: 'BERRY_PROGRAM_UPDATE_ZIGZAGOON',
@@ -29,10 +31,17 @@ const MYSTERY_MOVESET_EVENT_ALIASES = Object.freeze({
   wishmkrjirachibestivs: 'WISHMKR_BEST',
   wishmkrjirachiallshinypids: 'WISHMKR_SHINY',
   wishmkrjirachiallshinyversions: 'WISHMKR_SHINY',
+  journeyacrossamerica: 'JOURNEY_ACROSS_AMERICA',
+  boxevent: 'BOX_EVENT',
+  pokemonboxrubysapphire: 'BOX_EVENT',
 });
 
 export function getMysteryMovesetEventAlias(displayName) {
-  const normalizedName = String(displayName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normalizedName = String(displayName || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
   return MYSTERY_MOVESET_EVENT_ALIASES[normalizedName] || '';
 }
 
