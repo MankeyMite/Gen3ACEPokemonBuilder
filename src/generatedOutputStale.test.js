@@ -15,6 +15,11 @@ assert.match(mainSource, /target\.matches\('\.autocomplete-input'\)/);
 assert.match(mainSource, /target\.closest\('#basicsCard, #builderDetailsCard'\)/);
 assert.match(mainSource, /document\.addEventListener\('input', markStaleFromBuilderField\)/);
 assert.match(mainSource, /document\.addEventListener\('change', markStaleFromBuilderField\)/);
+assert.match(html, /for="markCircle"[\s\S]*?for="markTriangle"[\s\S]*?for="markSquare"[\s\S]*?for="markHeart"/);
+assert.match(mainSource, /document\.querySelectorAll\('\.marking-checkbox'\)[\s\S]*?addEventListener\('change', syncMarkingSymbols\)/);
+assert.doesNotMatch(mainSource, /document\.querySelectorAll\('\.marking-symbol'\)[\s\S]*?symbol\.addEventListener\('click'/);
+assert.match(mainSource, /target\.closest\('#basicsCard'\) \|\| target\.closest\('#builderDetailsCard'\)/);
+assert.doesNotMatch(mainSource, /target\.closest\('#statsCard'\)/);
 assert.match(mainSource, /hideBase64CharacterInspector\(\);\s*markGeneratedCodeFresh\(\);\s*beginPkhexVerification\(new Uint8Array\(result\.bytes\), pkhexLegalityEnvironment\);\s*return b64Result;/);
 
 console.log('generated output stale-warning tests passed');

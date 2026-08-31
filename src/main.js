@@ -6161,17 +6161,19 @@ function boot(){
     experienceInput.addEventListener('change', updateLegalityStatus);
   }
   
-  // Setup marking symbols - make them clickable
-  document.querySelectorAll('.marking-symbol').forEach(symbol => {
-    symbol.addEventListener('click', () => {
-      const checkboxId = symbol.getAttribute('data-marking');
-      const checkbox = document.getElementById(checkboxId);
-      if (checkbox) {
-        checkbox.checked = !checkbox.checked;
-        symbol.classList.toggle('active', checkbox.checked);
-      }
+  function syncMarkingSymbols() {
+    document.querySelectorAll('.marking-symbol').forEach(symbol => {
+      const checkbox = document.getElementById(symbol.getAttribute('data-marking'));
+      symbol.classList.toggle('active', Boolean(checkbox?.checked));
     });
+  }
+
+  // The labels toggle their hidden checkboxes natively. A real change event
+  // then reaches stale-output and imported-round-trip tracking as expected.
+  document.querySelectorAll('.marking-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', syncMarkingSymbols);
   });
+  syncMarkingSymbols();
 
   // Simple/advanced mode selector removed: keep PID lock state refreshed.
   try { updatePidLocking(); } catch (e) {}
@@ -9581,6 +9583,7 @@ function boot(){
         writeEncounterModeField(id, fields[id]);
       }
     }
+    syncMarkingSymbols();
     restoreNicknameState(state.nicknameState);
 
     try {
@@ -11070,7 +11073,7 @@ function boot(){
     if (!target || typeof target.closest !== 'function') return;
 
     const id = target.id || '';
-    const inDataCards = Boolean(target.closest('#basicsCard') || target.closest('#statsCard'));
+    const inDataCards = Boolean(target.closest('#basicsCard') || target.closest('#builderDetailsCard'));
     const shouldDirty = shouldMarkImportedDirtyFromEvent({
       event,
       suppressImportedDirtyTracking,

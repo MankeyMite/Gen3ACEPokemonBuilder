@@ -3,6 +3,8 @@ import {
   buildPokemonBytes,
   convertEk3RawToPk3Canonical,
   convertPk3CanonicalToEk3Raw,
+  decodeMarkings,
+  encodeMarkings,
   getPokerusStateFromStatus,
   getPokerusStatusFromState,
   parsePokemonBytes,
@@ -114,6 +116,31 @@ section('zero PID falls back to a generated encryption constant');
 
   assert(parsed.pid !== 0x00000000, 'normal generation must replace a zero PID');
   assert(pk3.slice(0, 4).some(byte => byte !== 0), 'PK3 export must replace a zero PID');
+}
+
+section('markings encode into the Gen 3 header and round-trip');
+{
+  const markingCases = [
+    [{ circle: false, triangle: false, square: false, heart: false }, 0x00],
+    [{ circle: true, triangle: false, square: false, heart: false }, 0x01],
+    [{ circle: false, triangle: true, square: false, heart: false }, 0x02],
+    [{ circle: false, triangle: false, square: true, heart: false }, 0x04],
+    [{ circle: false, triangle: false, square: false, heart: true }, 0x08],
+    [{ circle: true, triangle: true, square: true, heart: true }, 0x0F],
+  ];
+
+  for (const [markings, expectedByte] of markingCases) {
+    const cfg = { ...makeSampleCfg(), markings };
+    const raw = buildPokemonBytes(cfg).bytes;
+    const pk3 = buildDecryptedPokemonFile(cfg);
+    const parsed = parsePokemonBytes(toHexString(raw));
+
+    assert(encodeMarkings(markings) === expectedByte, `markings should encode as 0x${expectedByte.toString(16)}`);
+    assert(raw[0x1B] === expectedByte, `raw byte 0x1B should be 0x${expectedByte.toString(16)}`);
+    assert(pk3[0x1B] === expectedByte, `.pk3 byte 0x1B should be 0x${expectedByte.toString(16)}`);
+    assert(JSON.stringify(parsed.markings) === JSON.stringify(markings), 'raw markings should parse back unchanged');
+    assert(JSON.stringify(decodeMarkings(expectedByte)) === JSON.stringify(markings), 'marking byte should decode unchanged');
+  }
 }
 
 section('Japanese name fields use Japanese limits and OT terminator');

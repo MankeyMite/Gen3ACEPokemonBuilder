@@ -297,12 +297,7 @@ export function buildPokemonBytes(cfg){
   total.set(ot, p); p += 7;                       // 0x14-0x1A: OT Name
   
   // Markings (0x1B): bits 0-3 for Circle, Triangle, Square, Heart
-  let markings = 0;
-  if (cfg.markings?.circle) markings |= (1 << 0);
-  if (cfg.markings?.triangle) markings |= (1 << 1);
-  if (cfg.markings?.square) markings |= (1 << 2);
-  if (cfg.markings?.heart) markings |= (1 << 3);
-  total[p++] = markings;                          // 0x1B: Markings
+  total[p++] = encodeMarkings(cfg.markings);      // 0x1B: Markings
   
   writeU16LE(total, p, csum); p += 2;             // 0x1C-0x1D: Checksum
   
@@ -424,12 +419,7 @@ export function buildDecryptedPokemonFile(cfg){
   total[p++] = miscFlags2;
   const ot = encodeOT(cfg.otName || 'TRAINER', cfg.languageId);
   total.set(ot, p); p += 7;
-  let markings = 0;
-  if (cfg.markings?.circle) markings |= (1 << 0);
-  if (cfg.markings?.triangle) markings |= (1 << 1);
-  if (cfg.markings?.square) markings |= (1 << 2);
-  if (cfg.markings?.heart) markings |= (1 << 3);
-  total[p++] = markings;
+  total[p++] = encodeMarkings(cfg.markings);
   writeU16LE(total, p, csum); p += 2;
   const extraBytes = cfg.extraBytes ?? 0;
   writeU16LE(total, p, extraBytes & 0xFFFF); p += 2;
@@ -553,6 +543,25 @@ function findShinyPidStub(seedPid, tid, sid, natureIndex){
 // Convert bytes to flat hex string
 export function toHexString(bytes){
   return bytesToHex(bytes);
+}
+
+/** Encode the four Gen III PC markings into header byte 0x1B. */
+export function encodeMarkings(markings = {}) {
+  return (markings.circle ? 1 << 0 : 0)
+    | (markings.triangle ? 1 << 1 : 0)
+    | (markings.square ? 1 << 2 : 0)
+    | (markings.heart ? 1 << 3 : 0);
+}
+
+/** Decode Gen III header byte 0x1B into the builder's marking state. */
+export function decodeMarkings(value) {
+  const byte = Number(value) & 0xFF;
+  return {
+    circle: Boolean(byte & (1 << 0)),
+    triangle: Boolean(byte & (1 << 1)),
+    square: Boolean(byte & (1 << 2)),
+    heart: Boolean(byte & (1 << 3)),
+  };
 }
 
 // Convert bytes to formatted hex (10 lines, 8 bytes each)
@@ -943,13 +952,7 @@ export function parsePokemonBytes(hexString) {
   const otName = decodeName(otBytes);
   
   // Read markings (1 byte at 0x1B)
-  const markingsByte = bytes[0x1B];
-  const markings = {
-    circle: Boolean(markingsByte & (1 << 0)),
-    triangle: Boolean(markingsByte & (1 << 1)),
-    square: Boolean(markingsByte & (1 << 2)),
-    heart: Boolean(markingsByte & (1 << 3))
-  };
+  const markings = decodeMarkings(bytes[0x1B]);
   
   const checksum = bytes[0x1C] | (bytes[0x1D] << 8);
   
