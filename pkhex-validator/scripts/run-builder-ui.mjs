@@ -126,7 +126,7 @@ try {
   const client = await connectDebugger(target.webSocketDebuggerUrl);
   browserSocket = client.socket;
   await client.send('Runtime.enable');
-  await waitFor(client, "document.documentElement.classList.contains('builder-ready')");
+  await waitFor(client, "document.documentElement?.classList?.contains('builder-ready') === true");
 
   const moveDiscoveryHints = await evaluate(client, `(() => {
     const encounterMode = document.querySelector('#encounterMode');
