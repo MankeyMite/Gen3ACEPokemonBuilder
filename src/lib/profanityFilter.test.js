@@ -42,9 +42,11 @@ function section(name) {
 const TEST_PATTERNS = [
   '^ass$',        // exact → boundary-only
   '^sa$',         // exact → boundary-only
-  '^bv$',         // exact in PKHeX, but manually overridden to strong
+  '^bv$',         // exact → boundary-only (confirmed Switch behavior)
+  '^bj$',         // exact → boundary-only (confirmed Switch behavior)
   '^dp$',         // exact in PKHeX, but manually overridden to strong
   '.*nlq.*',      // short substring, manually overridden to strong
+  '.*xxx.*',      // short substring, confirmed as strong by Switch testing
   '.*wix.*',      // substring len 3 -> boundary (digit-bridged regression case)
   '.*kz.*',       // substring len 2 -> boundary (Nintendo digit-isolated behavior)
   '.*fag.*',      // substring, len 3, but manually overridden to strong
@@ -172,9 +174,10 @@ section('classifyPattern');
 
 assert(classifyPattern('^ass$').ruleClass === 'boundary', '^ass$ → boundary (exact match)');
 assert(classifyPattern('^sa$').ruleClass === 'boundary', '^sa$ → boundary (exact match)');
-assert(classifyPattern('^bv$').ruleClass === 'strong', '^bv$ → strong (manual override)');
+assert(classifyPattern('^bv$').ruleClass === 'boundary', '^bv$ → boundary (confirmed Switch behavior)');
 assert(classifyPattern('^dp$').ruleClass === 'strong', '^dp$ → strong (manual override)');
 assert(classifyPattern('.*nlq.*').ruleClass === 'strong', '.*nlq.* → strong (manual override)');
+assert(classifyPattern('.*xxx.*').ruleClass === 'strong', '.*xxx.* → strong (confirmed Switch override)');
 assert(classifyPattern('.*fag.*').ruleClass === 'strong', '.*fag.* → strong (manual override)');
 assert(classifyPattern('.*sex.*').ruleClass === 'strong', '.*sex.* → strong (manual override)');
 assert(classifyPattern('.*shit.*').ruleClass === 'strong', '.*shit.* → strong (manual override)');
@@ -259,16 +262,31 @@ assert(filter.check('dp') === true, '"dp" = banned');
 assert(filter.check('tetdp') === true, '"tetdp" = banned');
 assert(filter.check('t0?et7dP') === true, '"t0?et7dP" = banned (digit/separator bridged)');
 
-section('Full filter: "bv" (strong override)');
+section('Full filter: "bv" and "bj" (confirmed boundary-only terms)');
 
 assert(filter.check('bv') === true, '"bv" = banned');
-assert(filter.check('b42?v9C?') === true, '"b42?v9C?" = banned (digit/separator bridged)');
+assert(filter.check('ebv') === false, '"ebv" = allowed (direct letter prefix)');
+assert(filter.check('e3bv') === true, '"e3bv" = banned (digit does not protect)');
+assert(filter.check('bj') === true, '"bj" = banned');
+assert(filter.check('ebj') === false, '"ebj" = allowed (direct letter prefix)');
+assert(filter.check('e3bj') === true, '"e3bj" = banned (digit does not protect)');
+assert(productionFilter.check('ebv') === false, 'production filter allows the confirmed bv letter prefix');
+assert(productionFilter.check('e3bv') === true, 'production filter blocks bv after a digit');
+assert(productionFilter.check('ebj') === false, 'production filter allows the confirmed bj letter prefix');
+assert(productionFilter.check('e3bj') === true, 'production filter blocks bj after a digit');
 
 section('Full filter: "nlq" (strong override)');
 
 assert(filter.check('nlq') === true, '"nlq" = banned');
 assert(filter.check('anlqb') === true, '"anlqb" = banned (embedded substring)');
 assert(filter.check('n1?l2q3A') === true, '"n1?l2q3A" = banned (digit/separator bridged)');
+
+section('Full filter: "xxx" (confirmed Switch override)');
+
+assert(filter.check('xxx') === true, '"xxx" = banned');
+assert(filter.check('rxxxlik') === true, '"rxxxlik" = banned (embedded substring)');
+assert(filter.check('Rx5XxlIk') === true, '"Rx5XxlIk" = banned (confirmed Switch digit-bridged case)');
+assert(productionFilter.check('Rx5XxlIk') === true, 'production filter blocks the confirmed Switch case');
 
 section('Full filter: "sex" (strong override)');
 

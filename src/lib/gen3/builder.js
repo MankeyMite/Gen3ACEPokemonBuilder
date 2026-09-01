@@ -56,6 +56,42 @@ function findTermLetterPositionsInBox(boxText, term) {
   return null;
 }
 
+function countBlockedBoxMatches(boxes) {
+  return boxes.reduce(
+    (count, box) => count + _b64ProfanityFilter.checkDetailed(box).matches.length,
+    0,
+  );
+}
+
+// Reflow the box boundaries one character earlier: the final character of the
+// preceding box becomes the first character of this box, and the remainder is
+// carried forward through later boxes. This leaves the Base64 byte stream
+// unchanged. Only a trailing letter may be borrowed, because a digit or symbol
+// cannot provide the letter prefix needed for a boundary-only filter rule.
+function borrowPreviousBoxTrailingLetter(boxes, boxIndex) {
+  if (boxIndex < 1) return false;
+
+  const previous = boxes[boxIndex - 1] || '';
+  const borrowed = previous.at(-1);
+  if (!borrowed || !isBoxLetter(borrowed)) return false;
+
+  let downstreamCapacity = 0;
+  for (let i = boxIndex; i < boxes.length; i++) {
+    downstreamCapacity += Math.max(0, 8 - boxes[i].length);
+  }
+  if (downstreamCapacity < 1) return false;
+
+  boxes[boxIndex - 1] = previous.slice(0, -1);
+  let overflow = borrowed;
+  for (let i = boxIndex; i < boxes.length && overflow; i++) {
+    const combined = overflow + boxes[i];
+    boxes[i] = combined.slice(0, 8);
+    overflow = combined.slice(8);
+  }
+
+  return !overflow;
+}
+
 const SWITCH_SYMBOL_SUBSTITUTIONS = {
   'A': '.', 'B': '-', 'D': '\u2026', 'E': '\u201C', 'F': '\u201D',
   'G': '\u2018', 'H': '\u2019', 'I': '\u2642', 'J': '\u2640',
@@ -718,6 +754,42 @@ export function toBase64Emerald(bytes, options = {}){
       if (anySubst) break; // restart full scan
     }
     if (!anySubst) break;
+  }
+
+  // Final boundary-only fallback: if a remaining boundary-only word starts a
+  // box, borrow the preceding box's final letter and reflow the remaining
+  // boxes. This can safely turn e.g. "bj..." into "ebj...", which Switch
+  // permits, while retaining the exact Base64 byte stream. Strong-substring
+  // rules are intentionally excluded: a prefix letter cannot make those safe.
+  for (let pPass = 0; pPass < MAX_SHIFT_PASSES; pPass++) {
+    const previousMatchCount = countBlockedBoxMatches(boxes);
+    let reflowed = false;
+
+    for (let bi = 1; bi < boxes.length; bi++) {
+      const box = boxes[bi];
+      if (!box) continue;
+      const result = _b64ProfanityFilter.checkDetailed(box);
+
+      for (const term of result.matches) {
+        if (!_b64ProfanityFilter.boundaryTerms.has(term)) continue;
+        const positions = findTermLetterPositionsInBox(box, term);
+        if (!positions || positions[0] !== 0) continue;
+
+        const candidate = [...boxes];
+        if (!borrowPreviousBoxTrailingLetter(candidate, bi)) continue;
+        if (_b64ProfanityFilter.checkDetailed(candidate[bi]).matches.includes(term)) continue;
+        if (countBlockedBoxMatches(candidate) >= previousMatchCount) continue;
+
+        boxes.splice(0, boxes.length, ...candidate);
+        shiftedBoxes.add(bi - 1);
+        reflowed = true;
+        break;
+      }
+
+      if (reflowed) break;
+    }
+
+    if (!reflowed) break;
   }
 
   // Optional user-requested fallback for a specific box the Switch still

@@ -78,9 +78,11 @@ const MANUAL_BOUNDARY_ONLY = new Set([
  * Strong slurs, severe profanity, etc.
  */
 const MANUAL_STRONG_SUBSTRING = new Set([
-  'bv',
   'dp',
   'nlq',
+  // Confirmed by direct Nintendo Switch testing, including digit-bridged forms
+  // such as "Rx5XxlIk" (which normalizes to an embedded "xxx").
+  'xxx',
   'fag',
   'sex',
   'shit',
