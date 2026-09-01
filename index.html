@@ -470,9 +470,6 @@
           3px 12px, 0 12px
         );
         background:
-          linear-gradient(#76f6c0 0 0) calc(50% - 5px) 7px / 3px 3px no-repeat,
-          linear-gradient(#ffd166 0 0) 50% 7px / 3px 3px no-repeat,
-          linear-gradient(#70a9ff 0 0) calc(50% + 5px) 7px / 3px 3px no-repeat,
           linear-gradient(180deg, #3d6265 0 2px, #234346 2px 13px, #0c2223 13px 16px, transparent 16px) 50% 0 / 34px 16px no-repeat,
           linear-gradient(180deg, #425d66 0 3px, #293f48 3px 7px, #172c33 7px 14px, #09161b 14px 20px);
         box-shadow:
@@ -494,6 +491,7 @@
         border-bottom-color: rgba(9, 88, 67, 0.92);
         border-radius: 10px 10px 13px 13px / 5px 5px 8px 8px;
         background:
+          radial-gradient(ellipse at 50% 103%, rgba(119, 255, 210, 0.34) 0%, rgba(31, 236, 169, 0.13) 25%, transparent 49%),
           radial-gradient(ellipse at 50% 45%, rgba(71, 255, 190, 0.24) 0%, transparent 56%),
           linear-gradient(90deg, rgba(0, 60, 50, 0.45), transparent 16% 84%, rgba(0, 55, 46, 0.52)),
           linear-gradient(180deg, #00b987 0%, #00a878 48%, #00795f 100%);
@@ -518,6 +516,22 @@
         background:
           linear-gradient(102deg, rgba(226, 255, 246, 0.24) 0 7%, rgba(226, 255, 246, 0.06) 14%, transparent 27% 73%, rgba(205, 255, 239, 0.09) 84%, transparent 92%),
           linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 14% 86%, rgba(255, 255, 255, 0.06));
+      }
+
+      .mobile-pokemon-preview-status-lights {
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        z-index: 9;
+        display: flex;
+        gap: 2px;
+        transform: translateX(-50%);
+        pointer-events: none;
+      }
+
+      .mobile-pokemon-preview-status-lights span {
+        width: 3px;
+        height: 3px;
       }
 
       .mobile-pokemon-preview-screen::after {
@@ -877,9 +891,6 @@
           0 5px, 4px 5px
         );
         background:
-          linear-gradient(#76f6c0 0 0) calc(50% - 10px) 16px / 4px 4px no-repeat,
-          linear-gradient(#ffd166 0 0) 50% 16px / 4px 4px no-repeat,
-          linear-gradient(#70a9ff 0 0) calc(50% + 10px) 16px / 4px 4px no-repeat,
           linear-gradient(180deg, #3d6265 0 4px, #234346 4px 29px, #0c2223 29px 38px, transparent 38px) 50% 0 / 88px 38px no-repeat,
           linear-gradient(180deg, #425d66 0 5px, #293f48 5px 13px, #172c33 13px 29px, #09161b 29px 46px);
         box-shadow:
@@ -901,6 +912,7 @@
         border-radius: 32px 32px 38px 38px / 14px 14px 22px 22px;
         overflow: hidden;
         background:
+          radial-gradient(ellipse at 50% 103%, rgba(119, 255, 210, 0.34) 0%, rgba(31, 236, 169, 0.13) 25%, transparent 49%),
           radial-gradient(ellipse at 50% 45%, rgba(71, 255, 190, 0.24) 0%, transparent 56%),
           linear-gradient(90deg, rgba(0, 60, 50, 0.45), transparent 16% 84%, rgba(0, 55, 46, 0.52)),
           linear-gradient(180deg, #00b987 0%, #00a878 48%, #00795f 100%);
@@ -928,6 +940,22 @@
         box-shadow:
           inset 5px 0 0 rgba(196, 255, 235, 0.08),
           inset -4px 0 0 rgba(0, 70, 58, 0.2);
+      }
+
+      .desktop-pokemon-preview-status-lights {
+        position: absolute;
+        bottom: 26px;
+        left: 50%;
+        z-index: 9;
+        display: flex;
+        gap: 6px;
+        transform: translateX(-50%);
+        pointer-events: none;
+      }
+
+      .desktop-pokemon-preview-status-lights span {
+        width: 4px;
+        height: 4px;
       }
 
       .desktop-pokemon-preview-screen::after {
@@ -1062,6 +1090,48 @@
     @keyframes stasis-subject-float {
       0%, 100% { transform: translateY(-3px); }
       50% { transform: translateY(3px); }
+    }
+
+    .desktop-pokemon-preview-status-lights span,
+    .mobile-pokemon-preview-status-lights span {
+      background: currentColor;
+      box-shadow: 0 0 5px currentColor;
+      opacity: 0.4;
+      animation: stasis-status-light 3.6s steps(1, end) infinite;
+    }
+
+    .desktop-pokemon-preview-status-lights span:nth-child(1),
+    .mobile-pokemon-preview-status-lights span:nth-child(1) {
+      color: #76f6c0;
+    }
+
+    .desktop-pokemon-preview-status-lights span:nth-child(2),
+    .mobile-pokemon-preview-status-lights span:nth-child(2) {
+      color: #ffd166;
+      animation-delay: -1.2s;
+    }
+
+    .desktop-pokemon-preview-status-lights span:nth-child(3),
+    .mobile-pokemon-preview-status-lights span:nth-child(3) {
+      color: #70a9ff;
+      animation-delay: -2.4s;
+    }
+
+    @keyframes stasis-status-light {
+      0%, 32% { opacity: 1; }
+      33%, 100% { opacity: 0.28; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .desktop-pokemon-preview-status-lights span,
+      .mobile-pokemon-preview-status-lights span {
+        animation: none;
+      }
+
+      .desktop-pokemon-preview-status-lights span,
+      .mobile-pokemon-preview-status-lights span {
+        opacity: 0.72;
+      }
     }
 
     @keyframes mobile-stasis-bubble-rise {
@@ -2872,6 +2942,7 @@
           </span>
           <img id="desktopPokemonPreviewSprite" class="species-sprite desktop-pokemon-preview-sprite" alt="" />
         </div>
+        <span class="desktop-pokemon-preview-status-lights" aria-hidden="true"><span></span><span></span><span></span></span>
       </div>
 
       <div class="row builder-species-row">
@@ -2885,6 +2956,7 @@
                   <span class="mobile-pokemon-preview-bubbles" aria-hidden="true"><span></span><span></span><span></span></span>
                   <img id="speciesSprite" class="species-sprite" alt="" />
                 </span>
+                <span class="mobile-pokemon-preview-status-lights" aria-hidden="true"><span></span><span></span><span></span></span>
               </span>
             </div>
           </div>
