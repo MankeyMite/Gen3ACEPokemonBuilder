@@ -2339,7 +2339,18 @@
       align-items: center;
       justify-content: center;
       width: 1.5rem;
+      min-width: 1.5rem;
       height: 1.5rem;
+      padding: 0;
+      flex: 0 0 1.5rem;
+    }
+
+    .markings-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: max-content;
+      flex: 0 0 auto;
     }
 
     .marking-symbol:hover {
@@ -3511,7 +3522,7 @@
 
       <div class="row">
         <label>Markings</label>
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <div class="markings-control">
           <input id="markCircle" type="checkbox" class="marking-checkbox" />
           <label for="markCircle" class="marking-symbol" data-marking="markCircle" aria-label="Circle marking" title="Circle marking">●</label>
 

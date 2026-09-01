@@ -16,6 +16,7 @@ assert.match(mainSource, /target\.closest\('#basicsCard, #builderDetailsCard'\)/
 assert.match(mainSource, /document\.addEventListener\('input', markStaleFromBuilderField\)/);
 assert.match(mainSource, /document\.addEventListener\('change', markStaleFromBuilderField\)/);
 assert.match(html, /for="markCircle"[\s\S]*?for="markTriangle"[\s\S]*?for="markSquare"[\s\S]*?for="markHeart"/);
+assert.match(html, /<div class="markings-control">[\s\S]*?for="markCircle"[\s\S]*?for="markHeart"/);
 assert.match(mainSource, /document\.querySelectorAll\('\.marking-checkbox'\)[\s\S]*?addEventListener\('change', syncMarkingSymbols\)/);
 assert.doesNotMatch(mainSource, /document\.querySelectorAll\('\.marking-symbol'\)[\s\S]*?symbol\.addEventListener\('click'/);
 assert.match(mainSource, /target\.closest\('#basicsCard'\) \|\| target\.closest\('#builderDetailsCard'\)/);
