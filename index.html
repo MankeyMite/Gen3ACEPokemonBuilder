@@ -412,9 +412,9 @@
       .mobile-pokemon-preview {
         position: relative;
         display: block;
-        width: 84px;
-        height: 96px;
-        flex: 0 0 84px;
+        width: 72px;
+        height: 104px;
+        flex: 0 0 72px;
         filter:
           drop-shadow(2px 2px 0 rgba(2, 11, 14, 0.32))
           drop-shadow(0 5px 4px rgba(0, 0, 0, 0.26));
@@ -435,17 +435,19 @@
         top: 0;
         height: 18px;
         clip-path: polygon(
-          6px 0, 78px 0,
-          78px 2px, 81px 2px,
-          81px 5px, 84px 5px,
-          84px 18px, 0 18px,
-          0 5px, 3px 5px,
-          3px 2px, 6px 2px
+          9px 0, 63px 0,
+          63px 2px, 68px 2px,
+          68px 5px, 72px 5px,
+          72px 15px, 69px 15px,
+          69px 18px, 3px 18px,
+          3px 15px, 0 15px,
+          0 5px, 4px 5px,
+          4px 2px, 9px 2px
         );
         background:
-          linear-gradient(#b4ffdc 0 0) 11px 7px / 3px 3px no-repeat,
-          linear-gradient(#b4ffdc 0 0) 70px 7px / 3px 3px no-repeat,
-          linear-gradient(180deg, #e1fff5 0 3px, #a8eed7 3px 10px, #5d9a8b 10px 13px, transparent 13px) 50% 0 / 30px 13px no-repeat,
+          linear-gradient(#b4ffdc 0 0) 10px 7px / 3px 3px no-repeat,
+          linear-gradient(#b4ffdc 0 0) 59px 7px / 3px 3px no-repeat,
+          linear-gradient(180deg, #e1fff5 0 3px, #a8eed7 3px 10px, #5d9a8b 10px 13px, transparent 13px) 50% 0 / 26px 13px no-repeat,
           linear-gradient(180deg, #5d747d 0 3px, #3b525c 3px 7px, #263d46 7px 11px, #172a31 11px 15px, #081419 15px 18px);
         box-shadow:
           inset 0 -2px 0 #061216,
@@ -457,20 +459,21 @@
         bottom: 0;
         height: 20px;
         clip-path: polygon(
-          0 0, 84px 0,
-          84px 12px, 81px 12px,
-          81px 15px, 78px 15px,
-          78px 18px, 72px 18px,
-          72px 20px, 12px 20px,
-          12px 18px, 6px 18px,
-          6px 15px, 3px 15px,
+          3px 0, 69px 0,
+          69px 3px, 72px 3px,
+          72px 12px, 69px 12px,
+          69px 15px, 65px 15px,
+          65px 18px, 59px 18px,
+          59px 20px, 13px 20px,
+          13px 18px, 7px 18px,
+          7px 15px, 3px 15px,
           3px 12px, 0 12px
         );
         background:
           linear-gradient(#76f6c0 0 0) calc(50% - 5px) 7px / 3px 3px no-repeat,
           linear-gradient(#ffd166 0 0) 50% 7px / 3px 3px no-repeat,
           linear-gradient(#70a9ff 0 0) calc(50% + 5px) 7px / 3px 3px no-repeat,
-          linear-gradient(180deg, #3d6265 0 2px, #234346 2px 13px, #0c2223 13px 16px, transparent 16px) 50% 0 / 38px 16px no-repeat,
+          linear-gradient(180deg, #3d6265 0 2px, #234346 2px 13px, #0c2223 13px 16px, transparent 16px) 50% 0 / 34px 16px no-repeat,
           linear-gradient(180deg, #425d66 0 3px, #293f48 3px 7px, #172c33 7px 14px, #09161b 14px 20px);
         box-shadow:
           inset 0 2px 0 #4c746f,
@@ -481,7 +484,7 @@
 
       .mobile-pokemon-preview-screen {
         position: absolute;
-        inset: 10px 7px 12px;
+        inset: 10px 8px 12px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -489,7 +492,7 @@
         border: 1px solid rgba(90, 255, 191, 0.64);
         border-top-color: rgba(174, 255, 225, 0.76);
         border-bottom-color: rgba(9, 88, 67, 0.92);
-        border-radius: 7px 7px 9px 9px / 5px 5px 7px 7px;
+        border-radius: 10px 10px 13px 13px / 5px 5px 8px 8px;
         background:
           radial-gradient(ellipse at 50% 45%, rgba(71, 255, 190, 0.24) 0%, transparent 56%),
           linear-gradient(90deg, rgba(0, 60, 50, 0.45), transparent 16% 84%, rgba(0, 55, 46, 0.52)),
@@ -527,8 +530,8 @@
       .mobile-pokemon-preview .species-sprite {
         position: relative;
         z-index: 3;
-        width: 60px;
-        height: 60px;
+        width: 48px;
+        height: 48px;
         opacity: 0.78;
         filter:
           saturate(0.82)
@@ -748,8 +751,8 @@
     @media (min-width: 841px) {
       .builder-setup-stage {
         position: relative;
-        min-height: 296px;
-        padding-right: 304px;
+        min-height: 304px;
+        padding-right: 232px;
       }
 
       .species-discovery-layout {
@@ -802,11 +805,11 @@
 
       .desktop-pokemon-preview {
         position: absolute;
-        top: 1rem;
-        right: 1rem;
+        top: 0.5rem;
+        right: 1.75rem;
         display: block;
-        width: 264px;
-        height: 264px;
+        width: 200px;
+        height: 280px;
         padding: 0;
         border: 0;
         background: transparent;
@@ -829,22 +832,26 @@
 
       .desktop-pokemon-preview::before {
         top: 0;
-        height: 45px;
+        height: 42px;
         clip-path: polygon(
-          24px 0, 240px 0,
-          240px 6px, 248px 6px,
-          248px 12px, 256px 12px,
-          256px 18px, 264px 18px,
-          264px 45px, 0 45px,
-          0 18px, 8px 18px,
-          8px 12px, 16px 12px,
-          16px 6px, 24px 6px
+          30px 0, 170px 0,
+          170px 4px, 184px 4px,
+          184px 8px, 192px 8px,
+          192px 13px, 198px 13px,
+          198px 20px, 200px 20px,
+          200px 36px, 196px 36px,
+          196px 42px, 4px 42px,
+          4px 36px, 0 36px,
+          0 20px, 2px 20px,
+          2px 13px, 8px 13px,
+          8px 8px, 16px 8px,
+          16px 4px, 30px 4px
         );
         background:
-          linear-gradient(#b4ffdc 0 0) 38px 17px / 5px 5px no-repeat,
-          linear-gradient(#b4ffdc 0 0) 221px 17px / 5px 5px no-repeat,
-          linear-gradient(180deg, #e1fff5 0 5px, #a8eed7 5px 20px, #5d9a8b 20px 28px, transparent 28px) 50% 0 / 96px 28px no-repeat,
-          linear-gradient(180deg, #5d747d 0 5px, #3b525c 5px 12px, #263d46 12px 24px, #172a31 24px 36px, #081419 36px 45px);
+          linear-gradient(#b4ffdc 0 0) 25px 17px / 4px 4px no-repeat,
+          linear-gradient(#b4ffdc 0 0) 171px 17px / 4px 4px no-repeat,
+          linear-gradient(180deg, #e1fff5 0 5px, #a8eed7 5px 19px, #5d9a8b 19px 26px, transparent 26px) 50% 0 / 72px 26px no-repeat,
+          linear-gradient(180deg, #5d747d 0 4px, #3b525c 4px 10px, #263d46 10px 21px, #172a31 21px 34px, #081419 34px 42px);
         box-shadow:
           inset 0 4px 0 rgba(195, 227, 228, 0.28),
           inset 0 -4px 0 #061216,
@@ -854,23 +861,27 @@
 
       .desktop-pokemon-preview::after {
         bottom: 0;
-        height: 48px;
+        height: 46px;
         clip-path: polygon(
-          0 0, 264px 0,
-          264px 29px, 256px 29px,
-          256px 36px, 248px 36px,
-          248px 42px, 240px 42px,
-          240px 48px, 24px 48px,
-          24px 42px, 16px 42px,
-          16px 36px, 8px 36px,
-          8px 29px, 0 29px
+          4px 0, 196px 0,
+          196px 5px, 200px 5px,
+          200px 25px, 196px 25px,
+          196px 32px, 190px 32px,
+          190px 37px, 180px 37px,
+          180px 42px, 166px 42px,
+          166px 46px, 34px 46px,
+          34px 42px, 20px 42px,
+          20px 37px, 10px 37px,
+          10px 32px, 4px 32px,
+          4px 25px, 0 25px,
+          0 5px, 4px 5px
         );
         background:
-          linear-gradient(#76f6c0 0 0) calc(50% - 11px) 17px / 5px 5px no-repeat,
-          linear-gradient(#ffd166 0 0) 50% 17px / 5px 5px no-repeat,
-          linear-gradient(#70a9ff 0 0) calc(50% + 11px) 17px / 5px 5px no-repeat,
-          linear-gradient(180deg, #3d6265 0 4px, #234346 4px 31px, #0c2223 31px 40px, transparent 40px) 50% 0 / 112px 40px no-repeat,
-          linear-gradient(180deg, #425d66 0 5px, #293f48 5px 14px, #172c33 14px 31px, #09161b 31px 48px);
+          linear-gradient(#76f6c0 0 0) calc(50% - 10px) 16px / 4px 4px no-repeat,
+          linear-gradient(#ffd166 0 0) 50% 16px / 4px 4px no-repeat,
+          linear-gradient(#70a9ff 0 0) calc(50% + 10px) 16px / 4px 4px no-repeat,
+          linear-gradient(180deg, #3d6265 0 4px, #234346 4px 29px, #0c2223 29px 38px, transparent 38px) 50% 0 / 88px 38px no-repeat,
+          linear-gradient(180deg, #425d66 0 5px, #293f48 5px 13px, #172c33 13px 29px, #09161b 29px 46px);
         box-shadow:
           inset 0 4px 0 #4c746f,
           inset 0 8px 0 #12282a,
@@ -880,14 +891,14 @@
 
       .desktop-pokemon-preview-screen {
         position: absolute;
-        inset: 27px 22px 31px;
+        inset: 28px 17px 31px;
         display: flex;
         align-items: center;
         justify-content: center;
         border: 2px solid rgba(90, 255, 191, 0.64);
         border-top-color: rgba(174, 255, 225, 0.76);
         border-bottom-color: rgba(9, 88, 67, 0.92);
-        border-radius: 20px 20px 25px 25px / 13px 13px 20px 20px;
+        border-radius: 32px 32px 38px 38px / 14px 14px 22px 22px;
         overflow: hidden;
         background:
           radial-gradient(ellipse at 50% 45%, rgba(71, 255, 190, 0.24) 0%, transparent 56%),
@@ -929,8 +940,8 @@
       .desktop-pokemon-preview-sprite {
         position: relative;
         z-index: 3;
-        width: 178px;
-        height: 178px;
+        width: 140px;
+        height: 140px;
         opacity: 0.78;
         transform: none;
         filter:
@@ -1018,19 +1029,6 @@
         --bubble-delay: -3.5s;
       }
 
-      .desktop-pokemon-preview-standby {
-        position: relative;
-        z-index: 3;
-        color: rgba(211, 255, 239, 0.72);
-        font-size: 0.62rem;
-        font-weight: 700;
-        letter-spacing: 0.18em;
-        text-shadow: 0 0 9px rgba(0, 255, 168, 0.72);
-      }
-
-      .desktop-pokemon-preview.has-sprite .desktop-pokemon-preview-standby {
-        display: none;
-      }
     }
 
     @media (max-width: 600px) {
@@ -2872,7 +2870,6 @@
           <span class="desktop-pokemon-preview-bubbles" aria-hidden="true">
             <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
           </span>
-          <span class="desktop-pokemon-preview-standby" aria-hidden="true">STASIS EMPTY</span>
           <img id="desktopPokemonPreviewSprite" class="species-sprite desktop-pokemon-preview-sprite" alt="" />
         </div>
       </div>
