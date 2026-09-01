@@ -1,3 +1,15 @@
+Patch Notes - (V.0.5.2) - September 1, 2026.
+- Added move discovery for selected species to see possible moves for a different encounter as well as the legal moves.
+- Added a randomize IVs die button in hatched mode.
+- Made the sprites show inside a stasis tank instead of the previous scan-link square. For both pc and phone.
+- Updates to the profanity filter with a new way of dealing with profanity at the start of a box name.
+- Made hatched pokemon default to their minimum possible level.
+- Fixed outdated test files.
+- Fixed the mobile Nintendo Switch code button and tooltip layout.
+- Fixed a bug where Deoxys showed up in Ruby and Sapphire as Birth Island event.
+- Fixed markings not working properly.
+- Fixed the transient startup race in [run-builder-ui.mjs].
+
 Patch Notes - (V.0.5.1) - August 30, 2026.
 - Fixed Ruby/Sapphire Base64 guide displaying wrong codes for console.
 - Added a PkHex.core powered legality checker inside the builder! You no longer need to export ek3/pk3 files to PkHex for validation.
