@@ -32,7 +32,6 @@ const hints = getAlternativeMoveHints({
 assert.deepEqual(hints.map(({ id, hint, disabled, group }) => ({ id, hint, disabled, group })), [
   { id: 20, hint: 'Level 55', disabled: true, group: 'Available with a different encounter' },
   { id: 30, hint: 'Egg move', disabled: true, group: 'Available with a different encounter' },
-  { id: 40, hint: 'XD only', disabled: true, group: 'Available with a different encounter' },
 ]);
 
 const hatchedHints = getAlternativeMoveHints({
@@ -45,7 +44,7 @@ const hatchedHints = getAlternativeMoveHints({
   encounterMode: 'hatched',
   pokemonLevel: 1,
 });
-assert.deepEqual(hatchedHints.map(({ id, hint }) => ({ id, hint })), [{ id: 40, hint: 'XD only' }]);
+assert.deepEqual(hatchedHints.map(({ id, hint }) => ({ id, hint })), []);
 
 const bagon = LEARNSETS[395];
 const bagonLegalMoveIds = new Set([
@@ -55,7 +54,7 @@ const bagonLegalMoveIds = new Set([
     pokemonLevel: 23,
   }),
   ...bagon.t,
-  ...bagon.u.filter(moveId => !bagon.x.includes(moveId)),
+  ...bagon.u,
 ]);
 const bagonHints = getAlternativeMoveHints({
   moves: GEN3_MOVES,
@@ -70,6 +69,36 @@ const bagonHints = getAlternativeMoveHints({
 assert.ok(bagonHints.some(move => move.name === 'Ember' && move.hint === 'Level 25'));
 assert.ok(bagonHints.some(move => move.name === 'Dragon Dance' && move.hint === 'Egg move'));
 
+const jirachi = LEARNSETS[409];
+const wishmkrJirachiLegalMoveIds = new Set([
+  ...getAllowedLevelUpMoveIdsForEncounter(jirachi.d, {
+    speciesId: 409,
+    encounterMode: 'mystery',
+    pokemonLevel: 5,
+  }),
+  ...jirachi.t,
+  ...jirachi.u,
+]);
+const wishmkrJirachiHints = getAlternativeMoveHints({
+  moves: GEN3_MOVES,
+  learnsets: LEARNSETS,
+  preEvolutions: PRE_EVOLUTIONS,
+  speciesId: 409,
+  levelUpMoves: jirachi.d,
+  legalMoveIds: wishmkrJirachiLegalMoveIds,
+  encounterMode: 'mystery',
+  pokemonLevel: 5,
+});
+assert.ok(
+  wishmkrJirachiHints.some(move => move.name === 'Doom Desire' && move.hint === 'Level 50'),
+  'a level-5 Mystery Gift Jirachi should show Doom Desire as a disabled Level 50 hint',
+);
+assert.ok(wishmkrJirachiLegalMoveIds.has(171), 'Nightmare should be selectable after using the XD move tutor');
+assert.ok(
+  !wishmkrJirachiHints.some(move => move.name === 'Nightmare'),
+  'transferable XD tutor moves should not be labeled as encounter-exclusive',
+);
+
 const pidgey = LEARNSETS[16];
 const pidgeyLegalMoveIds = new Set([
   ...getAllowedLevelUpMoveIdsForEncounter(pidgey.d, {
@@ -78,7 +107,7 @@ const pidgeyLegalMoveIds = new Set([
     pokemonLevel: 100,
   }),
   ...pidgey.t,
-  ...pidgey.u.filter(moveId => !pidgey.x.includes(moveId)),
+  ...pidgey.u,
 ]);
 const pidgeyHints = getAlternativeMoveHints({
   moves: GEN3_MOVES,
@@ -90,7 +119,8 @@ const pidgeyHints = getAlternativeMoveHints({
   encounterMode: 'wild',
   pokemonLevel: 100,
 });
-assert.ok(pidgeyHints.some(move => move.name === 'Sky Attack' && move.hint === 'XD only'));
+assert.ok(pidgeyLegalMoveIds.has(143), 'Sky Attack should be selectable after using the XD move tutor');
+assert.ok(!pidgeyHints.some(move => move.name === 'Sky Attack'));
 
 const moltres = LEARNSETS[146];
 const moltresLegalMoveIds = new Set([
@@ -100,7 +130,7 @@ const moltresLegalMoveIds = new Set([
     pokemonLevel: 50,
   }),
   ...moltres.t,
-  ...moltres.u.filter(moveId => !moltres.x.includes(moveId)),
+  ...moltres.u,
 ]);
 const moltresHints = getAlternativeMoveHints({
   moves: GEN3_MOVES,
@@ -123,7 +153,7 @@ const chikoritaLegalMoveIds = new Set([
     pokemonLevel: 5,
   }),
   ...chikorita.t,
-  ...chikorita.u.filter(moveId => !chikorita.x.includes(moveId)),
+  ...chikorita.u,
 ]);
 const chikoritaHints = getAlternativeMoveHints({
   moves: GEN3_MOVES,

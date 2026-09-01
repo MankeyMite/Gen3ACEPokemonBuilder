@@ -3453,16 +3453,11 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
         pokemonLevel: level,
       })) idSet.add(mid);
     }
-    // TM/HM and Game Boy Advance tutors have no level restriction. Pokémon XD
-    // tutors are recorded separately so ordinary GBA encounters can show them
-    // as an accurate disabled "XD only" discovery hint instead of selectable.
+    // TM/HM and tutor moves have no level restriction. Pokémon XD tutor moves
+    // are legal for compatible GBA Pokémon too: they can be traded to XD,
+    // taught the move, and traded back. `data.x` records provenance only.
     if (data.t) for (const mid of data.t) idSet.add(mid);
-    const xdTutorMoveIds = new Set(data.x || []);
-    if (data.u) {
-      for (const mid of data.u) {
-        if (String(mode).startsWith('cxd_') || !xdTutorMoveIds.has(mid)) idSet.add(mid);
-      }
-    }
+    if (data.u) for (const mid of data.u) idSet.add(mid);
     // Egg moves — only in hatched mode
     // Include egg moves from this species and all pre-evolutions in the chain
     if (mode === 'hatched') {
@@ -3504,7 +3499,7 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
   baseMoves = sortMoveListAlphabetically(baseMoves);
   const supportsAlternativeMoveHints = !manualOverrideActive &&
     !directWildMoveOverride &&
-    ['wild', 'static', 'roamer', 'hatched'].includes(currentEncounterMode);
+    ['wild', 'static', 'roamer', 'hatched', 'mystery'].includes(currentEncounterMode);
   if (supportsAlternativeMoveHints) {
     baseMoves = baseMoves.concat(getAlternativeMoveHints({
       moves: MOVES,

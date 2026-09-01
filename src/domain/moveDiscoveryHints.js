@@ -189,7 +189,6 @@ export function getAlternativeMoveHints({
   const legalIds = new Set([...legalMoveIds || []].map(Number));
   const alternatives = new Map();
   const canUseEggMoves = encounterMode === 'hatched';
-  const canUseXdTutors = String(encounterMode || '').startsWith('cxd_');
 
   function offer(moveId, hint, priority) {
     const id = Number(moveId);
@@ -217,19 +216,15 @@ export function getAlternativeMoveHints({
     }
   }
 
-  if (!canUseXdTutors) {
-    for (const sourceSpeciesId of getSpeciesLineageIds(speciesId, preEvolutions)) {
-      for (const moveId of learnsets[sourceSpeciesId]?.x || []) {
-        offer(moveId, 'XD only', 2);
-      }
-    }
-    for (const source of getGameCubeEncounterMoveSourcesForSpecies(
-      speciesId,
-      preEvolutions,
-      xdEncounterLists,
-    )) {
-      for (const moveId of source.moveIds) offer(moveId, source.hint, 2);
-    }
+  // XD tutor compatibility is already part of the selectable tutor pool: an
+  // eligible GBA Pokémon can be traded to XD, taught the move, and traded
+  // back. Only moves tied to a particular GameCube encounter belong here.
+  for (const source of getGameCubeEncounterMoveSourcesForSpecies(
+    speciesId,
+    preEvolutions,
+    xdEncounterLists,
+  )) {
+    for (const moveId of source.moveIds) offer(moveId, source.hint, 2);
   }
 
   for (const source of getMysteryEventMoveSourcesForSpecies({
