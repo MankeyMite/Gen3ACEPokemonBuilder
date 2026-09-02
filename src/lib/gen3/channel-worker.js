@@ -149,6 +149,10 @@ function isPossible(seed) {
 
 const TID = 40122;
 
+function matchesNature(pid, nature) {
+  return Number(nature) < 0 || (pid >>> 0) % 25 === Number(nature);
+}
+
 function bruteForceSearch(params, isStopped) {
   const {
     startSeed, endSeed,
@@ -187,7 +191,7 @@ function bruteForceSearch(params, isStopped) {
       pid = (pid ^ 0x80000000) >>> 0;
 
     // Nature check first (eliminates 24/25 seeds)
-    if (pid % 25 !== nature) continue;
+    if (!matchesNature(pid, nature)) continue;
 
     // Advance past item/version/OT gender, extract values
     s = next(s); const heldItemBit = s >>> 31;

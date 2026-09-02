@@ -173,7 +173,9 @@ assert.match(mainSource, /keepSidRadio\.checked = defaultSidMode === SHINY_SID_M
 assert.match(mainSource, /autoSidRadio\.checked = defaultSidMode === SHINY_SID_MODE\.AUTO/);
 assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.pid-finder-table \.pid-finder-action \{[\s\S]*?position:\s*sticky;[\s\S]*?right:\s*0;/);
 assert.match(styles, /\.pid-finder-table tr\.is-selected \.pid-finder-action,[\s\S]*?background:\s*#0f3a41;/);
-assert.match(mainSource, /natureEl\?\.classList\.add\('field-error'\);\s*scrollToMissingField\(natureEl, natureEl\);/);
+assert.doesNotMatch(mainSource, /natureEl\?\.classList\.add\('field-error'\);\s*scrollToMissingField\(natureEl, natureEl\);/);
+assert.match(mainSource, /const natureIndex = mainNatureValue === '' \? -1 : Number\(mainNatureValue\)/);
+assert.match(mainSource, /hasSpecies && hasResolvedOrigin && hasNature && hasMove/);
 assert.match(mainSource, /PID 0x00000000 is not allowed because it has no valid encryption constant\./);
 assert.match(mainSource, /This Pokémon cannot be shiny\./);
 assert.match(mainSource, /filtered = filtered\.filter\(r => !resultIsShiny\(r\)\)/);

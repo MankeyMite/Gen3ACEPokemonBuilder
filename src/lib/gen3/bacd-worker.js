@@ -173,10 +173,14 @@ function getGenderFromPID(pid, genderThreshold) {
   return (pid & 0xFF) < genderThreshold ? 0 : 1;
 }
 
+function matchesNature(pid, nature) {
+  return Number(nature) < 0 || (pid >>> 0) % 25 === Number(nature);
+}
+
 function passesFilters(result, p) {
   const { pid, ivs } = result;
 
-  if (pid % 25 !== p.nature) return false;
+  if (!matchesNature(pid, p.nature)) return false;
   if (p.ability >= 0 && (pid & 1) !== p.ability) return false;
 
   if (p.targetGender < 2) {
@@ -362,8 +366,9 @@ function ivTotal(r) {
 }
 
 function normalizeBACDSearchParams(params) {
+  const nature = Number(params.nature);
   return {
-    nature: Number(params.nature) || 0,
+    nature: Number.isFinite(nature) ? nature : 0,
     ability: Number.isFinite(Number(params.ability)) ? Number(params.ability) : -1,
     genderThreshold: Number.isFinite(Number(params.genderThreshold)) ? Number(params.genderThreshold) : -1,
     targetGender: Number.isFinite(Number(params.targetGender)) ? Number(params.targetGender) : 3,

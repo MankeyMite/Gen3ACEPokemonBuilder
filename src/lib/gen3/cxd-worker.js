@@ -156,9 +156,13 @@ function generateCXDPid(sAbility, trainerXor, noShiny) {
 }
 
 /* ── PID filter helper ────────────────────────────────── */
+function matchesNature(pid, nature) {
+  return Number(nature) < 0 || (pid >>> 0) % 25 === Number(nature);
+}
+
 function checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny, abilityBit) {
   if (ability >= 0 && abilityBit !== ability) return false;
-  if (pid % 25 !== nature) return false;
+  if (!matchesNature(pid, nature)) return false;
   if (targetGender < 2) {
     const gb = pid & 0xFF;
     if (targetGender === 0 && gb >= genderThreshold) return false;
@@ -780,7 +784,7 @@ function bruteForceSearch(params, isStopped) {
     /* PID with anti-shiny rerolling */
     const { pid } = generateCXDPid(s, trainerXor, noShiny);
 
-    if (pid % 25 !== nature) continue;
+    if (!matchesNature(pid, nature)) continue;
     if (targetGender < 2) {
       const gb = pid & 0xFF;
       if (targetGender === 0 && gb >= genderThreshold) continue;

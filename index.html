@@ -4028,6 +4028,12 @@ Trailing = padding is restored automatically.</pre>
 
           <div class="pid-finder-filters" style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:0.5rem;">
             <div>
+              <label for="pfNature" style="font-size:0.85rem;color:#94a3b8;">Nature</label>
+              <select id="pfNature" style="width:auto; min-width:120px;">
+                <option value="-1">Any nature</option>
+              </select>
+            </div>
+            <div>
               <label for="pfGender" style="font-size:0.85rem;color:#94a3b8;">Gender</label>
               <select id="pfGender" style="width:auto; min-width:100px;">
                 <option value="male">Male</option>
@@ -4148,6 +4154,7 @@ Trailing = padding is restored automatically.</pre>
                 <thead>
                   <tr>
                     <th>PID</th>
+                    <th>Nature</th>
                     <th>HP</th><th>Atk</th><th>Def</th><th>SpA</th><th>SpD</th><th>Spe</th>
                     <th>Total</th>
                     <th>HP Type</th>

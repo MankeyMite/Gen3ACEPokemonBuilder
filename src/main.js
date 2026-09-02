@@ -11890,7 +11890,7 @@ function initPidFinder() {
   }
 
   const staleResultFilterIds = [
-    'pfGender', 'pfAbility', 'pfPidParity', 'pfShiny', 'pfMinHp', 'pfMinAtk', 'pfMinDef', 'pfMinSpA', 'pfMinSpD', 'pfMinSpe',
+    'pfNature', 'pfGender', 'pfAbility', 'pfPidParity', 'pfShiny', 'pfMinHp', 'pfMinAtk', 'pfMinDef', 'pfMinSpA', 'pfMinSpD', 'pfMinSpe',
     'pfMaxHp', 'pfMaxAtk', 'pfMaxDef', 'pfMaxSpA', 'pfMaxSpD', 'pfMaxSpe', 'pfHpType', 'pfHpPower'
   ];
   const staleResultMsg = 'Filters changed. Select a new legal encounter.';
@@ -11924,8 +11924,9 @@ function initPidFinder() {
     const sourceSpeciesId = getCurrentOriginSourceSpeciesId(speciesId);
     const sourceSpeciesEntry = SPECIES.find(s => s[0] === sourceSpeciesId);
     const sourceSpeciesName = sourceSpeciesEntry ? sourceSpeciesEntry[1] : '';
-    const natureIndex  = Number($('#nature').value || 0);
-    const natureName   = NATURES[natureIndex] || '\u2014';
+    const mainNatureValue = String($('#nature')?.value ?? '').trim();
+    const natureIndex = mainNatureValue === '' ? -1 : Number(mainNatureValue);
+    const natureName = natureIndex >= 0 ? (NATURES[natureIndex] || '\u2014') : 'Any nature';
     const ability      = Number($('#ability').value);
     let abilityName = '\u2014';
     try {
@@ -11947,6 +11948,15 @@ function initPidFinder() {
     if (pfPidInput) {
       pfPidInput.value = formatPidHex(parsePidInput($('#pid')?.value || '0'));
       pfPidInput.readOnly = !isHatchedMode;
+    }
+
+    const pfNatureSel = document.getElementById('pfNature');
+    if (pfNatureSel) {
+      pfNatureSel.innerHTML = '<option value="-1">Any nature</option>' +
+        NATURES.map((name, index) => `<option value="${index}">${name}</option>`).join('');
+      // Preserve existing behaviour by default; "Any nature" broadens only
+      // this search and does not change the builder until a result is chosen.
+      pfNatureSel.value = String(natureIndex);
     }
 
     const mainOriginGame = $('#originGame');
@@ -12335,12 +12345,6 @@ function initPidFinder() {
 
   btn.addEventListener('click', () => {
     if (btn.disabled) return;
-    const natureEl = $('#nature');
-    if (!natureEl || !String(natureEl.value || '').trim()) {
-      natureEl?.classList.add('field-error');
-      scrollToMissingField(natureEl, natureEl);
-      return;
-    }
     btn.classList.remove('field-error');
     openModal();
   });
@@ -12378,7 +12382,7 @@ function initPidFinder() {
 
   searchBtn.addEventListener('click', () => {
     const speciesId      = Number($('#species').value) || 0;
-    const nature         = Number($('#nature').value || 0);
+    const nature         = Number(document.getElementById('pfNature')?.value ?? $('#nature').value ?? 0);
     let   ability        = Number(document.getElementById('pfAbility').value);
     const pidParityPreference = getPidParityPreferenceForPidFinder(speciesId);
     const pfGenderVal    = document.getElementById('pfGender').value;
@@ -12812,17 +12816,20 @@ function initPidFinder() {
       const thead = resultsBody.closest('table')?.querySelector('thead tr');
       if (thead) {
         const ths = thead.querySelectorAll('th');
-        // Columns: PID(0) HP(1) Atk(2) Def(3) SpA(4) SpD(5) Spe(6) Total(7) HPType(8) HPPwr(9) Mth(10) Lv(11) Gender(12) Ability(13) Frame(14) InitSeed(15) ManipFrame(16) btn(17)
-        if (ths.length >= 18) {
-          ths[11].textContent = isChannelResults ? 'SID' : 'Lv';
-          ths[12].textContent = isChannelResults ? 'Game' : 'Gender';
-          ths[13].textContent = isChannelResults ? 'Item' : 'Ability';
+        // Columns: PID(0) Nature(1) HP(2) Atk(3) Def(4) SpA(5) SpD(6) Spe(7)
+        // Total(8) HPType(9) HPPwr(10) Mth(11) Lv(12) Gender(13) Ability(14)
+        // Frame(15) InitSeed(16) ManipFrame(17) btn(18)
+        if (ths.length >= 19) {
+          ths[12].textContent = isChannelResults ? 'SID' : 'Lv';
+          ths[13].textContent = isChannelResults ? 'Game' : 'Gender';
+          ths[14].textContent = isChannelResults ? 'Item' : 'Ability';
         }
       }
     } catch (_) {}
 
     for (const r of capped) {
       const total = r.ivs.hp + r.ivs.atk + r.ivs.def + r.ivs.spa + r.ivs.spd + r.ivs.spe;
+      const resultNatureName = NATURES[(Number(r.pid) >>> 0) % 25] || '\u2014';
 
       // Derive gender from PID
       let genderStr;
@@ -12869,6 +12876,7 @@ function initPidFinder() {
         const itemName = r.heldItemId === 169 ? 'Ganlon Berry' : 'Salac Berry';
         tr.innerHTML =
           `<td class="pid-cell">0x${(r.pid >>> 0).toString(16).toUpperCase().padStart(8, '0')}</td>` +
+          `<td>${resultNatureName}</td>` +
           ivTd(r.ivs.hp) + ivTd(r.ivs.atk) + ivTd(r.ivs.def) +
           ivTd(r.ivs.spa) + ivTd(r.ivs.spd) + ivTd(r.ivs.spe) +
           `<td>${total}</td>` +
@@ -12885,6 +12893,7 @@ function initPidFinder() {
       } else {
       tr.innerHTML =
         `<td class="pid-cell">0x${(r.pid >>> 0).toString(16).toUpperCase().padStart(8, '0')}</td>` +
+        `<td>${resultNatureName}</td>` +
         ivTd(r.ivs.hp) + ivTd(r.ivs.atk) + ivTd(r.ivs.def) +
         ivTd(r.ivs.spa) + ivTd(r.ivs.spd) + ivTd(r.ivs.spe) +
         `<td>${total}</td>` +

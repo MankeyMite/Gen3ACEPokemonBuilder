@@ -311,8 +311,12 @@ function matchesPidParity(pid, preference) {
   return true;
 }
 
+function matchesNature(pid, nature) {
+  return Number(nature) < 0 || (pid >>> 0) % 25 === Number(nature);
+}
+
 function checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny, unownForm, pidParityPreference) {
-  if (pid % 25 !== nature) return false;
+  if (!matchesNature(pid, nature)) return false;
   if (ability >= 0 && (pid & 1) !== ability) return false;
   if (!matchesPidParity(pid, pidParityPreference)) return false;
   if (targetGender < 2) {
@@ -449,13 +453,14 @@ function fastSearch(params, isStopped) {
 
                 if (checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny, unownForm, pidParityPreference)) {
                   const seed0 = reverse(s1);
+                  const candidateNature = (pid >>> 0) % 25;
 
                   let initSeed = null, metLevels = null;
                   let chainOK = true;
                   if (doValidation && hasAnySlots) {
                     const chain = isUnown
                       ? validateEncounterChainUnown(s1, unownForm, speciesSlots, slotTables, targetSpecies)
-                      : validateEncounterChain(s1, nature, speciesSlots, canSync, slotTables, targetSpecies);
+                      : validateEncounterChain(s1, candidateNature, speciesSlots, canSync, slotTables, targetSpecies);
                     if (!chain) { chainOK = false; }
                     else { initSeed = chain.initSeed; metLevels = chain.metLevels; }
                   }
@@ -499,11 +504,12 @@ function fastSearch(params, isStopped) {
               if (!checkPid(pid, nature, ability, genderThreshold, targetGender, trainerXor, wantShiny, unownForm, pidParityPreference)) continue;
 
               const seed0 = reverse(s1);
+              const candidateNature = (pid >>> 0) % 25;
               let initSeed = null, metLevels = null;
               if (doValidation && hasAnySlots) {
                 const chain = isUnown
                   ? validateEncounterChainUnown(s1, unownForm, speciesSlots, slotTables, targetSpecies)
-                  : validateEncounterChain(s1, nature, speciesSlots, canSync, slotTables, targetSpecies);
+                  : validateEncounterChain(s1, candidateNature, speciesSlots, canSync, slotTables, targetSpecies);
                 if (!chain) continue;
                 initSeed = chain.initSeed;
                 metLevels = chain.metLevels;
@@ -576,7 +582,7 @@ function bruteForceSearch(params, isStopped) {
       ? ((pidFirst << 16) | pidSecond) >>> 0
       : ((pidSecond << 16) | pidFirst) >>> 0;
 
-    if (pid % 25 !== nature)  continue;
+    if (!matchesNature(pid, nature)) continue;
     if (ability >= 0 && (pid & 1) !== ability) continue;
     if (!matchesPidParity(pid, pidParityPreference)) continue;
     if (targetGender < 2) {
@@ -640,9 +646,10 @@ function bruteForceSearch(params, isStopped) {
 
     let initSeed = null, metLevels = null;
     if (doValidation && hasAnySlots) {
+      const candidateNature = (pid >>> 0) % 25;
       const chain = isUnown
         ? validateEncounterChainUnown(pidFirstState, unownForm, speciesSlots, slotTables, targetSpecies)
-        : validateEncounterChain(pidFirstState, nature, speciesSlots, canSync, slotTables, targetSpecies);
+        : validateEncounterChain(pidFirstState, candidateNature, speciesSlots, canSync, slotTables, targetSpecies);
       if (chain === null) continue;
       initSeed  = chain.initSeed;
       metLevels = chain.metLevels;
