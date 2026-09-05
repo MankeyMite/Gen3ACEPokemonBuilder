@@ -82,6 +82,11 @@ assert.doesNotMatch(
   'Colosseum/XD encounters must use the species move pool plus preserved preset moves',
 );
 assert.match(
+  updateMovesSource,
+  /\['wild', 'static', 'roamer', 'hatched', 'mystery', 'cxd_shadow', 'cxd_trade'\]\.includes\(currentEncounterMode\)/,
+  'Colosseum/XD Shadow and trade encounters should show moves available through other encounters',
+);
+assert.match(
   mainSource,
   /event\?\.fixedPID !== undefined && event\?\.fixedIVs\) return false;/,
   'fixed Mystery Gift specimens must not require a PID Finder selection',

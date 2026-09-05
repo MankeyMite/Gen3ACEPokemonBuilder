@@ -3499,7 +3499,10 @@ function updateMovesForSpecies(speciesId, { preserveValue = false } = {}) {
   baseMoves = sortMoveListAlphabetically(baseMoves);
   const supportsAlternativeMoveHints = !manualOverrideActive &&
     !directWildMoveOverride &&
-    ['wild', 'static', 'roamer', 'hatched', 'mystery'].includes(currentEncounterMode);
+    // Every constrained encounter type should show moves that would require a
+    // different origin. This includes exact Colosseum/XD Shadow and trade
+    // encounters, whose fixed moves remain preserved separately.
+    ['wild', 'static', 'roamer', 'hatched', 'mystery', 'cxd_shadow', 'cxd_trade'].includes(currentEncounterMode);
   if (supportsAlternativeMoveHints) {
     baseMoves = baseMoves.concat(getAlternativeMoveHints({
       moves: MOVES,
