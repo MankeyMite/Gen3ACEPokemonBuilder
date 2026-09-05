@@ -539,13 +539,14 @@
         ger10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0YDQAUI'])
       };
       var leafGreenSwitchDexRegPayloads = {
+        eng10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0ZnPwUI']),
         spa10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bXQAUI']),
         fra10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bDQAUI']),
         ita10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0bvPwUI']),
         ger10: makeDexRegPayloadRows(['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0YDQAUI'])
       };
-      // LeafGreen Switch English has no DexReg payload yet. Deliberately omit
-      // eng10 so the existing Bulbasaur test code is shown instead.
+      // FireRed and LeafGreen Switch English both call
+      // UpdatePokedexForReceivedMon at 0x08053F58, so they share this payload.
 
       // Nickname per game for the sacrificial pokemon
       var nicknameByGame = {

@@ -155,6 +155,16 @@ assert.match(
 );
 assert.match(
   inlineScript,
+  /var leafGreenSwitchDexRegPayloads = \{[\s\S]*?eng10: makeDexRegPayloadRows\(\['6SDHggAg', '0L0Aowc7', 'DrQQpQBL', 'n0ZnPwUI'\]\)/,
+  'LeafGreen Switch English should use the shared FireRed Switch DexReg payload',
+);
+assert.match(
+  inlineScript,
+  /UpdatePokedexForReceivedMon at 0x08053F58, so they share this payload\./,
+  'the shared English Switch payload should document its verified target address',
+);
+assert.match(
+  inlineScript,
   /var options = selectedGame && selectedMode \? currentLanguageOptions\(\) : \[\];/,
   'language choices should not be populated until a platform is selected',
 );
