@@ -88,6 +88,11 @@ assert.match(
 );
 assert.match(
   mainSource,
+  /Clearing a stale PID Finder result leaves the PID intentionally unset\.[\s\S]*?if \(!String\(e\.target\.value \|\| ''\)\.trim\(\)\) \{[\s\S]*?checkShiny\(\);[\s\S]*?return;[\s\S]*?\}[\s\S]*?const val = parsePidInput\(e\.target\.value\);/,
+  'clearing a stale PID after changing PID parity must not reset the selected nature to Hardy',
+);
+assert.match(
+  mainSource,
   /event\?\.fixedPID !== undefined && event\?\.fixedIVs\) return false;/,
   'fixed Mystery Gift specimens must not require a PID Finder selection',
 );

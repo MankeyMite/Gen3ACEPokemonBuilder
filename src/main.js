@@ -10039,6 +10039,13 @@ function boot(){
         checkShiny();
         return;
       }
+      // Clearing a stale PID Finder result leaves the PID intentionally unset.
+      // Do not treat that blank value as PID 0 (Hardy), which would overwrite
+      // the nature selected before a PID-parity change.
+      if (!String(e.target.value || '').trim()) {
+        checkShiny();
+        return;
+      }
       const val = parsePidInput(e.target.value);
       
       // Update nature to match PID
