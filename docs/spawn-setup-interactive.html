@@ -973,7 +973,7 @@
         html1 += '<li>Do not add spaces at the end of a box name unless the code specifically shows them.</li>';
         html1 += '<li>Save the game</li>';
         if(selectedGame === 'EM'){
-          html1 += '<li>Execute the code with your stable ace species with no trailing spaces.</li>';
+          html1 += '<li>Execute the code with your stable ace species.</li>';
         } else {
           html1 += '<li>Execute the code with your ace species.</li>';
         }
@@ -1020,7 +1020,7 @@
         html1 += '<li>Do not add spaces at the end of a box name unless the code specifically shows them.</li>';
         html1 += '<li>Save the game</li>';
         if(selectedGame === 'EM'){
-          html1 += '<li>Execute the code with your stable ace species with no trailing spaces.</li>';
+          html1 += '<li>Execute the code with your stable ace species.</li>';
         } else {
           html1 += '<li>Execute the code with your ace species.</li>';
         }
@@ -1039,8 +1039,9 @@
         var html2 = buildPanelHTML(rows2, true);
         html2 += '<div class="panel-tip">';
         html2 += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
+        html2 += '<li>Save the game. This will be your checkpoint if code 3 fails, as we won\'t be able to tell if this one is typed correctly after executing.</li>';
         if(selectedGame === 'EM'){
-          html2 += '<li>Execute the code with your stable ace species with no trailing spaces.</li>';
+          html2 += '<li>Execute the code with your stable ace species.</li>';
         } else {
           html2 += '<li>Execute the code with your ace species.</li>';
         }
@@ -1055,17 +1056,17 @@
         html3 += '<div class="panel-tip">';
         html3 += '<ul style="margin:8px 0 0 18px;padding:0;color:var(--muted)">';
         if(selectedGame === 'EM'){
-          html3 += '<li>Execute the code with your stable ace species with no trailing spaces.</li>';
+          html3 += '<li>Execute the code with your stable ace species.</li>';
         } else {
           html3 += '<li>Execute the code with your ace species.</li>';
         }
-        html3 += '<li>A Metang called "WELDR" should have appeared in Box 10 Slot 22! If it stayed a bad egg, check your Code 3 for errors, otherwise you\'ll likely have to start from the beginning.</li>';
+        html3 += '<li>A Metang called "WELDR" should have appeared in Box 10 Slot 22! If it remains a Bad Egg, check Code 3 for errors. If you cannot find one, soft-reset to your Code 2 checkpoint and check Code 2. If Code 2 also looks correct, restart from Code 1. First remove the Bad Egg from Box 10, Slot 22, then create a new one.</li>';
         html3 += '<li>Move WELDR to box 14 slot 28</li>';
         html3 += '<li>Catch any Pokemon and name it "' + escHTML(nickname) + '"</li>';
         html3 += '<li>Place this in box 14 slot 29.</li>';
         html3 += isRSGame() || (isFRLGSwitchGame() && selectedGame === 'LG' && selectedLanguage === 'eng10')
           ? '<li>DONE! Now go to the Test code tab to finish the setup.</li>'
-          : '<li>DONE! Now go to the DexReg payload tab to finish the setup.</li>';
+          : '<li>DONE! You are now ready to use the Pokémon builder website to spawn Pokémon. If you want them to register to the Pokédex too, continue with the next step.</li>';
         html3 += '</ul></div>';
         // images
         html3 += '<div class="remember-image" style="margin-top:10px;">';
