@@ -14,7 +14,6 @@ import {
   validateHexChunk,
 } from './gameHexScan.js';
 import {
-  compareGen3GlyphMasks,
   extractHexCandidate,
   recognizeGen3HexFromCanvas,
 } from './gen3HexRecognizer.js';
@@ -31,11 +30,6 @@ assert.equal(validateHexChunk('ABCDE').valid, false);
 assert.equal(extractHexCandidate('Box 1: ABCD1234'), 'ABCD1234');
 assert.equal(extractHexCandidate('B1 ABCD 1234 extra'), '');
 
-const sampleGlyphMask = new Uint8Array(16 * 16);
-sampleGlyphMask[17] = 1;
-sampleGlyphMask[18] = 1;
-assert.equal(compareGen3GlyphMasks(sampleGlyphMask, sampleGlyphMask), 1);
-
 const consensus = createHexScanConsensus({ requiredMatches: 3, windowSize: 5 });
 assert.equal(consensus.push('9E439043').accepted, false);
 assert.equal(consensus.push('9E439043').accepted, false);
@@ -47,14 +41,36 @@ consensus.reset();
 assert.deepEqual(consensus.getSamples(), []);
 
 const recognition = await recognizeGen3HexFromCanvas({}, {
+  tesseractWorker: {
+    async recognize() {
+      return { data: { text: 'ABCD 1234\n', confidence: 88 } };
+    },
+  },
+  skipPreprocessing: true,
+});
+assert.deepEqual(recognition, {
+  value: 'ABCD1234',
+  confidence: 88,
+  rawText: 'ABCD 1234\n',
+  supported: true,
+  method: 'tesseract',
+});
+
+const browserRecognition = await recognizeGen3HexFromCanvas({}, {
+  tesseractWorker: {
+    async recognize() {
+      throw new Error('OCR unavailable');
+    },
+  },
   TextDetector: class {
     async detect() {
       return [{ rawValue: 'ABCD1234' }];
     }
   },
 });
-assert.deepEqual(recognition, {
+assert.deepEqual(browserRecognition, {
   value: 'ABCD1234',
+  rawText: 'ABCD1234',
   supported: true,
   method: 'browser-text-detector',
 });
@@ -97,8 +113,11 @@ class FakeTextDetector {
   }
 }
 assert.deepEqual(
-  await recognizeGen3HexFromCanvas({}, { TextDetector: FakeTextDetector }),
-  { value: 'ABCD1234', supported: true, method: 'browser-text-detector' },
+  await recognizeGen3HexFromCanvas({}, {
+    tesseractWorker: { recognize: async () => { throw new Error('OCR unavailable'); } },
+    TextDetector: FakeTextDetector,
+  }),
+  { value: 'ABCD1234', rawText: 'ABCD 1234', supported: true, method: 'browser-text-detector' },
 );
 
 console.log('game hex scan tests passed');

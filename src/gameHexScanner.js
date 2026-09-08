@@ -43,7 +43,7 @@ function scannerMarkup() {
       <div id="gameScanChunkGrid" class="game-scan-chunk-grid" aria-label="Scan progress by chunk"></div>
 
       <div class="game-scan-font-row">
-        <label for="gameScanFont">In-game glyph style</label>
+        <label for="gameScanFont">Manual-entry glyph preview</label>
         <select id="gameScanFont">
           <option value="emerald">Emerald (Latin)</option>
           <option value="frlg">FireRed / LeafGreen (Latin)</option>
@@ -54,7 +54,7 @@ function scannerMarkup() {
         <input id="gameScanAuto" type="checkbox" checked />
         <span>
           <strong>Continuous scan</strong>
-          <small>Waits for the same code across 3 frames before saving it.</small>
+          <small>Uses on-device text recognition and waits for the same code across 3 scans before saving it.</small>
         </span>
       </label>
 
@@ -156,6 +156,8 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
   let waitingForSceneChange = false;
   let changedFrameCount = 0;
   let lastAcceptedValue = '';
+  let scannerReady = false;
+  let scannerUnavailable = false;
   const analysisCanvas = document.createElement('canvas');
   const consensus = createHexScanConsensus({ requiredMatches: 3, windowSize: 5 });
 
@@ -264,7 +266,7 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
   }
 
   function scheduleAutoScan(delay = 180) {
-    if (!stream || !autoScanToggle.checked || video.hidden || !completePanel.hidden) return;
+    if (!stream || scannerUnavailable || !autoScanToggle.checked || video.hidden || !completePanel.hidden) return;
     const generation = autoScanGeneration;
     if (autoScanTimer !== null) clearTimeout(autoScanTimer);
     autoScanTimer = setTimeout(async () => {
@@ -275,6 +277,15 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
         result = await recognize(analysisCanvas, { fontProfile: fontSelect.value });
       } catch {}
       if (generation !== autoScanGeneration || !stream || !autoScanToggle.checked) return;
+
+      if (result?.supported) scannerReady = true;
+      if (result && !result.supported) {
+        scannerUnavailable = true;
+        autoScanToggle.checked = false;
+        setLiveResult('', 'reading');
+        cameraStatus.textContent = 'The text scanner could not load. Check your connection, or use Capture chunk and enter the code manually.';
+        return;
+      }
 
       const value = validateHexChunk(result?.value).valid
         ? String(result.value).toUpperCase()
@@ -287,7 +298,9 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
           changedFrameCount = 0;
           consensus.reset();
           setLiveResult('', 'reading');
-          cameraStatus.textContent = `Scanning chunk ${currentIndex + 1}… Hold the code steady inside the guide.`;
+          cameraStatus.textContent = scannerReady
+            ? `Scanning chunk ${currentIndex + 1}… Hold the code steady inside the guide.`
+            : 'Loading the general text scanner… The first scan can take a moment.';
         }
         scheduleAutoScan();
         return;
@@ -299,7 +312,9 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
         cameraStatus.textContent = `Reading ${vote.candidate} — ${vote.matches} of ${vote.required} matching frames.`;
       } else {
         setLiveResult('', 'reading');
-        cameraStatus.textContent = `Scanning chunk ${currentIndex + 1}… Hold the code steady inside the guide.`;
+        cameraStatus.textContent = scannerReady
+          ? `Scanning chunk ${currentIndex + 1}… Hold the code steady inside the guide.`
+          : 'Loading the general text scanner… The first scan can take a moment.';
       }
       if (vote.accepted) acceptAutomaticReading(vote.candidate);
       scheduleAutoScan();
@@ -360,7 +375,7 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
       await video.play();
       showLiveCamera();
       cameraStatus.textContent = autoScanToggle.checked
-        ? 'Scanning automatically… Hold one 8-character block steady inside the guide.'
+        ? 'Loading the general text scanner… The first scan can take a moment.'
         : 'Center one 8-character block in the guide, then capture it.';
     } catch (error) {
       stopCamera();
@@ -378,18 +393,18 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
     captureCanvas.hidden = false;
     confirmPanel.hidden = false;
     input.value = chunks[currentIndex] || '';
-    recognitionStatus.textContent = 'Checking for a readable text match…';
+    recognitionStatus.textContent = 'Reading the text in the guide…';
     renderGlyphPreview();
     const token = ++recognitionToken;
     const result = await recognize(captureCanvas, { fontProfile: fontSelect.value });
     if (token !== recognitionToken) return;
     if (result?.value) {
       input.value = cleanHexChunkDraft(result.value);
-      recognitionStatus.textContent = 'Possible match found. Compare every character with the frozen image before confirming.';
+      recognitionStatus.textContent = 'Text found. Compare every character with the frozen image before confirming.';
     } else if (result?.supported) {
       recognitionStatus.textContent = 'No reliable match was found. Enter the block with the keypad while comparing it with the image.';
     } else {
-      recognitionStatus.textContent = 'Automatic text reading is not available in this browser. Enter the block with the Gen 3 glyph keypad.';
+      recognitionStatus.textContent = 'The text scanner is unavailable. Check your connection, or enter the block with the keypad.';
     }
     renderGlyphPreview();
     input.focus();
@@ -486,9 +501,7 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
     input.focus();
   });
   fontSelect.addEventListener('change', () => {
-    consensus.reset();
     renderGlyphPreview();
-    if (stream && autoScanToggle.checked && !video.hidden) scheduleAutoScan(80);
   });
   autoScanToggle.addEventListener('change', () => {
     cancelAutoScan();
