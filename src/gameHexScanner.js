@@ -54,7 +54,7 @@ function scannerMarkup() {
         <input id="gameScanAuto" type="checkbox" checked />
         <span>
           <strong>Continuous scan</strong>
-          <small>Uses on-device text recognition and waits for the same code across 3 scans before saving it.</small>
+          <small>Confirms each character across at least 2 successful scans, then saves automatically.</small>
         </span>
       </label>
 
@@ -159,7 +159,7 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
   let scannerReady = false;
   let scannerUnavailable = false;
   const analysisCanvas = document.createElement('canvas');
-  const consensus = createHexScanConsensus({ requiredMatches: 3, windowSize: 5 });
+  const consensus = createHexScanConsensus({ requiredMatches: 2, windowSize: 6 });
 
   function renderGlyphPreview() {
     renderGen3HexGlyphs(glyphPreview, input.value, fontSelect.value).catch(() => {
@@ -309,7 +309,9 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
       const vote = consensus.push(value);
       if (vote.candidate) {
         setLiveResult(vote.candidate, 'reading');
-        cameraStatus.textContent = `Reading ${vote.candidate} — ${vote.matches} of ${vote.required} matching frames.`;
+        cameraStatus.textContent = vote.stableCharacters
+          ? `Reading ${vote.preview} — ${vote.stableCharacters} of 8 characters confirmed.`
+          : `Reading ${vote.candidate} — checking it against another scan.`;
       } else {
         setLiveResult('', 'reading');
         cameraStatus.textContent = scannerReady

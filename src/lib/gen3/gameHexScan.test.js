@@ -30,13 +30,16 @@ assert.equal(validateHexChunk('ABCDE').valid, false);
 assert.equal(extractHexCandidate('Box 1: ABCD1234'), 'ABCD1234');
 assert.equal(extractHexCandidate('B1 ABCD 1234 extra'), '');
 
-const consensus = createHexScanConsensus({ requiredMatches: 3, windowSize: 5 });
-assert.equal(consensus.push('9E439043').accepted, false);
-assert.equal(consensus.push('9E439043').accepted, false);
-assert.equal(consensus.push('1E439043').accepted, false);
-const stableReading = consensus.push('9E439043');
+const consensus = createHexScanConsensus({ requiredMatches: 2, windowSize: 6 });
+assert.equal(consensus.push('FEAB0207').accepted, false);
+assert.equal(consensus.push('').sampleCount, 1);
+const oneUnstableCharacter = consensus.push('FEA80207');
+assert.equal(oneUnstableCharacter.accepted, false);
+assert.equal(oneUnstableCharacter.preview, 'FEA·0207');
+assert.equal(oneUnstableCharacter.stableCharacters, 7);
+const stableReading = consensus.push('FEAB0207');
 assert.equal(stableReading.accepted, true);
-assert.equal(stableReading.candidate, '9E439043');
+assert.equal(stableReading.candidate, 'FEAB0207');
 consensus.reset();
 assert.deepEqual(consensus.getSamples(), []);
 
