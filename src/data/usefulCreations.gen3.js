@@ -112,7 +112,7 @@ export const USEFUL_CREATIONS = Object.freeze([
     speciesId: 114,
     speciesName: 'Tangela',
     spritePath: './src/data/Sprites/0114.png',
-    description: 'A Tangela called “SPGHT” that reads a Pokémon’s raw data. Place it in Box 14, Slot 29, with the Pokémon you want to inspect in Slot 30. Move WELDR and the additional DexReg or nicknamed Pokémon out of Box 14 before using it. Execute ACE to print the first 40 bytes as hexadecimal across Boxes 1–10. To read the remaining 40 bytes, apply all four markings to SPGHT and execute ACE again; Boxes 1–10 will then contain the rest. This can also help “transport” Pokémon between platforms or games: read its data in one game, then recreate it with the Base64 writer in another.',
+    description: 'A Tangela called “SPGHT” that reads a Pokémon’s raw data. Place it in Box 14, Slot 29, with the Pokémon you want to inspect in Slot 30. Move WELDR and the additional DexReg or nicknamed Pokémon out of Box 14 before using it. Execute ACE to print the first 40 bytes as hexadecimal across Boxes 1–10. To read the remaining 40 bytes, apply any markings to SPGHT and execute ACE again; Boxes 1–10 will then contain the rest. This can also help “transport” Pokémon between platforms or games: read its data in one game, then recreate it with the Base64 writer in another.',
     resolveBinarySource: resolveSpgthSource,
   }),
   Object.freeze({

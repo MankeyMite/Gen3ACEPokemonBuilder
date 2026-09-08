@@ -93,6 +93,7 @@ import { getOtGenderLockPolicy } from './domain/otGenderLocking.js';
 import { BUILDER_SNAPSHOT_SCHEMA_VERSION, profileIdentityMatchesEncounter } from './domain/profileWorkspaceData.js';
 import { initProfileWorkspace } from './profileWorkspace.js';
 import { initUsefulCreations } from './usefulCreations.js';
+import { initGameHexScanner } from './gameHexScanner.js';
 import { renderBase64Code } from './lib/gen3/base64CodeDisplay.js';
 import {
   getDefaultMoveIdsForSpecies,
@@ -11000,10 +11001,24 @@ function boot(){
   $('#pk3FileInput').addEventListener('change', onImportPk3);
 
   // Import Modal wiring
+  const gameHexScanner = initGameHexScanner({
+    root: document.getElementById('gameScanImportRoot'),
+    onImportHex: hex => {
+      onLoadFromHex(hex);
+      gameHexScanner?.deactivate();
+      closeImportModal();
+    },
+  });
   $('#openImportBtn')?.addEventListener('click', openImportModal);
-  $('#importModalClose')?.addEventListener('click', closeImportModal);
+  $('#importModalClose')?.addEventListener('click', () => {
+    gameHexScanner?.deactivate();
+    closeImportModal();
+  });
   document.getElementById('importOverlay')?.addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) closeImportModal();
+    if (e.target === e.currentTarget) {
+      gameHexScanner?.deactivate();
+      closeImportModal();
+    }
   });
   document.querySelectorAll('.import-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -11012,6 +11027,8 @@ function boot(){
       document.querySelectorAll('.import-tab-content').forEach(c => c.classList.remove('active'));
       const target = document.querySelector(`[data-import-tab-content="${btn.dataset.importTab}"]`);
       if (target) target.classList.add('active');
+      if (btn.dataset.importTab === 'scan') gameHexScanner?.activate();
+      else gameHexScanner?.deactivate();
       const errEl = document.getElementById('importError');
       if (errEl) errEl.style.display = 'none';
     });

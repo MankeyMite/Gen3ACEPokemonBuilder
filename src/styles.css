@@ -1404,6 +1404,356 @@ body.encounter-roamer .shiny-external { display: none; }
   font-size: 0.82rem;
 }
 .pkhex-check-severity { color: var(--muted); font-size: 0.75rem; }
+
+/* Camera-assisted in-game hex import */
+.import-tab-list {
+  flex-wrap: wrap;
+}
+
+.game-scan [hidden] {
+  display: none !important;
+}
+
+.game-scan {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.game-scan-heading,
+.game-scan-confirm-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.game-scan-heading h4,
+.game-scan-confirm-heading h5,
+.game-scan-complete h5 {
+  margin: 0.15rem 0 0;
+  color: var(--fg);
+}
+
+.game-scan-eyebrow,
+.game-scan-confirm-heading span,
+.game-scan-glyph-preview-wrap > span {
+  color: var(--emerald);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.game-scan-heading > strong {
+  flex: none;
+  color: #bfdbfe;
+  font-variant-numeric: tabular-nums;
+}
+
+#gameScanProgress {
+  width: 100%;
+  height: 0.65rem;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(88, 183, 255, 0.12);
+}
+
+#gameScanProgress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: rgba(88, 183, 255, 0.12);
+}
+
+#gameScanProgress::-webkit-progress-value {
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--emerald), #58b7ff);
+}
+
+#gameScanProgress::-moz-progress-bar {
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--emerald), #58b7ff);
+}
+
+.game-scan-step,
+.game-scan-camera-status,
+.game-scan-recognition-status,
+.game-scan-complete p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.game-scan-instructions-editor,
+.game-scan-confirm,
+.game-scan-complete {
+  padding: 0.8rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 0.7rem;
+  background: rgba(8, 21, 37, 0.56);
+}
+
+.game-scan-instructions-editor summary {
+  cursor: pointer;
+  color: #bfdbfe !important;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.game-scan-instructions-editor label {
+  display: block;
+  min-width: 0;
+  margin: 0.75rem 0 0.35rem;
+  font-size: 0.82rem;
+}
+
+.game-scan-instructions-editor textarea,
+.game-scan-complete textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.game-scan-instructions-editor p {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.game-scan-chunk-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+#importOverlay .game-scan-chunk {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.42rem 0.5rem;
+  border: 1px solid rgba(88, 183, 255, 0.18);
+  border-radius: 0.45rem;
+  background: rgba(8, 21, 37, 0.7);
+  color: var(--muted);
+  text-align: left;
+}
+
+.game-scan-chunk span {
+  color: #6f8ca5;
+  font-size: 0.7rem;
+}
+
+.game-scan-chunk strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #71869a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+#importOverlay .game-scan-chunk.is-current {
+  border-color: rgba(88, 183, 255, 0.7);
+  background: rgba(88, 183, 255, 0.13);
+  box-shadow: 0 0 0 2px rgba(88, 183, 255, 0.09);
+}
+
+#importOverlay .game-scan-chunk.is-complete {
+  border-color: rgba(57, 217, 138, 0.38);
+}
+
+.game-scan-chunk.is-complete strong {
+  color: #a7f3d0;
+}
+
+.game-scan-font-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, auto);
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.game-scan-font-row label {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.game-scan-camera-shell {
+  position: relative;
+  aspect-ratio: 4 / 1;
+  min-height: 9rem;
+  overflow: hidden;
+  border: 1px solid rgba(88, 183, 255, 0.3);
+  border-radius: 0.75rem;
+  background:
+    linear-gradient(rgba(9, 24, 39, 0.2), rgba(9, 24, 39, 0.2)),
+    repeating-linear-gradient(0deg, rgba(88, 183, 255, 0.025) 0 1px, transparent 1px 4px),
+    #071521;
+}
+
+.game-scan-camera-shell video,
+.game-scan-camera-shell > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.game-scan-camera-shell > canvas {
+  image-rendering: auto;
+}
+
+.game-scan-reticle {
+  position: absolute;
+  inset: 14% 5%;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  border: 2px solid rgba(57, 217, 138, 0.88);
+  border-radius: 0.45rem;
+  box-shadow: 0 0 0 999px rgba(2, 10, 17, 0.46);
+  pointer-events: none;
+}
+
+.game-scan-reticle span + span {
+  border-left: 1px solid rgba(191, 219, 254, 0.46);
+}
+
+.game-scan-camera-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.35rem;
+  padding: 1rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.game-scan-camera-empty strong {
+  color: #d9e9f6;
+}
+
+.game-scan-camera-empty span {
+  max-width: 28rem;
+  font-size: 0.85rem;
+}
+
+.game-scan-primary-actions,
+.game-scan-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.game-scan-primary-actions > button {
+  flex: 1 1 9rem;
+}
+
+.game-scan-inline-actions {
+  margin-top: 0.7rem;
+}
+
+.game-scan-inline-actions > button {
+  flex: 1 1 auto;
+}
+
+#importOverlay .game-scan-secondary {
+  border: 1px solid rgba(88, 183, 255, 0.25);
+  background: rgba(8, 21, 37, 0.72);
+  color: #bfd0df;
+}
+
+.game-scan-confirm {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.game-scan-confirm label {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+#gameScanChunkInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.game-scan-glyph-preview-wrap {
+  display: grid;
+  gap: 0.45rem;
+  min-height: 4.4rem;
+  padding: 0.65rem;
+  border: 1px solid rgba(57, 217, 138, 0.2);
+  border-radius: 0.55rem;
+  background: #90c8ff;
+}
+
+#gameScanGlyphPreview {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: 48px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.game-scan-keypad {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.35rem;
+}
+
+#importOverlay .game-scan-key {
+  min-width: 0;
+  padding: 0.52rem 0.2rem;
+  border: 1px solid rgba(88, 183, 255, 0.32);
+  border-radius: 0.4rem;
+  background: rgba(88, 183, 255, 0.09);
+  color: #e7f2fc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 800;
+}
+
+.game-scan-complete {
+  display: grid;
+  gap: 0.65rem;
+  border-color: rgba(57, 217, 138, 0.38);
+  background: rgba(57, 217, 138, 0.07);
+}
+
+.game-scan-complete textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .game-scan-chunk-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .game-scan-font-row {
+    grid-template-columns: 1fr;
+  }
+
+  .game-scan-camera-shell {
+    min-height: 7rem;
+  }
+
+  .game-scan-keypad {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
 .pkhex-check-severity[data-severity="valid"] { color: #86efac; }
 .pkhex-check-severity[data-severity="invalid"] { color: #fca5a5; }
 .pkhex-check-severity[data-severity="fishy"] { color: #fde047; }
