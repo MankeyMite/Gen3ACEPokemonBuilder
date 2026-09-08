@@ -5,6 +5,7 @@ import {
   getUsefulCreationLanguages,
   getUsefulCreationsForSetup,
 } from './data/usefulCreations.gen3.js';
+import { getOnlineSpriteUrl } from './data/nationalDex.gen3.js';
 import { renderBase64Code } from './lib/gen3/base64CodeDisplay.js';
 
 export function getSelectOptionValue(optionData) {
@@ -65,7 +66,7 @@ function createUsefulCreationsView() {
 
       <article id="usefulCreationResult" class="useful-creation-result" hidden>
         <div class="useful-creation-summary">
-          <img id="usefulCreationSprite" alt="" />
+          <img id="usefulCreationSprite" class="species-sprite visible" alt="" />
           <div>
             <h3 id="usefulCreationName"></h3>
             <p id="usefulCreationDescription"></p>
@@ -193,7 +194,15 @@ export function initUsefulCreations() {
       get('usefulCreationName').textContent = generated.creation.label;
       get('usefulCreationDescription').textContent = generated.creation.description;
       const sprite = get('usefulCreationSprite');
-      sprite.src = generated.creation.spritePath;
+      const localSpritePath = generated.creation.spritePath;
+      const onlineSpritePath = getOnlineSpriteUrl(generated.creation.speciesName, false);
+      sprite.onerror = localSpritePath
+        ? () => {
+            sprite.onerror = null;
+            sprite.src = localSpritePath;
+          }
+        : null;
+      sprite.src = onlineSpritePath || localSpritePath;
       sprite.alt = generated.creation.speciesName;
       renderBase64Code(codeDisplay, codeText);
       switchNote.hidden = !(getSetup().device === 'switch' && generated.substitutionUsed);

@@ -1094,11 +1094,15 @@ input:focus, select:focus, textarea:focus {
 }
 
 .useful-creation-summary img {
-  width: 76px;
-  height: 76px;
+  width: 64px;
+  height: 64px;
   flex: none;
   object-fit: contain;
   image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;
+  transform: none;
 }
 
 .useful-creation-summary h3,
