@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { GEN3_HEX_FONT_SHEETS } from '../../data/gen3HexFontSheets.js';
 import {
   GAME_SCAN_CHUNK_COUNT,
+  GAME_SCAN_GUIDE_REGION,
   assembleScannedPokemonHex,
   cleanHexChunkDraft,
   formatScannedPokemonHex,
@@ -18,6 +19,12 @@ import {
 } from './gen3HexRecognizer.js';
 
 assert.equal(cleanHexChunkDraft(' ab-cd 12g34 '), 'ABCD1234');
+assert.deepEqual(GAME_SCAN_GUIDE_REGION, {
+  x: 0.26,
+  y: 0.26,
+  width: 0.48,
+  height: 0.48,
+});
 assert.equal(validateHexChunk('ABCDEF09').valid, true);
 assert.equal(validateHexChunk('ABCDE').valid, false);
 assert.equal(extractHexCandidate('Box 1: ABCD1234'), 'ABCD1234');
@@ -65,10 +72,13 @@ assert.match(GEN3_HEX_FONT_SHEETS.frlg, /^data:image\/png;base64,/);
 
 const indexMarkup = await readFile(new URL('../../../index.html', import.meta.url), 'utf8');
 const mainSource = await readFile(new URL('../../main.js', import.meta.url), 'utf8');
+const stylesSource = await readFile(new URL('../../styles.css', import.meta.url), 'utf8');
 assert.match(indexMarkup, /data-import-tab="scan"/);
 assert.match(indexMarkup, /id="gameScanImportRoot"/);
 assert.match(mainSource, /initGameHexScanner\(\{/);
 assert.match(mainSource, /onImportHex:\s*hex\s*=>\s*\{[\s\S]*?onLoadFromHex\(hex\)/);
+assert.match(stylesSource, /\.game-scan-reticle\s*\{[\s\S]*?width:\s*48%/);
+assert.match(stylesSource, /\.game-scan-camera-shell\s*\{[\s\S]*?min-height:\s*0/);
 
 class FakeTextDetector {
   async detect() {

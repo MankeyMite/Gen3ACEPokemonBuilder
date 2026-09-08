@@ -1416,7 +1416,20 @@ body.encounter-roamer .shiny-external { display: none; }
 
 .game-scan {
   display: grid;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   gap: 0.85rem;
+}
+
+#gameScanImportRoot,
+.game-scan > *,
+.game-scan-camera-shell,
+.game-scan-camera-shell video,
+.game-scan-camera-shell > canvas {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .game-scan-heading,
@@ -1581,8 +1594,9 @@ body.encounter-roamer .shiny-external { display: none; }
 
 .game-scan-camera-shell {
   position: relative;
+  width: 100%;
   aspect-ratio: 4 / 1;
-  min-height: 9rem;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid rgba(88, 183, 255, 0.3);
   border-radius: 0.75rem;
@@ -1607,7 +1621,11 @@ body.encounter-roamer .shiny-external { display: none; }
 
 .game-scan-reticle {
   position: absolute;
-  inset: 14% 5%;
+  top: 50%;
+  left: 50%;
+  width: 48%;
+  aspect-ratio: 4 / 1;
+  transform: translate(-50%, -50%);
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   border: 2px solid rgba(57, 217, 138, 0.88);
@@ -1747,7 +1765,7 @@ body.encounter-roamer .shiny-external { display: none; }
   }
 
   .game-scan-camera-shell {
-    min-height: 7rem;
+    min-height: 0;
   }
 
   .game-scan-keypad {

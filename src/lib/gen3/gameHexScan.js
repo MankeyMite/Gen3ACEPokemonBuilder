@@ -1,5 +1,11 @@
 export const GAME_SCAN_CHUNK_COUNT = 20;
 export const GAME_SCAN_CHUNK_LENGTH = 8;
+export const GAME_SCAN_GUIDE_REGION = Object.freeze({
+  x: 0.26,
+  y: 0.26,
+  width: 0.48,
+  height: 0.48,
+});
 
 export const DEFAULT_GAME_SCAN_INSTRUCTION =
   'Show the next 8-character hexadecimal block in your game, then center it inside the camera guide. Capture it, compare every character with the frozen image, and correct anything before confirming.';

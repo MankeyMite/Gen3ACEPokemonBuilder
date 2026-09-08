@@ -1,4 +1,4 @@
-import { validateHexChunk } from './gameHexScan.js';
+import { GAME_SCAN_GUIDE_REGION, validateHexChunk } from './gameHexScan.js';
 import {
   centerGen3GlyphMask,
   getGen3HexGlyphTemplates,
@@ -78,10 +78,10 @@ function makeCellMask(canvas, cellIndex) {
   scratch.width = GLYPH_SIZE;
   scratch.height = GLYPH_SIZE;
   const context = scratch.getContext('2d', { willReadFrequently: true });
-  const regionX = canvas.width * 0.05;
-  const regionY = canvas.height * 0.14;
-  const regionWidth = canvas.width * 0.9;
-  const regionHeight = canvas.height * 0.72;
+  const regionX = canvas.width * GAME_SCAN_GUIDE_REGION.x;
+  const regionY = canvas.height * GAME_SCAN_GUIDE_REGION.y;
+  const regionWidth = canvas.width * GAME_SCAN_GUIDE_REGION.width;
+  const regionHeight = canvas.height * GAME_SCAN_GUIDE_REGION.height;
   const cellWidth = regionWidth / 8;
   context.imageSmoothingEnabled = true;
   context.drawImage(
