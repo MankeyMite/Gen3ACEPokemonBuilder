@@ -75,7 +75,11 @@ function getOtsuThreshold(values) {
 
 function makeCellMask(canvas, cellIndex) {
   const scratch = document.createElement('canvas');
-  scratch.width = GLYPH_SIZE;
+  // A Gen 3 hex glyph advances about 7 pixels across a 16-pixel line. Keeping
+  // that narrow cell aspect prevents camera pixels from being stretched to
+  // twice the width of the reference glyphs.
+  const normalizedCellWidth = 8;
+  scratch.width = normalizedCellWidth;
   scratch.height = GLYPH_SIZE;
   const context = scratch.getContext('2d', { willReadFrequently: true });
   const regionX = canvas.width * GAME_SCAN_GUIDE_REGION.x;
@@ -92,20 +96,22 @@ function makeCellMask(canvas, cellIndex) {
     regionHeight,
     0,
     0,
-    GLYPH_SIZE,
+    normalizedCellWidth,
     GLYPH_SIZE,
   );
-  const data = context.getImageData(0, 0, GLYPH_SIZE, GLYPH_SIZE).data;
+  const data = context.getImageData(0, 0, normalizedCellWidth, GLYPH_SIZE).data;
   const borderPixels = [];
   for (let y = 0; y < GLYPH_SIZE; y++) {
-    for (let x = 0; x < GLYPH_SIZE; x++) {
-      if (x > 1 && x < GLYPH_SIZE - 2 && y > 1 && y < GLYPH_SIZE - 2) continue;
-      const offset = ((y * GLYPH_SIZE) + x) * 4;
+    for (let x = 0; x < normalizedCellWidth; x++) {
+      if (x > 0 && x < normalizedCellWidth - 1 && y > 0 && y < GLYPH_SIZE - 1) continue;
+      const offset = ((y * normalizedCellWidth) + x) * 4;
       borderPixels.push([data[offset], data[offset + 1], data[offset + 2]]);
     }
   }
-  const background = [0, 1, 2].map(channel =>
-    borderPixels.reduce((total, pixel) => total + pixel[channel], 0) / borderPixels.length);
+  const background = [0, 1, 2].map(channel => {
+    const values = borderPixels.map(pixel => pixel[channel]).sort((left, right) => left - right);
+    return values[Math.floor(values.length / 2)];
+  });
   const distances = [];
   for (let index = 0; index < data.length; index += 4) {
     const red = data[index] - background[0];
@@ -114,7 +120,13 @@ function makeCellMask(canvas, cellIndex) {
     distances.push(Math.min(255, Math.round(Math.sqrt((red ** 2) + (green ** 2) + (blue ** 2)) / 1.732)));
   }
   const threshold = getOtsuThreshold(distances);
-  const mask = Uint8Array.from(distances, distance => distance > threshold ? 1 : 0);
+  const mask = new Uint8Array(GLYPH_SIZE * GLYPH_SIZE);
+  const insetX = Math.floor((GLYPH_SIZE - normalizedCellWidth) / 2);
+  distances.forEach((distance, index) => {
+    const x = index % normalizedCellWidth;
+    const y = Math.floor(index / normalizedCellWidth);
+    mask[(y * GLYPH_SIZE) + insetX + x] = distance > threshold ? 1 : 0;
+  });
   return centerGen3GlyphMask(mask);
 }
 

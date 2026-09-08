@@ -8,7 +8,42 @@ export const GAME_SCAN_GUIDE_REGION = Object.freeze({
 });
 
 export const DEFAULT_GAME_SCAN_INSTRUCTION =
-  'Show the next 8-character hexadecimal block in your game, then center it inside the camera guide. Capture it, compare every character with the frozen image, and correct anything before confirming.';
+  'Show the next 8-character hexadecimal block in your game and hold it inside the guide. The camera waits for the same result across several frames before saving it. Use manual capture if needed.';
+
+export function createHexScanConsensus({ requiredMatches = 3, windowSize = 5 } = {}) {
+  const required = Math.max(2, Math.floor(Number(requiredMatches) || 3));
+  const size = Math.max(required, Math.floor(Number(windowSize) || 5));
+  let readings = [];
+
+  return {
+    push(reading) {
+      const validation = validateHexChunk(reading?.value || reading || '');
+      const value = validation.valid ? validation.value : '';
+      readings.push(value);
+      if (readings.length > size) readings = readings.slice(-size);
+
+      const counts = new Map();
+      readings.filter(Boolean).forEach(candidate => {
+        counts.set(candidate, (counts.get(candidate) || 0) + 1);
+      });
+      const [candidate = '', matches = 0] = [...counts.entries()]
+        .sort((left, right) => right[1] - left[1])[0] || [];
+      return {
+        accepted: Boolean(candidate) && matches >= required,
+        candidate,
+        matches,
+        required,
+        samples: [...readings],
+      };
+    },
+    reset() {
+      readings = [];
+    },
+    getSamples() {
+      return [...readings];
+    },
+  };
+}
 
 export function cleanHexChunkDraft(value) {
   return String(value || '')

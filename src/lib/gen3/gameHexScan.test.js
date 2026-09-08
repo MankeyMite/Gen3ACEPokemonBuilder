@@ -6,6 +6,7 @@ import {
   GAME_SCAN_GUIDE_REGION,
   assembleScannedPokemonHex,
   cleanHexChunkDraft,
+  createHexScanConsensus,
   formatScannedPokemonHex,
   getCenteredVideoCrop,
   getConfirmedChunkCount,
@@ -34,6 +35,16 @@ const sampleGlyphMask = new Uint8Array(16 * 16);
 sampleGlyphMask[17] = 1;
 sampleGlyphMask[18] = 1;
 assert.equal(compareGen3GlyphMasks(sampleGlyphMask, sampleGlyphMask), 1);
+
+const consensus = createHexScanConsensus({ requiredMatches: 3, windowSize: 5 });
+assert.equal(consensus.push('9E439043').accepted, false);
+assert.equal(consensus.push('9E439043').accepted, false);
+assert.equal(consensus.push('1E439043').accepted, false);
+const stableReading = consensus.push('9E439043');
+assert.equal(stableReading.accepted, true);
+assert.equal(stableReading.candidate, '9E439043');
+consensus.reset();
+assert.deepEqual(consensus.getSamples(), []);
 
 const recognition = await recognizeGen3HexFromCanvas({}, {
   TextDetector: class {

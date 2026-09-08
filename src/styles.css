@@ -1592,6 +1592,43 @@ body.encounter-roamer .shiny-external { display: none; }
   font-size: 0.85rem;
 }
 
+.game-scan-auto-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(57, 217, 138, 0.28);
+  border-radius: 0.65rem;
+  background: rgba(57, 217, 138, 0.06);
+  cursor: pointer;
+}
+
+.game-scan-auto-row input {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  accent-color: var(--emerald);
+}
+
+.game-scan-auto-row span {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.game-scan-auto-row strong {
+  color: #d9fbe9;
+  font-size: 0.88rem;
+}
+
+.game-scan-auto-row small {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
 .game-scan-camera-shell {
   position: relative;
   width: 100%;
@@ -1631,7 +1668,14 @@ body.encounter-roamer .shiny-external { display: none; }
   border: 2px solid rgba(57, 217, 138, 0.88);
   border-radius: 0.45rem;
   box-shadow: 0 0 0 999px rgba(2, 10, 17, 0.46);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
   pointer-events: none;
+}
+
+.game-scan-reticle.is-recognized {
+  border-color: #86efac;
+  background: rgba(22, 163, 74, 0.16);
+  box-shadow: 0 0 0 999px rgba(2, 10, 17, 0.5), 0 0 0 3px rgba(134, 239, 172, 0.24);
 }
 
 .game-scan-reticle span + span {
@@ -1656,6 +1700,46 @@ body.encounter-roamer .shiny-external { display: none; }
 .game-scan-camera-empty span {
   max-width: 28rem;
   font-size: 0.85rem;
+}
+
+.game-scan-live-result {
+  position: absolute;
+  left: 50%;
+  bottom: 0.3rem;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: calc(100% - 1rem);
+  padding: 0.24rem 0.55rem;
+  border: 1px solid rgba(88, 183, 255, 0.65);
+  border-radius: 999px;
+  background: rgba(4, 18, 30, 0.9);
+  color: #dbeafe;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.76rem;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.game-scan-live-result > span {
+  display: none;
+}
+
+.game-scan-live-result[data-state="accepted"] {
+  border-color: #86efac;
+  background: rgba(6, 78, 59, 0.94);
+  color: #d1fae5;
+}
+
+.game-scan-live-result[data-state="accepted"] > span {
+  display: inline;
+  color: #86efac;
+  font-weight: 900;
+}
+
+.game-scan-camera-status {
+  min-height: 2.6em;
 }
 
 .game-scan-primary-actions,

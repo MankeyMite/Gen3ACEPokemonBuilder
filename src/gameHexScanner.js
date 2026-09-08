@@ -3,6 +3,7 @@ import {
   GAME_SCAN_CHUNK_COUNT,
   assembleScannedPokemonHex,
   cleanHexChunkDraft,
+  createHexScanConsensus,
   formatScannedPokemonHex,
   getCenteredVideoCrop,
   getConfirmedChunkCount,
@@ -49,11 +50,23 @@ function scannerMarkup() {
         </select>
       </div>
 
+      <label class="game-scan-auto-row" for="gameScanAuto">
+        <input id="gameScanAuto" type="checkbox" checked />
+        <span>
+          <strong>Continuous scan</strong>
+          <small>Waits for the same code across 3 frames before saving it.</small>
+        </span>
+      </label>
+
       <div class="game-scan-camera-shell">
         <video id="gameScanVideo" autoplay muted playsinline hidden></video>
         <canvas id="gameScanCapture" hidden></canvas>
         <div id="gameScanReticle" class="game-scan-reticle" hidden aria-hidden="true">
           ${Array.from({ length: 8 }, () => '<span></span>').join('')}
+        </div>
+        <div id="gameScanLiveResult" class="game-scan-live-result" hidden aria-live="polite">
+          <span>✓</span>
+          <strong id="gameScanLiveCode"></strong>
         </div>
         <div id="gameScanCameraEmpty" class="game-scan-camera-empty">
           <strong>Camera is off</strong>
@@ -127,6 +140,9 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
   const recognitionStatus = find('gameScanRecognitionStatus');
   const glyphPreview = find('gameScanGlyphPreview');
   const fontSelect = find('gameScanFont');
+  const autoScanToggle = find('gameScanAuto');
+  const liveResult = find('gameScanLiveResult');
+  const liveCode = find('gameScanLiveCode');
   const completePanel = find('gameScanComplete');
   const instructionEditor = find('gameScanInstructionEditor');
   const chunks = Array(GAME_SCAN_CHUNK_COUNT).fill('');
@@ -135,6 +151,13 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
   let stream = null;
   let recognitionToken = 0;
   let reviewingConfirmedChunk = false;
+  let autoScanTimer = null;
+  let autoScanGeneration = 0;
+  let waitingForSceneChange = false;
+  let changedFrameCount = 0;
+  let lastAcceptedValue = '';
+  const analysisCanvas = document.createElement('canvas');
+  const consensus = createHexScanConsensus({ requiredMatches: 3, windowSize: 5 });
 
   function renderGlyphPreview() {
     renderGen3HexGlyphs(glyphPreview, input.value, fontSelect.value).catch(() => {
@@ -180,10 +203,117 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
     renderChunkGrid();
   }
 
+  function drawVideoFrame(targetCanvas) {
+    if (!stream || !video.videoWidth || !video.videoHeight) return false;
+    const crop = getCenteredVideoCrop(video.videoWidth, video.videoHeight, 4);
+    targetCanvas.width = 800;
+    targetCanvas.height = 200;
+    const context = targetCanvas.getContext('2d', { willReadFrequently: true });
+    context.imageSmoothingEnabled = true;
+    context.drawImage(
+      video,
+      crop.x,
+      crop.y,
+      crop.width,
+      crop.height,
+      0,
+      0,
+      targetCanvas.width,
+      targetCanvas.height,
+    );
+    return true;
+  }
+
+  function cancelAutoScan() {
+    autoScanGeneration += 1;
+    if (autoScanTimer !== null) clearTimeout(autoScanTimer);
+    autoScanTimer = null;
+    consensus.reset();
+  }
+
+  function setLiveResult(value, state = 'reading') {
+    liveCode.textContent = value || '';
+    liveResult.dataset.state = state;
+    liveResult.hidden = !value;
+    reticle.classList.toggle('is-recognized', state === 'accepted');
+  }
+
+  function acceptAutomaticReading(value) {
+    const savedChunkNumber = currentIndex + 1;
+    chunks[currentIndex] = value;
+    reviewingConfirmedChunk = false;
+    lastAcceptedValue = value;
+    waitingForSceneChange = true;
+    changedFrameCount = 0;
+    consensus.reset();
+    setLiveResult(value, 'accepted');
+    cameraStatus.textContent = `✓ ${value} saved as chunk ${savedChunkNumber}. Move to the next box.`;
+
+    const nextIndex = getNextIncompleteChunkIndex(chunks, currentIndex + 1);
+    if (nextIndex === -1) {
+      renderState();
+      return;
+    }
+    currentIndex = nextIndex;
+    renderState();
+    setTimeout(() => {
+      if (!stream || !waitingForSceneChange) return;
+      liveResult.hidden = true;
+      reticle.classList.remove('is-recognized');
+    }, 800);
+  }
+
+  function scheduleAutoScan(delay = 180) {
+    if (!stream || !autoScanToggle.checked || video.hidden || !completePanel.hidden) return;
+    const generation = autoScanGeneration;
+    if (autoScanTimer !== null) clearTimeout(autoScanTimer);
+    autoScanTimer = setTimeout(async () => {
+      autoScanTimer = null;
+      if (generation !== autoScanGeneration || !drawVideoFrame(analysisCanvas)) return;
+      let result = null;
+      try {
+        result = await recognize(analysisCanvas, { fontProfile: fontSelect.value });
+      } catch {}
+      if (generation !== autoScanGeneration || !stream || !autoScanToggle.checked) return;
+
+      const value = validateHexChunk(result?.value).valid
+        ? String(result.value).toUpperCase()
+        : '';
+      if (waitingForSceneChange) {
+        if (!value || value !== lastAcceptedValue) changedFrameCount += 1;
+        else changedFrameCount = 0;
+        if (changedFrameCount >= 2) {
+          waitingForSceneChange = false;
+          changedFrameCount = 0;
+          consensus.reset();
+          setLiveResult('', 'reading');
+          cameraStatus.textContent = `Scanning chunk ${currentIndex + 1}… Hold the code steady inside the guide.`;
+        }
+        scheduleAutoScan();
+        return;
+      }
+
+      const vote = consensus.push(value);
+      if (vote.candidate) {
+        setLiveResult(vote.candidate, 'reading');
+        cameraStatus.textContent = `Reading ${vote.candidate} — ${vote.matches} of ${vote.required} matching frames.`;
+      } else {
+        setLiveResult('', 'reading');
+        cameraStatus.textContent = `Scanning chunk ${currentIndex + 1}… Hold the code steady inside the guide.`;
+      }
+      if (vote.accepted) acceptAutomaticReading(vote.candidate);
+      scheduleAutoScan();
+    }, delay);
+  }
+
   function showLiveCamera() {
     recognitionToken += 1;
+    cancelAutoScan();
     captureCanvas.hidden = true;
     confirmPanel.hidden = true;
+    waitingForSceneChange = false;
+    changedFrameCount = 0;
+    setLiveResult('', 'reading');
     input.value = chunks[currentIndex] || '';
     renderGlyphPreview();
     if (stream) {
@@ -191,11 +321,13 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
       reticle.hidden = false;
       cameraEmpty.hidden = true;
       captureButton.disabled = false;
+      scheduleAutoScan(80);
     }
   }
 
   function stopCamera() {
     recognitionToken += 1;
+    cancelAutoScan();
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       stream = null;
@@ -227,7 +359,9 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
       video.srcObject = stream;
       await video.play();
       showLiveCamera();
-      cameraStatus.textContent = 'Center one 8-character block in the guide, then capture it.';
+      cameraStatus.textContent = autoScanToggle.checked
+        ? 'Scanning automatically… Hold one 8-character block steady inside the guide.'
+        : 'Center one 8-character block in the guide, then capture it.';
     } catch (error) {
       stopCamera();
       cameraStatus.textContent = error?.name === 'NotAllowedError'
@@ -237,23 +371,8 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
   }
 
   async function captureCurrentChunk() {
-    if (!stream || !video.videoWidth || !video.videoHeight) return;
-    const crop = getCenteredVideoCrop(video.videoWidth, video.videoHeight, 4);
-    captureCanvas.width = 800;
-    captureCanvas.height = 200;
-    const context = captureCanvas.getContext('2d', { willReadFrequently: true });
-    context.imageSmoothingEnabled = true;
-    context.drawImage(
-      video,
-      crop.x,
-      crop.y,
-      crop.width,
-      crop.height,
-      0,
-      0,
-      captureCanvas.width,
-      captureCanvas.height,
-    );
+    if (!drawVideoFrame(captureCanvas)) return;
+    cancelAutoScan();
     video.hidden = true;
     reticle.hidden = true;
     captureCanvas.hidden = false;
@@ -278,6 +397,7 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
 
   function enterCurrentChunkManually() {
     recognitionToken += 1;
+    cancelAutoScan();
     video.hidden = true;
     reticle.hidden = true;
     captureCanvas.hidden = true;
@@ -365,7 +485,21 @@ export function initGameHexScanner({ root, onImportHex, recognize = recognizeGen
     renderGlyphPreview();
     input.focus();
   });
-  fontSelect.addEventListener('change', renderGlyphPreview);
+  fontSelect.addEventListener('change', () => {
+    consensus.reset();
+    renderGlyphPreview();
+    if (stream && autoScanToggle.checked && !video.hidden) scheduleAutoScan(80);
+  });
+  autoScanToggle.addEventListener('change', () => {
+    cancelAutoScan();
+    setLiveResult('', 'reading');
+    if (autoScanToggle.checked && stream && !video.hidden) {
+      cameraStatus.textContent = `Scanning chunk ${currentIndex + 1}… Hold the code steady inside the guide.`;
+      scheduleAutoScan(80);
+    } else if (stream) {
+      cameraStatus.textContent = 'Continuous scan is off. Use Capture chunk when the code is centered.';
+    }
+  });
   find('gameScanApplyInstructions').addEventListener('click', () => {
     instruction = instructionEditor.value.trim() || DEFAULT_GAME_SCAN_INSTRUCTION;
     instructionEditor.value = instruction;
