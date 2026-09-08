@@ -92,6 +92,8 @@ import { applyLanguageTextLimits } from './domain/languageTextLimits.js';
 import { getOtGenderLockPolicy } from './domain/otGenderLocking.js';
 import { BUILDER_SNAPSHOT_SCHEMA_VERSION, profileIdentityMatchesEncounter } from './domain/profileWorkspaceData.js';
 import { initProfileWorkspace } from './profileWorkspace.js';
+import { initUsefulCreations } from './usefulCreations.js';
+import { renderBase64Code } from './lib/gen3/base64CodeDisplay.js';
 import {
   getDefaultMoveIdsForSpecies,
   getSelectableMovesForSpecies,
@@ -11123,6 +11125,7 @@ function boot(){
   const languages = Array.from(document.getElementById('language')?.options || [])
     .map(option => ({ value: Number(option.value), label: option.textContent.trim() }))
     .filter(option => option.value);
+  const usefulCreationsController = initUsefulCreations();
   initProfileWorkspace({
     games,
     languages,
@@ -11131,6 +11134,7 @@ function boot(){
       applyActiveProfileTrainerDefaults({ force: true });
     },
     onLoadRecent: recent => _restoreProfileWorkspaceSnapshot?.(recent.snapshot),
+    onOpenUsefulCreations: () => usefulCreationsController.open(),
   }).then(controller => {
     profileWorkspaceController = controller;
     lastProfileTrainerSignature = '';
@@ -13835,75 +13839,9 @@ function setBase64OutputText(text) {
   updateSwitchBoxConverterUi();
 }
 
-function getAceCodeCharacterClass(ch) {
-  if (ch === '.' || ch === ',') return 'code-char-flexible';
-  if (ch === '-' || ch === '\u2010' || ch === '\u2011' || ch === '\u2012' || ch === '\u2013' || ch === '\u2014') {
-    return 'code-char-hyphen';
-  }
-  if (ch === '_') return 'code-char-underscore';
-  if ('()[]{}'.includes(ch)) return 'code-char-bracket';
-  if ((ch >= 'A' && ch <= 'Z') || ch === '\u00C4' || ch === '\u00D6' || ch === '\u00DC') return 'code-char-upper';
-  if (ch === 'q') return 'code-char-lower code-char-lower-q';
-  if ((ch >= 'a' && ch <= 'z') || ch === '\u00E4' || ch === '\u00F6' || ch === '\u00FC') return 'code-char-lower';
-  if (ch >= '0' && ch <= '9') return 'code-char-number';
-  return 'code-char-symbol';
-}
-
-function appendColorizedCodeText(parent, text, rawStartOffset = null) {
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    const span = document.createElement('span');
-    span.className = getAceCodeCharacterClass(ch);
-    span.textContent = ch;
-    if (rawStartOffset !== null) span.dataset.base64Offset = String(rawStartOffset + i);
-    parent.appendChild(span);
-  }
-}
-
 function renderBase64CodeDisplay(text) {
   const display = document.getElementById('base64CodeDisplay');
-  if (!display) return;
-
-  const value = String(text || '');
-  display.textContent = '';
-  if (!value) return;
-
-  const lines = value.split('\n');
-  let lineStartOffset = 0;
-
-  lines.forEach((rawLine) => {
-    const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
-    const lineEl = document.createElement('span');
-    lineEl.className = 'base64-code-line';
-
-    const boxMatch = line.match(/^(\s*)(Box\s+\d+:)(\s*)(\([^)]*\))(.*)$/i);
-    if (boxMatch) {
-      const [, leading, prefixText, prefixSpace, codeText, annotationText] = boxMatch;
-
-      const prefix = document.createElement('span');
-      prefix.className = 'code-box-prefix';
-      prefix.textContent = prefixText;
-      lineEl.appendChild(prefix);
-
-      const code = document.createElement('span');
-      code.className = 'code-box-main';
-      appendColorizedCodeText(code, codeText, lineStartOffset + leading.length + prefixText.length + prefixSpace.length);
-      lineEl.appendChild(code);
-
-      if (annotationText) {
-        const annotation = document.createElement('span');
-        annotation.className = 'code-box-annotation';
-        annotation.textContent = annotationText;
-        lineEl.appendChild(annotation);
-      }
-    } else {
-      lineEl.classList.add('base64-code-header');
-      lineEl.textContent = line;
-    }
-
-    display.appendChild(lineEl);
-    lineStartOffset += rawLine.length + 1;
-  });
+  renderBase64Code(display, text);
 }
 
 function inspectBase64DisplayCharacter(event) {

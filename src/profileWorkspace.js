@@ -151,6 +151,10 @@ function createShell() {
           <span class="workspace-tree-link-icon" aria-hidden="true">↗</span>
           <span>Base64 setup guide</span>
         </a>
+        <button id="usefulCreationsOpen" class="workspace-tree-link" type="button">
+          <span class="workspace-tree-link-icon" aria-hidden="true">✦</span>
+          <span>Useful creations</span>
+        </button>
       </nav>
     </aside>`;
   document.body.appendChild(root);
@@ -162,6 +166,7 @@ export async function initProfileWorkspace({
   languages = [],
   onActiveProfileChange,
   onLoadRecent,
+  onOpenUsefulCreations,
 } = {}) {
   const root = document.getElementById('profileWorkspaceRoot') || createShell();
   let workspace = await loadProfileWorkspace();
@@ -354,6 +359,10 @@ export async function initProfileWorkspace({
   toggle.addEventListener('click', () => setDrawerOpen(!document.body.classList.contains('profile-drawer-open')));
   get('profileDrawerClose').addEventListener('click', () => setDrawerOpen(false));
   backdrop.addEventListener('click', () => setDrawerOpen(false));
+  get('usefulCreationsOpen').addEventListener('click', () => {
+    setDrawerOpen(false);
+    onOpenUsefulCreations?.();
+  });
   get('trainerFolderToggle').addEventListener('click', () => {
     const expanded = get('trainerFolderToggle').getAttribute('aria-expanded') === 'true';
     setFolderExpanded('trainerFolderToggle', 'trainerFolderContent', !expanded);
