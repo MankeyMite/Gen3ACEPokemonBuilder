@@ -177,11 +177,24 @@ function matchesNature(pid, nature) {
   return Number(nature) < 0 || (pid >>> 0) % 25 === Number(nature);
 }
 
+function normalizePidParityPreference(value) {
+  const normalized = String(value || 'any').toLowerCase();
+  return normalized === 'even' || normalized === 'odd' ? normalized : 'any';
+}
+
+function matchesPidParity(pid, preference) {
+  const normalized = normalizePidParityPreference(preference);
+  if (normalized === 'even') return (pid & 1) === 0;
+  if (normalized === 'odd') return (pid & 1) === 1;
+  return true;
+}
+
 function passesFilters(result, p) {
   const { pid, ivs } = result;
 
   if (!matchesNature(pid, p.nature)) return false;
   if (p.ability >= 0 && (pid & 1) !== p.ability) return false;
+  if (!matchesPidParity(pid, p.pidParityPreference)) return false;
 
   if (p.targetGender < 2) {
     const gender = getGenderFromPID(pid, p.genderThreshold);
@@ -370,6 +383,7 @@ function normalizeBACDSearchParams(params) {
   return {
     nature: Number.isFinite(nature) ? nature : 0,
     ability: Number.isFinite(Number(params.ability)) ? Number(params.ability) : -1,
+    pidParityPreference: normalizePidParityPreference(params.pidParityPreference),
     genderThreshold: Number.isFinite(Number(params.genderThreshold)) ? Number(params.genderThreshold) : -1,
     targetGender: Number.isFinite(Number(params.targetGender)) ? Number(params.targetGender) : 3,
     tid: Number(params.tid) & 0xFFFF,

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('./spawn-setup-interactive.html', import.meta.url), 'utf8');
+const builderStyles = await readFile(new URL('../src/styles.css', import.meta.url), 'utf8');
 const inlineScript = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 
 assert.ok(inlineScript, 'the interactive guide should contain its setup script');
@@ -109,6 +110,46 @@ for (const expectedPayload of [
     `FireRed and LeafGreen should both contain ${expectedPayload}`,
   );
 }
+assert.match(
+  inlineScript,
+  /jp: makeDexRegPayloadRows\(\['AAAAAOkA', 'Fz8tgNi8', 'MLQQpQBI', 'h0arrgcI'\]\)/,
+  'Japanese Emerald should use Mettrich\'s corrected DexReg payload',
+);
+assert.match(
+  inlineScript,
+  /function getDexRegPayloadRows\(\)[\s\S]*?preserveLatinDisplay: usesJapaneseKeyboard\(\)/,
+  'Japanese DexReg rows should retain the standard Latin display glyphs',
+);
+assert.match(
+  inlineScript,
+  /preserveLatinDisplay\s*\? compactText\.replace\(\/_\/g, '\\u3000'\)\s*:\s*toJapaneseKeyboardMarkup\(compactText\)/,
+  'Japanese DexReg should preserve Latin glyphs while retaining its required Japanese-keyboard space',
+);
+assert.match(
+  html,
+  /\.japanese-code-panel \.code-line-latin-display \.code-box-main\{font-family:"Atkinson Hyperlegible Mono",Consolas,monospace\}/,
+  'Japanese DexReg Latin characters should use the same hyperlegible code font as other guides',
+);
+assert.match(
+  html,
+  /\.code-char-space\{display:inline-block;[^}]*border-bottom:2px solid rgba\(255,255,255,\.95\)/,
+  'regular trailing spaces should use a crisp white underline',
+);
+assert.match(
+  html,
+  /\.code-char-japanese-space\{display:inline-block;[^}]*border-bottom:2px solid rgba\(255,255,255,\.95\)/,
+  'Japanese trailing spaces should use the same crisp white underline',
+);
+assert.doesNotMatch(
+  html,
+  /code-line-required-space|outlined yellow cell/,
+  'trailing spaces should not receive a large row-level warning treatment',
+);
+assert.match(
+  builderStyles,
+  /\.code-char-underscore\{color:#fff;font-weight:900;text-shadow:0 1px 0 #fff\}/,
+  'space underscores in builder output should use the sharper global white treatment',
+);
 assert.doesNotMatch(
   inlineScript.slice(
     inlineScript.indexOf('var fireRedDexRegPayloads'),
@@ -124,7 +165,7 @@ assert.match(
 );
 assert.match(
   inlineScript,
-  /if\(isBaseFRLGGame\(\)\)\{[\s\S]*?AQD[\s\S]*?&#32;&#32;[\s\S]*?This should spawn a Bulbasaur in Box 14, Slot 30\.[\s\S]*?The setup is now complete\./,
+  /if\(isBaseFRLGGame\(\)\)\{[\s\S]*?AQD[\s\S]*?code-char-space[\s\S]*?code-char-space[\s\S]*?This should spawn a Bulbasaur in Box 14, Slot 30\.[\s\S]*?The setup is now complete\./,
   'FireRed/LeafGreen DexReg instructions should include the two-space Bulbasaur test and the renumbered completion step',
 );
 assert.match(

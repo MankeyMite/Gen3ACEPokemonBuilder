@@ -96,6 +96,29 @@ assert.match(
   /event\?\.fixedPID !== undefined && event\?\.fixedIVs\) return false;/,
   'fixed Mystery Gift specimens must not require a PID Finder selection',
 );
+assert.match(
+  mainSource,
+  /currentEncounterMode === 'roamer'[\s\S]*?currentEncounterMode !== 'mystery'[\s\S]*?event\?\.fixedPID === undefined[\s\S]*?requiresMysteryGiftPidFinderSelection\(\)[\s\S]*?isMysteryMethod2\(method\)[\s\S]*?isMysteryBACDMethod\(method\)/,
+  'PID parity should support roamers and searchable Mystery Gifts, but not fixed-PID gifts',
+);
+const pidParityVisibilityStart = mainSource.indexOf('function shouldShowPidParityPreference(');
+const pidParityVisibilityEnd = mainSource.indexOf('function getPidParityPreferenceForSpecies(', pidParityVisibilityStart);
+assert.ok(pidParityVisibilityStart >= 0 && pidParityVisibilityEnd > pidParityVisibilityStart);
+assert.doesNotMatch(
+  mainSource.slice(pidParityVisibilityStart, pidParityVisibilityEnd),
+  /getGenderThreshold/,
+  'genderless single-ability Pokémon should still be able to select PID parity',
+);
+assert.match(
+  mysteryEventListenerSource,
+  /syncPidParityPreferenceUi\(\)/,
+  'changing a Mystery Gift distribution should refresh PID parity availability',
+);
+assert.match(
+  mainSource,
+  /method: mysteryMethod,[\s\S]*?nature,[\s\S]*?ability,[\s\S]*?pidParityPreference,[\s\S]*?genderThreshold:/,
+  'BACD Mystery Gift searches should receive the selected PID parity',
+);
 assert.match(mainSource, /function updateMysteryFixedSpecimenLocking\(\)/);
 assert.match(
   mainSource,

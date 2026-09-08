@@ -159,6 +159,23 @@ const tableBase = {
   endSeed: 0x10000,
   maxResults: 20,
 };
+
+for (const [preference, expectedBit] of [['even', 0], ['odd', 1]]) {
+  const parityResults = runSearch({
+    ...tableBase,
+    method: 'BACD_R',
+    nature: -1,
+    pidParityPreference: preference,
+    wantShiny: false,
+    noShiny: false,
+  });
+  assert(parityResults.length > 0, `BACD_R ${preference}-parity search should produce results`);
+  assert(
+    parityResults.every(result => (result.pid & 1) === expectedBit),
+    `BACD_R should honor ${preference} PID parity`,
+  );
+}
+
 const taResults = runSearch({
   ...tableBase,
   method: 'BACD_TA',

@@ -1482,17 +1482,31 @@ function hasSingleNormalGen3Ability(speciesId) {
 }
 
 function pidParityContextSupportsCurrentMode() {
-  return currentEncounterMode === 'wild' ||
-    currentEncounterMode === 'hatched' ||
-    currentEncounterMode === 'static';
+  if (currentEncounterMode === 'wild' ||
+      currentEncounterMode === 'hatched' ||
+      currentEncounterMode === 'static' ||
+      currentEncounterMode === 'roamer') {
+    return true;
+  }
+
+  if (currentEncounterMode !== 'mystery') return false;
+
+  const { tag, event } = getSelectedMysteryEvent();
+  const method = getMysteryPidMethod();
+  // Fixed specimens and special distributions whose PID is supplied by the
+  // event cannot honor a user-selected parity. Searchable Method 2/BACD gifts
+  // can, so expose the same preference used by the other GBA PID searches.
+  return Boolean(tag) &&
+    event?.fixedPID === undefined &&
+    requiresMysteryGiftPidFinderSelection() &&
+    (isMysteryMethod2(method) || isMysteryBACDMethod(method));
 }
 
 function shouldShowPidParityPreference(speciesId) {
   const gameId = Number($('#originGame')?.value || 0);
   return pidParityContextSupportsCurrentMode() &&
     GBA_GEN3_ORIGIN_GAME_IDS.has(gameId) &&
-    hasSingleNormalGen3Ability(speciesId) &&
-    getGenderThreshold(Number(speciesId) || 0) !== -1;
+    hasSingleNormalGen3Ability(speciesId);
 }
 
 function getPidParityPreferenceForSpecies(speciesId) {
@@ -1506,7 +1520,7 @@ function getPidParityPreferenceForPidFinder(speciesId) {
 }
 
 function requiresPidFinderForPidParity() {
-  if (!(currentEncounterMode === 'wild' || currentEncounterMode === 'static')) return false;
+  if (!(currentEncounterMode === 'wild' || currentEncounterMode === 'static' || currentEncounterMode === 'roamer')) return false;
   const speciesId = Number($('#species')?.value || 0);
   if (!shouldShowPidParityPreference(speciesId)) return false;
   return getPidParityPreferenceForSpecies(speciesId) !== 'any';
@@ -7881,6 +7895,7 @@ function boot(){
               try { updateOtGenderLocking(); } catch (e) {}
               try { enforceJapaneseOption(tag); } catch (e) {}
               try { lockLanguageForMewLegend(); } catch (e) {}
+              try { syncPidParityPreferenceUi(); } catch (e) {}
               validateForm();
               updateLegalityStatus();
             });
@@ -10428,7 +10443,7 @@ function boot(){
 
       clearSidBeforeMakeShiny();
 
-      if ((currentEncounterMode === 'wild' || currentEncounterMode === 'static') && hasPidFinderSelectionState()) {
+      if ((currentEncounterMode === 'wild' || currentEncounterMode === 'static' || currentEncounterMode === 'roamer' || currentEncounterMode === 'mystery') && hasPidFinderSelectionState()) {
         unlockPidFinderFields({ clearPid: true });
         const status = document.getElementById('pidFinderStatus');
         if (status) status.textContent = 'PID parity changed. Select a new legal encounter.';
@@ -12616,6 +12631,7 @@ function initPidFinder() {
           method: mysteryMethod,
           nature,
           ability,
+          pidParityPreference,
           genderThreshold: genderThreshold === -1 ? -1 : genderThreshold,
           targetGender,
           tid,

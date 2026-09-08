@@ -58,15 +58,16 @@
     .code-char-symbol{color:#b7e27a;font-weight:700}
     .code-char-flexible{color:#f5f7f2;font-weight:700}
     .code-char-bracket{color:#f5f7f2;font-weight:800}
-    .code-char-underscore{color:#f5f7f2;font-weight:900}
+    .code-char-underscore{color:#fff;font-weight:900;text-shadow:0 1px 0 #fff}
     .code-char-hyphen{color:#b7e27a;font-weight:900}
-    .code-char-space{display:none}
+    .code-char-space{display:inline-block;width:1em;min-height:1.15em;border-bottom:2px solid rgba(255,255,255,.95)}
     .code-char-jp-hiragana,.japanese-legend-hiragana{color:#8ed8f8;font-weight:700}
     .code-char-jp-katakana,.japanese-legend-katakana{color:#f4b183;font-weight:700}
     .code-char-jp-alphabet,.japanese-legend-alphabet{color:#b7e27a;font-weight:700}
-    .code-char-japanese-space{display:inline-block;width:1em;min-height:1.15em;border-bottom:2px solid rgba(245,247,242,.48);background:rgba(245,247,242,.06)}
+    .code-char-japanese-space{display:inline-block;width:1em;min-height:1.15em;border-bottom:2px solid rgba(255,255,255,.95)}
     .japanese-code-panel .code-line{grid-template-columns:8ch 10.5em minmax(0,1fr)}
     .japanese-code-panel .code-box-main{font-family:"Yu Gothic UI","Meiryo","Noto Sans JP",sans-serif}
+    .japanese-code-panel .code-line-latin-display .code-box-main{font-family:"Atkinson Hyperlegible Mono",Consolas,monospace}
     .japanese-code-panel .char-red{color:#b7e27a}
     @media (max-width:900px){
       .setup-selectors{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -508,7 +509,7 @@
         fr: makeDexRegPayloadRows(['AAAAAOkA', 'Fz8tgNC8', 'MLQQpQBI', 'h0ZvtAcI']),
         es: makeDexRegPayloadRows(['AAAAAOkA', 'Fz8tgNC8', 'MLQQpQBI', 'h0ZvtAcI']),
         de: makeDexRegPayloadRows(['AAAAAOkA', 'Fz8tgNC8', 'MLQQpQBI', 'h0Z3tAcI']),
-        jp: makeDexRegPayloadRows(['AAAAAOkA', 'Fz8tgNC8', 'MLQQpQBI', 'h0arrgcI'])
+        jp: makeDexRegPayloadRows(['AAAAAOkA', 'Fz8tgNi8', 'MLQQpQBI', 'h0arrgcI'])
       };
 
       // Regular-console FireRed/LeafGreen DexReg payloads imported from the
@@ -721,7 +722,8 @@
             box: row.box,
             text: row.text,
             note: row.note || '',
-            helper: row.helper || ''
+            helper: row.helper || '',
+            preserveLatinDisplay: usesJapaneseKeyboard()
           };
         });
       }
@@ -802,7 +804,7 @@
         return compact + trailing;
       }
 
-      function buildCodeLineHTML(box, text, useHTML, highlightBoxNum, note){
+      function buildCodeLineHTML(box, text, useHTML, highlightBoxNum, note, preserveLatinDisplay){
         var prefixHTML = highlightBoxNum ? fmtBoxWarning(box) : escHTML(fmtBox(box));
         var compactText = compactCodeText(text);
         var cleanNote = String(note || '').trim();
@@ -817,14 +819,19 @@
             cleanNote += (cleanNote ? '; ' : '') + ambiguityNotes.join('; ');
           }
         }
-        if(usesJapaneseKeyboard()) compactText = toJapaneseKeyboardMarkup(compactText);
+        if(usesJapaneseKeyboard()){
+          compactText = preserveLatinDisplay
+            ? compactText.replace(/_/g, '\u3000')
+            : toJapaneseKeyboardMarkup(compactText);
+        }
         var hasHTML = compactText.indexOf('<') >= 0;
         var codeHTML = useHTML && hasHTML ? compactText : escHTML(compactText);
         var isSkipNote = /^skip boxes?\b/i.test(cleanNote);
         var isUnchangedNote = /^Same as Code 1\b/i.test(cleanNote);
         var lineClass = 'code-line'
           + (isSkipNote ? ' code-line-has-skip-note' : '')
-          + (isUnchangedNote ? ' code-line-unchanged' : '');
+          + (isUnchangedNote ? ' code-line-unchanged' : '')
+          + (preserveLatinDisplay ? ' code-line-latin-display' : '');
         var noteHTML = cleanNote ? '<span class="code-box-annotation">' + escHTML(cleanNote) + '</span>' : '';
         var boxHTML = '<span class="code-box-prefix">' + prefixHTML + '</span><span class="code-box-main">' + codeHTML + '</span>';
         return '<div class="' + lineClass + '">' + (isSkipNote ? noteHTML + boxHTML : boxHTML + noteHTML) + '</div>';
@@ -833,7 +840,7 @@
       function buildPanelHTML(rows, useHTML){
         var html = '<div class="panel-inner"><div class="codes-box">' + buildCodeColorLegendHTML();
         rows.forEach(function(r){
-          html += buildCodeLineHTML(r.box, r.text, useHTML, !!r.highlightBoxNum, r.note);
+          html += buildCodeLineHTML(r.box, r.text, useHTML, !!r.highlightBoxNum, r.note, !!r.preserveLatinDisplay);
           if(r.helper) html += '<div class="code-box-helper">' + escHTML(r.helper) + '</div>';
         });
         html += '</div></div>';
@@ -901,7 +908,7 @@
         htmlT += '<li>A Porygon2 should spawn in Box 14, Slot 30.</li>';
         htmlT += '<li>Replace the Pokémon in Box 14, Slot 29 with this Porygon2. Keep the nicknamed Pokemon somewhere in box 1-10 until you confirm the Porygon2 payload works.</li>';
         if(isBaseFRLGGame()){
-          htmlT += '<li>You can test if it is working by typing this test code: <strong>Box 1:</strong> <span class="dexreg-test-code"><span class="code-char-upper">AQD</span><span class="code-char-symbol">?</span><span class="code-char-upper">P</span><span class="code-char-lower">w</span><span class="code-char-underscore">__</span>&#32;&#32;</span> <strong>(two spaces at the end!)</strong>. Save the game, then execute. This should spawn a Bulbasaur in Box 14, Slot 30. You should delete it afterward, as it does not have enough data to be used normally. If you did not already have Bulbasaur, check that it was registered in the Pokédex. If you do not want it registered, reset the game instead. If you ever want to create Pokémon without registering them in the Pokédex, swap this Porygon2 for the previous J7VC Pokémon.</li>';
+        htmlT += '<li>You can test if it is working by typing this test code: <strong>Box 1:</strong> <span class="dexreg-test-code"><span class="code-char-upper">AQD</span><span class="code-char-symbol">?</span><span class="code-char-upper">P</span><span class="code-char-lower">w</span><span class="code-char-underscore">__</span><span class="code-char-space">&#32;</span><span class="code-char-space">&#32;</span></span> <strong>(two spaces at the end!)</strong>. Save the game, then execute. This should spawn a Bulbasaur in Box 14, Slot 30. You should delete it afterward, as it does not have enough data to be used normally. If you did not already have Bulbasaur, check that it was registered in the Pokédex. If you do not want it registered, reset the game instead. If you ever want to create Pokémon without registering them in the Pokédex, swap this Porygon2 for the previous J7VC Pokémon.</li>';
           htmlT += '<li>The setup is now complete. You can now use the main builder website to create Pokémon in box 14 slot 30.</li>';
         } else {
           htmlT += '<li>Execute ACE again. Another Porygon2 should spawn in Box 14, Slot 30 and, if it was not already owned, be registered in the Pokédex.</li>';
