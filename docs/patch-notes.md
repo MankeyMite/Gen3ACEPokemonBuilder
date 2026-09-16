@@ -290,7 +290,7 @@ Summary
 -Hid the #isEgg row except when mode = hatched via updateIsEggVisibility().
 -Updated the todo list to reflect these changes.
 
-Patch Notes — (V.0.2.1) Jan 26, 2025.
+Patch Notes — (V.0.2.1) Jan 26, 2026.
 
 Summary
 - Reworked instruction page for BASE64 setup
