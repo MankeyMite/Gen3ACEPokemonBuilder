@@ -242,8 +242,8 @@ const myBoyCodeData = inlineScript.slice(
 );
 assert.doesNotMatch(
   myBoyCodeData,
-  /highlightBoxNum|char-red/,
-  'MyBoy continuation codes should not highlight Box 11 or color O characters red',
+  /highlightBoxNum|char-red|skip boxes 9-10/,
+  'MyBoy continuation codes should not highlight Box 11, color O characters red, or tell users to skip visible rows',
 );
 assert.match(
   standardCode2And3Data,
