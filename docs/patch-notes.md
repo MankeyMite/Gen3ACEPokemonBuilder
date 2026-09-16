@@ -1,3 +1,18 @@
+
+Patch Notes - (V.0.5.3) - September 16, 2026.
+- Added PID parity to all encounters and fixed the japanese encoding for the base64 guide.
+- Implemented the new “Scan from game” import flow for phones (Test version - not working well yet).
+- Added "Useful creations" to the builder, with SPGTH the Pokémon data reader payload.
+- Added DexReg payload to Switch LeafGreen version.
+- Added the ability to set any nature in the PID finder.
+- Updated the Base64 guide for more clarity.
+- Colosseum/XD Shadow and in-game-trade encounters now show the “Available with a different encounter” move group correctly.
+- Fixed a sprite issues on the Useful Creation page.
+- Fixed the FireRed/LeafGreen MyBoy code for the Base64 Writer guide.
+- Fixed a bug where selecting a PID parity option would reset the selected nature.
+- Fixed illegal moves hidden on some encounters.
+- Fixed the marking position to look better.
+
 Patch Notes - (V.0.5.2) - September 1, 2026.
 - Added move discovery for selected species to see possible moves for a different encounter as well as the legal moves.
 - Added a randomize IVs die button in hatched mode.
