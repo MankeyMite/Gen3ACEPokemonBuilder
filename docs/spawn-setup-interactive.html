@@ -313,7 +313,8 @@
       // Notes per box number (code 1)
       var code1Notes = {
         1: 'zero (0), not O',
-        7: 'required: two trailing spaces'
+        2: 'two ellipsis, not spaces!',
+        7: 'Add two spaces at the end'
       };
 
       // Code 2 changes Box 5 and Boxes 9-14. The renderer fills in the
@@ -369,7 +370,7 @@
 
       var myBoyCode2Rows = [
         {box: 8,  text: 'v K 5 Q K', note: ''},
-        {box: 11, text: 'B n R G J I F F', note: 'skip boxes 9-10!', highlightBoxNum: true},
+        {box: 11, text: 'B n R G J I F F', note: 'skip boxes 9-10!'},
         {box: 12, text: 'H G G T M N F G', note: ''},
         {box: 13, text: 'I I T T H T F T', note: ''},
         {box: 14, text: 'S R Q Q I T F G', note: ''}
@@ -377,27 +378,43 @@
 
       var myBoyCode3Rows = [
         {box: 8,  text: 'v Z 5 Q K', note: ''},
-        {box: 11, text: 'B n S K N L H F', note: 'skip boxes 9-10!', highlightBoxNum: true},
+        {box: 11, text: 'B n S K N L H F', note: 'skip boxes 9-10!'},
         {box: 12, text: 'J T I L G H S J', note: ''},
-        {box: 13, text: 'Q U F G Q U G <span class="char-red">O</span>', note: 'upper case O (O)'},
-        {box: 14, text: 'F L I G F N H <span class="char-red">O</span>', note: 'upper case O (O)'}
+        {box: 13, text: 'Q U F G Q U G O', note: 'upper case O (O)'},
+        {box: 14, text: 'F L I G F N H O', note: 'upper case O (O)'}
       ];
 
       var myBoyCode4Rows = [
-        {box: 8,  text: 'v <span class="char-red">o</span> 5 Q K', note: 'lowercase O (o)'},
-        {box: 11, text: 'B n F J S Q F N', note: 'skip boxes 9-10!', highlightBoxNum: true},
-        {box: 12, text: 'I <span class="char-red">O</span> I T F F R T', note: 'upper case O (O)'},
+        {box: 8,  text: 'v o 5 Q K', note: 'lowercase O (o)'},
+        {box: 11, text: 'B n F J S Q F N', note: 'skip boxes 9-10!'},
+        {box: 12, text: 'I O I T F F R T', note: 'upper case O (O)'},
         {box: 13, text: 'J F G L M F F G', note: ''},
         {box: 14, text: 'I H T Q T M', note: ''}
       ];
 
       var myBoyCode5Rows = [
         {box: 8,  text: 'v , 5 Q K', note: ''},
-        {box: 11, text: 'B n F F S F Q K', note: 'skip boxes 9-10!', highlightBoxNum: true},
+        {box: 11, text: 'B n F F S F Q K', note: 'skip boxes 9-10!'},
         {box: 12, text: 'H I P H I L P I', note: ''},
         {box: 13, text: 'F H T F G R U U', note: ''},
         {box: 14, text: 'H U T G', note: ''}
       ];
+
+      // FireRed and LeafGreen use different MyBoy codes. Emerald keeps the
+      // original rows above for every supported language.
+      var myBoyFRLGCodeOverrides = {
+        1: {
+          1: 'B C U n _ F L u',
+          5: '_ F b O T . h r',
+          9: 'T . g L _ F b O',
+          10: '_ F o H I o o r',
+          11: 'x n F K T F F F'
+        },
+        2: {11: 'x n R G J I F F'},
+        3: {11: 'x n S K N L H F'},
+        4: {11: 'x n F J S Q F N'},
+        5: {11: 'x n F F S F Q K'}
+      };
 
       // Japanese Emerald setup: the game-typable Japanese spaces are preserved in the strings.
       var japaneseEmeraldRows = [
@@ -785,6 +802,39 @@
         });
       }
 
+      function getMyBoyCodeRows(codeNumber){
+        var baseRows = [
+          null,
+          myBoyCode1Rows,
+          myBoyCode2Rows,
+          myBoyCode3Rows,
+          myBoyCode4Rows,
+          myBoyCode5Rows
+        ][codeNumber] || [];
+        if(!isBaseFRLGGame()) return baseRows;
+
+        var overrides = myBoyFRLGCodeOverrides[codeNumber] || {};
+        return baseRows.map(function(row){
+          if(!Object.prototype.hasOwnProperty.call(overrides, row.box)) return row;
+          var replacement = {};
+          Object.keys(row).forEach(function(key){ replacement[key] = row[key]; });
+          replacement.text = overrides[row.box];
+          return replacement;
+        });
+      }
+
+      function fillUnchangedMyBoyCode1Rows(changedRows, code1Rows){
+        var changedByBox = {};
+        changedRows.forEach(function(row){ changedByBox[row.box] = row; });
+        return code1Rows.map(function(code1Row){
+          return changedByBox[code1Row.box] || {
+            box: code1Row.box,
+            text: code1Row.text,
+            note: 'Same as Code 1 — no change needed.'
+          };
+        });
+      }
+
       /* ============================================================
          PANEL BUILDERS
          ============================================================ */
@@ -973,9 +1023,10 @@
       function renderMyBoyPanels(){
         var gameKey = effectiveGameKey();
         var nickname = nicknameByGame[gameKey] || nicknameByGame.EM;
+        var myBoyCode1 = getMyBoyCodeRows(1);
 
         var p1 = document.getElementById('code1');
-        var html1 = buildPanelHTML(myBoyCode1Rows, false);
+        var html1 = buildPanelHTML(myBoyCode1, false);
         html1 += '<div class="remember-list"><ul>';
         html1 += '<li>Do not add spaces at the end of a box name unless the code specifically shows them.</li>';
         html1 += '<li>Save the game</li>';
@@ -989,10 +1040,10 @@
         p1.innerHTML = html1;
 
         var myBoyFollowups = [
-          {id: 'code2', rows: myBoyCode2Rows, extra: buildMyBoyContinueTip(3)},
-          {id: 'code3', rows: myBoyCode3Rows, extra: buildMyBoyContinueTip(4)},
-          {id: 'code4', rows: myBoyCode4Rows, extra: buildMyBoyContinueTip(5)},
-          {id: 'code5', rows: myBoyCode5Rows, extra: buildMyBoyFinalTip(nickname)}
+          {id: 'code2', rows: fillUnchangedMyBoyCode1Rows(getMyBoyCodeRows(2), myBoyCode1), extra: buildMyBoyContinueTip(3)},
+          {id: 'code3', rows: fillUnchangedMyBoyCode1Rows(getMyBoyCodeRows(3), myBoyCode1), extra: buildMyBoyContinueTip(4)},
+          {id: 'code4', rows: fillUnchangedMyBoyCode1Rows(getMyBoyCodeRows(4), myBoyCode1), extra: buildMyBoyContinueTip(5)},
+          {id: 'code5', rows: fillUnchangedMyBoyCode1Rows(getMyBoyCodeRows(5), myBoyCode1), extra: buildMyBoyFinalTip(nickname)}
         ];
 
         myBoyFollowups.forEach(function(code){

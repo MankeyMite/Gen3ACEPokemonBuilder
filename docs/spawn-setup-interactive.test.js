@@ -236,6 +236,15 @@ assert.doesNotMatch(
   /skip boxes 6-8|highlightBoxNum/,
   'standard Codes 2 and 3 should no longer skip to a highlighted Box 9',
 );
+const myBoyCodeData = inlineScript.slice(
+  inlineScript.indexOf('var myBoyCode1Rows'),
+  inlineScript.indexOf('// Japanese Emerald setup'),
+);
+assert.doesNotMatch(
+  myBoyCodeData,
+  /highlightBoxNum|char-red/,
+  'MyBoy continuation codes should not highlight Box 11 or color O characters red',
+);
 assert.match(
   standardCode2And3Data,
   /\{box:\s*14, text: 'H G L H G Q G M', note: 'G-Q-G — middle letter is Q, not G'\}/,
@@ -247,6 +256,26 @@ assert.match(
   inlineScript,
   /function fillUnchangedCode1Rows\([\s\S]*?return getCode1Rows\(\)\.map[\s\S]*?Same as Code 1 — no change needed\./,
   'unchanged continuation rows should be copied from Code 1 and clearly labelled',
+);
+assert.match(
+  inlineScript,
+  /function getMyBoyCodeRows\([\s\S]*?if\(!isBaseFRLGGame\(\)\) return baseRows;[\s\S]*?myBoyFRLGCodeOverrides/,
+  'MyBoy rows should retain Emerald defaults and apply overrides only to FireRed and LeafGreen',
+);
+assert.match(
+  inlineScript,
+  /myBoyFRLGCodeOverrides = \{[\s\S]*?1: 'B C U n _ F L u'[\s\S]*?11: 'x n F F S F Q K'/,
+  'the updated MyBoy code should be scoped to the FireRed and LeafGreen overrides',
+);
+assert.match(
+  inlineScript,
+  /function fillUnchangedMyBoyCode1Rows\([\s\S]*?return code1Rows\.map[\s\S]*?Same as Code 1 — no change needed\./,
+  'MyBoy continuation rows should be copied from Code 1 and clearly labelled',
+);
+assert.match(
+  inlineScript,
+  /rows: fillUnchangedMyBoyCode1Rows\(getMyBoyCodeRows\(2\), myBoyCode1\)[\s\S]*?rows: fillUnchangedMyBoyCode1Rows\(getMyBoyCodeRows\(5\), myBoyCode1\)/,
+  'every MyBoy continuation code should show its unchanged Code 1 rows',
 );
 assert.match(
   html,
