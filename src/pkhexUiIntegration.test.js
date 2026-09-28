@@ -11,6 +11,11 @@ assert.match(html, /id="generateBtn"[\s\S]*?id="pkhexVerificationStatus"/);
 assert.match(html, /id="pkhexReportOverlay"[\s\S]*?id="pkhexVerboseReport"/);
 assert.match(mainSource, /beginPkhexVerification\(new Uint8Array\(result\.bytes\), pkhexLegalityEnvironment\)/);
 assert.match(mainSource, /beginPkhexVerification\(new Uint8Array\(importedRoundTripBytes\), pkhexLegalityEnvironment\)/);
+const onGenerateSource = mainSource.slice(
+  mainSource.indexOf('function onGenerate(){'),
+  mainSource.indexOf('function enterImportedModeSilently()'),
+);
+assert(onGenerateSource.indexOf('const pristineOutput = tryBuildPristineImportedOutputs') < onGenerateSource.indexOf('_updateContestSheenAuto?.({ markImportedDirty: true })'), 'pristine imported output must be checked before auto-Sheen can dirty it');
 assert.match(mainSource, /const requestToken = \+\+pkhexGenerationToken/);
 assert.match(mainSource, /if \(requestToken !== pkhexGenerationToken\) return/);
 assert.match(mainSource, /markPkhexVerificationStale\(\)/);

@@ -251,6 +251,35 @@ section('pokerus exact imported byte can be preserved');
   assert(getPokerusStatusFromState(0x10) === 'cured', '0x10 displays Cured Pokerus');
 }
 
+section('handheld NPC trades clear nickname and OT trash bytes');
+{
+  const handheld = buildPokemonBytes({
+    ...makeSampleCfg(),
+    tradeKind: 'handheld',
+    nickname: 'COROSO',
+    otName: 'LANE',
+  }).bytes;
+  const xd = buildPokemonBytes({
+    ...makeSampleCfg(),
+    tradeKind: 'xd',
+    nickname: 'COROSO',
+    otName: 'LANE',
+  }).bytes;
+
+  assert(
+    Array.from(handheld.slice(8, 18)).join(',') === '189,201,204,201,205,201,255,0,0,0',
+    'handheld nickname should have one terminator followed by cleared trash bytes',
+  );
+  assert(
+    Array.from(handheld.slice(20, 27)).join(',') === '198,187,200,191,255,0,0',
+    'handheld OT should have one terminator followed by cleared trash bytes',
+  );
+  assert(
+    xd[15] === 0xFF && xd[16] === 0xFF && xd[25] === 0xFF && xd[26] === 0xFF,
+    'XD trades should retain normal Gen 3 name padding',
+  );
+}
+
 section('single-ability PID parity does not alter stored Gen 3 ability slot');
 {
   const cfg = {

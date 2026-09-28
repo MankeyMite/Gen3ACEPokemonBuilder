@@ -13393,6 +13393,7 @@ function collect(){
     metLocationId: Number($('#metLocation').value || 0),
     metLevel: Math.max(0, Math.min(isImportedMode ? 127 : 100, Number($('#metLevel').value || 0))),
     originGame: Number($('#originGame').value || 3),
+    tradeKind: getSelectedCXDTrade()?.tradeKind,
     otGender: $('#otGender').value === 'female' ? 1 : 0,
     otName: $('#otName').value || 'BRENDAN',
     nickname: $('#nickname').value || '',
@@ -13967,9 +13968,6 @@ function isPristineImportedRoundTrip() {
 }
 
 function onGenerate(){
-  try { _validateForm?.(); } catch (e) {}
-  try { _updateContestSheenAuto?.({ markImportedDirty: true }); } catch (e) {}
-
   // Rule of thumb:
   // - Unedited import => byte-preserved output
   // - Edited import   => rebuild from current UI fields
@@ -13991,6 +13989,9 @@ function onGenerate(){
     beginPkhexVerification(new Uint8Array(importedRoundTripBytes), pkhexLegalityEnvironment);
     return pristineOutput;
   }
+
+  try { _validateForm?.(); } catch (e) {}
+  try { _updateContestSheenAuto?.({ markImportedDirty: true }); } catch (e) {}
 
   // Check if button is disabled and show validation errors
   if ($('#generateBtn').getAttribute('data-disabled') === 'true') {

@@ -8,6 +8,16 @@ import { PROFANITY_LIST } from '../../data/profanity.gen3.js';
 // Shared profanity filter instance for Base64 box-name shifting
 const _b64ProfanityFilter = createProfanityFilter(PROFANITY_LIST);
 
+// Handheld NPC trades use one 0xFF string terminator followed by cleared
+// trash bytes. Keep the regular encoder's normal 0xFF padding for all other
+// Gen 3 Pokémon, including XD trades.
+function encodeHandheldTradeName(encode, name, languageId) {
+  const bytes = encode(name, languageId);
+  const terminatorIndex = bytes.indexOf(0xFF);
+  if (terminatorIndex !== -1) bytes.fill(0x00, terminatorIndex + 1);
+  return bytes;
+}
+
 export function getPokerusStateFromStatus(status) {
   switch (status) {
     case 'active': return 0x11;
@@ -316,8 +326,10 @@ export function buildPokemonBytes(cfg){
   writeU32LE(total, p, pid); p += 4;              // 0x00-0x03: PID
   writeU32LE(total, p, otid); p += 4;             // 0x04-0x07: OT ID
   
-  // Nickname (10 bytes) — proper Gen 3 encoding, 0xFF-padded
-  const nick = encodeNickname(cfg.nickname || '', cfg.languageId);
+  // Handheld NPC trades clear bytes after their 0xFF string terminator.
+  const nick = cfg.tradeKind === 'handheld'
+    ? encodeHandheldTradeName(encodeNickname, cfg.nickname || '', cfg.languageId)
+    : encodeNickname(cfg.nickname || '', cfg.languageId);
   total.set(nick, p); p += 10;                    // 0x08-0x11: Nickname
   
   total[p++] = cfg.languageId & 0xFF;             // 0x12: Language (1 byte)
@@ -328,8 +340,9 @@ export function buildPokemonBytes(cfg){
   if (cfg.isEgg) miscFlags |= 0x04; // use egg name / egg flag
   total[p++] = miscFlags;                          // 0x13: Misc Flags
   
-  // OT name (7 bytes) — proper Gen 3 encoding, 0xFF-padded
-  const ot = encodeOT(cfg.otName || 'TRAINER', cfg.languageId);
+  const ot = cfg.tradeKind === 'handheld'
+    ? encodeHandheldTradeName(encodeOT, cfg.otName || 'TRAINER', cfg.languageId)
+    : encodeOT(cfg.otName || 'TRAINER', cfg.languageId);
   total.set(ot, p); p += 7;                       // 0x14-0x1A: OT Name
   
   // Markings (0x1B): bits 0-3 for Circle, Triangle, Square, Heart
@@ -446,14 +459,18 @@ export function buildDecryptedPokemonFile(cfg){
   let p = 0;
   writeU32LE(total, p, pid); p += 4;
   writeU32LE(total, p, otid); p += 4;
-  const nick = encodeNickname(cfg.nickname || '', cfg.languageId);
+  const nick = cfg.tradeKind === 'handheld'
+    ? encodeHandheldTradeName(encodeNickname, cfg.nickname || '', cfg.languageId)
+    : encodeNickname(cfg.nickname || '', cfg.languageId);
   total.set(nick, p); p += 10;
   total[p++] = cfg.languageId & 0xFF;
   // 0x13: Misc Flags (bit 1 = has species, bit 2 = use egg name)
   let miscFlags2 = 0x02;
   if (cfg.isEgg) miscFlags2 |= 0x04;
   total[p++] = miscFlags2;
-  const ot = encodeOT(cfg.otName || 'TRAINER', cfg.languageId);
+  const ot = cfg.tradeKind === 'handheld'
+    ? encodeHandheldTradeName(encodeOT, cfg.otName || 'TRAINER', cfg.languageId)
+    : encodeOT(cfg.otName || 'TRAINER', cfg.languageId);
   total.set(ot, p); p += 7;
   total[p++] = encodeMarkings(cfg.markings);
   writeU16LE(total, p, csum); p += 2;
