@@ -11223,7 +11223,11 @@ function checkShiny() {
   try { updateMakeShinyVisibility(); } catch (e) {}
 
   // Refresh sprite to show shiny/normal version
-  updateSpeciesSprite(Number($('#species').value) || 0);
+  const speciesId = Number($('#species').value) || 0;
+  updateSpeciesSprite(speciesId);
+  if (document.body.classList.contains('encounter-browser-mode')) {
+    updateEncounterBrowseSprite(speciesId);
+  }
 }
 
 function getDesiredPidParityForGeneration(speciesId, ability, preference) {

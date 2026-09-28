@@ -140,6 +140,7 @@ for (const speciesId of idsFor('roamers')) assert.ok(ROAMER_SPECIES[speciesId]);
 for (const speciesId of idsFor('wild')) assert.ok(WILD_ENCOUNTERS[speciesId]);
 
 const indexMarkup = await readFile(new URL('../../index.html', import.meta.url), 'utf8');
+const mainSource = await readFile(new URL('../main.js', import.meta.url), 'utf8');
 assert.match(indexMarkup, /id="encounterBrowseCategory"/);
 assert.match(indexMarkup, /id="encounterBrowseSubcategory"/);
 assert.match(indexMarkup, /id="encounterBrowseSpecies"/);
@@ -149,5 +150,10 @@ assert.match(indexMarkup, /id="encounterBrowseStatus"[^>]*aria-live="polite"/);
 assert.match(indexMarkup, /<option value="">Choose source<\/option>/);
 assert.match(indexMarkup, /<option value="">Choose category<\/option>/);
 assert.match(indexMarkup, /<option value="">Choose Pokémon<\/option>/);
+
+assert.match(
+  mainSource,
+  /function checkShiny\(\)[\s\S]*?updateSpeciesSprite\(speciesId\);[\s\S]*?encounter-browser-mode[\s\S]*?updateEncounterBrowseSprite\(speciesId\);/,
+);
 
 console.log('encounter browser tests passed');
