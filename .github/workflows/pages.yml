@@ -56,7 +56,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(dotnet --version)" = '10.0.400'
+          sdk_version="$(dotnet --version)"
+          echo "Using .NET SDK $sdk_version"
+          test "$sdk_version" = '10.0.400'
           dotnet workload install wasm-tools --version 10.400.1
           dotnet workload list
 
