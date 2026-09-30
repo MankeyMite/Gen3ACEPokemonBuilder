@@ -61,7 +61,8 @@ jobs:
           sdk_version="$(dotnet --version)"
           echo "Using .NET SDK $sdk_version"
           test "$sdk_version" = '10.0.400'
-          dotnet workload install wasm-tools --version 10.400.1
+          echo "Using .NET workload set $(dotnet workload --version)"
+          dotnet workload install wasm-tools
           dotnet workload list
 
       - name: Restore PKHeX validator with locked NuGet packages
