@@ -1530,6 +1530,17 @@ function hasRequiredPidFinderForPidParitySelection() {
   return !requiresPidFinderForPidParity() || !!pidFinderHadSelection;
 }
 
+// Wild and static encounters must always use a PID returned by the Finder.
+// The convenient nature presets are not tied to every possible encounter's
+// origin seed, so they cannot establish that a generated Pokémon is legal.
+function requiresPidFinderResultForWildOrStatic() {
+  return currentEncounterMode === 'wild' || currentEncounterMode === 'static';
+}
+
+function hasRequiredPidFinderResultForWildOrStatic() {
+  return !requiresPidFinderResultForWildOrStatic() || pidFinderResultActive;
+}
+
 function hasRequiredCXDEncounterPidFinderSelection() {
   if ((currentEncounterMode !== 'cxd_shadow' && currentEncounterMode !== 'cxd_trade') || manualOverrideActive) return true;
   if (currentEncounterMode === 'cxd_trade' && !isCXDGeneratedTrade(getSelectedCXDTrade())) return true;
@@ -3762,6 +3773,10 @@ function highlightMissingFields({ scrollToFirst = true } = {}) {
     markMissing('Find Legal Encounter for PID parity', pidFinderBtn);
   }
 
+  if (!hasRequiredPidFinderResultForWildOrStatic()) {
+    markMissing('Set Legal PID/Shiny and select a result', pidFinderBtn);
+  }
+
   const rsTrainerIdValidation = getRSTrainerIdValidation();
   if (rsTrainerIdValidation.applies && !rsTrainerIdValidation.valid) {
     tidEl?.classList.add('field-error');
@@ -4548,6 +4563,7 @@ function boot(){
     const hasMysteryGiftLegalPid = hasRequiredMysteryGiftPidFinderSelection();
     const hasLegalRSTrainerId = getRSTrainerIdValidation().valid;
     const hasRequiredParityPid = hasRequiredPidFinderForPidParitySelection();
+    const hasRequiredWildStaticPid = hasRequiredPidFinderResultForWildOrStatic();
     const hasRequiredCXDEncounterPid = hasRequiredCXDEncounterPidFinderSelection();
     const hasResolvedOrigin = hasResolvedOriginSelection();
     syncBuilderProgressiveDisclosure(hasResolvedOrigin);
@@ -4558,17 +4574,24 @@ function boot(){
     if (pidFinderBtn && hasRequiredParityPid) {
       pidFinderBtn.classList.remove('field-error');
     }
+    if (pidFinderBtn && hasRequiredWildStaticPid) {
+      pidFinderBtn.classList.remove('field-error');
+    }
     if (pidFinderBtn && hasRequiredCXDEncounterPid) {
       pidFinderBtn.classList.remove('field-error');
     }
     
     // Enable generate button only if all conditions are met
     const generateBtn = $('#generateBtn');
-    if (hasSpecies && hasResolvedOrigin && hasNature && hasMove && hasLegalMoves && hasOTName && hasMysteryGiftLegalPid && hasLegalRSTrainerId && hasRequiredParityPid && hasRequiredCXDEncounterPid) {
-      generateBtn.setAttribute('data-disabled', 'false');
-    } else {
-      generateBtn.setAttribute('data-disabled', 'true');
-    }
+    const canGenerate = hasSpecies && hasResolvedOrigin && hasNature && hasMove && hasLegalMoves && hasOTName && hasMysteryGiftLegalPid && hasLegalRSTrainerId && hasRequiredParityPid && hasRequiredWildStaticPid && hasRequiredCXDEncounterPid;
+    generateBtn.setAttribute('data-disabled', String(!canGenerate));
+    // Keep the greyed visual state clickable so onGenerate() can scroll to and
+    // mark the first unsatisfied requirement, as it did before native disabled
+    // was introduced here. data-disabled remains the actual generation guard.
+    generateBtn.setAttribute('aria-disabled', String(!canGenerate));
+    generateBtn.title = !hasRequiredWildStaticPid
+      ? 'Use Set Legal PID/Shiny and confirm a result before generating a wild or static encounter.'
+      : '';
   }
 
   _validateForm = validateForm;
@@ -4637,6 +4660,10 @@ function boot(){
     const rsTrainerIdValidation = getRSTrainerIdValidation();
     if (rsTrainerIdValidation.applies && !rsTrainerIdValidation.valid) {
       errors.push(RS_TRAINER_ID_LEGALITY_MESSAGE);
+    }
+
+    if (!hasRequiredPidFinderResultForWildOrStatic()) {
+      errors.push('Use Set Legal PID/Shiny and confirm a result before generating a wild or static encounter');
     }
 
     const metLocationId = Number($('#metLocation')?.value || 0);
@@ -14004,6 +14031,11 @@ function onGenerate(){
   }
 
   if (!hasRequiredMysteryGiftPidFinderSelection()) {
+    highlightMissingFields();
+    return;
+  }
+
+  if (!hasRequiredPidFinderResultForWildOrStatic()) {
     highlightMissingFields();
     return;
   }
