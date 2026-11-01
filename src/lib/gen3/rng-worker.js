@@ -234,12 +234,26 @@ function checkSlotWithLevel(slotState, speciesSlots, allSlotTables, targetSpecie
     const levelsSet = new Set();
     for (const table of allSlotTables[type]) {
       if (table[si] && table[si][0] === targetSpecies) {
+        if (type === 'r') {
+          // Rock Smash must first pass its activation roll. The state before
+          // the slot call produced that roll; failed activation creates no mon.
+          // White Flute can raise the base rate by 50%, without extra RNG calls.
+          // Rock Smash ignores encounter-rate abilities, including in Emerald.
+          // See PKHeX.Core MethodH.IsRockSmashPossible / GetEncounterRate.
+          const areaRate = table[si][3];
+          if (!Number.isFinite(areaRate) ||
+              ((reverse(slotState) >>> 16) % 2880) >= areaRate * 24) continue;
+        }
         const minLv = table[si][1], maxLv = table[si][2];
         levelsSet.add(minLv + (levelRand % (maxLv - minLv + 1)));
       }
     }
     if (levelsSet.size > 0) {
-      return { initSeed: reverse(slotState), metLevels: [...levelsSet].sort((a, b) => a - b) };
+      const preSlotState = reverse(slotState);
+      return {
+        initSeed: type === 'r' ? reverse(preSlotState) : preSlotState,
+        metLevels: [...levelsSet].sort((a, b) => a - b),
+      };
     }
   }
   return null;
@@ -371,6 +385,11 @@ function fastSearch(params, isStopped) {
   const speciesSlots = doValidation ? buildSpeciesSlotMap(slotTables, targetSpecies) : null;
   const hasAnySlots  = speciesSlots && Object.keys(speciesSlots).length > 0;
   const canSync      = (gameId === 3);
+
+  if (doValidation && !hasAnySlots) {
+    self.postMessage({ type: 'done', results: [] });
+    return;
+  }
 
   const rngWindow = getRngWindow(params);
   const pb = makePriorityBuffer(maxResults || 50, Boolean(rngWindow));
@@ -550,6 +569,11 @@ function bruteForceSearch(params, isStopped) {
   const speciesSlots = doValidation ? buildSpeciesSlotMap(slotTables, targetSpecies) : null;
   const hasAnySlots  = speciesSlots && Object.keys(speciesSlots).length > 0;
   const canSync      = (gameId === 3);
+
+  if (doValidation && !hasAnySlots) {
+    self.postMessage({ type: 'done', results: [] });
+    return;
+  }
 
   const rngWindow = getRngWindow(params);
   const pb = makePriorityBuffer(maxResults || 50, Boolean(rngWindow));

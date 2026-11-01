@@ -8,6 +8,7 @@
  * Format per game/location:
  *   { l: [table, ...], w: [table, ...], r: [table, ...] }
  * where each table = [[speciesId, minLv, maxLv], ...] in slot order.
+ * Rock Smash slots include the area's activation rate as a fourth value.
  * Multiple tables per type = different sub-maps sharing the same locationId.
  * Duplicate tables are removed.
  *
@@ -265,7 +266,9 @@ function processFile(data, sourceFile) {
       if (entry.rock_smash_mons && entry.rock_smash_mons.mons) {
         const table = entry.rock_smash_mons.mons.map(m => {
           const sp = speciesConstToId(m.species);
-          return [sp || 0, m.min_level, m.max_level];
+          // Keep the activation rate attached to its sub-map's slots. Identical
+          // species/level tables can have different encounter rates.
+          return [sp || 0, m.min_level, m.max_level, entry.rock_smash_mons.encounter_rate];
         });
         if (!shouldSkipTable(sourceFile, locId, table)) e.r.add(JSON.stringify(table));
       }
@@ -357,6 +360,7 @@ const lines = [
   '// Maps gameId → locationId → { type: [slotTable, ...] }',
   '// Types: l=land(12), w=water(5), r=rock_smash(5), o=old_rod(2), g=good_rod(3), s=super_rod(5), swarm_fish_50=Feebas 50%',
   '// Each slotTable = [[speciesId, minLevel, maxLevel], ...]',
+  '// Rock Smash slots include a fourth value: the area encounter rate',
   '// Multiple tables per type = different sub-maps at the same location',
   '// Game IDs: 1=Sapphire, 2=Ruby, 3=Emerald, 4=FireRed, 5=LeafGreen',
   'export const ENCOUNTER_SLOTS = {',

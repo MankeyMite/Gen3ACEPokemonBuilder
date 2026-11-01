@@ -56,6 +56,10 @@ script. The generated validator bundle is local-only and ignored by Git.
 
 ## PKHeX.Core
 
+Run the wild PID finder's RNG regression checks against the pinned PKHeX.Core
+with `node scripts/verify-wild-rng.mjs` (requires the .NET 10 SDK). This covers
+FR/LG and RSE, H1/H2/H4, both search paths, and Rock Smash activation rates.
+
 Legality verification is powered by [PKHeX.Core](https://github.com/kwsch/PKHeX),
 created by Kaphotics and contributors.
 
