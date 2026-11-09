@@ -1366,7 +1366,8 @@
       min-width: 0;
     }
 
-    .iv-randomize-btn {
+    .iv-randomize-btn,
+    .trainer-id-randomize-btn {
       display: none;
       place-items: center;
       width: 1.2rem;
@@ -1385,8 +1386,15 @@
       display: grid;
     }
 
+    .trainer-id-randomize-btn:not([hidden]) {
+      display: grid;
+      margin-left: 0.35rem;
+    }
+
     .iv-randomize-btn:hover,
-    .iv-randomize-btn:focus-visible {
+    .iv-randomize-btn:focus-visible,
+    .trainer-id-randomize-btn:hover,
+    .trainer-id-randomize-btn:focus-visible {
       border-color: #7dd3fc;
       background: rgba(30, 64, 95, 0.9);
       box-shadow: none;
@@ -1394,7 +1402,8 @@
       outline: none;
     }
 
-    .iv-randomize-die {
+    .iv-randomize-die,
+    .trainer-id-randomize-die {
       display: block;
       width: 12px;
       height: 12px;
@@ -2250,6 +2259,35 @@
       border-color: var(--accent);
       background: #091a2d;
       box-shadow: 0 0 0 3px rgba(88, 183, 255, 0.16);
+    }
+
+    .autocomplete-with-toggle .autocomplete-input {
+      padding-right: 2.5rem;
+    }
+
+    .autocomplete-wrapper .autocomplete-toggle {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      bottom: 2px;
+      display: grid;
+      place-items: center;
+      width: 2rem;
+      min-height: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text);
+      box-shadow: none;
+      transform: none;
+      cursor: pointer;
+    }
+
+    .autocomplete-wrapper .autocomplete-toggle:hover,
+    .autocomplete-wrapper .autocomplete-toggle:focus-visible {
+      background: rgba(88, 183, 255, 0.14);
+      color: var(--accent);
     }
 
     .autocomplete-dropdown {
@@ -3232,6 +3270,15 @@
               <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Secret ID info" aria-describedby="sidInfoTooltip" aria-expanded="false">?</button>
               <span id="sidInfoTooltip" class="inline-tooltip-content" role="tooltip">Secret ID is hidden in normal gameplay and can range from 0 to 65535. It pairs with TID and PID for shiny calculation, so changing it can change whether a Pokémon is shiny.</span>
             </span>
+            <button id="randomizeTrainerIdsBtn" class="trainer-id-randomize-btn" type="button" aria-label="Randomize TID and SID" title="Randomize TID and SID using this game's RNG. Favors shorter intro times, capped at 1,000 seconds on GBA." hidden disabled>
+              <svg class="trainer-id-randomize-die" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false">
+                <circle cx="3" cy="3" r="1.25"></circle>
+                <circle cx="9" cy="3" r="1.25"></circle>
+                <circle cx="6" cy="6" r="1.25"></circle>
+                <circle cx="3" cy="9" r="1.25"></circle>
+                <circle cx="9" cy="9" r="1.25"></circle>
+              </svg>
+            </button>
           </label>
           <input id="sid" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="10" value="54321" />
         </div>

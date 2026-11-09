@@ -23,7 +23,8 @@ import { ENCOUNTER_SLOTS } from './data/encounterSlots.gen3.js';
 import { CXD_SHADOW_ENCOUNTERS } from './data/shadowEncounters.gen3.js';
 import { CXD_SPECIAL_ENCOUNTERS } from './data/cxdSpecialEncounters.gen3.js';
 import { CXD_TRADE_ENCOUNTERS } from './data/cxdTrades.gen3.js';
-import { getMinimumHatchedLevel, getWildAncestor, PRE_EVOLUTIONS } from './data/evolutions.gen3.js';
+import { getMinimumHatchedLevel, PRE_EVOLUTIONS } from './data/evolutions.gen3.js';
+import { getWildOriginEncounters, getWildOriginSpeciesIds, sortWildOriginLocations } from './domain/wildOrigins.js';
 import { PROFANITY_LIST } from './data/profanity.gen3.js';
 import { createProfanityFilter } from './lib/profanityFilter.js';
 import { findValidGCShinySid, isValidGCTidSid } from './data/shadowEncounters.gen3.js';
@@ -43,6 +44,7 @@ import { getDirectWildMoveOverride } from './lib/gen3/wildMoveLegality.js';
 import { getDefaultLevelUpMoveIds } from './lib/gen3/defaultLevelUpMoves.js';
 import { getDirectLevelUpLearnsetForOriginGame, getLevelUpLearnsetForOriginGame } from './lib/gen3/levelUpLearnsets.js';
 import { adjustShinySidForRSTrainerId, findNearestValidRSTrainerSid, isValidRSTrainerId } from './lib/gen3/rsTrainerId.js';
+import { canRandomizeTrainerIds, generateTrainerId } from './lib/gen3/trainerIdRandomizer.js';
 import { normalizeGeneratedAbilityBit, resolvePidFinderAbilityBit } from './domain/pidFinderAbility.js';
 import { getGen3ResultFrame } from './domain/gen3InitialSeedFrame.js';
 import {
@@ -1343,6 +1345,7 @@ let pidFinderResultActive = false;
 // TID/SID that were used when the PID Finder result was selected (for change detection)
 let pidFinderOriginalTid = 0;
 let pidFinderOriginalSid = 0;
+let pidFinderWildSourceSpeciesId = 0;
 // True after a PID Finder result has been selected until it is explicitly cleared.
 let pidFinderHadSelection = false;
 // Mystery event tag that the current PID Finder result belongs to.
@@ -1635,6 +1638,9 @@ function setControlLockState(el, shouldLock, options = {}) {
   el.style.opacity = locked ? '0.6' : '';
   el.style.cursor = locked ? 'not-allowed' : '';
 
+  const dropdownButton = el.querySelector?.('.autocomplete-toggle');
+  if (dropdownButton) dropdownButton.disabled = locked;
+
   const inputEl = typeof el.querySelector === 'function' ? el.querySelector('input') : null;
   if (!inputEl) return;
 
@@ -1661,7 +1667,12 @@ function getCurrentOriginSourceSpeciesId(speciesId = Number($('#species')?.value
   if (!targetId) return 0;
 
   if (currentEncounterMode === 'wild') {
-    return getWildAncestor(targetId, WILD_ENCOUNTERS) || targetId;
+    if (pidFinderResultActive && pidFinderWildSourceSpeciesId) return pidFinderWildSourceSpeciesId;
+    const gameId = Number($('#originGame')?.value || 0);
+    const locationId = Number($('#metLocation')?.value || 0);
+    const metLevel = Number($('#metLevel')?.value || 0);
+    return getWildOriginSpeciesIds(targetId, gameId, locationId, metLevel)[0] ||
+      getWildOriginSpeciesIds(targetId, gameId, locationId)[0] || targetId;
   }
   if (currentEncounterMode === 'static') {
     return Number(getSelectedStaticEncounter()?.species) || targetId;
@@ -2837,6 +2848,36 @@ function createAutocomplete(selectEl, list, opts = {}) {
   // Limit dropdown height to 5 items and make it scrollable
   dropdown.style.maxHeight = '160px'; // ~32px per item * 5
   dropdown.style.overflowY = 'auto';
+
+  let dropdownButton = null;
+  if (opts.dropdownButtonLabel) {
+    wrapper.classList.add('autocomplete-with-toggle');
+    dropdown.id = `${selectEl.id}-options`;
+    dropdownButton = document.createElement('button');
+    dropdownButton.type = 'button';
+    dropdownButton.className = 'autocomplete-toggle';
+    dropdownButton.setAttribute('aria-label', opts.dropdownButtonLabel);
+    dropdownButton.setAttribute('aria-controls', dropdown.id);
+    dropdownButton.setAttribute('aria-expanded', 'false');
+    dropdownButton.innerHTML = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    dropdownButton.addEventListener('mousedown', event => event.preventDefault());
+    dropdownButton.addEventListener('click', () => {
+      if (input.disabled || wrapper.disabled) return;
+      const wasOpen = dropdown.classList.contains('show');
+      input.focus();
+      if (wasOpen) hideDropdown();
+      else {
+        renderDropdown(items);
+        setDropdownOpen(true);
+        dropdown.querySelector(`.autocomplete-item[data-id="${selectedId}"]`)?.scrollIntoView({ block: 'nearest' });
+      }
+    });
+  }
+
+  function setDropdownOpen(open) {
+    dropdown.classList.toggle('show', open);
+    dropdownButton?.setAttribute('aria-expanded', String(open));
+  }
   
   // Store current selection
   let selectedId = '';
@@ -2961,7 +3002,7 @@ function createAutocomplete(selectEl, list, opts = {}) {
     if (itemIsDisabled(item)) return;
     selectedId = item.id;
     input.value = item.name;
-    dropdown.classList.remove('show');
+    hideDropdown();
     
     // Trigger callback if provided
     if (onSelect) {
@@ -2982,11 +3023,11 @@ function createAutocomplete(selectEl, list, opts = {}) {
   function showDropdown() {
     const filtered = filterItems(input.value);
     renderDropdown(filtered);
-    dropdown.classList.add('show');
+    setDropdownOpen(true);
   }
   
   function hideDropdown() {
-    dropdown.classList.remove('show');
+    setDropdownOpen(false);
   }
   
   // Event listeners
@@ -2994,7 +3035,7 @@ function createAutocomplete(selectEl, list, opts = {}) {
     const query = e.target.value;
     const filtered = filterItems(query);
     renderDropdown(filtered);
-    dropdown.classList.add('show');
+    setDropdownOpen(true);
     
     // Clear selected ID when typing (user is searching)
     selectedId = '';
@@ -3005,7 +3046,7 @@ function createAutocomplete(selectEl, list, opts = {}) {
     // browse and pick a different one (instead of filtering by current text).
     if (selectedId) {
       renderDropdown(items);
-      dropdown.classList.add('show');
+      setDropdownOpen(true);
       // Scroll the currently selected item into view
       const active = dropdown.querySelector(`.autocomplete-item[data-id="${selectedId}"]`);
       if (active) {
@@ -3017,8 +3058,9 @@ function createAutocomplete(selectEl, list, opts = {}) {
     }
   });
   
-  input.addEventListener('blur', () => {
+  const handleBlur = () => {
     setTimeout(() => {
+      if (dropdownButton && wrapper.contains(document.activeElement)) return;
       hideDropdown();
       
       // Auto-select if user typed an exact match
@@ -3038,7 +3080,9 @@ function createAutocomplete(selectEl, list, opts = {}) {
         }
       }
     }, 200);
-  });
+  };
+  input.addEventListener('blur', handleBlur);
+  dropdownButton?.addEventListener('blur', handleBlur);
   
   input.addEventListener('keydown', (e) => {
     const allItems = Array.from(dropdown.querySelectorAll('.autocomplete-item'));
@@ -3080,6 +3124,7 @@ function createAutocomplete(selectEl, list, opts = {}) {
   
   // Replace select with autocomplete
   wrapper.appendChild(input);
+  if (dropdownButton) wrapper.appendChild(dropdownButton);
   wrapper.appendChild(dropdown);
   selectEl.parentNode.replaceChild(wrapper, selectEl);
   
@@ -3103,7 +3148,7 @@ function isMetLocationAllowedForEncounterState(locationId, options = {}) {
   const originGame = Number(options.originGame ?? 0);
   return originGame === 3 && (
     encounterMode === 'hatched' ||
-    (encounterMode === 'wild' && speciesId === ZUBAT_SPECIES_ID)
+    (encounterMode === 'wild' && getSpeciesLineage(speciesId).includes(ZUBAT_SPECIES_ID))
   );
 }
 
@@ -3280,9 +3325,7 @@ function updateWildEncounterFilters(speciesId, options = {}) {
   if (currentEncounterMode !== 'wild') return;
   const preferDefaultGame = options.preferDefaultGame === true;
 
-  // For evolved forms not directly in the wild, resolve to their wild ancestor
-  const wildId = WILD_ENCOUNTERS[speciesId] ? speciesId : getWildAncestor(speciesId, WILD_ENCOUNTERS);
-  const encounterData = wildId != null ? WILD_ENCOUNTERS[wildId] : null;
+  const encounterData = getWildOriginEncounters(speciesId);
   const originGameSelect = $('#originGame');
   const metLevelInput =    $('#metLevel');
   if (!originGameSelect) {
@@ -3324,14 +3367,19 @@ function updateWildEncounterFilters(speciesId, options = {}) {
       encounterMode: 'wild',
       speciesId,
     });
-    const filteredLocations = baseLocations.filter(([id]) => locIds.includes(id));
+    const filteredLocations = sortWildOriginLocations(
+      speciesId, currentGame, baseLocations.filter(([id]) => locIds.includes(id))
+    );
+    const locationContext = `${speciesId}|${currentGame}`;
+    const useDefaultLocation = preferDefaultGame || metLocationWrapper?.dataset.wildOriginContext !== locationContext;
+    if (metLocationWrapper) metLocationWrapper.dataset.wildOriginContext = locationContext;
     if (metLocationWrapper && metLocationWrapper.updateList) {
       metLocationWrapper.updateList(filteredLocations);
     }
 
-    // If the current met location isn't in the filtered set, auto-pick the first
+    // New species/game selections prefer that species' own encounter locations.
     const metLocVal = Number($('#metLocation').value);
-    if (!locIds.includes(metLocVal) && filteredLocations.length) {
+    if ((useDefaultLocation || !locIds.includes(metLocVal)) && filteredLocations.length) {
       $('#metLocation').value = String(filteredLocations[0][0]);
     }
 
@@ -3342,7 +3390,9 @@ function updateWildEncounterFilters(speciesId, options = {}) {
       const absMin = ranges[0][0];
       const absMax = ranges[ranges.length - 1].length > 1 ? ranges[ranges.length - 1][1] : ranges[ranges.length - 1][0];
       const curLevel = Number(metLevelInput.value) || 0;
-      metLevelInput.value = String(snapToValidLevel(ranges, curLevel));
+      const defaultSource = getWildOriginSpeciesIds(speciesId, currentGame, chosenLoc)[0];
+      const defaultRanges = useDefaultLocation ? WILD_ENCOUNTERS[defaultSource]?.[currentGame]?.[chosenLoc] : null;
+      metLevelInput.value = String(snapToValidLevel(defaultRanges || ranges, curLevel));
       metLevelInput.min = String(absMin);
       metLevelInput.max = String(absMax);
       metLevelInput.title = `Valid levels: ${rangesToLabel(ranges)}`;
@@ -4604,6 +4654,7 @@ function boot(){
       updateUnownFormVisibility(speciesId);
       syncPokemonFirstOriginUi(speciesId, { mode: 'imported' });
       updateRibbonLocking();
+      updateTrainerIdRandomizer();
       validateForm();
       return;
     }
@@ -5582,6 +5633,7 @@ function boot(){
   // Create metLocation autocomplete with initial filtered list
   const initialGame = $('#originGame').value || '3';
   metLocationWrapper = createAutocomplete($('#metLocation'), getLocationsForGame(initialGame), {
+    dropdownButtonLabel: 'Show met locations',
     isItemDisabled: (item) => {
       if (manualOverrideActive) return false;
       const locationId = Number(item?.id);
@@ -6072,8 +6124,7 @@ function boot(){
       const spId   = Number($('#species').value) || 0;
       const gameId = Number($('#originGame').value) || 0;
       const locId  = Number($('#metLocation').value) || 0;
-      const wId = WILD_ENCOUNTERS[spId] ? spId : getWildAncestor(spId, WILD_ENCOUNTERS);
-      const enc = wId != null ? WILD_ENCOUNTERS[wId] : null;
+      const enc = getWildOriginEncounters(spId);
       if (enc && enc[gameId] && enc[gameId][locId]) {
         const ranges = enc[gameId][locId];
         let v = Number(metLevelInput.value) || 0;
@@ -6099,8 +6150,7 @@ function boot(){
         const spId = Number($('#species').value) || 0;
         const gameId = Number($('#originGame').value) || 0;
         const locId  = Number($('#metLocation').value) || 0;
-        const wId = WILD_ENCOUNTERS[spId] ? spId : getWildAncestor(spId, WILD_ENCOUNTERS);
-        const enc = wId != null ? WILD_ENCOUNTERS[wId] : null;
+        const enc = getWildOriginEncounters(spId);
         if (enc && enc[gameId] && enc[gameId][locId]) {
           const ranges = enc[gameId][locId];
           const ml = $('#metLevel');
@@ -6593,9 +6643,47 @@ function boot(){
   try { updateOtGenderLocking(); } catch (e) {}
   try { updateStaticOriginGameLocking(Number($('#species')?.value || 0)); } catch (e) {}
 
-  // Lock or unlock TID/SID inputs depending on selected mystery event.
-  // If in `mystery` mode and a non-BOX_EVENT tag is selected, these should
-  // be locked so users cannot change event-provided TID/SID values.
+  function canRandomizeCurrentTrainerIds() {
+    const selectedStatic = getSelectedStaticEncounter();
+    const encounter = getSelectedCXDEncounter() || getSelectedCXDTrade() ||
+      (selectedStatic && STATIC_ENCOUNTERS[Number(selectedStatic.species)]?.fixedEvent
+        ? STATIC_ENCOUNTERS[Number(selectedStatic.species)] : selectedStatic);
+    return Number($('#species')?.value || 0) > 0 && canRandomizeTrainerIds({
+      encounterMode: currentEncounterMode,
+      gameId: Number($('#originGame')?.value || 0),
+      tidLocked: $('#tid')?.disabled || $('#tid')?.dataset.profileLocked === '1',
+      sidLocked: $('#sid')?.disabled || $('#sid')?.dataset.profileLocked === '1',
+      encounter,
+    });
+  }
+
+  function updateTrainerIdRandomizer() {
+    const button = $('#randomizeTrainerIdsBtn');
+    if (!button) return;
+    const available = canRandomizeCurrentTrainerIds();
+    button.hidden = !available;
+    button.disabled = !available;
+  }
+
+  function randomizeTrainerIds() {
+    if (!canRandomizeCurrentTrainerIds()) return;
+    const pair = generateTrainerId(Number($('#originGame').value));
+    if (pidFinderResultActive) unlockPidFinderFields({ clearPid: true });
+    // Assign both first so every existing input handler observes a valid pair.
+    $('#tid').value = String(pair.tid);
+    $('#sid').value = String(pair.sid);
+    // Programmatic input events are deliberately ignored by import isolation;
+    // this explicit user action must rebuild the imported bytes on Generate.
+    if (currentEncounterMode === 'imported') importedRoundTripDirty = true;
+    for (const id of ['tid', 'sid']) {
+      const input = document.getElementById(id);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    markGeneratedCodeStale();
+  }
+
+  // Lock trainer fields to the selected encounter's identity in Legal Mode.
   function updateTidSidLocking() {
     try {
       const tidEl = $('#tid');
@@ -6697,6 +6785,7 @@ function boot(){
       // code, so the language select's change listener does not run.
       syncLanguageTextLimits();
       queueActiveProfileTrainerDefaults();
+      updateTrainerIdRandomizer();
     }
   }
 
@@ -6882,6 +6971,7 @@ function boot(){
   function unlockPidFinderFields(options = {}) {
     const clearPid = !!options.clearPid;
     pidFinderResultActive = false;
+    pidFinderWildSourceSpeciesId = 0;
     pidFinderLockedMetLevel = false;
     const pidFinderStatusEl = document.getElementById('pidFinderStatus');
     if (pidFinderStatusEl) pidFinderStatusEl.textContent = '';
@@ -9804,6 +9894,7 @@ function boot(){
     pidFinderLockedMetLevel = Boolean(pidFinder.lockedMetLevel);
     pidFinderOriginalTid = Number(pidFinder.originalTid) || 0;
     pidFinderOriginalSid = Number(pidFinder.originalSid) || 0;
+    pidFinderWildSourceSpeciesId = Number(pidFinder.wildSourceSpeciesId) || 0;
     pidFinderMysteryTag = String(pidFinder.mysteryTag || '');
     pidFinderResultAbilityBit = pidFinder.abilityBit == null ? null : Number(pidFinder.abilityBit);
     const statusElement = document.getElementById('pidFinderStatus');
@@ -9901,6 +9992,7 @@ function boot(){
             lockedMetLevel: pidFinderLockedMetLevel,
             originalTid: pidFinderOriginalTid,
             originalSid: pidFinderOriginalSid,
+            wildSourceSpeciesId: pidFinderWildSourceSpeciesId,
             mysteryTag: pidFinderMysteryTag,
             abilityBit: pidFinderResultAbilityBit,
             statusText: String(document.getElementById('pidFinderStatus')?.textContent || ''),
@@ -10953,6 +11045,9 @@ function boot(){
     onGenerate();
   });
   $('#randomizeIvsBtn')?.addEventListener('click', randomizeHatchedIvs);
+  $('#randomizeTrainerIdsBtn')?.addEventListener('click', randomizeTrainerIds);
+  $('#originGame')?.addEventListener('change', updateTrainerIdRandomizer);
+  updateTrainerIdRandomizer();
   const preloadValidator = () => {
     void preloadPkhexValidator().catch(() => {
       // Generate still performs a normal lazy load and exposes Retry on error.
@@ -12001,6 +12096,10 @@ function initPidFinder() {
     const sourceSpeciesId = getCurrentOriginSourceSpeciesId(speciesId);
     const sourceSpeciesEntry = SPECIES.find(s => s[0] === sourceSpeciesId);
     const sourceSpeciesName = sourceSpeciesEntry ? sourceSpeciesEntry[1] : '';
+    const wildSourceNames = currentEncounterMode === 'wild'
+      ? getWildOriginSpeciesIds(speciesId, Number($('#originGame')?.value), readCurrentMetLocationId())
+        .map(id => SPECIES.find(entry => entry[0] === id)?.[1]).filter(Boolean)
+      : [];
     const mainNatureValue = String($('#nature')?.value ?? '').trim();
     const natureIndex = mainNatureValue === '' ? -1 : Number(mainNatureValue);
     const natureName = natureIndex >= 0 ? (NATURES[natureIndex] || '\u2014') : 'Any nature';
@@ -12014,7 +12113,9 @@ function initPidFinder() {
 
     summaryEl.innerHTML = [
       `<span class="pf-summary-primary"><b>${speciesName}</b><span>\u2013</span><b>${natureName}</b><span>\u2013</span><b>${abilityName}</b></span>`,
-      sourceSpeciesId && sourceSpeciesId !== speciesId
+      wildSourceNames.length
+        ? `<span class="pf-tag">Caught as: <b>${wildSourceNames.join(' / ')}</b></span>`
+        : sourceSpeciesId && sourceSpeciesId !== speciesId
         ? `<span class="pf-tag">Encounter source: <b>${sourceSpeciesName}</b></span>`
         : ''
     ].filter(Boolean).join('');
@@ -12739,9 +12840,9 @@ function initPidFinder() {
           unownForm: speciesId === 201 ? Number($('#unownForm')?.value ?? -1) : -1
         });
       } else {
-        // For evolved wild species, use the wild ancestor for encounter-slot validation
-        const slotSpecies = (currentEncounterMode === 'wild' && !WILD_ENCOUNTERS[speciesId])
-          ? (getWildAncestor(speciesId, WILD_ENCOUNTERS) ?? speciesId)
+        // Search every wild ancestor that actually occurs at this location.
+        const slotSpecies = currentEncounterMode === 'wild'
+          ? getWildOriginSpeciesIds(speciesId, gameId, locationId)
           : speciesId;
         worker.postMessage({
           startSeed: start, endSeed: end,
@@ -12948,6 +13049,9 @@ function initPidFinder() {
             : bacdMethodDisplay;
 
       const tr = document.createElement('tr');
+      const caughtAsName = currentEncounterMode === 'wild'
+        ? SPECIES.find(([id]) => id === r.sourceSpecies)?.[1] || ''
+        : '';
       if (r.method === 'Channel') {
         // Channel-specific columns: SID, Game version, Held item
         const gameName = r.versionGameId === 1 ? 'Sapphire' : 'Ruby';
@@ -12978,7 +13082,7 @@ function initPidFinder() {
         `<td>${r.hpt}</td>` +
         `<td>${r.hpp}</td>` +
         `<td>${methodLabel}</td>` +
-        `<td>${r.metLevels ? r.metLevels.join('/') : '\u2014'}</td>` +
+        `<td>${r.metLevels ? r.metLevels.join('/') : '\u2014'}${caughtAsName ? `<br><small>${caughtAsName}</small>` : ''}</td>` +
         `<td>${genderStr}</td>` +
         `<td>${abilityName}</td>` +
         frameCell +
@@ -13027,6 +13131,7 @@ function initPidFinder() {
     // from overwriting the selected PID/IVs without enabling full Manual Override.
     pidFinderResultActive = true;
     pidFinderHadSelection = true;
+    pidFinderWildSourceSpeciesId = currentEncounterMode === 'wild' ? Number(r.sourceSpecies) || 0 : 0;
     pidFinderMysteryTag = currentEncounterMode === 'mystery' ? getSelectedMysteryEvent().tag : '';
     const selectedSpeciesId = Number($('#species')?.value || 0);
     const abilityCorrelationSpeciesId = currentEncounterMode === 'mystery'
@@ -13138,6 +13243,9 @@ function initPidFinder() {
         metLvEl.style.opacity = '0.6';
         metLvEl.style.cursor = 'not-allowed';
       }
+    }
+    if (currentEncounterMode === 'wild' && clampCurrentLevelToMinimum()) {
+      $('#level')?.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     updateHiddenPower();

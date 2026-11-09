@@ -102,12 +102,13 @@ function getSlotIndexForType(type, rand100) {
  * Returns { l: Set([0,2,6]), w: Set([1,3]) }
  */
 function buildSpeciesSlotMap(slotTables, targetSpecies) {
+  const targets = new Set(Array.isArray(targetSpecies) ? targetSpecies : [targetSpecies]);
   const map = {};
   for (const type of Object.keys(slotTables)) {
     const set = new Set();
     for (const table of slotTables[type]) {
       for (let i = 0; i < table.length; i++) {
-        if (table[i][0] === targetSpecies) set.add(i);
+        if (targets.has(table[i][0])) set.add(i);
       }
     }
     if (set.size > 0) map[type] = set;
@@ -224,39 +225,45 @@ function validateEncounterChainUnown(pidAState, unownForm, speciesSlots, allSlot
 function checkSlotWithLevel(slotState, speciesSlots, allSlotTables, targetSpecies) {
   const slotRand  = (slotState >>> 16) % 100;
   const levelRand = advance(slotState) >>> 16;   // next RNG call = level
+  const targets = Array.isArray(targetSpecies) ? targetSpecies : [targetSpecies];
+  const origins = [];
 
   for (const type of Object.keys(speciesSlots)) {
     const si = getSlotIndexForType(type, slotRand);
     if (si < 0) continue;
     if (!speciesSlots[type].has(si)) continue;
 
-    // Slot matches — compute level from every sub-area table containing the species
-    const levelsSet = new Set();
-    for (const table of allSlotTables[type]) {
-      if (table[si] && table[si][0] === targetSpecies) {
-        if (type === 'r') {
-          // Rock Smash must first pass its activation roll. The state before
-          // the slot call produced that roll; failed activation creates no mon.
-          // White Flute can raise the base rate by 50%, without extra RNG calls.
-          // Rock Smash ignores encounter-rate abilities, including in Emerald.
-          // See PKHeX.Core MethodH.IsRockSmashPossible / GetEncounterRate.
-          const areaRate = table[si][3];
-          if (!Number.isFinite(areaRate) ||
-              ((reverse(slotState) >>> 16) % 2880) >= areaRate * 24) continue;
+    // Keep levels tied to one source species, even when sub-maps contain
+    // different members of the evolution chain in the same slot.
+    for (const sourceSpecies of targets) {
+      const levelsSet = new Set();
+      for (const table of allSlotTables[type]) {
+        if (table[si] && table[si][0] === sourceSpecies) {
+          if (type === 'r') {
+            // Rock Smash must first pass its activation roll. The state before
+            // the slot call produced that roll; failed activation creates no mon.
+            // White Flute can raise the base rate by 50%, without extra RNG calls.
+            // Rock Smash ignores encounter-rate abilities, including in Emerald.
+            // See PKHeX.Core MethodH.IsRockSmashPossible / GetEncounterRate.
+            const areaRate = table[si][3];
+            if (!Number.isFinite(areaRate) ||
+                ((reverse(slotState) >>> 16) % 2880) >= areaRate * 24) continue;
+          }
+          const minLv = table[si][1], maxLv = table[si][2];
+          levelsSet.add(minLv + (levelRand % (maxLv - minLv + 1)));
         }
-        const minLv = table[si][1], maxLv = table[si][2];
-        levelsSet.add(minLv + (levelRand % (maxLv - minLv + 1)));
+      }
+      if (levelsSet.size > 0) {
+        const preSlotState = reverse(slotState);
+        origins.push({
+          initSeed: type === 'r' ? reverse(preSlotState) : preSlotState,
+          metLevels: [...levelsSet].sort((a, b) => a - b),
+          sourceSpecies,
+        });
       }
     }
-    if (levelsSet.size > 0) {
-      const preSlotState = reverse(slotState);
-      return {
-        initSeed: type === 'r' ? reverse(preSlotState) : preSlotState,
-        metLevels: [...levelsSet].sort((a, b) => a - b),
-      };
-    }
   }
-  return null;
+  return origins.length ? { ...origins[0], origins } : null;
 }
 
 /* ── Priority-buffer helper ────────────────────────────── */
@@ -305,6 +312,11 @@ function getRngWindow(params) {
 }
 
 function tryAddRngResult(pb, entry, total, rngWindow) {
+  if (entry.origins) {
+    const { origins, ...result } = entry;
+    for (const origin of origins) tryAddRngResult(pb, { ...result, ...origin }, total, rngWindow);
+    return;
+  }
   if (rngWindow) {
     const hasEncounterSeed = entry.initSeed !== null && entry.initSeed !== undefined &&
       Number.isFinite(Number(entry.initSeed));
@@ -474,26 +486,26 @@ function fastSearch(params, isStopped) {
                   const seed0 = reverse(s1);
                   const candidateNature = (pid >>> 0) % 25;
 
-                  let initSeed = null, metLevels = null;
+                  let initSeed = null, metLevels = null, sourceSpecies = null, origins = null;
                   let chainOK = true;
                   if (doValidation && hasAnySlots) {
                     const chain = isUnown
                       ? validateEncounterChainUnown(s1, unownForm, speciesSlots, slotTables, targetSpecies)
                       : validateEncounterChain(s1, candidateNature, speciesSlots, canSync, slotTables, targetSpecies);
                     if (!chain) { chainOK = false; }
-                    else { initSeed = chain.initSeed; metLevels = chain.metLevels; }
+                    else { initSeed = chain.initSeed; metLevels = chain.metLevels; sourceSpecies = chain.sourceSpecies; origins = chain.origins; }
                   }
 
                   if (chainOK) {
                     if (h1spe >= 0) {
                       const t = ivPartial + h1spe + h1spa + h1spd;
                       const ivs = { hp, atk, def, spa: h1spa, spd: h1spd, spe: h1spe };
-                      tryAddRngResult(pb, { seed: seed0, pid, method: 'H1', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels }, t, rngWindow);
+                      tryAddRngResult(pb, { seed: seed0, pid, method: 'H1', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels, sourceSpecies, origins }, t, rngWindow);
                     }
                     if (h4spe >= 0) {
                       const t = ivPartial + h4spe + h4spa + h4spd;
                       const ivs = { hp, atk, def, spa: h4spa, spd: h4spd, spe: h4spe };
-                      tryAddRngResult(pb, { seed: seed0, pid, method: 'H4', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels }, t, rngWindow);
+                      tryAddRngResult(pb, { seed: seed0, pid, method: 'H4', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels, sourceSpecies, origins }, t, rngWindow);
                     }
                   }
                 }
@@ -524,7 +536,7 @@ function fastSearch(params, isStopped) {
 
               const seed0 = reverse(s1);
               const candidateNature = (pid >>> 0) % 25;
-              let initSeed = null, metLevels = null;
+              let initSeed = null, metLevels = null, sourceSpecies = null, origins = null;
               if (doValidation && hasAnySlots) {
                 const chain = isUnown
                   ? validateEncounterChainUnown(s1, unownForm, speciesSlots, slotTables, targetSpecies)
@@ -532,11 +544,12 @@ function fastSearch(params, isStopped) {
                 if (!chain) continue;
                 initSeed = chain.initSeed;
                 metLevels = chain.metLevels;
+                sourceSpecies = chain.sourceSpecies; origins = chain.origins;
               }
 
               const t = ivPartial + spe + spa + spd;
               const ivs = { hp, atk, def, spa, spd, spe };
-              tryAddRngResult(pb, { seed: seed0, pid, method: 'H2', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels }, t, rngWindow);
+              tryAddRngResult(pb, { seed: seed0, pid, method: 'H2', ivs, hpt: hpType(ivs), hpp: hpPower(ivs), initSeed, metLevels, sourceSpecies, origins }, t, rngWindow);
             }
           }
         }
@@ -668,7 +681,7 @@ function bruteForceSearch(params, isStopped) {
     const bestMethodTotal = Math.max(t1, t2, t4);
     if (pb.full() && bestMethodTotal < pb.getWorst()) continue;
 
-    let initSeed = null, metLevels = null;
+    let initSeed = null, metLevels = null, sourceSpecies = null, origins = null;
     if (doValidation && hasAnySlots) {
       const candidateNature = (pid >>> 0) % 25;
       const chain = isUnown
@@ -677,11 +690,12 @@ function bruteForceSearch(params, isStopped) {
       if (chain === null) continue;
       initSeed  = chain.initSeed;
       metLevels = chain.metLevels;
+      sourceSpecies = chain.sourceSpecies; origins = chain.origins;
     }
 
-    if (h1) tryAddRngResult(pb, {seed:seed>>>0,pid,method:'H1',ivs:h1,hpt:hpType(h1),hpp:hpPower(h1),initSeed,metLevels}, t1, rngWindow);
-    if (h2) tryAddRngResult(pb, {seed:seed>>>0,pid,method:'H2',ivs:h2,hpt:hpType(h2),hpp:hpPower(h2),initSeed,metLevels}, t2, rngWindow);
-    if (h4) tryAddRngResult(pb, {seed:seed>>>0,pid,method:'H4',ivs:h4,hpt:hpType(h4),hpp:hpPower(h4),initSeed,metLevels}, t4, rngWindow);
+    if (h1) tryAddRngResult(pb, {seed:seed>>>0,pid,method:'H1',ivs:h1,hpt:hpType(h1),hpp:hpPower(h1),initSeed,metLevels,sourceSpecies,origins}, t1, rngWindow);
+    if (h2) tryAddRngResult(pb, {seed:seed>>>0,pid,method:'H2',ivs:h2,hpt:hpType(h2),hpp:hpPower(h2),initSeed,metLevels,sourceSpecies,origins}, t2, rngWindow);
+    if (h4) tryAddRngResult(pb, {seed:seed>>>0,pid,method:'H4',ivs:h4,hpt:hpType(h4),hpp:hpPower(h4),initSeed,metLevels,sourceSpecies,origins}, t4, rngWindow);
   }
 
   self.postMessage({ type: 'done', results: pb.buf });

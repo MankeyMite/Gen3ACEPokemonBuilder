@@ -142,5 +142,35 @@ for (const locations of Object.values(ENCOUNTER_SLOTS)) {
   }
 }
 
+// Evolved targets must search all wild ancestors at the selected location,
+// including places shared by multiple stages. Replay against the reported
+// source species so a valid PID cannot be paired with another stage's levels.
+for (const [gameId, location, targets] of [[4,124,[63]], [5,125,[63]], [4,103,[29]], [4,136,[30,29]], [3,55,[42,41]]]) {
+  const slotTables = ENCOUNTER_SLOTS[gameId][location];
+  const results = search({ gameId, slotTables, targetSpecies: targets, maxResults: 300 });
+  assert(results.length > 0);
+  for (const result of results) {
+    assert(targets.includes(result.sourceSpecies));
+    assert(Object.entries(slotTables).some(([type, tables]) => tables.some(table =>
+      (gameId === 3 ? ['none','success','fail'] : ['none']).some(mode =>
+        replay(result, type, table, result.sourceSpecies, mode)))));
+    fixtures.push({ gameId, location, species: result.sourceSpecies, ...result });
+  }
+  if (location === 136) {
+    assert(results.some(result => result.sourceSpecies === 29));
+    assert(results.some(result => result.sourceSpecies === 30));
+  }
+  const sample = results[0];
+  const ivs = ['hp','atk','def','spa','spd','spe'].map(key => sample.ivs[key]);
+  const recovered = search({ gameId, slotTables, targetSpecies: targets, minIVs: ivs, maxIVs: ivs });
+  assert(recovered.some(result => result.pid === sample.pid && result.sourceSpecies === sample.sourceSpecies));
+  for (const result of recovered) {
+    assert(Object.entries(slotTables).some(([type, tables]) => tables.some(table =>
+      (gameId === 3 ? ['none','success','fail'] : ['none']).some(mode =>
+        replay(result, type, table, result.sourceSpecies, mode)))));
+    fixtures.push({ gameId, location, species: result.sourceSpecies, ...result });
+  }
+}
+
 if (process.env.PKHEX_RNG_FIXTURES) fs.writeFileSync(process.env.PKHEX_RNG_FIXTURES, JSON.stringify(fixtures));
 console.log(`Wild encounter RNG tests passed: ${fixtures.length} results across FR/LG and RSE, H1/H2/H4, both search paths.`);
