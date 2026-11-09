@@ -128,6 +128,32 @@ try {
   await client.send('Runtime.enable');
   await waitFor(client, "document.documentElement?.classList?.contains('builder-ready') === true");
 
+  const experienceDefaults = await evaluate(client, `(async () => {
+    const { expForLevel, GROUP } = await import('./src/lib/exp.js');
+    const { default: groups } = await import('./src/data/expGroups.gen3.js');
+    const cases = [];
+    const check = label => {
+      const species = Number(document.querySelector('#species').value);
+      const level = Number(document.querySelector('#level').value);
+      const value = document.querySelector('#expTotal').value;
+      const expected = expForLevel(groups[species] ?? GROUP.MEDIUM_FAST, level);
+      if (value === '' || Number(value) !== expected) {
+        throw new Error(label + ' did not populate EXP: ' + JSON.stringify({ species, level, value, expected }));
+      }
+      cases.push({ label, species, level, experience: Number(value) });
+    };
+    const mode = document.querySelector('#encounterMode');
+    mode.value = 'hatched';
+    mode.dispatchEvent(new Event('change', { bubbles: true }));
+    document.querySelector('#species').selectById(30);
+    check('Species selected');
+    const origin = document.querySelector('#pokemonOrigin');
+    origin.value = 'wild';
+    origin.dispatchEvent(new Event('change', { bubbles: true }));
+    check('Wild origin selected');
+    return cases;
+  })()`);
+
   const trainerIdDice = await evaluate(client, `(async () => {
     const { generateTrainerId } = await import('./src/lib/gen3/trainerIdRandomizer.js');
     const { isValidGCTidSid } = await import('./src/data/shadowEncounters.gen3.js');
@@ -568,6 +594,7 @@ try {
 
   console.log(JSON.stringify({
     browser: path.basename(chromePath),
+    experienceDefaults,
     trainerIdDice,
     importedTrainerIdDice,
     wildEvolutionOrigins,

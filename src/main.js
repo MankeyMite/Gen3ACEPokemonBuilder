@@ -1742,6 +1742,16 @@ function getCurrentLevelFloor() {
   return Math.max(1, Math.min(100, floor));
 }
 
+// Shared by encounter defaults and the species/level input handlers.
+function computeAndSetExpFromLevel() {
+  const speciesId = Number($('#species')?.value || 0);
+  const group = EXP_GROUPS[speciesId] ?? GROUP.MEDIUM_FAST;
+  const lvl = Math.max(1, Math.min(100, Number($('#level')?.value || 1)));
+  const expEl = $('#expTotal');
+  if (expEl) expEl.value = String(expForLevel(group, lvl));
+  try { updateStatGraph(); } catch (e) {}
+}
+
 function syncCurrentLevelMinimumAttribute() {
   const levelEl = $('#level');
   if (!levelEl) return 1;
@@ -9632,17 +9642,6 @@ function boot(){
       try { refreshMoveExclusions(); } catch (e) {}
     } catch (e) {}
   });
-
-  // EXP sync: when species or level changes, compute total EXP; when EXP edited (advanced), adjust level
-  function computeAndSetExpFromLevel() {
-    const sid = Number($('#species')?.value || 0);
-    const group = EXP_GROUPS[sid] ?? GROUP.MEDIUM_FAST;
-    const lvl = Math.max(1, Math.min(100, Number($('#level')?.value || 1)));
-    const exp = expForLevel(group, lvl);
-    const expEl = document.querySelector('#expTotal');
-    if (expEl) expEl.value = String(exp);
-    try { updateStatGraph(); } catch (e) {}
-  }
 
   const ENCOUNTER_MODE_CHECKBOX_IDS = new Set([
     'shiny', 'isEgg', 'fatefulEncounter', 'autoSheenEnabled',
