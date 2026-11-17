@@ -1,3 +1,12 @@
+Patch Notes - (V.0.5.4) - November 17, 2026.
+- You must now use the PID finder in Wild and Static encounters to ensure legal origin seed. 
+The previous pre-set PIDs for each nature did not always match a legal encounter seed in wild mode especially. 
+- Met location now has a dropdown menu, and wild/evolved pokemon can now select all pre-evolutions' met locations.
+- Fixed a bug where current exp did not show by default
+- Fixed a problem with Clamperl and Huntail having the wrong exp group and wrong default met location for Ruby and Sapphire.
+- Other minor fixes.
+
+
 
 Patch Notes - (V.0.5.3) - September 16, 2026.
 - Added PID parity to all encounters and fixed the japanese encoding for the base64 guide.
