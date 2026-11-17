@@ -100,6 +100,7 @@ for (const gameId of [1, 2, 3, 4, 5]) {
     ['o', hoenn ? 2 : 88, 129],
     ['g', hoenn ? 2 : 88, 129],
     ['s', hoenn ? 2 : 88, ENCOUNTER_SLOTS[gameId][hoenn ? 2 : 88].s[0][0][0]],
+    ...(hoenn ? [['w', 50, 373], ['w', 51, 373]] : []),
   ]) {
     const tables = ENCOUNTER_SLOTS[gameId][location][type];
     assert.ok(tables, `${gameId}/${location}/${type} has tables`);

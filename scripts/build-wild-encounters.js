@@ -134,8 +134,8 @@ const MAP_TO_LOC = {
   // ─── Hoenn Underwater ───
   MAP_UNDERWATER_ROUTE124:        50,
   MAP_UNDERWATER_ROUTE126:        51,
-  MAP_UNDERWATER1:                52, // Underwater (Route 127)
-  MAP_UNDERWATER2:                53, // Underwater (Route 128)
+  MAP_UNDERWATER1:                50, // R/S name for Underwater (Route 124)
+  MAP_UNDERWATER2:                51, // R/S name for Underwater (Route 126)
 
   // ─── Hoenn Caves / Dungeons ───
   MAP_GRANITE_CAVE_1F:            55,

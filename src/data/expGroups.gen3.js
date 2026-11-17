@@ -96,7 +96,7 @@ export const ERRATIC = [
   301, 302, 303, // Nincada, Ninjask, Shedinja
   328, 329, // Feebas, Milotic
   358, 359, // Swablu, Altaria,
-  375, 376, 377, // Clamperl, Huntail, Gorebyss
+  373, 374, 375, // Clamperl, Huntail, Gorebyss
   380, // Zangoose
   386, // Volbeat
   388, 389, 390, 391 // Lileep, Cradily, Anorith, Armaldo

@@ -52,4 +52,19 @@ assert.ok(
   'Removing Altering Cave Smeargle must not remove its released Emerald Artisan Cave encounter'
 );
 
-console.log('wild encounter Altering Cave tests passed');
+// R/S calls these maps Underwater1/2, but their stored met locations are
+// Route 124/126 (50/51), just as in Emerald, rather than Route 127/128.
+for (const gameId of [1, 2, 3]) {
+  for (const speciesId of [373, 170, 381]) { // Clamperl, Chinchou, Relicanth
+    for (const locationId of [50, 51]) {
+      assert.ok(WILD_ENCOUNTERS[speciesId]?.[gameId]?.[locationId]);
+      assert.ok(getSlotSpecies(gameId, locationId).includes(speciesId));
+    }
+    for (const locationId of [52, 53]) {
+      assert.equal(WILD_ENCOUNTERS[speciesId]?.[gameId]?.[locationId], undefined);
+      assert.ok(!getSlotSpecies(gameId, locationId).includes(speciesId));
+    }
+  }
+}
+
+console.log('wild encounter data tests passed');
