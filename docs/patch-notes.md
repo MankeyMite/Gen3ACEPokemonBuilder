@@ -6,8 +6,6 @@ The previous pre-set PIDs for each nature did not always match a legal encounter
 - Fixed a problem with Clamperl and Huntail having the wrong exp group and wrong default met location for Ruby and Sapphire.
 - Other minor fixes.
 
-
-
 Patch Notes - (V.0.5.3) - September 16, 2026.
 - Added PID parity to all encounters and fixed the japanese encoding for the base64 guide.
 - Implemented the new “Scan from game” import flow for phones (Test version - not working well yet).

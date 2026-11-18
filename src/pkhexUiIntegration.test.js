@@ -10,7 +10,7 @@ const bridgeSource = await readFile(new URL('../pkhex-validator/ValidatorBridge.
 assert.match(html, /id="generateBtn"[\s\S]*?id="pkhexVerificationStatus"/);
 assert.match(html, /id="pkhexReportOverlay"[\s\S]*?id="pkhexVerboseReport"/);
 assert.match(mainSource, /beginPkhexVerification\(new Uint8Array\(result\.bytes\), pkhexLegalityEnvironment\)/);
-assert.match(mainSource, /beginPkhexVerification\(new Uint8Array\(importedRoundTripBytes\), pkhexLegalityEnvironment\)/);
+assert.match(mainSource, /beginPkhexVerification\(new Uint8Array\(currentImportedBytes\), pkhexLegalityEnvironment\)/);
 const onGenerateSource = mainSource.slice(
   mainSource.indexOf('function onGenerate(){'),
   mainSource.indexOf('function enterImportedModeSilently()'),

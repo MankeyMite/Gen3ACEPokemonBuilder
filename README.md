@@ -17,6 +17,12 @@ Decrypted and Encrypted Pokémon files compatible with PKHeX and Pokeglitzer. Us
 - Import into save files
 - Share Pokémon with others
 
+Raw hex, Base64, `.pk3`, and `.ek3` imports retain unusual IDs and stored values
+in the editor. Editing a field preserves the other imported data, including
+unused bits, name padding, and current PP in unchanged move slots. The tool
+updates the checksum and encryption when the edited data requires it. PKHeX
+reports legality without rewriting imported values.
+
 ### Data Structure
 
 The tool generates proper Gen III Pokémon data structures:

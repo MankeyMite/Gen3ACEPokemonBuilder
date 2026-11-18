@@ -37,6 +37,8 @@ import {
 import { getNationalDexNumber, getSpritePath, getUnownFormIndex, getUnownFormChar, getUnownFormSuffix, getUnownSpritePath, getOnlineSpriteUrl, getOnlineUnownSpriteUrl, UNOWN_FORMS, TANOBY_FORMS_BY_LOCATION, getTanobyFormsForLocation, getTanobyLocationsForForm } from './data/nationalDex.gen3.js';
 import { GENDER_THRESHOLDS, getGenderThreshold } from './data/genderThresholds.gen3.js';
 import { isPristineImportedRoundTripState, tryBuildPristineImportedOutputs, shouldMarkImportedDirtyFromEvent, resolvePokerusStateForBuild } from './lib/gen3/importIsolation.js';
+import { editImportedPokemonBytes, getImportedCanonicalBytes } from './lib/gen3/importedPokemonEditor.js';
+import { IMPORTED_POKEMON_FIELDS, readImportedPokemonFields, resetImportedControl, setImportedControlValue } from './domain/importedPokemonFields.js';
 import { findNearestBoxNameCharacterAtTextOffset } from './lib/gen3/gbaTextPreview.js';
 import { getLegalSheenRangeGen3 } from './lib/gen3/contestSheen.js';
 import { getAllowedLevelUpMoveIdsForEncounter, shouldCapHatchedLevelUpMoves } from './lib/gen3/hatchedMoveLegality.js';
@@ -103,6 +105,7 @@ import {
 } from './domain/smeargleMoveRules.js';
 import { getAlternativeMoveHints } from './domain/moveDiscoveryHints.js';
 import {
+  hasImportedDistributionTrainerIds,
   resolveImportedProgression,
   resolveShowdownAbilitySlot,
 } from './domain/importedPokemon.js';
@@ -1364,6 +1367,7 @@ let rsTrainerIdValidationCache = { tid: null, sid: null, valid: null };
 const encounterModeStateCache = {};
 // Raw imported bytes for exact round-trip output in imported mode.
 let importedRoundTripBytes = null;
+let importedRoundTripBaseline = null;
 let importedRoundTripDirty = true;
 let suppressImportedDirtyTracking = false;
 let outputCodeTarget = 'console';
@@ -1405,6 +1409,7 @@ function setLocalizedSpeciesNickname(speciesId, languageId, { force = false } = 
 }
 
 function syncLanguageTextLimits() {
+  if (currentEncounterMode === 'imported') return;
   applyLanguageTextLimits({
     languageId: $('#language')?.value,
     nicknameInput: $('#nickname'),
@@ -1443,6 +1448,7 @@ function restoreNicknameState(state) {
 }
 
 function isCurrentOriginSelectionResolved() {
+  if (currentEncounterMode === 'imported' && importedRoundTripBaseline !== null) return true;
   const speciesId = Number($('#species')?.value || 0);
   if (!speciesId) return false;
   if (currentEncounterMode === 'imported') return true;
@@ -1581,6 +1587,14 @@ function isRubySapphireOriginGame(gameId) {
 function shouldValidateRSTrainerId() {
   if (manualOverrideActive) return false;
   if (currentEncounterMode === 'mystery') return false;
+  if (currentEncounterMode === 'imported' && hasImportedDistributionTrainerIds({
+    speciesId: $('#species')?.value,
+    metLocationId: $('#metLocation')?.value,
+    metLevel: $('#metLevel')?.value,
+    isEgg: Boolean($('#isEgg')?.checked),
+    tid: $('#tid')?.value,
+    otName: $('#otName')?.value,
+  })) return false;
   if (currentEncounterMode === 'cxd_trade' && !isCXDGeneratedTrade(getSelectedCXDTrade())) return false;
   if (currentEncounterMode === 'cxd_shadow') {
     const speciesId = Number($('#species')?.value || 0);
@@ -1743,7 +1757,8 @@ function getCurrentLevelFloor() {
 }
 
 // Shared by encounter defaults and the species/level input handlers.
-function computeAndSetExpFromLevel() {
+function computeAndSetExpFromLevel(event) {
+  if (currentEncounterMode === 'imported' && event?.target?.id !== 'level') return;
   const speciesId = Number($('#species')?.value || 0);
   const group = EXP_GROUPS[speciesId] ?? GROUP.MEDIUM_FAST;
   const lvl = Math.max(1, Math.min(100, Number($('#level')?.value || 1)));
@@ -1755,12 +1770,13 @@ function computeAndSetExpFromLevel() {
 function syncCurrentLevelMinimumAttribute() {
   const levelEl = $('#level');
   if (!levelEl) return 1;
-  const floor = getCurrentLevelFloor();
+  const floor = currentEncounterMode === 'imported' ? 1 : getCurrentLevelFloor();
   levelEl.min = String(floor);
   return floor;
 }
 
 function clampCurrentLevelToMinimum() {
+  if (currentEncounterMode === 'imported') return false;
   const levelEl = $('#level');
   if (!levelEl) return false;
 
@@ -2920,7 +2936,11 @@ function createAutocomplete(selectEl, list, opts = {}) {
   // Expose method to update the list
   // opts.preserveValue — keep current selection even if it's not in the new list
   wrapper.updateList = function(newList, opts = {}) {
+    const importedSelection = currentEncounterMode === 'imported'
+      ? items.find(item => item.id === selectedId && item.importedValue)
+      : null;
     items = newList.map(toAutocompleteItem);
+    if (importedSelection && !items.some(item => item.id === selectedId)) items.push(importedSelection);
     // Clear current selection if it's not in the new list
     // (unless preserveValue is set — keeps e.g. mystery-gift moves visible)
     if (!opts.preserveValue) {
@@ -2930,6 +2950,19 @@ function createAutocomplete(selectEl, list, opts = {}) {
         input.value = '';
       }
     }
+  };
+
+  // Keep unknown numeric IDs visible and selectable for this imported record.
+  wrapper.setImportedValue = function(value) {
+    const id = String(value);
+    if (!items.some(item => item.id === id)) {
+      const known = masterItems?.find(item => item.id === id);
+      items.push({ id, name: known?.name || `Imported value (${id})`, importedValue: true });
+    }
+    wrapper.value = id;
+  };
+  wrapper.clearImportedValues = function() {
+    items = items.filter(item => !item.importedValue);
   };
 
   // Select an item through the same callback/event path as a pointer or
@@ -4048,7 +4081,7 @@ function populateAbilitySelectForSpecies(speciesId, abilityBit = 0) {
   const [ability0Id, ability1Id] = abilities;
   const ability0Name = getAbilityName(ability0Id);
   const ability1Name = getAbilityName(ability1Id);
-  if (ability0Id === ability1Id) {
+  if (ability0Id === ability1Id && !(currentEncounterMode === 'imported' && selectedBit === 1)) {
     abilitySelect.innerHTML = `<option value="0">${ability0Name}</option>`;
     abilitySelect.value = '0';
     return 0;
@@ -4120,6 +4153,9 @@ function boot(){
   ];
 
   function syncEncounterModeBodyClasses(mode) {
+    if (mode !== 'imported') {
+      for (const [id] of IMPORTED_POKEMON_FIELDS) resetImportedControl(document.getElementById(id));
+    }
     for (const className of ENCOUNTER_BODY_CLASSES) {
       document.body.classList.toggle(className, className === `encounter-${mode}`);
     }
@@ -4643,7 +4679,8 @@ function boot(){
     
     // Enable generate button only if all conditions are met
     const generateBtn = $('#generateBtn');
-    const canGenerate = hasSpecies && hasResolvedOrigin && hasNature && hasMove && hasLegalMoves && hasOTName && hasMysteryGiftLegalPid && hasLegalRSTrainerId && hasRequiredParityPid && hasRequiredWildStaticPid && hasRequiredCXDEncounterPid;
+    const canGenerate = (currentEncounterMode === 'imported' && importedRoundTripBaseline !== null)
+      || (hasSpecies && hasResolvedOrigin && hasNature && hasMove && hasLegalMoves && hasOTName && hasMysteryGiftLegalPid && hasLegalRSTrainerId && hasRequiredParityPid && hasRequiredWildStaticPid && hasRequiredCXDEncounterPid);
     generateBtn.setAttribute('data-disabled', String(!canGenerate));
     // Keep the greyed visual state clickable so onGenerate() can scroll to and
     // mark the first unsatisfied requirement, as it did before native disabled
@@ -4663,6 +4700,7 @@ function boot(){
       updateSpeciesSprite(speciesId);
       updateUnownFormVisibility(speciesId);
       syncPokemonFirstOriginUi(speciesId, { mode: 'imported' });
+      updateIsEggVisibility();
       updateRibbonLocking();
       updateTrainerIdRandomizer();
       validateForm();
@@ -5856,7 +5894,7 @@ function boot(){
   const isEggCheckbox = $('#isEgg');
   if (isEggCheckbox) {
     isEggCheckbox.addEventListener('change', () => {
-      if (isEggCheckbox.checked) {
+      if (isEggCheckbox.checked && currentEncounterMode !== 'imported') {
         const friendshipEl = $('#friendship');
         if (friendshipEl) {
           friendshipEl.value = '1';
@@ -5889,6 +5927,11 @@ function boot(){
       try { validateForm(); } catch (err) {}
       updateLegalityStatus();
     };
+
+    if (currentEncounterMode === 'imported') {
+      refreshOriginDependentLegality();
+      return;
+    }
 
     if (currentEncounterMode === 'hatched') {
       applyHatchedOriginGameDefaults(newGame);
@@ -6625,7 +6668,7 @@ function boot(){
       mystery: {label: 'Mystery Gift', color: '#ef476f', text: 'Choose the exact distribution for this Pokémon. Fixed OT, IDs, language, level, ball, fateful flag, moves, PID method, and shiny rules are applied from the existing event data.'},
       cxd_shadow: {label: 'Pokémon Colosseum / XD', color: '#a78bfa', text: 'Choose the exact Shadow, starter, gift, e-Reader, or Poké Spot encounter. Its game, level, moves, flags, and RNG method are applied automatically.'},
       cxd_trade: {label: 'In-Game Trade', color: '#38bdf8', text: 'Choose an NPC trade from Ruby, Sapphire, Emerald, FireRed, LeafGreen, or Pokémon XD. Handheld trades apply their fixed PID, IVs, trainer, nickname, and contest data; XD trades use the CXD finder for their correlated random values.'},
-      imported: {label: 'Imported', color: '#94a3b8', text: 'Pokémon imported from external data. Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from UI fields. This matters for glitched bytes the UI cannot safely represent.'}
+      imported: {label: 'Imported', color: '#94a3b8', text: 'Pokémon imported from external data. Imported values are preserved, including unusual values. Editing a field keeps the other imported data intact.'}
     };
     const m = map[mode] || {label: '', color: '#94a3b8', text: ''};
     el.innerHTML = '';
@@ -7075,14 +7118,14 @@ function boot(){
       if (!isEggInput) return;
       const row = isEggInput.parentElement;
       if (!row) return;
-      const shouldShow = currentEncounterMode === 'hatched' || isBoxEventMysteryEventSelected();
+      const shouldShow = currentEncounterMode === 'imported' || currentEncounterMode === 'hatched' || isBoxEventMysteryEventSelected();
       if (shouldShow) {
         row.style.display = '';
       } else {
         row.style.display = 'none';
       }
 
-      const canBeEgg = shouldShow && canSelectedSpeciesBeUnhatchedEgg();
+      const canBeEgg = shouldShow && (currentEncounterMode === 'imported' || canSelectedSpeciesBeUnhatchedEgg());
       if (!canBeEgg && isEggInput.checked) {
         isEggInput.checked = false;
         try { isEggInput.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
@@ -7648,6 +7691,13 @@ function boot(){
   }
 
   function applyContestSpeciesRequirements(options = {}) {
+    if (currentEncounterMode === 'imported') {
+      const autoSheen = document.getElementById('autoSheenEnabled');
+      if (autoSheen) { autoSheen.checked = false; autoSheen.disabled = true; }
+      for (const id of ['contestBeauty', 'contestSheen']) setControlLockState(document.getElementById(id), false);
+      setContestSheenStatus('Imported contest values are preserved. Edit a value to change it.');
+      return { applied: false, beautyChanged: false, sheenChanged: false };
+    }
     if (!isSelectedMilotic()) {
       const beautyEl = $('#contestBeauty');
       if (beautyEl) beautyEl.min = '0';
@@ -7730,6 +7780,9 @@ function boot(){
   }
 
   function updateContestSheenAuto(options = {}) {
+    if (currentEncounterMode === 'imported') return applyContestSpeciesRequirements(options);
+    const autoSheen = document.getElementById('autoSheenEnabled');
+    if (autoSheen) autoSheen.disabled = false;
     const forceAutoSheen = isSelectedMilotic();
     const autoEnabled = getAutoSheenEnabled();
     const beautyEl = $('#contestBeauty');
@@ -10838,7 +10891,7 @@ function boot(){
       const sid = Number($('#species')?.value || 0);
       const group = EXP_GROUPS[sid] ?? GROUP.MEDIUM_FAST;
       // Cap at max EXP for level 100
-      const maxExp = expForLevel(group, 100);
+      const maxExp = currentEncounterMode === 'imported' ? 0xFFFFFFFF : expForLevel(group, 100);
       const val = Math.max(0, Math.min(maxExp, Math.floor(Number(e.target.value) || 0)));
       e.target.value = String(val);
       const lvl = levelForExp(group, val);
@@ -10850,8 +10903,8 @@ function boot(){
 
   // Recompute when species or level changes
   speciesAutocomplete.addEventListener('change', computeAndSetExpFromLevel);
-  $('#level').addEventListener('change', () => {
-    computeAndSetExpFromLevel();
+  $('#level').addEventListener('change', (event) => {
+    computeAndSetExpFromLevel(event);
     refreshMoveExclusions();
   });
   // initialize
@@ -10925,12 +10978,12 @@ function boot(){
     if (!el) return;
     el.addEventListener('input', (e) => {
       // First cap the individual value to 252
-      e.target.value = clampInt(e.target.value, 0, 252);
+      e.target.value = clampInt(e.target.value, 0, currentEncounterMode === 'imported' ? 255 : 252);
 
       // Then enforce total <= 510 by reducing this field if necessary
       const values = evIds.map(id => Number((document.querySelector(id)?.value) || 0));
       const sum = values.reduce((a,b)=>a+b,0);
-      if (sum > 510) {
+      if (sum > 510 && currentEncounterMode !== 'imported') {
         const over = sum - 510;
         const cur = Number(e.target.value) || 0;
         const newVal = Math.max(0, cur - over);
@@ -10988,7 +11041,7 @@ function boot(){
   const metLevelEl = document.querySelector('#metLevel');
   if (metLevelEl) {
     metLevelEl.addEventListener('input', (e) => {
-      e.target.value = clampInt(e.target.value, 0, 100);
+      e.target.value = clampInt(e.target.value, 0, currentEncounterMode === 'imported' ? 127 : 100);
       const changed = clampCurrentLevelToMinimum();
       if (changed) {
         try { computeAndSetExpFromLevel(); } catch (ex) {}
@@ -11106,10 +11159,11 @@ function boot(){
       let bytes;
       let speciesId = Number($('#species')?.value || 0);
 
-      if (isPristineImportedRoundTrip()) {
-        bytes = convertEk3RawToPk3Canonical(importedRoundTripBytes, 100);
+      const currentImportedBytes = getCurrentImportedBytes();
+      if (currentImportedBytes) {
+        bytes = getImportedCanonicalBytes(currentImportedBytes, 100);
         try {
-          const parsed = parsePokemonBytes(toHexString(importedRoundTripBytes));
+          const parsed = parsePokemonBytes(toHexString(currentImportedBytes));
           speciesId = Number(parsed.speciesId) || speciesId;
         } catch (e) {}
       } else {
@@ -13463,6 +13517,7 @@ function initPidFinder() {
 }
 
 function collect(){
+  if (currentEncounterMode === 'imported' && importedRoundTripBaseline !== null) return collectImportedFields();
   try { _updateContestSheenAuto?.({ markImportedDirty: true }); } catch (e) {}
 
   const isImportedMode = currentEncounterMode === 'imported';
@@ -14062,6 +14117,7 @@ function clearGeneratedOutputs() {
 
 function clearImportedRoundTripState() {
   importedRoundTripBytes = null;
+  importedRoundTripBaseline = null;
   importedRoundTripDirty = true;
   importedPokerusState = null;
   pokerusDropdownDirty = false;
@@ -14090,6 +14146,7 @@ function setImportedRoundTripFromHex(hexInput) {
   }
   importedRoundTripBytes = bytes;
   importedRoundTripDirty = false;
+  importedRoundTripBaseline = collectImportedFields();
 }
 
 function setImportedRoundTripFromBytes(bytes) {
@@ -14098,6 +14155,7 @@ function setImportedRoundTripFromBytes(bytes) {
     return;
   }
   importedRoundTripBytes = new Uint8Array(bytes);
+  importedRoundTripBaseline = collectImportedFields();
   importedRoundTripDirty = false;
 }
 
@@ -14105,14 +14163,52 @@ function isPristineImportedRoundTrip() {
   return isPristineImportedRoundTripState(currentEncounterMode, importedRoundTripBytes, importedRoundTripDirty);
 }
 
+function collectImportedFields() {
+  return {
+    ...readImportedPokemonFields(id => document.getElementById(id)),
+    level: Number($('#level')?.value),
+    natureIndex: Number($('#nature')?.value),
+    pid: parsePidInput($('#pid')?.value),
+    otGender: $('#otGender')?.value === 'female' ? 1 : 0,
+    pokerusState: resolvePokerusStateForBuild({
+      currentEncounterMode,
+      importedPokerusState,
+      pokerusDropdownDirty,
+      selectedPokerusStatus: $('#pokerusStatus')?.value,
+      getPokerusStateFromStatusFn: getPokerusStateFromStatus,
+    }),
+  };
+}
+
+function restoreImportedStoredFields(data) {
+  for (const [id, path, type] of IMPORTED_POKEMON_FIELDS) {
+    const value = path.split('.').reduce((part, key) => part?.[key], data);
+    const control = document.getElementById(id);
+    setImportedControlValue(control, value, type);
+    setControlLockState(control, false);
+    for (const option of Array.from(control?.options || [])) {
+      option.disabled = false;
+      option.hidden = false;
+    }
+  }
+  $('#pid').value = '0x' + data.pid.toString(16).toUpperCase().padStart(8, '0');
+  $('#otGender').value = data.otGender === 1 ? 'female' : 'male';
+  setPokerusUiFromParsedData(data);
+  try { _applyContestSpeciesRequirements?.(); } catch (e) {}
+}
+
+function getCurrentImportedBytes() {
+  if (currentEncounterMode !== 'imported' || !importedRoundTripBytes || !importedRoundTripBaseline) return null;
+  return editImportedPokemonBytes(importedRoundTripBytes, importedRoundTripBaseline, collectImportedFields());
+}
+
 function onGenerate(){
-  // Rule of thumb:
-  // - Unedited import => byte-preserved output
-  // - Edited import   => rebuild from current UI fields
+  // Imports patch only edited fields; hidden bytes remain authoritative.
+  const currentImportedBytes = getCurrentImportedBytes();
   const pristineOutput = tryBuildPristineImportedOutputs({
     currentEncounterMode,
-    importedRoundTripBytes,
-    importedRoundTripDirty,
+    importedRoundTripBytes: currentImportedBytes,
+    importedRoundTripDirty: false,
     toFormattedHexFn: toFormattedHex,
     toBase64Fn: (bytes) => toBase64Emerald(bytes, getBase64GenerationOptions()),
   });
@@ -14123,8 +14219,8 @@ function onGenerate(){
     updateBase64SafetyWarnings(pristineOutput.base64Text, pristineOutput.substitutionUsed);
     hideBase64CharacterInspector();
     markGeneratedCodeFresh();
-    recordRecentGeneration(new Uint8Array(importedRoundTripBytes), pristineOutput.base64Text);
-    beginPkhexVerification(new Uint8Array(importedRoundTripBytes), pkhexLegalityEnvironment);
+    recordRecentGeneration(new Uint8Array(currentImportedBytes), pristineOutput.base64Text);
+    beginPkhexVerification(new Uint8Array(currentImportedBytes), pkhexLegalityEnvironment);
     return pristineOutput;
   }
 
@@ -14250,7 +14346,7 @@ function switchToImportedMode() {
       el.style.setProperty('--mode-accent', '#94a3b8');
       const txt = document.createElement('span');
       txt.className = 'mode-desc-text';
-      txt.textContent = 'Pokémon imported from external data. Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from UI fields. This matters for glitched bytes the UI cannot safely represent.';
+      txt.textContent = 'Pokémon imported from external data. Imported values are preserved, including unusual values. Editing a field keeps the other imported data intact.';
       el.appendChild(txt);
     }
   } catch (e) {}
@@ -14720,16 +14816,17 @@ function onLoadFromHex(hexString){
     try { _validateForm?.(); } catch (e) {}
     try { updateLegalityStatus(); } catch (e) {}
 
-    // Re-arm snapshot after all UI updates so untouched Generate is exact 1:1 raw output.
+    // Restore unknown IDs and raw ranges before recording the editable baseline.
+    restoreImportedStoredFields(data);
     setImportedRoundTripFromBytes(rawBytes);
     importedRoundTripDirty = false;
-    try { _applyContestSpeciesRequirements?.({ markImportedDirty: true }); } catch (e) {}
+    try { _validateForm?.(); } catch (e) {}
 
     // Re-enable preset application for explicit user actions after import.
     suppressPresetApply = false;
     
     if (!hexString) {
-      alert('Pokémon data loaded successfully! Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from current UI fields.');
+      alert('Pokémon data loaded successfully! Imported values are preserved. Editing a field keeps the other imported data intact.');
     }
   } catch (e) {
     if (hexString) throw e; // Re-throw when called from modal so it can show its own error
@@ -14745,10 +14842,11 @@ function onExportPk3() {
     let bytes;
     let speciesId = Number($('#species')?.value || 0);
 
-    if (isPristineImportedRoundTrip()) {
-      bytes = new Uint8Array(importedRoundTripBytes);
+    const currentImportedBytes = getCurrentImportedBytes();
+    if (currentImportedBytes) {
+      bytes = currentImportedBytes;
       try {
-        const parsed = parsePokemonBytes(toHexString(importedRoundTripBytes));
+        const parsed = parsePokemonBytes(toHexString(currentImportedBytes));
         speciesId = Number(parsed.speciesId) || speciesId;
       } catch (e) {}
     } else {
@@ -15004,16 +15102,17 @@ function onImportPk3(event) {
         }
       } catch (e) {}
 
-      // Re-arm pristine snapshot at end so untouched Generate/export are byte-perfect.
+      // Restore unknown IDs and raw ranges before recording the editable baseline.
+      restoreImportedStoredFields(data);
       setImportedRoundTripFromBytes(rawBytes);
       importedRoundTripDirty = false;
-      try { _applyContestSpeciesRequirements?.({ markImportedDirty: true }); } catch (e) {}
+      try { _validateForm?.(); } catch (e) {}
 
       // Finished programmatic updates; re-enable preset application.
       // Keep manualOverrideActive = true so user can freely edit imported values.
       suppressPresetApply = false;
 
-      alert('Pokémon imported successfully! Rule: unedited imports are byte-preserved; after a real edit, output is rebuilt from current UI fields.');
+      alert('Pokémon imported successfully! Imported values are preserved. Editing a field keeps the other imported data intact.');
     } catch (err) {
       alert('Error importing .ek3/.pk3 file: ' + err.message);
     } finally {
@@ -15030,7 +15129,8 @@ function onImportPk3(event) {
 
 function onDownload(){
   const cfg = collect();
-  const result = buildPokemonBytes(cfg);
+  const importedBytes = getCurrentImportedBytes();
+  const result = importedBytes ? { bytes: importedBytes, meta: { imported: true } } : buildPokemonBytes(cfg);
   const payload = {
     input: cfg,
     meta: result.meta,
