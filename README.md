@@ -39,6 +39,9 @@ The tool generates proper Gen III Pokémon data structures:
 
 This tool is a work in progress, and has been created primarily using agentic coding inside Visual Studio Code. While extensive testing has been done, there may be undiscovered bugs or edge cases. Please report any issues you encounter!
 
+Nintendo Switch box-name filtering and byte-preserving Base64 repair are documented
+in [the FRLG filter development notes](docs/frlg-profanity-filter.md).
+
 ### Local PKHeX.Core verification
 
 The post-generation legality audit runs entirely in the browser through the

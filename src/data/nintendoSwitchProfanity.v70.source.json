@@ -1,0 +1,663 @@
+{
+  "schemaVersion": 1,
+  "repository": "abcboy101/badword",
+  "commit": "1a76c29d53f2f6e98c23b6849215e99801c4224b",
+  "version": 70,
+  "license": "GPL-3.0",
+  "languages": [
+    "jja",
+    "een",
+    "efr",
+    "ees",
+    "pen",
+    "pfr",
+    "pde",
+    "pit",
+    "pes",
+    "pnl",
+    "kko",
+    "czh",
+    "ppt",
+    "pru",
+    "ept",
+    "tzh",
+    "pol",
+    "tha",
+    "common"
+  ],
+  "rejectionFiles": [
+    {
+      "path": "parsed/NgWord2/70/ac_0_b2_nx.txt",
+      "gitBlob": "78ba2d2db5c572482cc62942e449cfbff435e0ed",
+      "language": "jja",
+      "bucket": "b2",
+      "content": "\\bbadwordj\\b\n\\bbbwjja\\b\n\\bopqrstuvwxyzabcdefghijklmn\\b\n\\bアオツテ\n\\bアホ\\b\n\\bオナル\n\\bカカカキカクカケカコカカ\n\\bコロシタ\n\\bコロシテ\n\\bシネヤ\n\\bシネヨ\n\\bセンパン\n\\bダツプン\\b\n\\bチンゲ\\b\n\\bバカ\\b\n\\bヒマンジ\\b\n\\bリスカ\\b\nオナル\\b\nコロシタ\\b\nコロシテ\\b\nコロス\\b\nサササシサスサセサソササ\\b\nシネ\\b\nシネバ\\b\nシネバ？\\b\nシネヤ\\b\nシネヨ\\b\nシンデ\\b\nシンデヤ\\b\nシンデヤル\\b\nシンデヨ\\b\nセンパン\\b\nヤメロ\\b\nヨワイ\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_0_not_b_nx.txt",
+      "gitBlob": "4ca02879d55f46de7d4459382737870c62178516",
+      "language": "jja",
+      "bucket": "not_b",
+      "content": "0ンコ\n0ンチ\n1タタ2タチ3タツaタテbタトc\n4ne\n4ネ\n56サ\n56シ\n56ス\n56セ\n56ソ\ndisney.ne.jp\ndocomo.ne.jp\nemnet.ne.jp\nezweb.ne.jp\ngmail.com\ngスポツト\nhotmail.co.jp\ni.softbank.jp\njaps\nkkk\nmanco\nmanko\nochinchin\noンコ\noンチ\nsex\nshiネ\nsiネ\nsoftbank.ne.jp\nwiicom.com\nwillcom.com\nxxne.jp\nyahoo.co.jp\nàḃćďęḟğẖĩǰḳĺḿňß\nΟンコ\nΟンチ\nοンコ\nοンチ\nОンコ\nОンチ\nоンコ\nоンチ\n○ンコ\n○ンタマ\n○ンチ\n◎ンコ\n◎ンチ\n●ンコ\n●ンチ\nアアアイアウアエアオアア\nアスフアツク\nアナニー\nアナル\nアヘガオ\nアホカス\nアホクズ\nアホクソ\nアホゴミ\nアホザコ\nアホシネ\nアホスギ\nアホドモ\nアホバカ\nイケヌマ\nイラマチオ\nウ0コ\nウoコ\nウΟコ\nウοコ\nウОコ\nウоコ\nウ○コ\nウ◎コ\nウ●コ\nウンコ\nウンチ\nウンニ\nエネマグラ\nエフエドリン\nオ0ンポ\nオoンポ\nオΟンポ\nオοンポ\nオОンポ\nオоンポ\nオ○ンポ\nオ◎ンポ\nオ●ンポ\nオチ0ポ\nオチoポ\nオチΟポ\nオチοポ\nオチОポ\nオチоポ\nオチ○ポ\nオチ◎ポ\nオチ●ポ\nオツパイ\nオテインテイン\nオナキン\nオナニー\nオナヌー\nオナネタ\nオナホ\nオナロウ\nオピオイドペプチド\nオマンチヨ\nオマンチン\nオメコ\nオヤコロ\nオヤゴロ\nオルガズム\nオーガズム\nカスアホ\nカスクズ\nカスクソ\nカスゴミ\nカスザコ\nカスシネ\nカススギ\nカスドモ\nカスバカ\nカツス\nガイジ\nガガガギガグガゲガゴガガ\nキ○タマ\nキエウセロ\nキエテ\nキエロ\nキチガイ\nキヤンタマ\nキン○マ\nキンタ○\nキンタマ\nクズアホ\nクズカス\nクズクソ\nクズゴミ\nクズザコ\nクズシネ\nクズスギ\nクズドモ\nクズバカ\nクソアホ\nクソカス\nクソキモイ\nクソクズ\nクソゴミ\nクソザコ\nクソシネ\nクソスギ\nクソドモ\nクソバカ\nクソボケ\nクタバレ\nクビツツテ\nクビツレ\nクリトリス\nクロンボ\nクンニ\nケチヤマン\nケツアナ\nゲイホモ\nゲリベン\nコカイン\nコクヂン\nコロサレロ\nコロシニイク\nコロシマス\nコロスゾ\nコロスデ\nコロスヨ\nコロナウイルス\nコンドーム\nゴミアホ\nゴミカス\nゴミクズ\nゴミクソ\nゴミザコ\nゴミシネ\nゴミスギ\nゴミドモ\nゴミバカ\nゴ有\nサセ子\nザk\nザコ\nザコアホ\nザコカス\nザコクズ\nザコクソ\nザコゴミ\nザコシネ\nザコスギ\nザコドモ\nザコバカ\nザツコ\nザーメン\nザー汁\nシ''サツ\nシne\nシコシコ\nシツクスナイン\nシツコ\nシニタイ\nシネアホ\nシネカス\nシネクズ\nシネクソ\nシネゴミ\nシネザコ\nシネバイイノニ\nシネバカ\nシヤセイ\nシヨウガイシヤ\nシヨウベン\nシンデクダサイ\nシンデクレ\nシンデホシイ\nシンドケ\nジサツ\nスカトロ\nセツクス\nセフレ\nセンズリ\nゼツリン\nタヒネ\nダイベン\nダウンシヨウ\nダツチワイフ\nダマレ\nチ0コ\nチ0チ\nチ0ポ\nチoコ\nチoチ\nチoポ\nチΟコ\nチΟチ\nチΟポ\nチοコ\nチοチ\nチοポ\nチОコ\nチОチ\nチОポ\nチоコ\nチоチ\nチоポ\nチ○コ\nチ○チ\nチ○ポ\nチ◎コ\nチ◎チ\nチ◎ポ\nチ●コ\nチ●チ\nチ●ポ\nチカテツサリン\nチシヨウ\nチシヨー\nチヤンコロ\nチヤーカス\nチン0\nチンo\nチンpo\nチンΟ\nチンο\nチンО\nチンо\nチン○\nチン◎\nチン●\nチンカス\nチンコ\nチンチ0\nチンチo\nチンチΟ\nチンチο\nチンチО\nチンチо\nチンチ○\nチンチ◎\nチンチ●\nチンニ\nチンホ°\nチンホº\nチンボ\nチンポ\nデイルド\nデイープスロート\nデカチン\nデカマラ\nデブ専\nトモダチヤメ\nハメ撮リ\nバカアホ\nバカカス\nバカクズ\nバカクソ\nバカゴミ\nバカザコ\nバカシネ\nバカスギ\nバカドモ\nバター犬\nパイズリ\nパイパン\nパパパピパプパペパポパパ\nフアツキユー\nフアツク\nフイストフアツク\nフエラチオ\nブツコロス\nプツシー\nヘタクソ\nヘロイン\nペツテイング\nペニス\nホ別\nボツキ\nポコチン\nポルチオ\nマ0コ\nマoコ\nマΟコ\nマοコ\nマОコ\nマоコ\nマ■コ\nマ□コ\nマ◆コ\nマ◇コ\nマ○コ\nマ◎コ\nマ●コ\nマジキチ\nマツトプレイ\nマナ板本番\nマンカス\nマンゲ\nマンコ\nマンスジ\nマン毛\nマン汁\nマン臭\nミコスリ半\nメアド\nメクラ\nメコスジ\nメスカリン\nメツタザシ\nメンヘラ\nヤクタタズ\nヤクブツランヨウ\nヤジユウ先輩\nヤリマン\nヨワスギ\nラグカス\nラブジユース\nリストカツト\nルンペン\nレイプ\nレキソタン\nレンドルミン\nロリコン\nロンパリ\nヴアギナ\n一人エツチ\n三国人\n乞食\n乳輪\n乳頭\n亀甲縛リ\n低脳\n全身舐メ\n凌辱\n勃起\n包茎\n南極2号\n口内射精\n口内発射\n合法ハーブ\n和姦\n土人\n地下鉄サリン\n基地外\n売女\n売春\n大便\n大麻\n女体盛リ\n姦淫\n姦通\n害児\n射精\n小便\n屠殺\n床上手\n強姦\n後背位\n性交\n性奴隷\n性行為\n愛奴\n愛液\n我慢汁\n手コキ\n手マン\n手淫\n抗ウツ剤\n援助交際\n支那\n明盲\n朝勃チ\n死ネ\n死姦\n殺ス\n毛唐\n気違イ\n池沼\n淫乱\n淫売\n淫夢\n淫行\n獣姦\n玉舐メ\n玉責メ\n痴女\n痴汁\n痴漢\n監禁\n直アド\n直メ\n直メール\n穢多\n穴兄弟\n童貞\n粗チン\n精液\n素股\n絶倫\n聾\n肉便器\n肉壺\n肉奴隷\n背面座位\n脱法ハーブ\n膣\n自殺\n花ビラ回転\n視姦\n覚セイ剤\n買春\n賤民\n足コキ\n輪姦\n近親相姦\n逆援\n部落\n野獣先輩\n阿片\n陰唇\n陰嚢\n陰核\n陰毛\n陰茎\n陰部\n陵辱\n電動コケシ\n青姦\n顔射\n顔騎\n鮮人\n麻薬\n黄金水\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_10_b2_nx.txt",
+      "gitBlob": "039c2fbfe406853dc3cc5cfc9541dde4f478fd95",
+      "language": "kko",
+      "bucket": "b2",
+      "content": "\\b18년\n\\bbadwordk\\b\n\\bbbwkko\\b\n\\b너임마청년\\b\n\\b씨발\\b\n\\b아날\\b\n\\b애널\\b\n\\b애자\n\\b운지\n\\b자지\\b\n미새\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_10_not_b_nx.txt",
+      "gitBlob": "f8955e158d3816006e8870b7a728374ee30cd1d1",
+      "language": "kko",
+      "bucket": "not_b",
+      "content": "18넘\n18놈\n18뇬\n18롬\n18새끼\n18쉐리\n1찍\n2찍\nbuttnugget\njaps\njesussucks\nkkk\nmanco\nmanko\nsucka\nsuicdebmbr\nsuicide\n갈보\n강간\n개가튼넘\n개가튼년\n개가튼놈\n개가튼뇬\n개가튼롬\n개가튼새끼\n개가튼쉐리\n개같은넘\n개같은년\n개같은놈\n개같은뇬\n개같은롬\n개같은새끼\n개같은쉐리\n개걸래\n개걸레\n개고추\n개넘\n개년\n개놈\n개뇬\n개독\n개롬\n개보지\n개부랄\n개불알\n개붕알\n개새끼\n개색\n개쉐리\n개쌍도\n개쓰레기\n개자지\n개작두넘\n개작두년\n개작두놈\n개작두뇬\n개작두롬\n개작두새끼\n개작두쉐리\n개잡년\n개좃\n개좆\n개좇\n개지랄\n개지랄넘\n개지랄놈\n개지랄뇬\n개후라새끼\n걸래년\n걸레같은년\n걸레년\n게섹\n귀두\n귀머거리\n극혐\n근친상간\n급식충\n김치남\n김치녀\n깜둥이\n꼴갑\n꼴깝\n남혐\n내꺼빨아\n내꺼핧아\n내버지\n내자지\n내잠지\n냄져\n노무노무\n노브라\n노알라\n노팬티\n느개비\n느검마\n느그애미\n느그애비\n느그엄마\n느금\n늬미\n니미\n니미랄\n니미럴\n니씨브랄\n니애미\n니애비\n니엄마\n닝기미\n대갈통\n대굴빡\n대깨문\n대께문\n대딸\n대마초\n대포차\n대포통장\n대포폰\n도태남\n도태녀\n돌대가리\n돌은넘\n돌은년\n돌은놈\n돌은뇬\n돌은롬\n돌은새끼\n돌은쉐리\n된장남\n된장녀\n두창\n뒈져\n등신\n디져\n딜도\n딸딸이\n딸배\n딸베\n떼놈\n또라이\n똥남아\n뚝스딱스\n띠발\n라떼충\n룸사롱\n룸살롱\n룸싸롱\n룸쌀롱\n맘충\n맛간년\n망나니\n매퇘지\n메갈\n메갈리아\n메퇘지\n멜돔\n멜섭\n몸캠\n물뽕\n미친넘\n미친년\n미친놈\n미친뇬\n미친롬\n미친새끼\n미친쉐리\n미친쉐이\n미친씨부랄\n바까라\n백보지\n번탈남\n벌창같은년\n벙어리\n베충\n베츙\n병딱\n병신\n병신셰리\n병신씨발\n병신즐\n보빨\n보슬아치\n보지녀\n보지따먹기\n보지뚫어\n보지물\n보지물마셔\n보지박어\n보지벌려\n보지빨아\n보지빨어\n보지자지\n보지정액\n보지찢어\n보지털\n보지핥아\n보지핥어\n보짓물\n보짓물마셔\n보추\n보픈\n부랄\n부카케\n북따닥\n북딱\n불알\n불편러\n붕신\n븅신\n비아그라\n빙신\n빠가새끼\n빠가씹새\n빠구리\n빠굴이\n빨갱이\n빨통\n빽보지\n뻑큐\n뽀큐\n사까시\n상년\n샹넘\n샹년\n샹놈\n샹뇬\n설라디언\n성감대\n성관계\n성폭행\n성행위\n섹스\n소라넷\n수구꼴통\n수꼴\n쉐리\n스너프\n스와핑\n스팽킹\n슨상님\n시댕\n시방년\n시방새\n시벌넘\n시벨넘\n시벨아\n시알리스\n시팍새끼\n시팔넘\n시팔년\n시팔놈\n시팔뇬\n시팔롬\n시팔새끼\n시팔쉐리\n실잦이\n십새야\n십셰리\n십쉐리\n십창\n십탱\n십팔\n십팔새끼\n쌍넘\n쌍년\n쌍놈\n쌍뇬\n쌍롬\n쌍보지\n쌍쌍보지\n썅넘\n썅년\n썅놈\n썅뇬\n썅롬\n쓰바새끼\n쓰발\n쓰벌\n쓰파\n씨뎅\n씨바\n씨발넘\n씨발년\n씨발놈\n씨발뇬\n씨발롬\n씨발병신\n씨발새끼\n씨발쉐리\n씨방새\n씨벌\n씨벌년\n씨벨넘\n씨부랄\n씨부럴\n씨불알\n씨팍새끼\n씨팍쉐리\n씨팔\n씹년\n씹물\n씹보지\n씹부랄\n씹새\n씹쌔끼\n씹쎄\n씹자지\n씹지랄\n씹창\n씹치\n씹탱\n아도사끼\n아헤가오\n안여돼\n앉은뱅이\n앉은벵이\n애꾸\n애미뒤진\n애미디진\n애미랄\n애쟈\n앰생\n앰창\n야겜\n야덩\n야동\n야똥\n야오이\n양놈\n엄창\n엑스터시\n엑윽\n엠생\n엠창\n여혐\n염병\n엿먹어라\n오나니\n오르가즘\n오피남\n오피녀\n왕자지\n왕털보지\n왕털자지\n왜놈\n우라질\n워마드\n유두빨어\n유두핥어\n유모차부대\n육갑\n윽엑\n이기야\n인셀남\n일간베스트\n일베\n자살\n자지박어\n자지빨아\n자지빨아줘\n자지빨어\n자지쓰레기\n자지털\n자지핥아\n자지핥아줘\n자지핥어\n자폐\n작은보지\n잠지\n잡것\n잡년\n잡놈\n재기해\n잼민이\n저능아\n전라디언\n절름발이\n정박아\n정액마셔\n정액먹어\n정액짜\n정액핥아\n젖탱이\n조건남\n조건녀\n조건만남\n좃같네\n좃까\n좃대가리\n좃목\n좃물\n좃보지\n좃빠구리\n좃빠네\n좃털\n종북\n좆\n좆까\n좆목\n좌빨\n좌좀\n죠또\n죳\n죳목\n중력절\n즐섹\n지랄\n지잡\n지잡대\n짱깨\n짱께\n쪽바리\n쪽발이\n창녀\n창부\n체모\n체위\n컴색\n컴섹\n컴쌕\n코쟁이\n코카인\n콘돔\n쿰척쿰척\n쿵쾅이\n크리토리스\n클리토리스\n토착왜구\n틀딱\n파오후\n패니스\n패티쉬\n팸돔\n팸섭\n페니스\n페티시\n펜타닐\n펠라치오\n폐녀자\n폰색\n폰섹\n폰쌕\n피싸개\n필로폰\n핑유\n한남충\n한녀충\n할저씨\n할줌마\n허벌보지\n허벌자식\n허벌자지\n헐렁보지\n헤로인\n호로새끼\n호로자식\n호모\n화냥년\n화양년\n환각제\n후배위\n후빨\n후장\n흑누나\n흑두\n흑형\n히로뽕\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_11_b2_nx.txt",
+      "gitBlob": "e90e3dc7779c10aeb7c2dbae64cea13656dfab15",
+      "language": "czh",
+      "bucket": "b2",
+      "content": "\\bbadwordc\\b\n\\bbbwczh\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_11_not_b_nx.txt",
+      "gitBlob": "ac10afd4687accc62b6571a1d0c297a7e66a4400",
+      "language": "czh",
+      "bucket": "not_b",
+      "content": "japs\nkkk\nk他命\nmanco\nmanko\n一夜情\n三陪\n上你\n上妳\n下注\n乡巴佬\n乱交\n乳交\n乳头\n乳峰\n乳房\n乳晕\n仆街\n他娘\n他干\n伟哥\n你妈了妹\n你妈逼\n侧那\n做爱\n催情药\n傻b\n傻子\n傻比\n先奸后杀\n册那\n再奸\n冰毒\n午夜\n卖逼\n去他妈\n去你妈\n去你的\n去她妈\n去妳妈\n去妳的\n去死\n双飞\n发骚\n变态\n口交\n可卡因\n叼你\n吉跋猫\n吟稻雁\n吸毒\n吹喇叭\n吹箫\n嗑药\n坐庄\n大血比\n大麻\n奶娘\n奶子\n奸一奸\n奸他\n奸你\n奸她\n奸暴\n她娘\n妈比\n妈的\n妓女\n妳娘的\n威而柔\n威而钢\n婊子\n嫖娼\n嫩b\n安非他命\n射精\n小穴\n尻\n尾申鲸\n屁眼\n屄\n屌\n屎\n屙\n帝顺\n干一干\n干他\n干你\n干入\n干到\n干勒\n干啦\n干她\n干妳\n干它\n干尼\n干干\n干您\n干我\n干机\n干林\n干死\n干汝\n干爆\n干爽\n干牠\n干鸡\n废物\n强奸\n性交\n性欲\n性虐\n性高潮\n情色\n我咧干\n我奸\n我干\n我操\n我日\n戳你\n抢劫\n抽头\n拐卖\n挨球\n掯\n插你\n援交\n搞栗棒\n摇头丸\n摸咪咪\n操他\n操你\n操她\n操妳妈\n操尼\n操林\n日你\n日死\n早泄\n机八\n机叭\n机巴\n机掰\n来干\n来插我\n来爽我\n梅毒\n梦遗\n欠人骑\n欠干\n欠骑\n法克鱿\n测拿\n淋病\n淫\n渣波波\n湿了\n滥交\n潜烈蟹\n烂人\n烂逼\n烂鸟\n爱液\n爱滋\n爽你\n狗娘养的\n狗干\n猪猡\n王八蛋\n白痴\n看下\n破鞋\n神经病\n笨蛋\n精子\n精液\n缔顺\n群p\n老土\n老母\n肉壶\n肉棒\n肏\n肛交\n肛门\n臭机\n臭西\n臭鸡\n色情\n草你\n草拟妈\n草泥马\n荡妇\n菊花蚕\n蒂顺\n蠢猪\n览叫\n贱人\n贱货\n赛你娘\n赛妳娘\n轮奸\n轮干\n轮流干\n达菲鸡\n逼毛\n遗精\n阳具\n阳物\n阳痿\n阴唇\n阴户\n阴核\n阴茎\n阴蒂\n阴道\n阴部\n阴门\n雅蠛蝶\n靠你妈\n颜射\n马勒戈壁\n马的\n骑他\n骑你\n骑她\n骚b\n骚货\n鸡八\n鸡叭\n鸡奸\n鸡巴\n鸡掰\n鸡歪\n鸡鸡\n龟头\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_12_b2_nx.txt",
+      "gitBlob": "9151a4cfceedb0e12ce29ff4da1199587cb9d49f",
+      "language": "ppt",
+      "bucket": "b2",
+      "content": "\\babafapalhinha\\b\n\\banal\\b\n\\baputadatuairma\\b\n\\baputadatuairmã\\b\n\\baputadatuamae\\b\n\\baputadatuamãe\\b\n\\bass\\b\n\\bbadwordp\\b\n\\bbardajona\\b\n\\bbaterumapivea\\b\n\\bbaterumapivia\\b\n\\bbaterumapívea\\b\n\\bbbwppt\\b\n\\bbimbo\\b\n\\bboiola\\b\n\\bbordadacona\\b\n\\bbordasdacona\\b\n\\bbroche\\b\n\\bbrochista\\b\n\\bbuceta\\b\n\\bbufa\\b\n\\bburro\\b\n\\bcabra\\b\n\\bcabrao\\b\n\\bcabrona\\b\n\\bcabrão\\b\n\\bcagapadentro\\b\n\\bcagapradentro\\b\n\\bcagar\\b\n\\bcagatorio\\b\n\\bcagatório\\b\n\\bcago\\b\n\\bcanhola\\b\n\\bcanholeiro\\b\n\\bcanhoteiro\\b\n\\bcaradebufa\\b\n\\bcaradecabrao\\b\n\\bcaradecaralhao\\b\n\\bcaradecaralho\\b\n\\bcaradecaralhão\\b\n\\bcaradecatane\\b\n\\bcaradecatano\\b\n\\bcaradecona\\b\n\\bcaradecu\\b\n\\bcenaita\\b\n\\bchupa-meapica\\b\n\\bchupa-meapicha\\b\n\\bchupa-meapixa\\b\n\\bchupa-meapiça\\b\n\\bchupa-meoolhodocu\\b\n\\bchupa-meopescoco\\b\n\\bchupa-meopescoço\\b\n\\bchupa\\b\n\\bchupabufa\\b\n\\bchupabufas\\b\n\\bchupameapica\\b\n\\bchupameapicha\\b\n\\bchupameapixa\\b\n\\bchupameapiça\\b\n\\bchupameoolhodocu\\b\n\\bchupameopescoco\\b\n\\bchupameopescoço\\b\n\\bchupameupau\\b\n\\bchupapichas\\b\n\\bchupaputas\\b\n\\bciganodemerda\\b\n\\bclito\\b\n\\bcoca-meocolhao\\b\n\\bcoca-meoscolhoes\\b\n\\bcocameocolhao\\b\n\\bcocameoscolhoes\\b\n\\bcok\\b\n\\bcolhanito\\b\n\\bcolhao\\b\n\\bcolhoes\\b\n\\bcolhão\\b\n\\bcolhões\\b\n\\bcomechichi\\b\n\\bcomernocu\\b\n\\bcomexixi\\b\n\\bcona\\b\n\\bconaca\\b\n\\bconassa\\b\n\\bconaça\\b\n\\bconeira\\b\n\\bconeiro\\b\n\\bconil\\b\n\\bconinhas\n\\bcoon\n\\bcornudo\\b\n\\bcoça-meocolhão\\b\n\\bcoça-meoscolhões\\b\n\\bcoçameocolhão\\b\n\\bcoçameoscolhões\\b\n\\bcrica\\b\n\\bcrika\\b\n\\bcu\\b\n\\bcuroto\\b\n\\bempurracocos\\b\n\\bempurracocós\\b\n\\bempurracócos\\b\n\\bempurracócós\\b\n\\bencavar\\b\n\\benrabada\\b\n\\benrabado\\b\n\\bescarreta\\b\n\\besgalha-me\\b\n\\besgalha-mo\\b\n\\besgalhame\\b\n\\besgalhamo\\b\n\\besgalhamu\\b\n\\besporra\\b\n\\besporrada\\b\n\\besporrado\\b\n\\besporrar\\b\n\\bfaz-meumbroche\\b\n\\bfazergaiolas\\b\n\\bfazerumbobo\\b\n\\bfazerumbobó\\b\n\\bfazmeumbroche\\b\n\\bfdp\\b\n\\bfdx\\b\n\\bfilhodeumagrandeputa\\b\n\\bfilhodeumavaca\\b\n\\bfilhodumacadela\\b\n\\bfilhodumaputa\\b\n\\bfilhodumavaca\\b\n\\bfilhodumboi\\b\n\\bfoad\\b\n\\bfotac\\b\n\\bfotass\\b\n\\bfotasse\\b\n\\bfotaç\\b\n\\bfuder\\b\n\\bfudido\\b\n\\bfudilhao\\b\n\\bfudilhão\\b\n\\bfufa\\b\n\\bganza\\b\n\\bgayzolas\\b\n\\bgordoseboso\\b\n\\birparaocaralho\\b\n\\birparaocaralhoquetefoda\\b\n\\bkaralho\\b\n\\bkaralhu\\b\n\\bkenga\\b\n\\bkkk\\b\n\\bkoon\n\\blambe-cus\\b\n\\blambe-meoregodocu\\b\n\\blambecus\\b\n\\blambemeoregodocu\\b\n\\blamberacrica\\b\n\\blamberoscolhoes\\b\n\\blamberoscolhões\\b\n\\blangonha\\b\n\\blarila\\b\n\\blarilas\\b\n\\bloli\\b\n\\bmamada\\b\n\\bmamalhuda\\b\n\\bmamas\\b\n\\bmangalho\\b\n\\bmaricas\\b\n\\bmariconco\\b\n\\bmariconeta\\b\n\\bmariconso\\b\n\\bmariconço\\b\n\\bmeita\\b\n\\bmijado\\b\n\\bmijao\\b\n\\bmijar\\b\n\\bmijão\\b\n\\bminete\\b\n\\bnamerda\\b\n\\bnarco\\b\n\\bnarso\\b\n\\bnarsso\\b\n\\bnarço\\b\n\\bnhenha\\b\n\\bolhodocu\\b\n\\borgy\n\\bpachacha\\b\n\\bpanasca\\b\n\\bpaneleira\\b\n\\bpaneleiro\\b\n\\bpaneleirote\n\\bparracha\\b\n\\bparraxa\\b\n\\bparreca\\b\n\\bpatareca\\b\n\\bpaxaxa\\b\n\\bpaxona\\b\n\\bpedrado\\b\n\\bpeichacha\\b\n\\bpeidar\\b\n\\bpeido\\b\n\\bpeidosa\\b\n\\bpeidoso\\b\n\\bpeixaxa\\b\n\\bpeixota\\b\n\\bpentelho\\b\n\\bpicarabo\\b\n\\bpicarabos\\b\n\\bpicha\\b\n\\bpichota\\b\n\\bpila\\b\n\\bpilinha\n\\bpinar\\b\n\\bpintelho\\b\n\\bpintelhu\\b\n\\bpirona\\b\n\\bpissada\\b\n\\bpisso\\b\n\\bpissu\\b\n\\bpissudo\\b\n\\bpissudu\\b\n\\bpitareca\\b\n\\bpivia\\b\n\\bpixa\n\\bpiçada\\b\n\\bpiço\\b\n\\bpiçudo\\b\n\\bpiçudu\\b\n\\bporra\\b\n\\bpqp\\b\n\\bprostipega\\b\n\\bpunheta\\b\n\\bpunhetaca\\b\n\\bpunhetassa\\b\n\\bpunhetaça\\b\n\\bpunheteiro\\b\n\\bputa\\b\n\\bputaktepariu\\b\n\\bputanheiro\\b\n\\bputaquetepariu\\b\n\\bputeiro\\b\n\\bpénis\\b\n\\bpêga\\b\n\\bpêgas\\b\n\\bpívia\\b\n\\bqueca\\b\n\\bquenga\\b\n\\brabeta\\b\n\\brameira\\b\n\\braper\\b\n\\brapidinha\\b\n\\brata\\b\n\\bregodocu\\b\n\\bresmenga\\b\n\\bsacabicos\\b\n\\bsalv8dor\\b\n\\bsalv8dor_\\b\n\\bsenaita\\b\n\\bshag\n\\bshit\n\\bsodomia\\b\n\\btafoder\\b\n\\btafuder\\b\n\\btesao\\b\n\\bteso\\b\n\\btesão\\b\n\\bteta\\b\n\\btetalhuda\\b\n\\btetas\\b\n\\btoca-menocaralho\\b\n\\btoca-menopifaro\\b\n\\btoca-menopífaro\\b\n\\btoca-meogadanho\\b\n\\btoca-meógadanho\\b\n\\btocamenocaralho\\b\n\\btocamenopifaro\\b\n\\btocamenopífaro\\b\n\\btocameogadanho\\b\n\\btocameógadanho\\b\n\\btomarnocu\\b\n\\btraveca\\b\n\\btrincapicas\\b\n\\btrincapiças\\b\n\\btrombada\\b\n\\btroon\\b\n\\btwat\n\\bvacadocaralho\\b\n\\bvacarrona\\b\n\\bvacoila\\b\n\\bvai-tefoder\\b\n\\bvaiamerda\\b\n\\bvaiapanharnocu\\b\n\\bvaicomernocu\\b\n\\bvaitefoder\\b\n\\bvaiàmerda\\b\n\\bverga\\b\n\\bvergalhao\\b\n\\bvergalho\\b\n\\bvergalhão\\b\n\\bvir-me\\b\n\\bvirme\\b\nconinhas\\b\npaneleirote\\b\npilinha\\b\npixa\\b\nretard\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_12_not_b_nx.txt",
+      "gitBlob": "63d73efb470d4e92fd40db21fac34ea7c9b5ae90",
+      "language": "ppt",
+      "bucket": "not_b",
+      "content": "a$s\nabuse\nadolf\nas$\ncaga\ncaguei\ncaralh\nchink\ndick\ndouche\nfemoid\nfod\nhitle\nibum\njaps\nkunt\nmerd\nmilf\nmolest\nnazi\nnl9\nnlg\nnlq\nporn\nslave\nstrapon\ntetonas\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_13_b2_nx.txt",
+      "gitBlob": "8e0af30853d347220583ceb8ab904c543886586c",
+      "language": "pru",
+      "bucket": "b2",
+      "content": "\\b6лr\\b\n\\bacab\n\\baept\\b\n\\bamo\\b\n\\baypka\n\\baлeh\\b\n\\bbadwordp\\b\n\\bbbwpru\\b\n\\bbлr\\b\n\\bcazz\\b\n\\bchink\\b\n\\bctepwa\n\\bcyaohok\\b\n\\bcyknh\\b\n\\bcykuh\\b\n\\bcyyka\n\\bcyyohok\\b\n\\beaeb\n\\bebahhый\n\\bebahый\n\\bebaka\n\\bebapb\n\\bebyh\n\\bebлr\n\\bentn\n\\bentu\n\\bfag\n\\bhaxep\n\\bkill\n\\bmyдaa\n\\bmyдay\n\\bnegger\n\\bnegr\n\\bnehnc\n\\bnhx\\b\n\\bnoph\\b\n\\bnopho\n\\borgy\n\\boлyx\n\\bpoжa\\b\n\\bpron\n\\bpылo\n\\brape\n\\braper\\b\n\\bren\\b\n\\breu\\b\n\\breй\\b\n\\browho\n\\bshit\\b\n\\btogus\\b\n\\btokus\\b\n\\btpaxhyt\n\\bwarnha\n\\bxaa\\b\n\\bxay\\b\n\\bxep\\b\n\\bxyn\\b\n\\bxyй\n\\bxyлn\\b\n\\bxyлu\\b\n\\byept\\b\n\\bymo\\b\n\\bypылok\\b\n\\byyymo\n\\byлeh\n\\bанально\n\\bанус\n\\bбля\\b\n\\bгеи\\b\n\\bгей\\b\n\\bгероин\n\\bдpatb\\b\n\\bдрать\\b\n\\bдура\n\\bепти\n\\bлоли\n\\bлох\\b\n\\bмудач\n\\bорально\n\\bпедо\n\\bпидар\n\\bпорн\\b\n\\bпорно\n\\bрожа\\b\n\\bрыло\n\\bсукин\\b\n\\bсучка\n\\bсучонок\\b\n\\bтрахнут\n\\bурод\n\\bурылок\\b\n\\bхаря\n\\bхач\\b\n\\bхер\\b\n\\bхули\\b\n\\bчерт\\b\n\\bчмо\\b\n\\bчурка\n\\bшлюш\nboлwah\\b\neaлyn\\b\nebahb\\b\nebaлo\\b\nebлah\\b\nfag\\b\nkobeлb\\b\nkypba\\b\npron\\b\nshag\\b\nstrapon\\b\ntaig\\b\nxaank\\b\nxapr\\b\nxyu\\b\nбалда\\b\nболван\\b\nбухло\\b\nгомосек\\b\nебало\\b\nебля\\b\nжnд\\b\nжuд\\b\nжид\\b\nлox\\b\nмуди\\b\nмусор\\b\nолух\\b\nпедик\\b\nфan\\b\nхохол\\b\nхрен\\b\nё6\\b\nёb\\b\nёб\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_13_not_b_nx.txt",
+      "gitBlob": "760ca536543924c92240f085d7a22770b79d5a17",
+      "language": "pru",
+      "bucket": "not_b",
+      "content": "6aлдa\n6ecnecды\n6eдetb\n6eдhytb\n6eдyh\n6oл8ah\n6oлbah\n6oлvah\n6oлwah\n6yxapnk\n6yxapuk\n6yxatb\n6yxлo\n6yфepa\n6zдetb\n6zдhytb\n6zдyh\n6лrxamyxa\n6лrдb\n6ыдлo\n8arnha\n8aruha\n8aфлep\n8aфлёp\n8mahдrantb\n8mahдrautb\n8mahдryntb\n8mahдryutb\n8ыe6hyлcr\n8ыebhyлcr\na$$\na$s\na6accaka\nabaccaka\nabuse\nadolf\naeep6oh\naeep6ot\naeepboh\naeepbot\naephomaeыn\naephomaeыu\naephomaeый\naephomazыn\naephomazыu\naephomazый\naephoжonыn\naephoжonыu\naephoжonый\nahaлbho\nahaшa\nahyc\namepnkoc\namepukoc\namoшh\nanus\napmrшka\nas$\naxyetb\nayamek\nayamo\naypek\nayymek\nayymo\nazep6oh\nazep6ot\nazepboh\nazepbot\naлkaha8t\naлkahabt\naлkahavt\naлkahawt\naлkaш\nbarnha\nbaruha\nbaлдa\nbaфлep\nbaфлёp\nbecnecды\nbeдetb\nbeдhytb\nbeдyh\nbmahдrantb\nbmahдrautb\nbmahдryntb\nbmahдryutb\nboл8ah\nboлbah\nboлvah\nbyxapnk\nbyxapuk\nbyxatb\nbyxлo\nbyфepa\nbzдetb\nbzдhytb\nbzдyh\nbлrxamyxa\nbлrдb\nbыe6hyлcr\nbыebhyлcr\nbыдлo\nc8oлoab\nc8oлoyb\ncboлoab\ncboлoyb\nccatb\nccx\ncekc\nckotnha\nckotuha\ncncbkn\ncncbku\ncnepma\ncpaab\ncpahb\ncpaka\ncpatb\ncpayb\nctapnep\nctapnёp\nctep8a\nctepba\nctepva\ncucbkn\ncucbku\nculatton\ncvoлoab\ncvoлoyb\ncwoлoab\ncwoлoyb\ncyaapa\ncyaka\ncyka\ncyyapa\ncцatb\ncцyka\ncцykko\ncцyko\ndick\ndouche\ne6ahat\ne6ahaшka\ne6ahb\ne6ahbko\ne6ahhыn\ne6ahhыu\ne6ahhый\ne6ahytыn\ne6ahytыu\ne6ahytый\ne6ahыn\ne6ahыu\ne6ahый\ne6aka\ne6apb\ne6atb\ne6athr\ne6atopnn\ne6atopnu\ne6atopnй\ne6atopun\ne6atopuu\ne6atopuй\ne6aлbhnk\ne6aлbhuk\ne6aлo\ne6aшntb\ne6aшutb\ne6hytыn\ne6hytыu\ne6hytый\ne6naeck\ne6ncb\ne6nyeck\ne6ohat\ne6othr\ne6oшntb\ne6oшutb\ne6uaeck\ne6ucb\ne6uyeck\ne6yh\ne6лah\ne6лr\ne6ыpb\neacpaheц\neae6\neaдhnцa\neaдhuцa\neaдpot\nebahat\nebahaшka\nebahbko\nebahhыn\nebahhыu\nebahytыn\nebahytыu\nebahytый\nebahыn\nebahыu\nebatb\nebathr\nebatopnn\nebatopnu\nebatopnй\nebatopun\nebatopuu\nebatopuй\nebaлbhnk\nebaлbhuk\nebaшntb\nebaшutb\nebhytыn\nebhytыu\nebhytый\nebnaeck\nebncb\nebnyeck\nebohat\nebothr\neboшntb\neboшutb\nebuaeck\nebucb\nebuyeck\nebыpb\neдpntb\neдputb\neлдa\nfemoid\nfichett\nfigat\nfighett\nfigon\nfuttlapp\nhae6\nhaцnct\nhaцuct\nhemaypa\nhemyypa\nheдohocok\nheдomepok\nheдoymok\nhitle\nhnn6aццa\nhnn6et\nhnn6ёt\nhnnbaццa\nhnnbet\nhnnbёt\nhnnnet\nhnnnёt\nhnrra\nhnrrep\nhnu6aццa\nhnu6et\nhnu6ёt\nhnubaццa\nhnubet\nhnubёt\nhnunet\nhnunёt\nhnxepa\nhun6aццa\nhun6et\nhun6ёt\nhunbaццa\nhunbet\nhunbёt\nhunnet\nhunnёt\nhurra\nhurrep\nhuu6aццa\nhuu6et\nhuu6ёt\nhuubaццa\nhuubet\nhuubёt\nhuunet\nhuunёt\nhuxepa\nibum\njaps\nkahha6nc\nkahha6uc\nkahhabnc\nkahhabuc\nkakatb\nkakaшka\nkaцan\nkike\nkkk\nkntaeea\nkntaeza\nkntaёea\nkntaёza\nko6eлb\nkokanh\nkokauh\nkpetnh\nkpetuh\nkunt\nkutaeea\nkutaeza\nkutaёea\nkutaёza\nkyhka\nkykah\nkykoлд\nkyp8a\nkypva\nkypwa\nkлntop\nkлutop\nloli\nmahдa\nmahдeжhnk\nmahдeжhuk\nmahдoxatbcr\nmahдёжhnk\nmahдёжhuk\nmakapohщnk\nmakapohщuk\nmapnxyaha\nmapuxyaha\nmepea8eц\nmepeabeц\nmepeaveц\nmepeaweц\nmepza8eц\nmepzabeц\nmepzaveц\nmepzaweц\nmilf\nmnhbet\nmnhet\nmockaлb\nmolest\nmoxhatka\nmpaeb\nmpazb\nmuhbet\nmuhet\nmussolini\nmycop\nmypлo\nmyдak\nmyдe\nmyдn\nmyдoe6\nmyдoe8oh\nmyдoeb\nmyдoeboh\nmyдoevoh\nmyдoewoh\nmyдoxatb\nmyдoz8oh\nmyдozboh\nmyдozvoh\nmyдozwoh\nmyдu\nnackyдa\nnackyдeц\nnapxatыn\nnapxatыu\nnapxatый\nnayger\nnazi\nnaдлa\nnecдa\nneger\nnehuc\nnehдoc\nnehдoctah\nnepдahytb\nnepдak\nnepдetb\nnepдeж\nnepдhytb\nnepдyh\nnepдёж\nneдepact\nneдnk\nneдo\nneдpnлa\nneдpnлo\nneдpuлa\nneдpuлo\nneдuk\nneлotka\nnhhax\nnigah\nnigor\nniguh\nnigur\nnlg\nnnatbcr\nnnaццa\nnncbka\nnneд\nnnhдoc\nnnneц\nnnzд\nnnдap\nnnдepact\nnnдop\nnnдopac\nnnдpnлa\nnnдpuлa\nnoe6\nnope8o\nnopebo\nnopevo\nnopewo\nnotackyxa\nnoдohok\nnoдлeц\nnoдъe6hytb\nnoдъebhytb\nnpnдypok\nnpoctntytka\nnpoctntyцnr\nnpoctntyцur\nnpoctoдыpka\nnpoctutytka\nnpoctutyцnr\nnpoctutyцur\nnpoшmahдo8ka\nnpoшmahдobka\nnpoшmahдovka\nnpoшmahдowka\nnpuдypok\nnucbka\nnueд\nnugga\nnuhдoc\nnuneц\nnuzд\nnuдap\nnuдepact\nnuдop\nnuдopac\nnuдpnлa\nnuдpuлa\nnykatb\nnдnot\nnдuot\nnёpдhytb\no6aлдyn\no6aлдyu\no6aлдyй\no6occaka\no6oлtyc\nobaлдyn\nobaлдyu\nobaлдyй\noboccaka\noboлtyc\noctoлon\noneeдaл\nonezдaл\nopaлbho\nopraem\noprazm\notcoc\nottonыpn8atbcr\nottonыpnbatbcr\nottonыpnvatbcr\nottonыpnwatbcr\nottonыpu8atbcr\nottonыpubatbcr\nottonыpuvatbcr\nottonыpuwatbcr\notы6ncb\notы6ucb\notыbncb\notыbucb\noxyetb\npaee6\npaeъe6\npaeъeb\npaze6\npazeb\npazъe6\npazъeb\nponce\npr0n\nra8ho\nrabho\nraeeh8areh\nraeehbareh\nraeehvareh\nraeehwareh\nrahдoh\nrahджa\nrahджy6ac\nrahджybac\nrapem\nravho\nrawho\nrazeh8areh\nrazehbareh\nrazehvareh\nrazehwareh\nraшnш\nraшuш\nrenck\nreponh\nrepouh\nretard\nreuck\nreйck\nrhnдa\nrhuдa\nrnoшka\nro8ho\nro8hюk\nrobho\nrobhюk\nrohдoh\nromnk\nromocek\nromocrtnha\nromocrtuha\nromuk\nrovho\nrovhюk\nrowhюk\nryhr8ыn\nryhr8ыu\nryhr8ый\nryhrbыn\nryhrbыu\nryhrbый\nryhrvыn\nryhrvыu\nryhrvый\nryhrwыn\nryhrwыu\nryhrwый\nsalv8dor\nslave\nsucka\ntntbkn\ntntbku\ntpaxahh\ntpaxatb\ntroon\ntutbkn\ntutbku\nuhhax\nunatbcr\nunaццa\nuдnot\nuдuot\nvadge\nvarnha\nvaruha\nvaфлep\nvaфлёp\nvmahдrantb\nvmahдrautb\nvmahдryntb\nvmahдryutb\nvыe6hyлcr\nvыebhyлcr\nwaruha\nwaфлep\nwaфлёp\nwmahдrantb\nwmahдrautb\nwmahдryntb\nwmahдryutb\nwыe6hyлcr\nwыebhyлcr\nxaauk\nxaynk\nxayuk\nxeeatb\nxezatb\nxmыpb\nxoxoл\nxpeh\nxyи\nxyё\nxуй\ny6людok\nybлюдok\nye6\nyekorлaeыn\nyekorлaeыu\nyekorлaeый\nyekorлazыn\nyekorлazыu\nyekorлazый\nyephomaeыn\nyephomaeыu\nyephomaeый\nyephomazыn\nyephomazыu\nyephomazый\nyephoжonыn\nyephoжonыu\nyephoжonый\nymoшh\nypoд\nyyamek\nyyamo\nyypek\nyypka\nyyymek\nyzkorлaeыn\nyzkorлaeыu\nyzkorлaeый\nyzkorлazыn\nyzkorлazыu\nyzkorлazый\nyшлenok\nyшлёnok\nzacpaheц\nzae6\nzaeb\nzaдhnцa\nzaдhuцa\nzaдpot\nzaлyn\nабассака\nазербон\nазербот\nалканавт\nалкаш\nамерикос\nанаша\nармяшка\nахуеть\nбеспесды\nбздеть\nбзднуть\nбздун\nблядь\nбляхамуха\nбуфера\nбухарик\nбухать\nбыдло\nвагина\nвафлер\nвафлёр\nвмандячить\nвыебнулся\nгавно\nгазенваген\nганджа\nганджубас\nгандон\nгарем\nгашиш\nгеиск\nгейск\nгнида\nговно\nговнюк\nгомик\nгомосятина\nгондон\nгунявыи\nгунявый\nдa8aлka\nдabaлka\nдavaлka\nдawaлka\nдe6nл\nдe6uл\nдebnл\nдebuл\nдepbmo\nдonkn\nдonku\nдouku\nдoйkn\nдoйku\nдoл6oe6\nдoл6oeb\nдoлboe6\nдoлboeb\nдpoaep\nдpoantb\nдpoautb\nдpoyep\nдpoyntb\nдpoyutb\nдprhb\nдpюantb\nдpюautb\nдpюyntb\nдpюyutb\nдypa\nдypak\nдавалка\nдебил\nдерьмо\nдоики\nдойки\nдолбоеб\nдрочер\nдрочить\nдрючить\nдрянь\nдурак\nебака\nебальник\nебанат\nебанашка\nебанныи\nебанный\nебанутыи\nебанутый\nебаныи\nебаный\nебань\nебанько\nебарь\nебатня\nебатории\nебаторий\nебать\nебашить\nебись\nебическ\nеблан\nебнутыи\nебнутый\nебонат\nеботня\nебошить\nебун\nебырь\nедрить\nелда\nжnдo\nжon\nжona\nжuдo\nжидо\nжлo6\nжлob\nжлоб\nжоп\nжопа\nзадница\nзадрот\nзаеб\nзалуп\nзасранец\nидиот\nиннах\nипаться\nипацца\nкакать\nкакашка\nканнабис\nкацап\nкитаеза\nкитаёза\nклитор\nкобель\nкокаин\nкретин\nкукан\nкуколд\nкунка\nкурва\nлa6atыn\nлa6atыu\nлa6atый\nлa6yc\nлabatыn\nлabatыu\nлabatый\nлabyc\nлec6a\nлec6nahka\nлec6nrhka\nлec6uahka\nлec6urhka\nлecba\nлecbnahka\nлecbnrhka\nлecbuahka\nлecburhka\nлoлn\nлoлr\nлoлu\nлoшapa\nлrra8ыn\nлrra8ыu\nлrra8ый\nлrrabыn\nлrrabыu\nлrrabый\nлrravыn\nлrravыu\nлrravый\nлrrawыn\nлrrawыu\nлrrawый\nлабатыи\nлабатый\nлабус\nлесба\nлесбианка\nлесбиянка\nлоля\nлошара\nлягавыи\nлягавый\nмакаронщик\nманда\nмандежник\nмандохаться\nмандёжник\nмарихуана\nмерзавец\nминет\nминьет\nмоскаль\nмохнатка\nмразь\nмудак\nмуде\nмудоеб\nмудозвон\nмудохать\nмурло\nнаеб\nнахер\nнацист\nнедомерок\nнедоносок\nнедоумок\nнемчура\nнигга\nниггер\nниибацца\nниибет\nниибёт\nниипет\nниипёт\nнихера\nобалдуи\nобалдуй\nоболтус\nобоссака\nопездал\nоргазм\nостолоп\nотсос\nоттопыриваться\nотыбись\nохуеть\nпадла\nпархатыи\nпархатый\nпаскуда\nпаскудец\nпедераст\nпедрила\nпедрило\nпелотка\nпендос\nпендостан\nпенис\nпердак\nпердануть\nпердеж\nпердеть\nперднуть\nпердун\nпердёж\nпесда\nпидераст\nпидор\nпидорас\nпидрила\nпизд\nпиндос\nпипец\nписька\nпнх\nподлец\nподонок\nподъебнуть\nпоеб\nпорево\nпотаскуха\nпридурок\nпроститутка\nпроституция\nпростодырка\nпрошмандовка\nпукать\nпёрднуть\nразеб\nразъеб\nсволочь\nсекс\nсиськи\nскотина\nсперма\nсрака\nсрань\nсрать\nсрачь\nссать\nссх\nстарпер\nстарпёр\nстерва\nсука\nсучара\nсцать\nсцука\nсцукко\nсцуко\nтитьки\nтраханн\nтрахать\nублюдок\nуеб\nузкоглазыи\nузкоглазый\nушлепок\nушлёпок\nфaллoc\nфaшnct\nфaшuct\nфаллос\nфап\nфашист\nхyй\nхачик\nхезать\nхмырь\nхуе\nхуи\nхуй\nхуя\nхуё\nцeлka\nцeлoaka\nцeлoyka\nцелка\nцелочка\nчерножопыи\nчерножопый\nчерномазыи\nчерномазый\nчлен\nчмошн\nчурек\nчучмек\nчучмо\nш8aлb\nшaлa8a\nшaлaba\nшaлava\nшaлawa\nшaлaшo8ka\nшaлaшobka\nшaлaшovka\nшaлaшowka\nшaлoшo8ka\nшaлoшobka\nшaлoшovka\nшaлoшowka\nшbaлb\nшvaлb\nшwaлb\nшалава\nшалашовка\nшалошовка\nшваль\nшлnk\nшлuk\nшлик\nшлюxa\nшлюха\nяпошка\nёntn\nёntu\nёпти\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_14_b2_nx.txt",
+      "gitBlob": "2e4ac7db0e741fbf4cf96a64cd7f241d731598d1",
+      "language": "ept",
+      "bucket": "b2",
+      "content": "\\bacab\\b\n\\banal\\b\n\\bass\\b\n\\bbabaca\\b\n\\bbadworde\\b\n\\bbaseado\\b\n\\bbastarda\\b\n\\bbastardo\\b\n\\bbbwept\\b\n\\bbiba\\b\n\\bbicha\\b\n\\bbichinha\\b\n\\bbichona\\b\n\\bbilau\\b\n\\bbixa\\b\n\\bbosta\\b\n\\bbronha\\b\n\\bbundona\\b\n\\bbunduda\\b\n\\bbundão\\b\n\\bburra\\b\n\\bburro\\b\n\\bcaga\\b\n\\bcagada\\b\n\\bcagadeira\\b\n\\bcagadeiro\\b\n\\bcagalhão\\b\n\\bcagar\\b\n\\bcagatório\\b\n\\bcagaço\\b\n\\bcago\\b\n\\bcaguei\\b\n\\bcagueira\\b\n\\bcagueiro\\b\n\\bcaradecaralhao\\b\n\\bcaradecaralho\\b\n\\bcaradecaralhão\\b\n\\bcaradecu\\b\n\\bcaradocaralho\\b\n\\bcaralhao\\b\n\\bcaralhito\\b\n\\bcaralho\\b\n\\bcaralhão\\b\n\\bchifruda\\b\n\\bchifrudo\\b\n\\bchupa\\b\n\\bchupar\\b\n\\bchupetinha\\b\n\\bciganodemerda\\b\n\\bclito\\b\n\\bcocô\\b\n\\bcok\\b\n\\bcolhao\\b\n\\bcolhoes\\b\n\\bcolhão\\b\n\\bcolhões\\b\n\\bcomecu\\b\n\\bcomercu\\b\n\\bcomernocu\\b\n\\bcoon\n\\bcorno\\b\n\\bcornudo\\b\n\\bcretina\\b\n\\bcretino\\b\n\\bcrioula\\b\n\\bcrioulo\\b\n\\bcu\\b\n\\bculhão\\b\n\\bculhões\\b\n\\bcuzão\\b\n\\bcú\\b\n\\bdébilmental\\b\n\\bejacular\\b\n\\bejaculação\\b\n\\benrabada\\b\n\\benrabado\\b\n\\benrabar\\b\n\\bereção\\b\n\\bestupido\\b\n\\bestupro\\b\n\\bfdp\\b\n\\bfdx\\b\n\\bfilhadaputa\\b\n\\bfilhodaputa\\b\n\\bfilhodeumagrandeputa\\b\n\\bfilhodeumavaca\\b\n\\bfilhodumacadela\\b\n\\bfilhodumaputa\\b\n\\bfilhodumavaca\\b\n\\bfoad\\b\n\\bfoda-se\\b\n\\bfoda\\b\n\\bfodace\\b\n\\bfodaci\\b\n\\bfodame\\b\n\\bfodas\\b\n\\bfodase\\b\n\\bfodass\\b\n\\bfodasse\\b\n\\bfodassi\\b\n\\bfodaxe\\b\n\\bfodaçe\\b\n\\bfode-me\\b\n\\bfode-te\\b\n\\bfode\\b\n\\bfodemaricas\\b\n\\bfodeme\\b\n\\bfodeputas\\b\n\\bfoder\\b\n\\bfodete\\b\n\\bfodeu\\b\n\\bfodevacas\\b\n\\bfodid\\b\n\\bfodida\\b\n\\bfodido\\b\n\\bfude\\b\n\\bfuder\\b\n\\bfudida\\b\n\\bfudido\\b\n\\bgordoseboso\\b\n\\bincesto\\b\n\\birparaocaralho\\b\n\\birparaocaralhoquetefoda\\b\n\\bjeba\\b\n\\bkaralho\\b\n\\bkaralhu\\b\n\\bkenga\\b\n\\bkill\n\\bkkk\\b\n\\bkoon\n\\bku\\b\n\\bkuzão\\b\n\\bkú\\b\n\\blambe-cus\\b\n\\blambe-meoregodocu\\b\n\\blambecus\\b\n\\blambemeoregodocu\\b\n\\blamberoscolhões\\b\n\\bloli\\b\n\\bmaconha\\b\n\\bmaconheiro\\b\n\\bmamada\\b\n\\bmaricas\\b\n\\bmariquinha\\b\n\\bmasturbar\\b\n\\bmasturbação\\b\n\\bmerda\\b\n\\bmerdinha\\b\n\\bmerdosa\\b\n\\bmerdoso\\b\n\\bmerdoza\\b\n\\bmerdozo\\b\n\\bmijada\\b\n\\bmijado\\b\n\\bmijao\\b\n\\bmijar\\b\n\\bmijão\\b\n\\bnamerda\\b\n\\bolhodocu\\b\n\\borgy\n\\bpau\\b\n\\bpeituda\\b\n\\bpenetrar\\b\n\\bpenetração\\b\n\\bpentelho\\b\n\\bpica\\b\n\\bpicarabo\\b\n\\bpicarabos\\b\n\\bpicas\\b\n\\bpintelho\\b\n\\bpintelhu\\b\n\\bpinto\\b\n\\bpiroca\\b\n\\bporra\\b\n\\bpunheta\\b\n\\bpunhetassa\\b\n\\bpunhetaça\\b\n\\bpunheteiro\\b\n\\bputa\\b\n\\bputanheiro\\b\n\\bputaquetepariu\\b\n\\bputeiro\\b\n\\bputinha\\b\n\\bputinho\\b\n\\bputo\\b\n\\bputona\\b\n\\bputão\\b\n\\bpénis\\b\n\\bpênis\\b\n\\bquenga\\b\n\\brabo\\b\n\\brameira\\b\n\\brapariga\\b\n\\braper\\b\n\\bregodocu\\b\n\\brôla\\b\n\\bsaco\\b\n\\bsapata\\b\n\\bsapatona\\b\n\\bsapatão\\b\n\\bshag\n\\bshit\n\\bsiririca\\b\n\\bsodomia\\b\n\\bsêmen\\b\n\\btafoder\\b\n\\btafuder\\b\n\\btefode\\b\n\\btesuda\\b\n\\btesudo\\b\n\\btesão\\b\n\\btetas\\b\n\\btetuda\\b\n\\btomanocu\\b\n\\btomarnocu\\b\n\\btománocu\\b\n\\btransar\\b\n\\btraveca\\b\n\\btraveco\\b\n\\btrepar\\b\n\\btwat\n\\bvacadocaralho\\b\n\\bvai-tefoder\\b\n\\bvaiamerda\\b\n\\bvaiparamerda\\b\n\\bvaipramerda\\b\n\\bvaisefuder\\b\n\\bvaitefoder\\b\n\\bvaitomarnocu\\b\n\\bvaitomarnoseucu\\b\n\\bvaiàmerda\\b\n\\bviadinho\\b\n\\bviado\\b\n\\bxota\\b\n\\bxoxota\\b\n\\bânus\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_14_not_b_nx.txt",
+      "gitBlob": "b8cec3da1868aaa0ee22d58873dfbde7cf3f9bbe",
+      "language": "ept",
+      "bucket": "not_b",
+      "content": "a$s\nantissemita\nas$\nbatepunheta\nbaterpunheta\nboceta\nbocetinha\nbocetuda\nbocetão\nboiola\nboquete\nbuceta\nbucetinha\nbucetuda\nbucetão\nchink\nchupameupau\nchupaminhajeba\nchupaminhapica\nchupaminhapiça\ncocaína\ndick\nescrota\nescroto\nestuprador\nestuprar\nfemoid\ngroomed\ngroomer\ngrooming\njaps\nkunt\nmilf\nmolest\nnazi\npaunocu\npaunocú\npeganomeupau\npeganomeupinto\nporn\nputaqueopariu\nputaquepariu\nretard\nsalv8dor\nstrapon\nsuamaeéumaputa\nsupremaciabranca\ntetonas\ntroon\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_15_b2_nx.txt",
+      "gitBlob": "58556aeb6cbb95177ac32b35481b711e90b1ac65",
+      "language": "tzh",
+      "bucket": "b2",
+      "content": "\\bbadwordt\\b\n\\bbbwtzh\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_15_not_b_nx.txt",
+      "gitBlob": "8d70281ab3b6a4758a35ed92a78d808479abd980",
+      "language": "tzh",
+      "bucket": "not_b",
+      "content": "japs\nkkk\nmanco\nmanko\n一人性愛\n上你\n乞食\n乳交\n乳房\n乳暈\n乳輪\n乳頭\n人獸交\n仆街\n他媽的\n你老母\n來插你\n來插我\n做愛\n凌辱\n勃起\n包莖\n去死\n反向援交\n口內發射\n口内射精\n可卡因\n吸毒\n和姦\n夢遺\n大陰莖\n大麻\n女性愛液\n女色狼\n姦屍\n姦淫\n娼婦\n嫖妓\n射精\n尿道球腺液\n屁眼\n屌\n屠殺\n巨大陰莖\n床上高手\n強制口交\n強姦\n性交\n性伴侶\n性奴隷\n性愛\n性愛娃娃\n性慾\n性虐\n性行為\n性高潮\n愛奴\n愛液\n手交\n抗抑鬱藥\n援交\n支那\n晨勃\n智障人士\n毒品\n海洛因\n淫亂\n淫夢\n淫娃\n淫液\n濫交\n王八蛋\n玩弄睾丸\n白痴\n短小陰莖\n精子\n精液\n精液汁\n老外\n老母\n老漢推車\n聾\n肉壺\n肉奴隷\n肛交\n肛門\n股間性交\n膣\n自慰\n自慰對象\n自殺\n臭西\n舔全身\n舔睾丸\n色狼\n處男\n要帶套\n視姦\n賣淫\n賤民\n賤貨\n足交\n輪姦\n近親相姦\n通姦\n避孕套\n野獸前輩\n陰唇\n陰嚢\n陰戶\n陰核\n陰毛\n陰莖\n陰蒂\n陰道\n陰部\n陰門\n陽具\n陽痿\n雞姦\n雞雞\n電動小木偶\n露天性愛\n顔射\n食軟飯\n騷貨\n鴉片\n龜頭\n𠝹手\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_16_b2_nx.txt",
+      "gitBlob": "f641575e528aabedd8584121eb8cad7e59b3ab23",
+      "language": "pol",
+      "bucket": "b2",
+      "content": "\\bbadwordp\\b\n\\bbbwpol\\b\n\\bnegger\n\\bnegr\n\\bonr\\b\nlesba\\b\nlesbo\\b\nlesby\\b\nlesbę\\b\nlezba\\b\nlezby\\b\nlezbę\\b\nmać\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_16_not_b_nx.txt",
+      "gitBlob": "62fe9ff3839e216245eb46e59279c82cfbeafd0c",
+      "language": "pol",
+      "bucket": "not_b",
+      "content": "choler\nchędoż\nciapa\nciot\ncip\nciul\nciupcia\ncwel\ncyc\ncygan\nczarnu\ndałn\ndebil\ndup\ndyma\ndziwe\ndziwk\nfalang\nfasz\nfiut\nfujar\ngunw\nguwn\ngwał\ngzi\ngówien\ngówn\nhh\nhuj\nhwdp\njeb\njp2gmd\njpiigmd\njprdl\nkacap\nkoorw\nkuciap\nkukold\nkures\nkurew\nkurw\nkuta\nkuśk\nlacha\nlacho\nlachę\nmurzyn\nnaplet\nnayger\nneger\nnigah\nnigor\nniguh\nnigur\nnugga\nodbyt\npedał\npederast\npedof\npedryl\npedzi\npicz\npieprz\npierd\npindol\npisior\npitol\npizd\npiźd\npiżdż\nporon\npotnijsie\nqrw\nrucha\nrżn\nsamob\nsiks\nsiur\nskośn\nsperm\nsra\nsryw\nstulej\nsucz\nsuk\nszcza\nszczy\nszmat\nszon\nszwab\ntranswest\nupadlin\nzabijsie\nćp\nścierw\nżabojad\nżółtek\nżółtk\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_17_b2_nx.txt",
+      "gitBlob": "4fa688d3ef8b5fa5d5892146be35b91db8e45834",
+      "language": "tha",
+      "bucket": "b2",
+      "content": "\\bbadwordt\\b\n\\bbbwtha\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_17_not_b_nx.txt",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "language": "tha",
+      "bucket": "not_b",
+      "content": ""
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_1_b2_nx.txt",
+      "gitBlob": "2d21968790a3c4a9c1e3ea69d29fe27103dcd493",
+      "language": "een",
+      "bucket": "b2",
+      "content": "\\ba55\\b\n\\bacab\n\\banal\\b\n\\basl\\b\n\\bass\\b\n\\bbadworde\\b\n\\bbbween\\b\n\\bbj\\b\n\\bcok\\b\n\\bcoon\n\\bcum\\b\n\\bdp\\b\n\\bffs\\b\n\\bfml\\b\n\\bfoad\\b\n\\bkill\n\\bkoon\n\\bminge\\b\n\\bmuff\\b\n\\bn19\n\\bnegger\n\\bnegr\n\\bni9\n\\bnob\\b\n\\bpaki\\b\n\\bponce\\b\n\\bpos\\b\n\\bpron\\b\n\\bpube\\b\n\\bscat\\b\n\\bschlick\\b\n\\bshag\n\\bslag\\b\n\\btard\\b\n\\btits\\b\n\\bwap\\b\n\\bwop\\b\nfuk\\b\ntaig\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_1_not_b_nx.txt",
+      "gitBlob": "47ceee62873698e07ef385bf4807b1c0dc53c5e5",
+      "language": "een",
+      "bucket": "not_b",
+      "content": "a$$\na$s\nas$\nasshoie\nballsack\nbiowjob\nbong\ncawk\nchatroulette\nchink\nchoad\ncocaine\ndick\ndindu\ndouche\ndyke\nfag\nfemoid\ngreaser\ngroomed\ngroomer\ngrooming\nh0m0\nh0mo\nhimey\nhom0\nhomo\njackass\njaps\nkike\nkkk\nkunt\nloli\nlusty\nmilf\nmolest\nmoulest\nnaked\nnayger\nnazi\nneger\nnewds\nnifoc\nnigah\nnigor\nniguh\nnigur\nnippl\nnl9\nnlg\nnlq\nnude\nnudist\nnugga\norgy\npanty\nporn\nrape\nretard\nsalv8dor\nsemen\nshit\nsiut\nslave\nslut\nstrapon\nsukm\ntestes\ntnuc\ntroon\ntwat\nvadge\nxxx\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_2_b2_nx.txt",
+      "gitBlob": "718ef4bc16e8bcecec99d34bb94e7405d331eaa0",
+      "language": "efr",
+      "bucket": "b2",
+      "content": "\\bacab\\b\n\\bbadworde\\b\n\\bbaiseur\\b\n\\bbaiseuse\\b\n\\bbatard\\b\n\\bbbwefr\\b\n\\bbedave\\b\n\\bbicot\\b\n\\bbiroute\\b\n\\bbistouquette\\b\n\\bbite\\b\n\\bbollocks\\b\n\\bbougnoul\\b\n\\bbougnoule\\b\n\\bboule\\b\n\\bboules\\b\n\\bbounioul\\b\n\\bbranler\\b\n\\bbranlette\\b\n\\bbranletter\\b\n\\bbranleur\\b\n\\bbranleuse\\b\n\\bburne\\b\n\\bburnes\\b\n\\bcalice\\b\n\\bcalicer\\b\n\\bcalisse\\b\n\\bcalisser\\b\n\\bchatte\\b\n\\bchenolle\\b\n\\bchenolles\\b\n\\bchibre\\b\n\\bchienne\\b\n\\bchiensale\\b\n\\bchier\\b\n\\bchieur\\b\n\\bchieuse\\b\n\\bcok\\b\n\\bcon\\b\n\\bconnard\\b\n\\bconnasse\\b\n\\bconne\\b\n\\bconnerie\\b\n\\bconneries\\b\n\\bcoon\n\\bcouilles\\b\n\\bcouillon\\b\n\\bcouillonne\\b\n\\bcrisse\\b\n\\bcrisser\\b\n\\bcrossage\\b\n\\bcrosseuse\\b\n\\bcul\\b\n\\bcâlice\\b\n\\bcâlicer\\b\n\\bcâlisse\\b\n\\bcâlisser\\b\n\\bdégobillage\\b\n\\bdégobiller\\b\n\\bdégueuler\\b\n\\bdégueulis\\b\n\\benculer\\b\n\\benculeur\\b\n\\benculeuse\\b\n\\benflure\\b\n\\benfoiré\\b\n\\benfoirée\\b\n\\bfilsdepute\\b\n\\bfoad\\b\n\\bfourrer\\b\n\\bfourreur\\b\n\\bfourreuse\\b\n\\bfoutre\\b\n\\bgarce\\b\n\\bgerbe\\b\n\\bgitan\\b\n\\bgosse\\b\n\\bgosses\\b\n\\bgueule\\b\n\\bjos\\b\n\\bkill\n\\bkoon\n\\bmasturbateur\\b\n\\bmasturbation\\b\n\\bmasturbatrice\\b\n\\bmasturber\\b\n\\bmerdeux\\b\n\\bnegger\n\\bnegr\n\\bniaiserie\\b\n\\bniaiseries\\b\n\\bnichons\\b\n\\bniquer\\b\n\\bniqueur\\b\n\\bnégresse\\b\n\\bnégro\\b\n\\borgy\\b\n\\bpd\\b\n\\bpelote\\b\n\\bpetasse\\b\n\\bpiner\\b\n\\bpipe\\b\n\\bplote\\b\n\\bplotte\\b\n\\bpoches\\b\n\\bpoufiasse\\b\n\\bpron\\b\n\\bpuceau\\b\n\\bpucelle\\b\n\\bpute\\b\n\\bpédale\\b\n\\bpédophile\\b\n\\bpédé\\b\n\\bpénis\\b\n\\bqueue\\b\n\\broubignole\\b\n\\broubignoles\\b\n\\broupette\\b\n\\broupettes\\b\n\\brouston\\b\n\\broustons\\b\n\\bsalace\\b\n\\bsalaud\\b\n\\bsalop\\b\n\\bsalopard\\b\n\\bsalope\\b\n\\bsaloperie\\b\n\\bseins\\b\n\\bshag\n\\bshit\n\\bsperme\\b\n\\bsuceuse\\b\n\\btabarnac\\b\n\\btabarnak\\b\n\\btabarnaque\\b\n\\btabernacle\\b\n\\btantouse\\b\n\\btarlouse\\b\n\\btesticules\\b\n\\btotons\\b\n\\btrouduc\\b\n\\btwat\n\\btétons\\b\n\\bvagin\\b\n\\byeule\\b\n\\bzob\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_2_not_b_nx.txt",
+      "gitBlob": "a74d8427e0a54f93872f7b115ca83960bf68c4c5",
+      "language": "efr",
+      "bucket": "not_b",
+      "content": "a$$\na$s\nas$\nbaise\nbaiser\nchink\ncouilla\ncouille\ncouillo\ncouillu\ncrosser\ncrosseur\ndick\nencuia\nencuie\nencuio\nencuié\nencula\nencule\nenculo\nenculé\nfemoid\nfourre\ngroomed\ngroomer\ngrooming\nh0m0\nh0mo\nhom0\nhomo\njaps\nkkk\nkunt\nmard\nmarde\nmerd\nmerde\nmilf\nmolest\nnayger\nnazi\nneger\nnegre\nnigah\nnigor\nniguh\nnigur\nnugga\nnègre\nnégre\nporn\nputain\nsalv8dor\nstrapon\nsucer\nsuceur\ntabarn\ntapette\ntroon\ntroudecui\ntroudecul\ntrouducui\ntrouducul\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_3_b2_nx.txt",
+      "gitBlob": "171cb828ec089f5070cb52a7c88afb1b929e5aa2",
+      "language": "ees",
+      "bucket": "b2",
+      "content": "\\bacab\\b\n\\balv\\b\n\\bbadworde\\b\n\\bbbwees\\b\n\\bcoge\n\\bcoger\n\\bcogi\n\\bcok\\b\n\\bcoon\n\\bcuca\\b\n\\bculo\n\\bfoad\\b\n\\bfoii\n\\bfoll\n\\bjod\n\\bjoder\\b\n\\bjód\n\\bkill\n\\bkoon\n\\blolas\\b\n\\bmamon\\b\n\\bmamona\\b\n\\bmaricón\\b\n\\bmeco\\b\n\\bmota\\b\n\\borgy\n\\bpaja\\b\n\\bpeda\\b\n\\bpene\\b\n\\bpepa\\b\n\\bpito\n\\bputa\n\\bputada\\b\n\\bputas\n\\bputo\n\\bputos\n\\bputón\\b\n\\bpuñal\\b\n\\bshag\n\\bshit\n\\btwat\nverga\\b\nvergón\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_3_not_b_nx.txt",
+      "gitBlob": "c4397c8c851b2ec89fc68b6d683ccff326b3e779",
+      "language": "ees",
+      "bucket": "not_b",
+      "content": "a$$\na$s\naelebe\naeleve\nas$\nbajarsealpilón\nbesonegro\nboiud\nbollera\nbollo\nbolud\nboluda\nborrach\ncabron\ncabrón\ncachond\ncagada\ncagar\ncago\ncapullo\ncarajo\ncarajó\nchapero\nchichis\nching\nchink\nchoch\nchocho\nchorra\ncipote\ncojones\ncojonudo\ncolocado\nconcha\nconchatumadre\ncoño\nculera\nculero\ndesnudas\ndesnudos\ndick\ndietaabc\ndouche\nencabronar\nfemoid\nfollar\nfuk\nfundillo\ngilip\ngilipollas\ngroomed\ngroomer\ngrooming\nh0m0\nh0mo\nhdp\nhdtpm\nhijadelachingada\nhijadep\nhijadeputa\nhijasdep\nhijodelachingada\nhijodep\nhijodeputa\nhijosdep\nhom0\nhomo\nhostia\nhpta\nidiota\nimbécil\njaps\njilip\njodido\njoto\njódete\nkkk\nkunt\nmadrazo\nmalnacido\nmalparido\nmamabicho\nmamada\nmamahuevo\nmarica\nmaricon\nmasturbando\nmasturbar\nmeencabronan\nmellevalachingada\nmeteteloporelculo\nmierda\nmilf\nminga\nmolester\nmolesting\nmujerzuela\nn19\nnazi\nnegrata\nni9\nnl9\nnlg\nnlq\nojete\noludo\npajero\npanocha\npedófilo\npelotudo\npendej\npendeja\npendejo\npendejodemierda\nperra\npicha\npija\npijo\npinche\npincheculero\npincheidiota\npincheputa\npincho\npinga\npipian\npiruja\npirujo\npolla\nporn\nproanorexia\nputamadre\nputazo\npuñeta\npúdreteenelinfierno\nquechingados\nquetedenporelculo\nramera\nsalv8dor\nslave\nstrapon\ntarado\ntesticulo\ntetas\ntetonas\ntragamierda\ntroon\nvergon\nvetealaverga\nvetealavergaguey\nvetealavergaruc\nzorra\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_4_b2_nx.txt",
+      "gitBlob": "46368c51bbfa43081d98a76298eb24726831e111",
+      "language": "pen",
+      "bucket": "b2",
+      "content": "\\bacab\n\\banal\\b\n\\barse\\b\n\\bass\\b\n\\bbadwordp\\b\n\\bballs\\b\n\\bbbwpen\\b\n\\bbint\\b\n\\bchode\\b\n\\bcok\\b\n\\bcoon\n\\bcum\\b\n\\bednos\\b\n\\bfart\\b\n\\bfoad\\b\n\\bgit\\b\n\\bhell\\b\n\\bhomo\\b\n\\bhoor\\b\n\\bhori\\b\n\\bibum\n\\bjap\\b\n\\bkill\n\\bknob\\b\n\\bkoon\n\\bkraut\\b\n\\bminge\\b\n\\bn19\n\\bnegger\n\\bnegr\n\\bnegro\\b\n\\bni9\n\\bnob\\b\n\\bpaki\\b\n\\bponce\\b\n\\bpoof\\b\n\\bpro-ed\\b\n\\bproed\\b\n\\bpromia\\b\n\\bpron\\b\n\\bprosi\\b\n\\brape\\b\n\\braper\\b\n\\bsambo\\b\n\\bshag\n\\bshit\n\\bslag\\b\n\\bsod\\b\n\\bspas\\b\n\\bspick\\b\n\\bspik\\b\n\\btard\\b\n\\btit\\b\n\\btits\\b\n\\btwat\n\\bwop\\b\nmuff\\b\ntaig\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_4_not_b_nx.txt",
+      "gitBlob": "18dcdc24b28ef570778a56f23acf553940c4a76a",
+      "language": "pen",
+      "bucket": "not_b",
+      "content": "a$$\na$s\nabcdiet\nabcgroupdiet\nabuse\nadolf\nana-mia\nana/mia\nanaandmia\nanabelief\nanabootcamp\nanamia\nanorexia\nas$\nballsack\nbimbo\nbloody\nboong\nbugger\nbulimia\nchink\ndamn\ndick\ndobber\ndouche\nfag\nfanny\nfemoid\nfuk\ngeebag\nguido\nhitle\njaps\njihad\nkike\nkkk\nkunt\nloli\nmiaandana\nmilf\nmolest\nmunter\nmuzzo\nnayger\nnazi\nneger\nnigah\nnigor\nniguh\nnigur\nnl9\nnlg\nnlq\nnugga\norgy\nporn\nprick\npro-ana\npro-anarexia\npro-anarexic\npro-anorexic\npro-bul\npro-ednos\npro-mia\npro-self-injury\npro-selfinjury\npro-si\nproana\nproanorexic\nprobul\nproednos\nproself-injury\nproselfinjury\nquim\nretard\nsalv8dor\nskinnybitch\nslave\nspacca\nstrapon\nthighgap\nthin-spo\nthinspiration\nthinspo\ntroon\nvadge\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_5_b2_nx.txt",
+      "gitBlob": "d4fe4b1aaf9e65312b6074c31d644adb84360f57",
+      "language": "pfr",
+      "bucket": "b2",
+      "content": "\\banal\\b\n\\banus\n\\bbadwordp\\b\n\\bbaise\\b\n\\bbbwpfr\\b\n\\bbite\\b\n\\bbnv\\b\n\\bboche\\b\n\\bbv\\b\n\\bchier\\b\n\\bchink\\b\n\\bcok\\b\n\\bcon\\b\n\\bconne\\b\n\\bconnerie\\b\n\\bcoon\n\\bcul\\b\n\\bdugland\\b\n\\bfemoid\\b\n\\bfion\\b\n\\bfoutre\\b\n\\bghb\\b\n\\bhitle\\b\n\\bkoon\n\\bnegger\n\\bnegr\n\\bniak\\b\n\\bnique\\b\n\\bniquer\\b\n\\borgy\\b\n\\bpd\\b\n\\bpine\\b\n\\bpisse\\b\n\\bpouf\\b\n\\bpoufe\\b\n\\bpouffe\\b\n\\bpédé\\b\n\\braper\\b\n\\bratonner\\b\n\\bsalop\\b\n\\bsalopard\\b\n\\bshit\\b\n\\bsida\\b\n\\btaspe\\b\n\\btasspe\\b\n\\btca\\b\n\\btepu\\b\n\\bteub\\b\n\\bteube\\b\n\\btroon\\b\n\\btwat\n\\bverge\\b\nbico\\b\nmerd\\b\nshag\\b\nstrapon\\b\nzob\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_5_not_b_nx.txt",
+      "gitBlob": "5eeb1ed933eecb86964732540ddae4ef0430bc06",
+      "language": "pfr",
+      "bucket": "not_b",
+      "content": "abcdiet\nabruti\nanabootcamp\nanulingus\nbaisable\nbaiser\nbaiseur\nbaiseuse\nbaisé\nbaltringue\nbatard\nbedave\nbedo\nbiroute\nbougnoul\nbouillave\nbouyave\nbranlette\nbranleur\nbranleuse\nburne\nbédave\nbédo\ncaillera\ncasse-burnes\ncasse-couilles\ncasseburnes\ncassecouilles\ncatin\ncayera\nchaudasse\nchiante\nchiasse\nchiatique\nchiennasse\nchieur\nchieuse\nchinetoc\nchinetoque\nconnard\nconnasse\ncouille\ncouillon\ncrevard\ncrevure\ncrouia\ncrouill\ncrouya\ncrouïa\ncunni\nducon\nednos\nencule\nenculé\nenflure\nenfoire\nenfoiré\nerection\nfachiste\nfacho\nfellation\nfeuj\nfiote\nfiotte\nfister\ngarce\nglandu\ngogolle\ngoudou\ngouinasse\ngouine\ngrognasse\ngrougnasse\ngueulard\nibum\njean-foutre\njeanfoutre\nkaillera\nkayera\nkkk\nlevrette\nlopette\nmaquerelle\nmasturbation\nmasturber\nmerdasse\nmerde\nmoukere\nmoukère\nmouquere\nmouquère\nnayger\nnazi\nneger\nnegre\nnegresse\nnegro\nniakoue\nniakoué\nniaquoue\nniaquoué\nnibards\nnichons\nnigah\nnigor\nniguh\nnigur\nnl9\nnlq\nnugga\nnègre\nnégresse\nnégro\npartouze\npederaste\npequenaud\npequenot\npetasse\npeteuse\npeteux\nphallique\nphallus\npisseuse\nporn\nportosse\npoucav\npouffiasse\npoufiasse\npouilleuse\npouilleux\npro-ana\npro-ano\npro-boulimie\npro-mia\nproana\nproano\nproboulimie\npromia\nputain\nputasse\npute\npédéraste\npéquenaud\npéquenot\npétasse\npêteuse\npêteux\nrabza\nracaille\nradasse\nratonnade\nratonneur\nroulure\nroustons\nsalaud\nsaligaud\nsalope\nsalv8dor\nschleu\nschpountz\nsuceuse\ntafiole\ntantouse\ntantouze\ntapette\ntarlouse\ntarlouze\ntaspé\ntasspé\nthinspiration\nthinspo\ntravelo\ntrou-du-cul\ntroud'balle\ntroud'cul\ntroudballe\ntroudcul\ntroudeballe\ntrouduc\ntrouducul\nvagin\nyoupin\nyoupine\nzboub\nzgeg\nérection\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_6_b2_nx.txt",
+      "gitBlob": "ef7f738878133ad4104670bf538d9abf5bbc6c06",
+      "language": "pde",
+      "bucket": "b2",
+      "content": "\\babc-diat\\b\n\\babc-diet\\b\n\\babc-diät\\b\n\\babcdiat\\b\n\\babcdiet\\b\n\\babcdiät\\b\n\\babspritzer\\b\n\\bafterlecker\\b\n\\bafterlutscher\\b\n\\balkoholiker\\b\n\\bana-boot-camp\\b\n\\bana-mia\\b\n\\banabootcamp\\b\n\\banamia\\b\n\\barier\\b\n\\barsch\\b\n\\barschbratze\\b\n\\barschgeburt\\b\n\\barschgeige\\b\n\\barschgesicht\\b\n\\barschlecker\\b\n\\barschloch\\b\n\\barschlutscher\\b\n\\barschnase\\b\n\\bauschwitz\\b\n\\bbadwordp\\b\n\\bbbwpde\\b\n\\bbettnasser\\b\n\\bbettnasserin\\b\n\\bbettnässer\\b\n\\bbettnässerin\\b\n\\bbimbo\\b\n\\bbitzkrieg\\b\n\\bblodian\\b\n\\bblodmann\\b\n\\bblödian\\b\n\\bblödmann\\b\n\\bbuckstuck\\b\n\\bbückstück\\b\n\\bcazzo\\b\n\\bchink\\b\n\\bcok\\b\n\\bcoon\n\\bdonergesicht\\b\n\\bdrecksack\\b\n\\bdrecksarsch\\b\n\\bdrecksau\\b\n\\bdrecksbastard\\b\n\\bdrecksjude\\b\n\\bdreckslesbe\\b\n\\bdreckstuck\\b\n\\bdreckstück\\b\n\\bdrogenabhangige\\b\n\\bdrogenabhangiger\\b\n\\bdrogenabhängige\\b\n\\bdrogenabhängiger\\b\n\\bdrogensuchtige\\b\n\\bdrogensuchtiger\\b\n\\bdrogensüchtige\\b\n\\bdrogensüchtiger\\b\n\\bdschihad\\b\n\\bdummenuss\\b\n\\bdummkopf\\b\n\\bdummsau\\b\n\\bdunnpfiff\\b\n\\bdönergesicht\\b\n\\bdünnpfiff\\b\n\\beichel\\b\n\\bejakulat\\b\n\\bejakulieren\\b\n\\bejakulierer\\b\n\\beuthanasie\\b\n\\bevolutionsbremse\\b\n\\bfaschist\\b\n\\bfascho\\b\n\\bfettarsch\\b\n\\bfettesau\\b\n\\bfettesschwein\\b\n\\bfettgondel\\b\n\\bfettsau\\b\n\\bfettwanst\\b\n\\bfixer\\b\n\\bfresse\\b\n\\bfreudenmadchen\\b\n\\bfreudenmädchen\\b\n\\bfutjucken\\b\n\\bfutlappen\\b\n\\bfuttjucken\\b\n\\bfuttlappen\\b\n\\bgaskammer\\b\n\\bgeheimestaatspolizei\\b\n\\bgestapo\\b\n\\bglatze\\b\n\\bhackfresse\\b\n\\bherrenrasse\\b\n\\bhirni\\b\n\\bhoden\\b\n\\bhodenbeiser\\b\n\\bhodenbeisser\\b\n\\bhodenbeißer\\b\n\\bhodenlutscher\\b\n\\bholocaust\\b\n\\bhomo\\b\n\\bhomohasser\\b\n\\bhomokiller\\b\n\\bhomostecher\\b\n\\bhosenpiesler\\b\n\\bhuhnerarsch\\b\n\\bhundsfott\\b\n\\bhühnerarsch\\b\n\\bische\\b\n\\bjudensau\\b\n\\bjudenschwein\\b\n\\bkastrat\\b\n\\bkastrieren\\b\n\\bkastrierer\\b\n\\bkifi\\b\n\\bkike\\b\n\\bkill\n\\bkinderschander\\b\n\\bkinderschanderin\\b\n\\bkinderschänder\\b\n\\bkinderschänderin\\b\n\\bkitzler\\b\n\\bklitoris\\b\n\\bknackarsch\\b\n\\bkonzentrationslager\\b\n\\bkoon\n\\bkot\\b\n\\bkotfresser\\b\n\\bkotfresserin\\b\n\\bkotnascher\\b\n\\bkotnascherin\\b\n\\bkristallnacht\\b\n\\bkz\\b\n\\bleichenschander\\b\n\\bleichenschanderin\\b\n\\bleichenschänder\\b\n\\bleichenschänderin\\b\n\\blesbenhasser\\b\n\\blesbensau\\b\n\\blummeltute\\b\n\\blümmeltüte\\b\n\\bmasturbieren\\b\n\\bmasturbierer\\b\n\\bmelkmaschine\\b\n\\bmissgeburt\\b\n\\bmistkerl\\b\n\\bmiststuck\\b\n\\bmiststück\\b\n\\bmistvieh\\b\n\\bmonsterschwanz\\b\n\\bmuschi\\b\n\\bmuschirotz\\b\n\\bmussolini\\b\n\\bnegger\n\\bnegr\n\\bnpd\\b\n\\bnsu\\b\n\\bonanierfaust\\b\n\\borgie\\b\n\\bpenetrieren\\b\n\\bpenetrierer\\b\n\\bpenner\\b\n\\bpestarsch\\b\n\\bpestbeule\\b\n\\bpferdearsch\\b\n\\bpiesler\\b\n\\bpillermann\\b\n\\bpimperperle\\b\n\\bpolacke\\b\n\\bponce\\b\n\\bpopel\\b\n\\bpopelnase\\b\n\\bpopler\\b\n\\bpoplerin\\b\n\\bpopoklatscher\\b\n\\bpopoklatscherin\\b\n\\bpottsau\\b\n\\bpro-ana\\b\n\\bpro-anorexia\\b\n\\bpro-anorexie\\b\n\\bpro-bulimia\\b\n\\bpro-bulimie\\b\n\\bpro-ednos\\b\n\\bpro-magersucht\\b\n\\bpro-mia\\b\n\\bproana\\b\n\\bproanorexia\\b\n\\bproanorexie\\b\n\\bprobulimia\\b\n\\bprobulimie\\b\n\\bproednos\\b\n\\bpromagersucht\\b\n\\bpromia\\b\n\\bpron\\b\n\\bpuffbesucher\\b\n\\bquadratarsch\\b\n\\bquadratarschloch\\b\n\\bquickie\\b\n\\brammler\\b\n\\braper\\b\n\\brectum\\b\n\\briesenlummel\\b\n\\briesenlümmel\\b\n\\briesenschwanz\\b\n\\brosette\\b\n\\brosettendehner\\b\n\\brosettenlecker\\b\n\\brosettenlutscher\\b\n\\brotze\\b\n\\bsa\\b\n\\bsackarsch\\b\n\\bsaftarsch\\b\n\\bsamenerguss\\b\n\\bsau\\b\n\\bsaufer\\b\n\\bsaufkopf\\b\n\\bsaufnase\\b\n\\bsaukerl\\b\n\\bsausack\\b\n\\bsauschwein\\b\n\\bschamhaarschadel\\b\n\\bschamhaarschädel\\b\n\\bscheisendreck\\b\n\\bschickse\\b\n\\bschleimhaufen\\b\n\\bschnapsdrossel\\b\n\\bschutzstaffel\\b\n\\bschwanz\\b\n\\bschwanzarsch\\b\n\\bschwanzgesicht\\b\n\\bschwanzlecker\\b\n\\bschwanzlutscher\\b\n\\bschwanzuslongus\\b\n\\bschwein\\b\n\\bschweinehund\\b\n\\bschwuledrecksau\\b\n\\bschwulesau\\b\n\\bschwulette\\b\n\\bschwuli\\b\n\\bshit\\b\n\\bsittenstrolch\\b\n\\bskinhead\\b\n\\bsoab\\b\n\\bsodomie\\b\n\\bsodomist\\b\n\\bsodomit\\b\n\\bspacken\\b\n\\bspinner\\b\n\\bss\\b\n\\bstinkschwanz\\b\n\\bstrichjunge\\b\n\\bstriptease\\b\n\\bstruller\\b\n\\bstrullermann\\b\n\\bsturmabteilung\\b\n\\bsuffkopp\\b\n\\bsäufer\\b\n\\btaubenuss\\b\n\\bthin-spiration\\b\n\\bthin-spo\\b\n\\bthinspiration\\b\n\\bthinspo\\b\n\\btranse\\b\n\\btrottel\\b\n\\btucke\\b\n\\bturkensau\\b\n\\bturkenschwein\\b\n\\btwat\n\\btürkensau\\b\n\\btürkenschwein\\b\n\\bverdammterarsch\\b\n\\bverdammtesarschloch\\b\n\\bvergasung\\b\n\\bvergewaltigen\\b\n\\bvergewaltiger\\b\n\\bvergewaltigte\\b\n\\bvergewaltigter\\b\n\\bvollspacken\\b\n\\bvolltrottel\\b\n\\bvulva\\b\n\\bwaffen-ss\\b\n\\bwaffenss\\b\n\\bwarmerbruder\\b\n\\bzicke\\b\n\\bzimtzicke\\b\n\\bzipfelklatscher\\b\n\\bzuhalter\\b\n\\bzuhälter\\b\n\\bzyklonb\\b\nkunt\\b\nshag\\b\nstrapon\\b\ntaig\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_6_not_b_nx.txt",
+      "gitBlob": "1685c01f54a3ccbaf6d11e9999a7b6f71f78def0",
+      "language": "pde",
+      "bucket": "not_b",
+      "content": "abuse\nacab\nadolf\nanal\nanus\nbums\ndepp\ndick\ndirne\ndouche\nfag\nfaschistin\nfemoid\nfick\nflittchen\nfotze\nfuk\nfurz\ngeil\ngenital\ngoebbels\nheroin\nhimmler\nhitle\nhure\nibum\nidiot\njaps\nkack\nkanack\nkanak\nkiff\nkkk\nklote\nklöte\nkotz\nloli\nlude\nmilf\nmolest\nmorder\nmose\nmörder\nmöse\nnayger\nnazi\nneger\nnigah\nnigor\nniguh\nnigur\nnlg\nnlq\nnugga\nnutte\norgy\npaderast\npado\npenis\npervers\npimmel\npiss\nporn\nprostituierte\npäderast\npädo\nretard\nrulps\nrülps\nsackgesicht\nsackratte\nsalv8dor\nscheiss\nschiss\nschlampe\nschwachkopf\nschwuchtel\nsex\nslave\nspast\nsperm\nstricher\nstripper\nswinger\nterrorist\ntitt\ntroon\nvadge\nvotze\nwichs\nwix\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_7_b2_nx.txt",
+      "gitBlob": "af466c64f9ecd56bdc52ad0cc634c17db4a5a166",
+      "language": "pit",
+      "bucket": "b2",
+      "content": "\\bacab\n\\banus\n\\bbadwordp\\b\n\\bbbwpit\\b\n\\bcesso\n\\bchiava\n\\bchink\\b\n\\bcok\\b\n\\bcoon\n\\bculi\n\\bculo\n\\bfica\n\\bficat\n\\bkkk\\b\n\\bkoon\n\\bloli\\b\n\\bmona\\b\n\\bnazif\n\\bnazis\n\\bnegger\n\\bnegr\n\\borgy\n\\bponce\\b\n\\bpro-ana\\b\n\\bpro-mia\\b\n\\braper\\b\n\\bshit\\b\n\\btaig\\b\n\\btetta\\b\n\\btette\\b\n\\btroia\n\\btroon\\b\n\\btwat\nnazi\\b\npuppe\\b\nshag\\b\nstrapon\\b\nzinne\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_7_not_b_nx.txt",
+      "gitBlob": "6886f4ed5c0fe10cf5b5c15c8ded82b5b4b4952e",
+      "language": "pit",
+      "bucket": "not_b",
+      "content": "abcdiet\nabuse\nanabootcampdiet\nbagasc\nbaldracc\nbastard\nbattona\nbattone\nbocchinar\nbudellodidio\ncacare\ncacasotto\ncagare\ncagasotto\ncanacciodidio\ncanagliadidio\ncaned'allah\ncaned'eva\ncanedallah\ncanedeva\ncanedidio\ncazz\nchecca\nchecche\nciucciamelo\nciucciapalle\ncoglion\ncoprof\ncornutoilpapa\ncredoana\ncristod'undio\ncristodecapitato\ncristodundio\ncristoincroce\nculattone\nculattoni\ndeficiente\ndesnudas\ndesnudos\ndick\ndietaabc\ndietaana\ndietaanabootcamp\ndietabootcamp\ndietadell'abc\ndietadellabc\ndiobestia\ndioboia\ndiocan\ndiocannaiolo\ndiocapra\ndiocomunista\ndiocrasto\ndiocristo\ndiofarabutto\ndiofascista\ndiofinocchio\ndioflagellato\ndioimpestato\ndioimpiccato\ndiokane\ndioladro\ndiolebbroso\ndiolobotomizzato\ndiolurido\ndiomaiale\ndiomaledetto\ndioporco\ndiopoveraccio\ndiopovero\ndiorotto\ndiorottoinculo\ndiorutto\ndiosbudellato\ndioschifoso\ndioseppellito\ndioserpente\ndiostracane\ndiosventrato\ndioverme\ndouche\nfacciadaculo\nfanculo\nfemoid\nfichet\nficona\nficone\nfiga\nfighe\nfigliadicane\nfiglidicani\nfigliedicani\nfigliodicane\nfigon\nfinocchio\nfott\nfregna\nfroc\ngesu\ngesù\nhitle\nibum\nincul\nkike\nleccacul\nleccafica\nleccapalle\nmadon\nmannaggia\nmerd\nmezzasega\nmezzeseghe\nmignot\nmilf\nminch\nnayger\nneger\nnegra\nnegro\nnerchia\nnigah\nnigor\nniguh\nnigur\nnlg\nnlq\nnugga\npatonz\npiscia\npiscio\npompin\nporcamadonna\nporcodidio\nporcodio\nporcoilclero\nporcoilsignore\nporkodio\nporn\npro-anoressia\npro-bulimia\npro-ed\npro-ednos\nproana\nproanoressia\nprobulimia\nproednos\npromia\npugnett\npuppa\nputtan\nraspone\nrasponi\nretard\nricchion\nrottinculo\nsalv8dor\nsbocchinato\nsbocchiniamolo\nsborra\nsburra\nsegaiolo\nsessoorale\nstronz\nsuca\nsucchiamelo\nsucchiapalle\ntarzanell\ntetonas\ntettine\ntettona\ntettone\nthinspiration\nthinspo\ntroie\ntroion\ntroiona\ntrombare\ntrombat\nvadge\nzoccola\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_8_b2_nx.txt",
+      "gitBlob": "f6e0eb2e5c57a8a45c5fd063bc152070e2050545",
+      "language": "pes",
+      "bucket": "b2",
+      "content": "\\banaymia\\b\n\\banaymía\\b\n\\banormal\\b\n\\bass\\b\n\\bbadwordp\\b\n\\bbbwpes\\b\n\\bcabrón\\b\n\\bcerda\\b\n\\bcerdo\\b\n\\bchink\\b\n\\bchorra\\b\n\\bcock\\b\n\\bcok\\b\n\\bcoon\n\\bculo\n\\bednos\\b\n\\beta\\b\n\\betarra\\b\n\\bfolle\\b\n\\bfollo\\b\n\\bgili\\b\n\\bibum\n\\bjili\\b\n\\bjoder\\b\n\\bkoon\n\\blefa\\b\n\\blefero\\b\n\\bmamada\\b\n\\bmamador\\b\n\\bmamame\\b\n\\bmamar\\b\n\\bmamon\\b\n\\bmamona\\b\n\\bmamón\\b\n\\bmarica\\b\n\\bmariquita\\b\n\\bminga\\b\n\\bnegraco\\b\n\\bnegrata\\b\n\\bpedete\\b\n\\bperra\\b\n\\bpijo\\b\n\\bpilila\\b\n\\bpinga\\b\n\\bpolla\\b\n\\bpromia\\b\n\\bpromía\\b\n\\bputa\\b\n\\bputas\n\\bputi\\b\n\\bputo\\b\n\\bputos\n\\bquiqui\\b\n\\brabaco\\b\n\\brabo\\b\n\\bramera\\b\n\\braper\\b\n\\bsalv8dor\\b\n\\bsalv8dor_\\b\n\\bsarasa\\b\n\\bselvanegra\\b\n\\bsemen\\b\n\\bsexo\\b\n\\bshit\\b\n\\bsidosa\\b\n\\bsidoso\\b\n\\bsubno\\b\n\\bsudaca\\b\n\\btroon\\b\n\\btwat\n\\bzorra\\b\nmongui\\b\nretard\\b\nshag\\b\nstrapon\\b\nverga\\b\nvergón\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_8_not_b_nx.txt",
+      "gitBlob": "bfeff7116c5644ef381ffc514f1f5e4ed4464b36",
+      "language": "pes",
+      "bucket": "not_b",
+      "content": "a$s\nabuse\nanabootcamp\napollarda\nas$\nbareback\nbastard\nbesonegro\nbollera\nborderline\nbujarra\nbujarron\nbujarrón\nbuscona\ncabron\ncagada\ncagarro\ncagona\ncagón\ncaliqueño\ncampamentodeana\ncaraculo\ncarajo\ncaranabo\ncarapedo\ncasposa\ncasposo\ncerdaca\ncerdaco\nchapero\nchingada\nchingar\nchochazo\nchochete\nchocho\nchumino\nchupaculos\nchupame\nchupanabos\nchupapollas\nchuparrabos\nchúpame\ncipote\ncipoton\ncipotuda\ncipotudo\ncipotón\ncockring\ncojon\ncojonazos\ncojonear\ncojones\ncojonines\ncojonudo\ncojón\ncomecaca\ncomefelpudos\ncomelefa\ncomeme\ncomemeel\ncomemel\ncomemierda\ncomenabos\ncomepitos\ncomepollas\ncomerrabos\ncomesemen\ncomevergas\ncoprófaga\ncoprófago\ncorridon\ncorridón\ncoñazo\ncoño\nculera\nculero\nculoabierto\ncómeme\ndarporelojete\ndelculo\ndesnudas\ndesnudos\ndesvirgar\ndick\ndietaabc\ndilf\ndouche\necharunpolvazo\necharunpolvo\necharunquiqui\nelcacas\nelchichi\nelkakas\nenculador\nencular\nencule\nenculo\nenculé\nestoyhastaelrabo\nestoyhastalapolla\nestoyhastaloshuevos\nestúpida\nestúpido\neyaculador\nfemoid\nfistfucking\nfollacabra\nfollada\nfollado\nfollagays\nfollamaris\nfollaniñas\nfollaniños\nfollaputas\nfollar\nfollatía\nfollatío\nfolleteo\nfollé\nfornicador\nfornicar\nfulana\nfurcia\ngilipichis\ngilipolla\ngilipoyas\ngilipuertas\nguarra\nguarrilla\nguarrillo\nguarro\nguevos\ngüevos\nh0m0\nh0mo\nhardgay\nhdp\nhdtpm\nhijadelagranputa\nhijadep\nhijadeperra\nhijadeputa\nhijaperra\nhijaputa\nhijasdep\nhijodelagranputa\nhijodep\nhijodeperra\nhijodeputa\nhijoperra\nhijosdep\nhitle\nhuevon\nhuevón\nidiota\nimbecil\nimbécil\njaps\njilipichis\njilipollas\njilipuertas\njodete\njodida\njodido\njoputa\njódete\nkkk\nkunt\nlameculos\nlameojetes\nlluviablanca\nlluviadorada\nloquemesaledel\nmachorra\nmalnacido\nmalparida\nmalparido\nmamacallos\nmamameel\nmamamel\nmamarracho\nmaricaloca\nmaricamala\nmaricon\nmaricona\nmariconcete\nmariconchi\nmariconzon\nmariconzón\nmaricón\nmariliendre\nmasputaque\nmatagays\nmatamaricas\nmatanegros\nmecagoen\nmecomesel\nmecomesl\nmeencabrona\nmeona\nmeoncete\nmerdoso\nmeteteloporelculo\nmetieneshasta\nmeón\nmierda\nmierdero\nmierdosa\nmierdoso\nmilf\nmojón\nmolester\nmolesting\nmongola\nmongolo\nmuerdealmohadas\nmuerete\nmuérete\nmámame\nmásputaque\nnazi\nnecrófila\nnecrófilo\nnl9\nnlg\nnlq\nnomejodas\nnometoquesel\nnometoquesl\nojete\norgy\nostia\nostion\nostión\novarios\npajillero\npajote\npasivaza\npasivazo\npazguata\npazguato\npedazodeinutil\npedazodeinútil\npedofilo\npedófilo\npelandusca\npendeja\npendejo\npendejodemierda\npendondesorejao\npendóndesorejao\nperracachonda\nperrasarnosa\nperrosarnoso\npicha\npichabrava\npichacorta\npichafloja\npirulon\npirulón\npollaardiente\npollacachonda\npollaza\npollazo\npollon\npolluda\npolludo\npollón\npolvete\nporculera\nporculo\nporelculo\nporelojete\nporn\nporrera\nporrero\npotorro\npringaillo\npringao\npringaíllo\npro-ana\npro-anorexia\npro-bulimia\npro-ednos\npro-mia\npro-mía\npro-vulimia\nproana\nproanoresia\nproanorexia\nprobulimia\nproednos\nprovulimia\npudreteenelinfierno\npuntadelapolla\npuntadelnabo\npuntadelrabo\npuntalapolla\npuntalaverga\npuntalnabo\npuntalrabo\nputamadre\nputeador\nputeadora\nputear\nputiclub\nputiferio\nputilla\nputita\nputito\nputoamo\nputobaboso\nputocabron\nputocabrón\nputoidiota\nputon\nputonverbenero\nputón\npúdreteenelinfierno\nqueteden\nquetefolle\nquetejodan\nrabazo\nretrasadomental\nrevientaculos\nrevolcon\nrevolcón\nrollobollo\nrompeculos\nsadomaso\nsemental\nsessoorale\nsexoduro\nslave\nsoplanucas\nsoplapolla\nsoplapollas\nsoputa\nsubnor\nsubnormal\nsúbnor\ntarado\ntesticulo\ntestículo\ntetas\ntetazas\ntetonas\ntetorras\nthinspiration\nthinspo\ntiaputa\ntiazorra\ntocameelnabo\ntocameelrabo\ntocamelapolla\ntocamelaverga\ntocamelrabo\ntocateloshuevos\ntontodelhaba\ntontolaba\ntontolculo\ntontolhaba\ntortillera\ntragalefa\ntragamierda\ntragasemen\ntruchon\ntruchón\ntuputamadre\ntíaputa\ntíazorra\ntócameelnabo\ntócameelrabo\ntócamelapolla\ntócamelaverga\ntócateloshuevos\nunkiki\nvergon\nviolaniñas\nviolaniños\nyonki\nyonqui\nyunapolla\nyunoshuevos\nzoofílica\nzoofílico\nzopenca\nzopenco\nzorron\nzorrón\nzurullo\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_9_b2_nx.txt",
+      "gitBlob": "84a99ccd0ec97f658c28ffd91cc43f2e345d48d1",
+      "language": "pnl",
+      "bucket": "b2",
+      "content": "\\baars\n\\bass\\b\n\\bbadwordp\\b\n\\bbbwpnl\\b\n\\bchink\\b\n\\bcok\\b\n\\bcoon\n\\bdel\\b\n\\bdrol\n\\bhiv\\b\n\\bkak\\b\n\\bkamper\\b\n\\bkill\n\\bkont\n\\bkoon\n\\blijer\\b\n\\bloli\n\\bnazi\n\\bnegger\n\\bnegr\n\\bpaki\\b\n\\bpik\\b\n\\bponce\\b\n\\brape\\b\n\\bshit\\b\n\\bteef\n\\btering\n\\btwat\n\\bweed\n\\bwiet\\b\nbeffer\\b\nloli\\b\nmof\\b\nmoffen\\b\nnazi\\b\npron\\b\nshag\\b\nstrapon\\b\ntaig\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_9_not_b_nx.txt",
+      "gitBlob": "523a6167a51e3f62fcb40cb2578c8f2e94f27b5c",
+      "language": "pnl",
+      "bucket": "not_b",
+      "content": "a$$\na$s\naarsatleet\naarslikker\naarsridder\nabuse\nacab\nadolf\nafvalturk\naids\nanaalkabaal\nanaalridder\nanus\nas$\nbaffen\nbafkoning\nballenlikker\nbalzak\nbeffen\nbefkoning\nbeflapje\nbeftekkel\nbijbal\nblunt\nchocoprins\nchristus\ndarmtoerist\ndebiel\ndick\ndickhead\ndikzak\ndroogkloot\neikel\neikelbijter\netterbak\nfag\nfemoid\nflikker\nfoef\nfooraap\nfoorwijf\nfuk\ngeil\ngodver\ngoorlap\ngortlap\ngortzak\ngreppeldel\nhitle\nhoer\nhomo\nibum\nimbeciel\nimpotent\njaps\njezus\njoint\nkaffer\nkakfretter\nkanker\nkapotje\nkenker\nkike\nkittelaar\nkkk\nklojo\nkloothommel\nklootzak\nklote\nkopkaas\nkots\nkrapuul\nkringspiermusketier\nkringspierofficier\nkut\nlamzak\nlapzwans\nlepra\nlul\nmakak\nmatennaaier\nmietje\nmilf\nmolest\nmongool\nnaadhopper\nnayger\nnecrofiel\nneger\nneuk\nnigah\nnigga\nnigger\nnigor\nniguh\nnigur\nnikker\nnugga\noprotten\noptyfen\norgy\npapzak\npenislikker\npiemel\npijpbek\npijpen\npisnicht\npleures\npleuris\npoenani\npoep\npokke\nporn\npotenrammen\npreut\npreutelikker\nrampetampen\nraveteef\nrectum\nreefteef\nreetkever\nreetridder\nrelnicht\nretard\nrimmen\nroetmop\nrotzak\nrubbernicht\nrugridder\nruilnicht\nrukeend\nrukker\nsalv8dor\nschaamluis\nschijt\nschlemiel\nschorem\nschurft\nsecreet\nsekreet\nseks\nslave\nslet\nsloerie\nsnikkel\nsnol\nspast\nsperma\nspleetoog\nspliff\nstront\nswaffelen\ntakkenwijf\ntakkewijf\ntamzak\nteelbal\ntettekop\ntettenkop\ntiet\ntoges\ntogus\ntokes\ntokus\ntollie\ntranssexueel\ntrut\nturkentrekker\ntuttebel\ntyfes\ntyfus\nvadge\nvenusheuvel\nverdomme\nverkrachten\nvetklep\nvetzak\nviswijf\nvoorhuid\nvortzak\nvulva\nzaadslikker\nzakkenwasser\nzeik\nzoeloelip\nzuipen\nzwaffelen\nzwartje\nzwartjoek\nzwartjoekel\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_common_b2_nx.txt",
+      "gitBlob": "5370a12da28f769408f2ad936e0b0fb895273a77",
+      "language": "common",
+      "bucket": "b2",
+      "content": "\\b1488\\b\n\\b18.88\\b\n\\b1888\\b\n\\b764\\b\n\\b8814\\b\n\\b8818\\b\n\\b88~14\\b\n\\b88~18\\b\n\\bak-47\\b\n\\bak47\\b\n\\bakia\\b\n\\banus\\b\n\\bar-10\\b\n\\bar-15\\b\n\\bar10\\b\n\\bar15\\b\n\\baryan\n\\basshare\\b\n\\bayak\\b\n\\bb17ch\\b\n\\bb1tch\\b\n\\bbadword\\b\n\\bbadworda\\b\n\\bbastard\\b\n\\bbi7ch\\b\n\\bbltch\\b\n\\bboner\\b\n\\bboners\\b\n\\bboobs\n\\bc0k\\b\n\\bc18\n\\bcack\\b\n\\bcawk\\b\n\\bchebs\\b\n\\bchoad\\b\n\\bchode\\b\n\\bclit\n\\bcnut\\b\n\\bcock\\b\n\\bcooter\n\\bcrap\\b\n\\bcretin\n\\bcuck\\b\n\\bcummy\n\\bdaesh\\b\n\\bdago\\b\n\\bdaish\\b\n\\bdeathwolfess\\b\n\\bdeathwolfss\\b\n\\bdiaf\\b\n\\bdike\\b\n\\bdindu\\b\n\\bdotr\\b\n\\bdyke\\b\n\\beiil\\b\n\\benjen\\b\n\\bfadge\\b\n\\bfag\\b\n\\bfahg\\b\n\\bfaig\\b\n\\bfandan\\b\n\\bfap\\b\n\\bfeck\n\\bfelch\n\\bfeltch\n\\bfenian\n\\bfoid\\b\n\\bfook\n\\bfuk\\b\n\\bg-spot\n\\bganja\n\\bgimp\n\\bgnoc\\b\n\\bgsp0t\n\\bgspot\n\\bgyp\n\\bh8\n\\bhamas\\b\n\\bhardon\\b\n\\bhimey\\b\n\\bhitla\\b\n\\bhonkey\\b\n\\bhonkie\\b\n\\bhonky\\b\n\\bhymie\\b\n\\bih8\n\\bincel\n\\binjen\\b\n\\binjun\\b\n\\bisil\\b\n\\bisis\\b\n\\bjaysis\n\\bjaysus\n\\bjism\n\\bjiz\\b\n\\bknackers\n\\blesbo\n\\bminger\\b\n\\bmofo\\b\n\\bmolest\\b\n\\bmong\\b\n\\bmoulest\\b\n\\bmulato\n\\bmutha\n\\bnggr\n\\bnifoc\n\\bnig\\b\n\\bniga\\b\n\\bnonce\\b\n\\bnudes\n\\bnuke\\b\n\\boral\\b\n\\bpecker\\b\n\\bpedo\n\\bpenis\n\\bperv\\b\n\\bperve\\b\n\\bphuk\\b\n\\bpikey\n\\bpiky\n\\bpoon\\b\n\\bpubic\n\\bpusie\\b\n\\bpussie\\b\n\\bpusy\\b\n\\bqxz\\b\n\\braep\n\\braped\\b\n\\breeee\\b\n\\brimming\n\\bs1ut\\b\n\\bsex\\b\n\\bshite\n\\bslut\n\\bsmeg\n\\bsnatch\\b\n\\bspack\\b\n\\bspak\n\\bspaz\\b\n\\bsperg\\b\n\\bsperm\n\\bspic\\b\n\\bspick\\b\n\\bspunk\\b\n\\bstfu\n\\bstoner\\b\n\\bsukm\n\\bterf\n\\bthot\\b\n\\btnuc\\b\n\\bturd\\b\n\\bvag\\b\n\\bvaj\\b\n\\bvjay\\b\n\\bwank\n\\bwhoar\\b\n\\bwog\\b\n\\byid\\b\nadolf\\b\nboob\\b\nboobs\\b\ncapper\\b\nchinc\\b\ndarkey\\b\ndarky\\b\nfeltch\\b\nfenian\\b\nfluffer\\b\nfucc\\b\nfuq\\b\ng-spot\\b\nganja\\b\ngooch\\b\ngspot\\b\nincel\\b\njaysus\\b\njism\\b\nlandser\\b\nlesbo\\b\nnewd\\b\nnewds\\b\nnggr\\b\nniiga\\b\nnudes\\b\npenis\\b\npimp\\b\npiss\\b\npubes\\b\npunani\\b\nqueef\\b\nraep\\b\nskank\\b\nspastic\\b\nstfu\\b\nterf\\b\ntwat\\b\nvirgin\\b\nwhore\\b\n"
+    },
+    {
+      "path": "parsed/NgWord2/70/ac_common_not_b_nx.txt",
+      "gitBlob": "5fb336e4f3eca9da0dadb1df5552f25ce74fcd28",
+      "language": "common",
+      "bucket": "not_b",
+      "content": "$h!t\n$hit\n14eightyeight\n14word\n1stpanzerdivision\n2gender\n3some\n3sum\n4n4l\n4nal\n4threich\n6gorilion\n6gorillian\n6gorillion\n6gorillon\n6gorrilion\n6mwe\n6mwne\n88heil\n8==\n8=d\n8＝d\n8＝＝\n==d\nabu$e\nabusayyaf\nadamlanza\nado1f\nadolff\nalekminassian\nalqaeda\nalqaida\nan4l\nanalingus\nanalintruder\nanalsec\nanalsex\nanalslut\nandersbehringbreivik\nandersbreivik\nandreichikatilo\nandrewberwick\nanilingus\nanisamri\nantisemit\narsebandit\narsehair\narsehare\narsehole\narsewipe\nartyomkazantsev\nasphyxiophilia\nassbandit\nassclown\nasshair\nasshole\nasslove\nasssec\nasssex\nasstit\nasswipe\nb1nlaaden\nb1nladden\nb1nladen\nballbag\nballsac\nbattyboy\nbattyman\nbawbag\nbdsm\nbeastiality\nbeefcurtain\nbellend\nbestiality\nbiatch\nbigdick\nbinlaaden\nbinladden\nbinladen\nbiotch\nbitch\nblod&honor\nblod&honour\nblodandhonor\nblodandhonour\nblood&honor\nblood&honour\nblood&soil\nbloodandhonor\nbloodandhonour\nbloodandsoil\nbloodsoil\nblowjob\nboabie\nbokoharam\nbollock\nbollox\nboobies\nboobjob\nboydyke\nbrentont\nbrentontarrant\nbtarrant\nbtkkiller\nbuftie\nbuggery\nbukake\nbukakke\nbukkake\nbukkakke\nbullshit\nbumbandit\nbumchum\nbumkids\nburnjew\nburrhe\nbuttmunch\nbuttplug\nbuttsec\nbuttsex\nc0vid\nc0vld\ncameltoe\ncannabis\ncarpetmuncher\ncharlesmanson\nchickswithdicks\nchinadead\nchinq\ncliffordolson\nclitoris\nclunge\nclítoris\ncndead\ncockdestr\ncockend\ncockface\ncockgoblin\ncockmuncher\ncocknose\ncocksuck\ncokehead\ncommanderrockwell\ncondom\ncooch\ncoronavirus\ncottonpic\ncovid\ncovld\ncrackhead\ncrackwhore\ncreampie\ncrotch\ncucluxclan\ncumbucket\ncumdumpster\ncumface\ncumrag\ncumshot\ncumstain\ncunilingus\ncunnilingus\ncunt\ncvlt\ncyberseck\ncybersex\ndamiensanderson\ndanskfront\ndarkie\ndavidberkowitz\ndayofrope\ndayoftherope\ndayrope\ndennisrader\nderrickbird\ndestroyjew\ndevinkelley\ndildo\ndindunuffin\ndindunufin\ndipshit\ndixienorm\ndnepropetrovskmaniacs\ndoggiestyle\ndoggystyle\ndoublepenetration\ndouchebag\ndouchefag\ndownie\ndumbass\ndunecoon\ndylanklebold\nejacul\nepstein\nerotic\nerotik\nestadoislamico\netatislamique\nexecutejew\nexterminatejew\nfacesit\nfaeces\nfaggot\nfaqqot\nfascist\nfatass\nfcuk\nfeces\nfelacio\nfelatio\nfellacio\nfellate\nfellatio\nfeltching\nfetish\nfggot\nfhuck\nfingerbang\nfisting\nforeskin\nfourteen88\nfourteenword\nfourthreich\nfrancescovilli\nfriedrichleibacher\nfront88\nfuck\nfuct\nfudgepacker\nfugly\nfuhrer\nfuk_\nfukyou\nfunbag\nfuuck\nfu©k\nfvck\ng$p0t\ng$pot\ngabrielwortman\ngangbang\ngangrape\ngaryridgway\ngayh8\ngayhate\ngaylord\ngaytard\ngaywad\ngeespot\ngippo\ngizzum\ngloryhole\ngoatse\ngobshite\ngoddam\ngolliwog\ngollywog\ngonads\ngook\ngoolies\ngreenriverkiller\ngroyp\ngyppie\ngyppo\nh!tler\nh1t13r\nh1tl3r\nh1tler\nh1tlr\nh1ttler\nhailhitla\nhakenkreuz\nhalfbreed\nhamerskin\nhammerskin\nhandjob\nhard-on\nharkenkreuz\nhategay\nhatejew\nhatenegro\nhatequeer\nhatetrans\nhatewom\nhawktuah\nhdolfaitler\nheil88\nhentai\nhewjater\nhigger\nhitier\nhitl3\nhitl3r\nhitlair\nhitleer\nhitlehr\nhitler\nhitlr\nhittler\nhizzler\nhkdead\nhobag\nhoebag\nhondenlul\nhongkongdead\nhooker\nhoormister\nhorny\nhtlr\nhuejass\nhumper\nhumping\nh¡tlér\nhîťľèr\nhįtler\nhıtler\nicloud.com\nilnazgalyaviev\nincest\nintercourse\nirinagaidamachuk\nislamicstate\nivanmilat\njackedoff\njackingoff\njackoff\njacksoff\njamesholmes\njamrag\njap'seye\njapseye\njeffdahmer\njeffreydahmer\njerkedoff\njerkingoff\njerkoff\njerksoff\njewburn\njewdestr\njewexecute\njewexterminate\njewh8\njewhate\njewkil\njewslayer\njigabo\njiggaboo\njizm\njizz\njohngacy\njohnwaynegacy\njunglebunny\nkaffir\nkamasutra\nkarlahomolka\nkeech\nkigy\nkilingjew\nkiljew\nkilltran\nklansm\nklunge\nklux\nkneegro\nknobend\nknobjockey\nkukluxklan\nkyke\nladyboy\nlardarse\nlardass\nlezbo\nlezzer\nlezzie\nljubisabogdanovic\nlmirl\nlukamagnotta\nm0ele$t\nm0elest\nm0le$t\nm0lest\nm1lf\nmarclepine\nmartinbryant\nmasshoot\nmassshoot\nmasterbate\nmasterbation\nmasturbat\nmattisaari\nmauriziominghella\nmeatspin\nmichaelzehafbibeau\nmichelfourniret\nmikhailpopkov\nmoele$t\nmoelest\nmohammedmerah\nmole$t\nmongoloid\nmowdie\nmowlest\nmuffdiv\nmulatto\nmurder\nmylessanderson\nn-word\nn1g\nn1llk1ggers\nn1llkiggers\nn1q\nnacionaria\nnambla\nnathanielveltman\nnaygro\nnaz1\nnazl\nneeger\nnegrohate\nnegromancer\nngger\nnig-nog\nnigg\nniglet\nnignog\nnigq\nniigha\nnillk1ggers\nnillkiggers\nnimpho\nnipslip\nniqg\nniqq\nnlgg\nnobhead\nnumpt\nnutsack\nnword\nnympho\nn¡gg\nomarmateen\nomfg\noralsec\noralsex\norgasm\nosamabin\noutlook.com\novendodger\np0rn\np3n1s\np3nis\npaedo\npantiless\npatrickcrusius\npaulbernardo\npaytongendron\npeckerwood\npederast\npedofile\npedophile\npegged\npegger\npegging\npekkaauvinen\npen1s\npenile\npenls\npervert\npetafile\npetaphile\npissflap\npisshead\npoofter\npoonanie\npoontang\npoosy\nporchmonkey\nprecum\nprnhub\nprostitut\nproudboy\npu$$y\npu$sy\npus$y\npusies\npusse\npussi\npussies\npussy\npusylips\npuzzy\nqueerh8\nqueerhate\nquief\nqxzq\nracist\nraghead\nrahowa\nraping\nrapist\nraplng\nraplst\nraytard\nredskin\nrentboy\nretarded\nretarted\nrhape\nrimjob\nringpiece\nrobertcrimo\nrobertpickton\nrobertsteinhaeuser\nrochtheriaut\nropeday\nrugmuncher\nsalvadorramos\nschlong\nscrote\nscrotum\nscucide\nsendnudes\nsergeidovzhenko\nsh!t\nshagged\nsheepshagger\nshemale\nshirtlifter\nshithead\nsieghail\nsiegheil\nsixgorilion\nsixgorillian\nsixgorillion\nsixgorillon\nsixgorrilion\nsixmwe\nsixmwne\nslanteye\nslapper\nslopehead\nslopehed\nslutd\nsmegma\nsodding\nsodomi\nsodomy\nsoilblood\nsonofsam\nspaccer\nspazzy\nsplooge\nstephenpaddock\nstiffy\nstrap-on\nsubnormal\nsucide\nsuckmy\nsuicid\nsupremaciablanca\nswastica\nswastika\ntaiwandead\ntaliban\ntarrantb\nteabagg\ntedbundy\ntedkaczynski\ntesticle\nthomashamilton\nthreesome\nthreesum\ntimkretschmer\ntimurbekmansurov\ntitass\ntitler\ntitsass\ntitties\ntitty\ntitwank\ntorture\ntosser\ntosspot\ntowelhead\ntrannie\ntranny\ntransh8\ntranshate\ntubgirl\ntugjob\nturdburglar\ntwdead\ntwogender\nunabomber\nupskirt\nvagina\nvajayjay\nvaleryfabrikant\nvibrator\nvladimirmirgorod\nvladislavroslyakov\nvoyeur\nvuckoborilovic\nwanker\nwankjob\nwankshaft\nwankstain\nwarumoshi\nwetback\nwhipper\nwhippr\nwhipr\nwhitenat\nwhitepower\nwhorebag\nwhoremaster\nwhoremonger\nwigger\nwilliamfyfe\nwindowlicker\nwpww\nwtf\nwttp\nyavuzyapicioglu\nyevgenychuplinsky\nyvankeller\nzipperhead\nzipperhed\nzoophilia\nädolf\nħìtļěr\nηitler\nккк\nковид\nチンチン\nヒトラー\nワルモシ\n卍\n卐\n坏用语\n나쁜단어\n나쁜문장\n＝＝d\n"
+    }
+  ],
+  "allowlistFiles": [
+    {
+      "path": "parsed/NgWord2/66/trie_0_allow.txt",
+      "gitBlob": "c380edbc2de5c06defee58875a770239fe285e30",
+      "language": "jja",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_0_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_0_allow_back",
+          "gitBlob": "b382a532563638c32ba304e03dc46fc36d93d8da"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_0_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_0_allow_fwd",
+          "gitBlob": "3cffddd71b83db0dbd0adfac23d6fff465d35c3d"
+        }
+      ],
+      "content": "badwordj_badwordj\nアアアアイアウアエアオアアア\nアイアウアエアオ\nカケカコカカカカ\nガガガガギガグガゲガゴガガガ\nササササシサスサセ\nタ1タタ2タチ3タツaタテbタトcト\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_1_allow.txt",
+      "gitBlob": "c8ad086dadf5bb4ae73d140bf3e5168cf009e401",
+      "language": "een",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_1_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_1_allow_back",
+          "gitBlob": "a77b050afe6f27ba45593a2fbf728033aeb7fe7b"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_1_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_1_allow_fwd",
+          "gitBlob": "caf560060d484b5bc3c2fd45501fc8c1b84f8e4f"
+        }
+      ],
+      "content": "badworde_badworde\ngrape\niwashita\nsementa\nskyscraper\ntakeshita\nyoshi time\nyoshitime\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_2_allow.txt",
+      "gitBlob": "a75769cdb47e54a43e9f5f2c26236bab26f9dc1c",
+      "language": "efr",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_2_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_2_allow_back",
+          "gitBlob": "a8c657e36155882a2221c777657c93782cc18017"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_2_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_2_allow_fwd",
+          "gitBlob": "a38eb06b6ecd15411db55294fc403d233878e2d8"
+        }
+      ],
+      "content": "badworde_badworde\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_3_allow.txt",
+      "gitBlob": "a75769cdb47e54a43e9f5f2c26236bab26f9dc1c",
+      "language": "ees",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_3_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_3_allow_back",
+          "gitBlob": "a8c657e36155882a2221c777657c93782cc18017"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_3_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_3_allow_fwd",
+          "gitBlob": "a38eb06b6ecd15411db55294fc403d233878e2d8"
+        }
+      ],
+      "content": "badworde_badworde\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_4_allow.txt",
+      "gitBlob": "d0f1b21b1f61f6c3e3282a983dfb671d51b121aa",
+      "language": "pen",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_4_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_4_allow_back",
+          "gitBlob": "d4caf9d6577e15e21d974d0f6270f8fdc47f7e97"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_4_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_4_allow_fwd",
+          "gitBlob": "080cf0d883e789c590d914a9d3665369bcce807a"
+        }
+      ],
+      "content": "badwordp_badwordp\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_5_allow.txt",
+      "gitBlob": "d0f1b21b1f61f6c3e3282a983dfb671d51b121aa",
+      "language": "pfr",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_5_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_5_allow_back",
+          "gitBlob": "d4caf9d6577e15e21d974d0f6270f8fdc47f7e97"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_5_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_5_allow_fwd",
+          "gitBlob": "080cf0d883e789c590d914a9d3665369bcce807a"
+        }
+      ],
+      "content": "badwordp_badwordp\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_6_allow.txt",
+      "gitBlob": "2579075c20549c3720e923a3cca0d29fbbdb506f",
+      "language": "pde",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_6_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_6_allow_back",
+          "gitBlob": "72119feab2631bcd3899502d7b9a4523b254b3fb"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_6_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_6_allow_fwd",
+          "gitBlob": "b4284ae916fa0c4a1c05767ffe11bb359a8cd774"
+        }
+      ],
+      "content": "analyse\nbadwordp_badwordp\ndickflüssig\nkanal\nkanusport\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_7_allow.txt",
+      "gitBlob": "d0f1b21b1f61f6c3e3282a983dfb671d51b121aa",
+      "language": "pit",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_7_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_7_allow_back",
+          "gitBlob": "d4caf9d6577e15e21d974d0f6270f8fdc47f7e97"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_7_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_7_allow_fwd",
+          "gitBlob": "080cf0d883e789c590d914a9d3665369bcce807a"
+        }
+      ],
+      "content": "badwordp_badwordp\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_8_allow.txt",
+      "gitBlob": "a9629277968a391d986d3076db9d27b3756c5c22",
+      "language": "pes",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_8_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_8_allow_back",
+          "gitBlob": "a7890d11c1eddf9bc86126f8f1ff8093acbc20b6"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_8_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_8_allow_fwd",
+          "gitBlob": "da6480b2f665c80c0a9b173975d801cee01b94c2"
+        }
+      ],
+      "content": "badwordp_badwordp\nfisioterapista\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_9_allow.txt",
+      "gitBlob": "727cfead8adcf74c6c20adfc9ccdde8f510443a0",
+      "language": "pnl",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_9_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_9_allow_back",
+          "gitBlob": "f84e285fd496253871f1808649b0187dc6a76424"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_9_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_9_allow_fwd",
+          "gitBlob": "4c0ea568606877a9b44ec5e5e09f9554b8ffd2d2"
+        }
+      ],
+      "content": "badwordp_badwordp\ndrukker\ngeknikkerd\ngladjanus\nhoera\nknikker\nknikkeren\nknikkers\nlesboek\nnegeren\ntrimmen\nversleten\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_10_allow.txt",
+      "gitBlob": "b23037574bcc9912453ffefb4591024d59c53255",
+      "language": "kko",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_10_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_10_allow_back",
+          "gitBlob": "1c9da02914913e9e4bebc9d06701a34f00e562f2"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_10_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_10_allow_fwd",
+          "gitBlob": "351ff904f29494f077412051ebc107db0768d420"
+        }
+      ],
+      "content": "badwordk_badwordk\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_11_allow.txt",
+      "gitBlob": "8495a8d7e346dfbb5044ea66285644c0c0ef2a5d",
+      "language": "czh",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_11_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_11_allow_back",
+          "gitBlob": "f23d8f0341af5b736e00862232dbc36e02973f32"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_11_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_11_allow_fwd",
+          "gitBlob": "8f0a6b111ccd01741641298e211f5b89aa3fa686"
+        }
+      ],
+      "content": "badwordc_badwordc\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_12_allow.txt",
+      "gitBlob": "d0f1b21b1f61f6c3e3282a983dfb671d51b121aa",
+      "language": "ppt",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_12_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_12_allow_back",
+          "gitBlob": "d4caf9d6577e15e21d974d0f6270f8fdc47f7e97"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_12_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_12_allow_fwd",
+          "gitBlob": "080cf0d883e789c590d914a9d3665369bcce807a"
+        }
+      ],
+      "content": "badwordp_badwordp\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_13_allow.txt",
+      "gitBlob": "a4dfb77359f1c4a02648032b64cd59fe131faf8b",
+      "language": "pru",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_13_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_13_allow_back",
+          "gitBlob": "afd5ddb3365c023555db74509a6c3814951b1a6e"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_13_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_13_allow_fwd",
+          "gitBlob": "08983c57debb218781167f9076f7a167b6db170e"
+        }
+      ],
+      "content": "badwordp-badwordp\nбанально\nвелосипедик\nзастрахуйте\nкоманда\nмандарин\nмандаринка\nмандат\nподстрахуйте\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_14_allow.txt",
+      "gitBlob": "a75769cdb47e54a43e9f5f2c26236bab26f9dc1c",
+      "language": "ept",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_14_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_14_allow_back",
+          "gitBlob": "a8c657e36155882a2221c777657c93782cc18017"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_14_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_14_allow_fwd",
+          "gitBlob": "a38eb06b6ecd15411db55294fc403d233878e2d8"
+        }
+      ],
+      "content": "badworde_badworde\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_15_allow.txt",
+      "gitBlob": "b4e7137d071cc5edc8484cd9c2f5a43df7595e1f",
+      "language": "tzh",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_15_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_15_allow_back",
+          "gitBlob": "8e3e1cd9f6ecdc607319fb074dc2fb160adfd56e"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_15_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_15_allow_fwd",
+          "gitBlob": "35687c6dbc05be4a048de959f6eddf6154acf04d"
+        }
+      ],
+      "content": "badwordt_badwordt\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_17_allow.txt",
+      "gitBlob": "b4e7137d071cc5edc8484cd9c2f5a43df7595e1f",
+      "language": "tha",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_17_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_17_allow_back",
+          "gitBlob": "8e3e1cd9f6ecdc607319fb074dc2fb160adfd56e"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_17_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_17_allow_fwd",
+          "gitBlob": "35687c6dbc05be4a048de959f6eddf6154acf04d"
+        }
+      ],
+      "content": "badwordt_badwordt\n"
+    },
+    {
+      "path": "parsed/NgWord2/66/trie_common_allow.txt",
+      "gitBlob": "0fb1d7f5db6ad2f042fb5310d102cf111498118b",
+      "language": "common",
+      "parsedVersion": 66,
+      "applicableVersion": 70,
+      "equivalentTries": [
+        {
+          "version70Path": "romfs/NgWord2/70/trie_common_allow_back",
+          "version66Path": "romfs/NgWord2/66/trie_common_allow_back",
+          "gitBlob": "8582a3f861db78c0574b4cb12a6aac9b91a46bc9"
+        },
+        {
+          "version70Path": "romfs/NgWord2/70/trie_common_allow_fwd",
+          "version66Path": "romfs/NgWord2/66/trie_common_allow_fwd",
+          "gitBlob": "4305ab49ca4cf9b6fdec2eae066cfdff8c57a7b5"
+        }
+      ],
+      "content": "joy-con\nkillian\nnintendo\nシワルモシ\n"
+    }
+  ],
+  "notes": [
+    "Only b2 and not_b rejection tries; b1 masking-only entries are excluded.",
+    "Version 70 parsed allowlist text is absent upstream. Version 66 parses are included only when both raw version 70 trie hashes match version 66.",
+    "Polish version 70 allowlist tries differ; no version 66 Polish allowlist is substituted."
+  ]
+}

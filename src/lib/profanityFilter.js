@@ -1,3 +1,5 @@
+// Legacy heuristic matcher retained for comparisons and its historical tests.
+// Production FRLG box names use frlgProfanityFilter.js.
 /**
  * Hybrid Nintendo Switch Profanity Filter
  *

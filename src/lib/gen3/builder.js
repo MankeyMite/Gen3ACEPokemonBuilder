@@ -2,11 +2,8 @@ import { GAEM_PERMUTATIONS } from './permutations.js';
 import { MOVES_MAP } from '../../data/moves.gen3.js';
 import { encodeName, encodeNickname, encodeOT } from './encoding.js';
 import { u32, writeU16LE, writeU32LE, readU32LE, packIVWord, checksum16, bytesToHex, bytesToFormattedHex } from './packers.js';
-import { createProfanityFilter } from '../profanityFilter.js';
-import { PROFANITY_LIST } from '../../data/profanity.gen3.js';
-
-// Shared profanity filter instance for Base64 box-name shifting
-const _b64ProfanityFilter = createProfanityFilter(PROFANITY_LIST);
+import { getSwitchProfanityFilter } from '../switchProfanityFilter.js';
+import { inspectBase64Repair } from './base64RepairValidation.js';
 
 // Handheld NPC trades use one 0xFF string terminator followed by cleared
 // trash bytes. Keep the regular encoder's normal 0xFF padding for all other
@@ -39,38 +36,6 @@ const BOX_LETTER_RE = /[a-z\u00C0-\u024F\u0400-\u04FF\u3040-\u30FF\u4E00-\u9FFF\
 
 function isBoxLetter(ch) {
   return BOX_LETTER_RE.test(ch);
-}
-
-// Find a profanity term within a box while ignoring non-letter characters
-// between letters, and return the original character indices of matched letters.
-function findTermLetterPositionsInBox(boxText, term) {
-  const box = String(boxText || '').toLowerCase();
-  const needle = String(term || '').toLowerCase();
-  if (!box || !needle) return null;
-
-  for (let start = 0; start < box.length; start++) {
-    if (!isBoxLetter(box[start])) continue;
-
-    let ti = 0;
-    const positions = [];
-    for (let bi = start; bi < box.length; bi++) {
-      const ch = box[bi];
-      if (!isBoxLetter(ch)) continue;
-      if (ch !== needle[ti]) break;
-      positions.push(bi);
-      ti++;
-      if (ti === needle.length) return positions;
-    }
-  }
-
-  return null;
-}
-
-function countBlockedBoxMatches(boxes) {
-  return boxes.reduce(
-    (count, box) => count + _b64ProfanityFilter.checkDetailed(box).matches.length,
-    0,
-  );
 }
 
 // Reflow the box boundaries one character earlier: the final character of the
@@ -625,6 +590,9 @@ export function toFormattedHex(bytes){
 // Convert bytes to Base64 with Emerald ACE naming rules
 export function toBase64Emerald(bytes, options = {}){
   const switchSafe = options.switchSafe !== false;
+  const originalBytes = Uint8Array.from(bytes);
+  if (originalBytes.length !== 80) throw new RangeError('Base64 Pokemon output requires exactly 80 bytes.');
+  const filter = options.profanityFilter ?? getSwitchProfanityFilter(options.switchFilterMode);
   const requestedSymbolBoxes = Array.isArray(options.symbolSubstitutionBoxes)
     ? options.symbolSubstitutionBoxes
     : [options.symbolSubstitutionBox];
@@ -635,7 +603,7 @@ export function toBase64Emerald(bytes, options = {}){
     .sort((a, b) => a - b);
   // Standard btoa over binary string
   let bin = '';
-  for(const b of bytes) bin += String.fromCharCode(b);
+  for(const b of originalBytes) bin += String.fromCharCode(b);
   let b64 = '';
   try{
     b64 = btoa(bin);
@@ -667,22 +635,38 @@ export function toBase64Emerald(bytes, options = {}){
   let manualSubstitutionCount = 0;
   const manualSubstitutionCounts = {};
 
+  let inspection = inspectBase64Repair(boxes, originalBytes, filter);
+  if (!inspection.valid) throw new Error(inspection.reason);
+  const visited = new Set([JSON.stringify(boxes)]);
+  // Repair operations are transactional. Never expose a candidate until all
+  // boxes have been rescanned and all 80 bytes independently decoded/compared.
+  function acceptRepair(candidate, requireImprovement = false, eliminatedMatch = null) {
+    const next = inspectBase64Repair(candidate, originalBytes, filter);
+    if (!next.valid || visited.has(JSON.stringify(candidate))) return false;
+    if (requireImprovement && next.matchCount >= inspection.matchCount) return false;
+    if (eliminatedMatch && next.unresolvedMatches.some(box => box.box === eliminatedMatch.box
+      && box.occurrences.some(match => match.id === eliminatedMatch.id))) return false;
+    boxes.splice(0, boxes.length, ...candidate);
+    inspection = next;
+    visited.add(JSON.stringify(candidate));
+    return true;
+  }
+
   if (switchSafe) {
   for (let pass = 0; pass < MAX_SHIFT_PASSES; pass++) {
     let shifted = false;
     for (let bi = 0; bi < 13; bi++) {           // boxes 1-13 (index 0-12)
       const box = boxes[bi];
       if (!box) continue;
-      const result = _b64ProfanityFilter.checkDetailed(box);
+      const result = filter.checkDetailed(box);
       if (!result.blocked) continue;
 
       // Collect all viable cut points from matched terms. We will choose the
       // latest one that still fits downstream box capacity so we avoid cutting
       // earlier than necessary.
       const cutCandidates = [];
-      for (const term of result.matches) {
-        const positions = findTermLetterPositionsInBox(box, term);
-        if (!positions) continue;
+      for (const match of result.occurrences) {
+        const positions = match.positions;
         const lastCharPos = positions[positions.length - 1]; // original box index of last letter
         if (lastCharPos < 3) continue;                // position 4+ means index >= 3
         // Cut point: right before the last character of the bad word.
@@ -701,38 +685,23 @@ export function toBase64Emerald(bytes, options = {}){
 
       // Prefer the latest cut (max keep, min displacement) that still fits.
       cutCandidates.sort((a, b) => b - a);
-      let chosenCut = null;
       for (const cutAt of cutCandidates) {
         const displacedLen = box.length - cutAt;
-        if (displacedLen <= downstreamCapacity) {
-          chosenCut = cutAt;
-          break;
+        if (displacedLen > downstreamCapacity) continue;
+        const candidate = [...boxes];
+        candidate[bi] = box.slice(0, cutAt);
+        let overflow = box.slice(cutAt);
+        for (let j = bi + 1; j < 14 && overflow; j++) {
+          const combined = overflow + candidate[j];
+          candidate[j] = combined.slice(0, 8);
+          overflow = combined.slice(8);
         }
+        if (overflow || !acceptRepair(candidate)) continue;
+        shiftedBoxes.add(bi);
+        shifted = true;
+        break;
       }
-
-      if (chosenCut === null) continue;
-
-      // Truncate this box and push the rest forward
-      const kept = box.slice(0, chosenCut);
-      const displaced = box.slice(chosenCut);
-      boxes[bi] = kept;
-      shiftedBoxes.add(bi);                     // mark this box as truncated
-
-      // Shift displaced characters into subsequent boxes
-      let overflow = displaced;
-      for (let j = bi + 1; j < 14 && overflow; j++) {
-        overflow = overflow + boxes[j];
-        boxes[j] = overflow.slice(0, 8);
-        overflow = overflow.slice(8);
-      }
-      // Safety: chosenCut guarantees no overflow should remain here.
-      // Keep this as a defensive fallback in case of unexpected state.
-      if (overflow) {
-        boxes[13] = boxes[13] + overflow;
-      }
-
-      shifted = true;
-      break; // restart scan from the beginning after a shift
+      if (shifted) break; // restart scan from the beginning after a shift
     }
     if (!shifted) break;
   }
@@ -748,18 +717,18 @@ export function toBase64Emerald(bytes, options = {}){
     for (let bi = 0; bi < 14; bi++) {
       const box = boxes[bi];
       if (!box) continue;
-      const res = _b64ProfanityFilter.checkDetailed(box);
+      const res = filter.checkDetailed(box);
       if (!res.blocked) continue;
 
-      for (const term of res.matches) {
-        const positions = findTermLetterPositionsInBox(box, term);
-        if (!positions) continue;
+      for (const match of res.occurrences) {
+        const positions = match.positions;
 
         let substituted = false;
         for (const ci of positions) {
           const ch = box[ci];
           if (!SWITCH_SYMBOL_SUBSTITUTIONS[ch]) continue;
-          if (trySubstituteBase64Character(boxes, bi, ci)) {
+          const candidate = [...boxes];
+          if (trySubstituteBase64Character(candidate, bi, ci) && acceptRepair(candidate)) {
             substitutionUsed = true;
             substituted = true;
             break;
@@ -773,31 +742,28 @@ export function toBase64Emerald(bytes, options = {}){
     if (!anySubst) break;
   }
 
-  // Final boundary-only fallback: if a remaining boundary-only word starts a
+  // Final left-boundary fallback: if a remaining exact/prefix rule starts a
   // box, borrow the preceding box's final letter and reflow the remaining
   // boxes. This can safely turn e.g. "bj..." into "ebj...", which Switch
-  // permits, while retaining the exact Base64 byte stream. Strong-substring
-  // rules are intentionally excluded: a prefix letter cannot make those safe.
+  // permits, while retaining the exact Base64 byte stream. Substring/suffix
+  // rules are excluded: removing a left boundary cannot make those safe.
   for (let pPass = 0; pPass < MAX_SHIFT_PASSES; pPass++) {
-    const previousMatchCount = countBlockedBoxMatches(boxes);
     let reflowed = false;
 
     for (let bi = 1; bi < boxes.length; bi++) {
       const box = boxes[bi];
       if (!box) continue;
-      const result = _b64ProfanityFilter.checkDetailed(box);
+      const result = filter.checkDetailed(box);
 
-      for (const term of result.matches) {
-        if (!_b64ProfanityFilter.boundaryTerms.has(term)) continue;
-        const positions = findTermLetterPositionsInBox(box, term);
-        if (!positions || positions[0] !== 0) continue;
+      for (const match of result.occurrences) {
+        if (!match.requiresLeftBoundary || match.positions[0] !== 0) continue;
+        const borrowed = boxes[bi - 1].at(-1);
+        if (filter.isBoundary(borrowed) || filter.isSkippable(borrowed)) continue;
 
         const candidate = [...boxes];
         if (!borrowPreviousBoxTrailingLetter(candidate, bi)) continue;
-        if (_b64ProfanityFilter.checkDetailed(candidate[bi]).matches.includes(term)) continue;
-        if (countBlockedBoxMatches(candidate) >= previousMatchCount) continue;
+        if (!acceptRepair(candidate, true, { box: bi + 1, id: match.id })) continue;
 
-        boxes.splice(0, boxes.length, ...candidate);
         shiftedBoxes.add(bi - 1);
         reflowed = true;
         break;
@@ -814,7 +780,8 @@ export function toBase64Emerald(bytes, options = {}){
   for (const boxIndex of symbolSubstitutionBoxIndices) {
     let boxSubstitutionCount = 0;
     for (let ci = 0; ci < boxes[boxIndex].length; ci++) {
-      if (trySubstituteBase64Character(boxes, boxIndex, ci)) {
+      const candidate = [...boxes];
+      if (trySubstituteBase64Character(candidate, boxIndex, ci) && acceptRepair(candidate)) {
         substitutionUsed = true;
         manualSubstitutionCount++;
         boxSubstitutionCount++;
@@ -861,6 +828,8 @@ export function toBase64Emerald(bytes, options = {}){
     substitutionUsed,
     manualSubstitutionCount,
     manualSubstitutionCounts,
+    repairComplete: !switchSafe || inspection.unresolvedMatches.length === 0,
+    unresolvedMatches: switchSafe ? inspection.unresolvedMatches : [],
   };
 }
 

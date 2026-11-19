@@ -25,8 +25,7 @@ import { CXD_SPECIAL_ENCOUNTERS } from './data/cxdSpecialEncounters.gen3.js';
 import { CXD_TRADE_ENCOUNTERS } from './data/cxdTrades.gen3.js';
 import { getMinimumHatchedLevel, PRE_EVOLUTIONS } from './data/evolutions.gen3.js';
 import { getWildOriginEncounters, getWildOriginSpeciesIds, sortWildOriginLocations } from './domain/wildOrigins.js';
-import { PROFANITY_LIST } from './data/profanity.gen3.js';
-import { createProfanityFilter } from './lib/profanityFilter.js';
+import { getSwitchProfanityFilter, switchFilterModeFromSearch } from './lib/switchProfanityFilter.js';
 import { findValidGCShinySid, isValidGCTidSid } from './data/shadowEncounters.gen3.js';
 import { COLO_SHADOW_LOCKS, XD_SHADOW_LOCKS, COLO_NO_LOCK_SPECIES, XD_NO_LOCK_SPECIES } from './data/cxdLocks.gen3.js';
 import { getCXDTradeLocalizedText, isCXDGeneratedTrade } from './data/cxdTrades.gen3.js';
@@ -13740,10 +13739,10 @@ function collect(){
 }
 
 // â”€â”€ Profanity check for Base64 box names â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Hybrid filter: boundary-only terms (short/ambiguous words only banned at word
-// boundaries) + strong substring terms (slurs banned even inside larger words).
-// See src/lib/profanityFilter.js for rule class documentation.
-const _profanityFilter = createProfanityFilter(PROFANITY_LIST);
+// Current FRLG is the default; ?switchFilter=legacy explicitly enables backup.
+// Warnings and repairs must always use the same selected matcher.
+const switchFilterMode = switchFilterModeFromSearch(window.location.search);
+const _profanityFilter = getSwitchProfanityFilter(switchFilterMode);
 
 /**
  * Scan the Base64 box-name output for profanity.
@@ -13758,7 +13757,7 @@ function checkBase64Profanity(b64Text) {
     if (!m) continue;
     const boxNum = Number(m[1]);
     const boxName = m[2];
-    // Test the box name against the hybrid profanity filter
+    // Test the box name against the same matcher used by automatic repair.
     const result = _profanityFilter.checkDetailed(boxName);
     if (result.blocked) {
       for (const word of result.matches) hits.push({ box: boxNum, word });
@@ -13779,7 +13778,7 @@ function updateProfanityWarning(b64Text) {
   }
   // Build a human-readable message
   const details = hits.map(h => `Box ${h.box}: "${h.word}"`).join(', ');
-  banner.textContent = `�� ️ This code may be censored on the Nintendo Switch — detected: ${details}`;
+  banner.textContent = `Automatic repair could not resolve these box names, which may still be blocked on Nintendo Switch: ${details}`;
   banner.style.display = 'block';
 }
 
@@ -13823,6 +13822,7 @@ function updateBase64SafetyWarnings(b64Text, substitutionUsed) {
 function getBase64GenerationOptions() {
   return {
     switchSafe: isNintendoSwitchCodeTarget(),
+    profanityFilter: _profanityFilter,
     ...(manualSwitchSymbolBoxes.size > 0
       ? { symbolSubstitutionBoxes: [...manualSwitchSymbolBoxes].sort((a, b) => a - b) }
       : {}),
@@ -13855,6 +13855,14 @@ function updateSwitchBoxConverterUi() {
   if (!tool) return;
 
   tool.hidden = !isNintendoSwitchCodeTarget();
+  const legacyNotice = document.getElementById('switchLegacyFilterNotice');
+  if (legacyNotice) legacyNotice.hidden = switchFilterMode !== 'legacy';
+  const currentLink = document.getElementById('switchCurrentFilterLink');
+  if (currentLink) {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.delete('switchFilter');
+    currentLink.href = currentUrl.href;
+  }
   const hasSwitchOutput = isNintendoSwitchCodeTarget() && Boolean(getBase64OutputText());
   if (convertButton) convertButton.disabled = !hasSwitchOutput;
   if (undoButton) undoButton.disabled = !hasSwitchOutput || manualSwitchSymbolBoxes.size === 0;

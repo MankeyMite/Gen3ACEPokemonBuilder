@@ -592,11 +592,98 @@ try {
     return { staleOutputMarked: stale, exportedIdsMatch: true };
   })()`);
 
+  const frlgBoxNames = await evaluate(client, `(async () => {
+    const { toBase64Emerald, parseBase64Emerald } = await import('./src/lib/gen3/builder.js');
+    const { frlgProfanityFilter } = await import('./src/lib/frlgProfanityFilter.js');
+    const { HARDWARE_BLOCKED, HARDWARE_ALLOWED } = await import('./src/lib/fixtures/frlgProfanity.hardware.js');
+    if (!document.querySelector('#switchLegacyFilterNotice').hidden) throw new Error('Legacy filter must not be the default');
+    for (const input of HARDWARE_BLOCKED) if (!frlgProfanityFilter.check(input)) throw new Error('FRLG hardware blocked: ' + input);
+    for (const input of HARDWARE_ALLOWED) if (frlgProfanityFilter.check(input)) throw new Error('FRLG hardware allowed: ' + input);
+    const original = Uint8Array.from(${legalHex}.match(/../g).map(b => parseInt(b, 16)));
+    const read = () => document.querySelector('#base64Output').value;
+    const verify = bytes => {
+      const decoded = parseBase64Emerald(read()).bytes;
+      if (decoded.length !== 80 || decoded.some((b, i) => b !== bytes[i])) throw new Error('FRLG UI changed Pokemon bytes');
+    };
+    const load = prefix => {
+      const bytes = new Uint8Array(original);
+      bytes.set(Uint8Array.from(atob(prefix), c => c.charCodeAt(0)));
+      document.querySelector('#importHexInput').value = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+      document.querySelector('#importHexBtn').click();
+      document.querySelector('#codeTargetSwitch').click();
+      document.querySelector('#generateBtn').click();
+      verify(bytes);
+      return bytes;
+    };
+    load('xxxAAAAA');
+    const warning = document.querySelector('#profanityWarning');
+    if (getComputedStyle(warning).display === 'none' || !warning.textContent.includes('xxx') || !warning.textContent.includes('could not resolve')) {
+      throw new Error('Unresolved FRLG box warning was not displayed');
+    }
+    document.querySelector('#codeTargetConsole').click();
+    if (getComputedStyle(warning).display !== 'none') throw new Error('Console output retained the Switch warning');
+    const bytes = load('Rx5XxlIk');
+    if (/Box 1:\\s+\\(Rx5XxlIk\\)/.test(read())) throw new Error('FRLG UI did not apply automatic splitting');
+    const before = read();
+    let manualBox = 0;
+    for (let box = 1; box <= 14; box++) {
+      if (toBase64Emerald(bytes, { symbolSubstitutionBox: box }).manualSubstitutionCount) { manualBox = box; break; }
+    }
+    if (!manualBox) throw new Error('No manual-conversion fixture box found');
+    document.querySelector('#switchBlockedBoxNumber').value = String(manualBox);
+    document.querySelector('#convertSwitchBoxBtn').click();
+    verify(bytes);
+    if (read() === before || !document.querySelector('#switchBoxConverterStatus').textContent.includes('Converted')) {
+      throw new Error('Manual FRLG conversion was not applied');
+    }
+    document.querySelector('#undoSwitchBoxConversionsBtn').click();
+    verify(bytes);
+    if (read() !== before) throw new Error('Manual FRLG conversion undo did not restore the generated code');
+    return { hardwareCases: HARDWARE_BLOCKED.length + HARDWARE_ALLOWED.length, automaticSplit: true,
+      unresolvedWarning: true, consoleWarningHidden: true, manualBox, conversionAndUndoByteExact: true };
+  })()`);
+
+  // Exercise the real URL switch and shared warning/repair selection, then use
+  // the visible recovery link to return to the normal default.
+  const legacyUrl = new URL(targetUrl);
+  legacyUrl.searchParams.set('switchFilter', 'legacy');
+  legacyUrl.searchParams.set('filterProbe', 'preserved');
+  await client.send('Page.navigate', { url: legacyUrl.href });
+  await waitFor(client, "location.search.includes('switchFilter=legacy') && document.documentElement?.classList?.contains('builder-ready') === true");
+  const filterSelectionProbe = legacy => evaluate(client, `(async () => {
+    const { parseBase64Emerald } = await import('./src/lib/gen3/builder.js');
+    const bytes = Uint8Array.from(${legalHex}.match(/../g).map(b => parseInt(b, 16)));
+    bytes.set(Uint8Array.from(atob('AdpAAAAA'), c => c.charCodeAt(0)));
+    document.querySelector('#importHexInput').value = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    document.querySelector('#importHexBtn').click();
+    document.querySelector('#codeTargetSwitch').click();
+    document.querySelector('#generateBtn').click();
+    const decoded = parseBase64Emerald(document.querySelector('#base64Output').value).bytes;
+    if (decoded.some((b, i) => b !== bytes[i])) throw new Error('Filter selection changed Pokemon bytes');
+    const notice = document.querySelector('#switchLegacyFilterNotice');
+    const warning = document.querySelector('#profanityWarning');
+    const warnedDp = getComputedStyle(warning).display !== 'none' && warning.textContent.includes('"dp"');
+    if (notice.hidden !== !${legacy} || warnedDp !== ${legacy}) throw new Error('Warning and repair filter selection disagree');
+    const currentLink = document.querySelector('#switchCurrentFilterLink').href;
+    const linkUrl = new URL(currentLink);
+    if (linkUrl.searchParams.has('switchFilter') || linkUrl.searchParams.get('filterProbe') !== 'preserved') {
+      throw new Error('Current-filter link did not preserve unrelated URL parameters');
+    }
+    return { mode: ${legacy} ? 'legacy' : 'current', warnedDp, byteExact: true, currentLink };
+  })()`);
+  const legacyFilterSelection = await filterSelectionProbe(true);
+  await client.send('Page.navigate', { url: legacyFilterSelection.currentLink });
+  await waitFor(client, "!location.search.includes('switchFilter=legacy') && document.documentElement?.classList?.contains('builder-ready') === true");
+  const restoredFilterSelection = await filterSelectionProbe(false);
+
   console.log(JSON.stringify({
     browser: path.basename(chromePath),
     experienceDefaults,
     trainerIdDice,
     importedTrainerIdDice,
+    frlgBoxNames,
+    legacyFilterSelection,
+    restoredFilterSelection,
     wildEvolutionOrigins,
     immediate,
     gbaReport,
