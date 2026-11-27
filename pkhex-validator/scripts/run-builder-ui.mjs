@@ -127,8 +127,46 @@ try {
   browserSocket = client.socket;
   await client.send('Runtime.enable');
   const desktopMetrics = { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false };
+  const phoneMetrics = { width: 390, height: 844, deviceScaleFactor: 1, mobile: true };
   await client.send('Emulation.setDeviceMetricsOverride', desktopMetrics);
   await waitFor(client, "document.documentElement?.classList?.contains('builder-ready') === true");
+
+  await client.send('Emulation.setDeviceMetricsOverride', { ...phoneMetrics, width: 320, height: 600 });
+  await waitFor(client, "document.body.classList.contains('builder-mobile') && document.querySelector('#species-input').offsetHeight > 0");
+  const phoneEncounterLayout = await evaluate(client, `(() => {
+    const bounds = selector => document.querySelector(selector).getBoundingClientRect();
+    const menu = bounds('#encounterBrowserDisclosure > summary');
+    const lookup = bounds('#species-input');
+    const guide = bounds('#builderPhoneGuideDock .how-it-works-card');
+    return {
+      pickerSpacing: lookup.top - menu.bottom,
+      guideBelowPicker: guide.top > lookup.bottom && guide.height > 0,
+      steps: document.querySelectorAll('#builderPhoneGuideDock ol > li').length,
+      topGuideHidden: bounds('.builder-setup-bar').height === 0,
+      phonePanelCanScroll: getComputedStyle(document.querySelector('.builder-panels')).overflowY === 'auto',
+    };
+  })()`);
+  if (phoneEncounterLayout.pickerSpacing < 4 || !phoneEncounterLayout.guideBelowPicker ||
+      phoneEncounterLayout.steps !== 4 || !phoneEncounterLayout.topGuideHidden || !phoneEncounterLayout.phonePanelCanScroll) {
+    throw new Error(`Unexpected phone encounter layout: ${JSON.stringify(phoneEncounterLayout)}`);
+  }
+  const switchLookupMode = "document.querySelector('#encounterBrowserDisclosure > summary').click()";
+  await evaluate(client, switchLookupMode);
+  await waitFor(client, "document.body.classList.contains('encounter-browser-mode') && document.querySelector('#encounterBrowseCategory').offsetHeight > 0");
+  await evaluate(client, switchLookupMode);
+  await waitFor(client, "!document.body.classList.contains('encounter-browser-mode') && document.querySelector('#species-input').offsetHeight > 0");
+  const guideHiddenOnSelection = await evaluate(client, `(() => {
+    const selected = document.querySelector('#species').selectById(2);
+    return selected && document.querySelector('#builderPhoneGuideDock').offsetHeight === 0 &&
+      !document.querySelector('#pokemonOriginRow').hidden;
+  })()`);
+  if (!guideHiddenOnSelection) throw new Error('The phone guide did not hide when Ivysaur was selected.');
+  await evaluate(client, switchLookupMode);
+  await waitFor(client, "document.body.classList.contains('encounter-browser-mode')");
+  await evaluate(client, switchLookupMode);
+  await waitFor(client, "!document.body.classList.contains('encounter-browser-mode') && document.querySelector('#builderPhoneGuideDock').offsetHeight > 0");
+  await client.send('Emulation.setDeviceMetricsOverride', desktopMetrics);
+  await waitFor(client, "document.body.classList.contains('builder-desktop') && !!document.querySelector('#builderGuideDock .how-it-works-card')");
 
   const experienceDefaults = await evaluate(client, `(async () => {
     const { expForLevel, GROUP } = await import('./src/lib/exp.js');
@@ -520,12 +558,7 @@ try {
     throw new Error(`Unexpected desktop verification layout: ${JSON.stringify(desktopLayout)}`);
   }
 
-  await client.send('Emulation.setDeviceMetricsOverride', {
-    width: 390,
-    height: 844,
-    deviceScaleFactor: 1,
-    mobile: true,
-  });
+  await client.send('Emulation.setDeviceMetricsOverride', phoneMetrics);
   await waitFor(client, "document.body.classList.contains('builder-mobile')");
   const mobileLayout = await evaluate(client, `(() => {
     document.querySelector('#builderCodesPanel .output-tabs .tab-btn.active').click();

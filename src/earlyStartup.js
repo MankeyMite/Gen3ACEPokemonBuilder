@@ -168,19 +168,21 @@ function createStartupSpeciesPicker(selectElement, onSelect) {
   return wrapper;
 }
 
+const nextStep = document.getElementById('builderNextStep');
+const guidance = document.getElementById('builderSetupGuidance');
 let builderPromise = null;
 function loadBuilder() {
   if (builderPromise) return builderPromise;
   document.documentElement.classList.add('builder-loading');
   builderPromise = import('./main.js')
     .then(() => {
+      nextStep.disabled = false;
       document.documentElement.classList.remove('builder-loading');
       document.documentElement.classList.add('builder-ready');
     })
     .catch(error => {
       document.documentElement.classList.remove('builder-loading');
       document.documentElement.classList.add('builder-load-failed');
-      const guidance = document.getElementById('builderSetupGuidance');
       if (guidance) guidance.textContent = 'The builder could not finish loading. Refresh the page to try again.';
       console.error('Failed to load the Pokémon builder:', error);
     });
@@ -190,19 +192,11 @@ function loadBuilder() {
 const speciesSelect = document.getElementById('species');
 if (speciesSelect) {
   createStartupSpeciesPicker(speciesSelect, item => {
-    const guidance = document.getElementById('builderSetupGuidance');
+    if (document.documentElement.classList.contains('builder-load-failed')) return;
     if (guidance) guidance.textContent = `Loading builder options for ${item.name}…`;
     loadBuilder();
   });
 }
 
-const scheduleBuilderLoad = () => {
-  if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(loadBuilder, { timeout: 1000 });
-  } else {
-    window.setTimeout(loadBuilder, 50);
-  }
-};
-
-// Let the header, guide, and lightweight picker paint before loading the full app.
-window.requestAnimationFrame(() => window.requestAnimationFrame(scheduleBuilderLoad));
+// Let the lightweight picker paint while the main module preloads.
+window.requestAnimationFrame(() => window.requestAnimationFrame(loadBuilder));

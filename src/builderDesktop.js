@@ -49,9 +49,9 @@ export function initDesktopBuilder() {
   const detailsDialog = document.getElementById('builderPhoneDetails');
   const detailsContent = document.getElementById('builderPhoneDetailsContent');
   const detailsTitle = document.getElementById('builderPhoneDetailsTitle');
-  const siteFooter = document.querySelector('.site-footer');
-  const footerLocation = document.createComment('site footer');
-  siteFooter.before(footerLocation);
+  const guideDock = document.getElementById('builderGuideDock');
+  const phoneGuideDock = document.getElementById('builderPhoneGuideDock');
+  const guide = guideDock.querySelector('.how-it-works-card');
   let detailItems = '';
   let restoreDetails;
   const detailsPager = connectPhonePageControls(
@@ -253,12 +253,12 @@ export function initDesktopBuilder() {
       searchPosition.after(searchControls);
       outputSidebar.prepend(outputActions);
       verificationPosition.after(verificationStatus);
-      footerLocation.after(siteFooter);
+      guideDock.append(guide);
     } else {
       mobileSearchDock.append(searchControls);
       mobileOutputActionsDock.append(outputActions);
       phoneVerificationDock.append(verificationStatus);
-      document.getElementById('builderGuideDock').append(siteFooter);
+      phoneGuideDock.append(guide);
     }
     document.body.classList.toggle('builder-desktop', desktop);
     document.body.classList.toggle('builder-mobile', !desktop);

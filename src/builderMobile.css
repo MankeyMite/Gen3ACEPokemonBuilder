@@ -56,7 +56,8 @@
 
 .builder-mobile :is(.profile-drawer-toggle, .builder-intro, .import-optional-label),
 .builder-mobile :is(#builderDetailsCard, .mobile-pokemon-preview, .encounter-browser-sprite),
-.builder-mobile :is(.builder-spawn-slot, .builder-setup-actions > a, .output-header-row) {
+.builder-mobile :is(.builder-setup-bar, .output-header-row),
+.builder-mobile > .site-footer {
   display: none;
 }
 
@@ -66,34 +67,6 @@
   gap: 0.65rem;
   margin-top: 0;
   padding-block: 0 0.5rem;
-}
-
-.builder-mobile .builder-setup-bar {
-  position: relative;
-  flex: none;
-  z-index: 6;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding-inline: 0.75rem;
-  border: 1px solid var(--border-soft);
-  border-radius: 0.65rem;
-  background: var(--desktop-surface);
-  font-size: 0.8rem;
-}
-
-.builder-mobile .builder-guide > summary {
-  padding-block: 0.85rem;
-}
-
-.builder-mobile .builder-guide {
-  margin: 0;
-}
-
-.builder-mobile #builderGuideDock {
-  width: 100%;
-  max-width: 34rem;
 }
 
 .builder-mobile :is(.builder-workspace, .builder-workbench, #basicsCard) {
@@ -184,6 +157,10 @@
   min-height: 0;
   margin-top: 0.8rem;
   overflow: clip;
+}
+
+.builder-mobile .builder-panels:has(#builderEncounterPanel:not([hidden]) #builderPhoneGuideDock:not([hidden])) {
+  overflow-y: auto;
 }
 
 .builder-mobile :is(.builder-panel, #pidFinderOverlay) :is(input:not([type="checkbox"], [type="radio"], [type="file"]), select, textarea) {
@@ -286,33 +263,73 @@
 }
 
 .builder-mobile .species-discovery-layout {
-  display: block;
-  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem 0.65rem;
+}
+
+.builder-mobile .species-search-panel {
+  display: contents;
+}
+
+.builder-mobile .species-discovery-layout:has(> .encounter-browser-disclosure[open]) > .species-search-panel {
+  display: none;
+}
+
+.builder-mobile .species-search-panel > label {
+  grid-area: 1 / 1;
+  margin: 0;
+  padding: 0;
+}
+
+.builder-mobile :is(.builder-species-control, #builderPhoneGuideDock) {
+  grid-column: 1 / -1;
+}
+
+.builder-mobile .species-search-panel:has(#species[data-early-selected-id]:not([data-early-selected-id=""])) #builderPhoneGuideDock {
+  display: none;
+}
+
+.builder-mobile #builderPhoneGuideDock .how-it-works-card {
+  padding: 0.75rem;
+  font-size: 0.83rem;
+  box-shadow: none;
+}
+
+.builder-mobile #builderPhoneGuideDock h2 {
+  margin-bottom: 0.4rem;
+  font-size: 1rem;
 }
 
 .builder-mobile .species-search-panel .autocomplete-wrapper {
   width: 100%;
 }
 
-.builder-mobile :is(.species-search-panel > label, .encounter-browser-panel > legend) {
-  display: flex;
-  align-items: center;
-  min-height: 2.75rem;
-  padding-right: 8rem;
-  margin-bottom: 0.4rem;
+.builder-mobile .encounter-browser-disclosure:not([open]) {
+  position: static;
+  grid-area: 1 / 2;
 }
 
-.builder-mobile .encounter-browser-disclosure:not([open]),
-.builder-mobile .encounter-browser-disclosure[open] > summary {
-  top: 0;
-  right: 0;
-  left: auto;
+.builder-mobile .encounter-browser-disclosure[open] {
+  grid-column: 1 / -1;
 }
 
 .builder-mobile .encounter-browser-disclosure > summary {
   display: flex;
+  width: fit-content;
   min-height: 2.75rem;
+  margin-left: auto;
   padding: 0.16rem;
+}
+
+.builder-mobile .encounter-browser-disclosure[open] > summary {
+  position: static;
+  margin-bottom: 0.55rem;
+}
+
+.builder-mobile .encounter-browser-disclosure .encounter-browser-panel > legend {
+  padding-right: 0;
 }
 
 .builder-mobile .encounter-browser-mode-option {

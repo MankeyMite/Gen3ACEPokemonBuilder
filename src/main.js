@@ -4650,6 +4650,7 @@ function boot(){
 
     document.body.classList.toggle('builder-setup-pending', !resolved);
     stage?.classList.toggle('is-complete', resolved);
+    document.getElementById('builderPhoneGuideDock').hidden = Boolean(speciesId);
     guidance?.classList.toggle('is-complete', resolved);
     basicsCard?.setAttribute('data-setup-complete', resolved ? 'true' : 'false');
 

@@ -174,6 +174,16 @@ export async function initProfileWorkspace({
 
   const get = id => root.querySelector(`#${id}`);
   const drawer = get('profileDrawer');
+  const siteFooter = document.querySelector('.site-footer');
+  const footerPosition = document.createComment('site footer');
+  siteFooter.before(footerPosition);
+  const desktopLayout = window.matchMedia('(min-width: 1000px)');
+  const placeFooter = () => {
+    if (desktopLayout.matches) footerPosition.after(siteFooter);
+    else drawer.append(siteFooter);
+  };
+  desktopLayout.addEventListener('change', placeFooter);
+  placeFooter();
   const toggle = get('profileDrawerToggle');
   const desktopToggle = document.getElementById('desktopBuilderTools');
   const backdrop = get('profileDrawerBackdrop');

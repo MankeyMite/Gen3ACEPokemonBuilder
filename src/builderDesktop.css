@@ -793,7 +793,12 @@ main.layout-vertical .builder-workbench > .card {
   font-weight: 750;
 }
 
-#builderNextStep:hover,
+#builderNextStep:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+#builderNextStep:not(:disabled):hover,
 .builder-desktop #generateBtn:not([data-disabled="true"]):hover {
   background: #abe5f5;
 }

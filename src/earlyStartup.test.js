@@ -7,9 +7,12 @@ const mainSource = await readFile(new URL('./main.js', import.meta.url), 'utf8')
 
 assert.match(html, /<script type="module" src="\.\/src\/earlyStartup\.js"><\/script>/);
 assert.doesNotMatch(html, /<script type="module" src="\.\/src\/main\.js"><\/script>/);
+assert.match(html, /<link rel="modulepreload" href="\.\/src\/earlyStartup\.js"\s*\/>/);
+assert.match(html, /<link rel="modulepreload" href="\.\/src\/main\.js"\s*\/>/);
+assert.match(html, /<button id="builderNextStep" type="button" disabled>/);
 assert.match(startupSource, /import \{ SPECIES \} from '\.\/data\/species\.gen3\.js'/);
 assert.match(startupSource, /builderPromise = import\('\.\/main\.js'\)/);
-assert.match(startupSource, /requestAnimationFrame\(\(\) => window\.requestAnimationFrame\(scheduleBuilderLoad\)\)/);
+assert.match(startupSource, /requestAnimationFrame\(\(\) => window\.requestAnimationFrame\(loadBuilder\)\)/);
 assert.match(startupSource, /wrapper\.dataset\.earlySelectedId = selectedId/);
 assert.match(startupSource, /window\.__aceEarlySpeciesState = \{ selectedId, query: item\.name \}/);
 assert.match(mainSource, /const startupSpeciesId = String\(/);
