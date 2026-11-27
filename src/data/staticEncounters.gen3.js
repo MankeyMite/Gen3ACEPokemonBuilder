@@ -7,6 +7,7 @@
  *   games        – array of game IDs where this encounter appears
  *                   (1=Sapphire, 2=Ruby, 3=Emerald, 4=FireRed, 5=LeafGreen)
  *   location     – met location ID
+ *   lockMetFields – lock the level and location in Legal Mode for this encounter
  *   method       – PID generation method (1 = Method 1, 4 = Method 4, etc.)
  *   fixedBall    – ball forced into (4 = Poké Ball); omit if catchable in any ball
  *   isEgg        – true for egg gifts
@@ -175,7 +176,7 @@ export const STATIC_ENCOUNTER_LIST = [
   { category: 'events', species: 249, level: 70, games: [...FRLG], location: 174, method: 1, fateful: true }, // Lugia @ Navel Rock (FRLG)
 
   // Mew — Old Sea Map (Japan-only event)
-  { category: 'events', species: 151, level: 30, games: [EME], location: 201, method: 1, fateful: true, language: 1, nickname: 'ミュウ' }, // Mew @ Faraway Island
+  { category: 'events', species: 151, level: 30, games: [EME], location: 201, lockMetFields: true, method: 1, fateful: true, language: 1, nickname: 'ミュウ' }, // Mew @ Faraway Island
 
   // Latias & Latios — Southern Island (Eon Ticket)
   { category: 'events', species: 407, level: 50, games: [RUB], location: 73, method: 1 },                      // Latias @ Southern Island (Ruby — natural)

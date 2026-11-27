@@ -1,3 +1,8 @@
+
+Patch Notes - (V.0.5.5) - November 27, 2026.
+- Major rework of the UI for pc and phone. Previously you needed to scroll down to the next field, now everything is inside tabs.
+- Fixed a bug where Mew had its met location and met level editable in legal mode for the static encounter on the japanese Emerald version.
+
 Patch Notes - (V.0.5.4) - November 17, 2026.
 - You must now use the PID finder in Wild and Static encounters to ensure legal origin seed. 
 The previous pre-set PIDs for each nature did not always match a legal encounter seed in wild mode especially. 

@@ -97,12 +97,13 @@ import { BUILDER_SNAPSHOT_SCHEMA_VERSION, profileIdentityMatchesEncounter } from
 import { initProfileWorkspace } from './profileWorkspace.js';
 import { initUsefulCreations } from './usefulCreations.js';
 import { initGameHexScanner } from './gameHexScanner.js';
-import { renderBase64Code } from './lib/gen3/base64CodeDisplay.js';
+import { alignBase64PreviewGlyphs, renderBase64Code } from './lib/gen3/base64CodeDisplay.js';
 import {
   getDefaultMoveIdsForSpecies,
   getSelectableMovesForSpecies,
 } from './domain/smeargleMoveRules.js';
 import { getAlternativeMoveHints } from './domain/moveDiscoveryHints.js';
+import { rankSpeciesMatches } from './domain/speciesSearch.js';
 import {
   hasImportedDistributionTrainerIds,
   resolveImportedProgression,
@@ -121,6 +122,14 @@ import {
   validateGen3RibbonSelection,
 } from './domain/ribbonLegality.js';
 import { preloadPkhexValidator, validateExactStoredPokemon } from './lib/pkhexValidator.js';
+import {
+  queueBuilderPreview,
+  revealDesktopBuilderField,
+  setDesktopBuilderProgress,
+  showDesktopBuilderCodes,
+  showPhoneBuilderField,
+} from './builderDesktop.js';
+import { connectPhonePageControls } from './builderPhonePages.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -259,6 +268,7 @@ function renderPkhexVerificationStatus(state, result = latestPkhexResult) {
   } else {
     label.textContent = '';
   }
+  queueBuilderPreview();
 }
 
 function formatPkhexEnvironment(environment) {
@@ -329,7 +339,9 @@ function renderPkhexChecks(result) {
   }
 }
 
-function openPkhexLegalityReport() {
+let pkhexReportTrigger;
+
+function openPkhexLegalityReport(event) {
   if (!latestPkhexResult) return;
 
   const verified = isFullyPkhexVerified(latestPkhexResult);
@@ -344,6 +356,7 @@ function openPkhexLegalityReport() {
 
   const overlay = document.getElementById('pkhexReportOverlay');
   if (!overlay) return;
+  pkhexReportTrigger = event?.currentTarget;
   overlay.classList.add('open');
   overlay.setAttribute('aria-hidden', 'false');
   document.getElementById('pkhexReportClose')?.focus();
@@ -354,7 +367,7 @@ function closePkhexLegalityReport() {
   if (!overlay) return;
   overlay.classList.remove('open');
   overlay.setAttribute('aria-hidden', 'true');
-  document.getElementById('pkhexReportBtn')?.focus();
+  pkhexReportTrigger?.focus({ preventScroll: true });
 }
 
 function beginPkhexVerification(sourceBytes, environment = pkhexLegalityEnvironment) {
@@ -563,6 +576,7 @@ function getStatBarColor(baseStat) {
 }
 
 function updateStatGraph() {
+  queueBuilderPreview();
   const speciesId = Number($('#species')?.value || 0);
   const baseStats = getDisplayedBaseStats(speciesId);
   const level = clampNumber($('#level')?.value, 1, 100, 1);
@@ -1901,7 +1915,7 @@ function shouldLockStaticEncounterMetFields() {
   if (STATIC_LOCKED_MET_FIELD_CATEGORIES.has(category)) return true;
 
   const encounter = getSelectedStaticEncounter();
-  return Boolean(encounter && STATIC_LOCKED_MET_FIELD_CATEGORIES.has(encounter.category));
+  return Boolean(encounter && (encounter.lockMetFields || STATIC_LOCKED_MET_FIELD_CATEGORIES.has(encounter.category)));
 }
 
 function shouldLockStaticEncounterBall() {
@@ -2831,6 +2845,7 @@ function createAutocomplete(selectEl, list, opts = {}) {
   const allowEmpty = opts.placeholder !== null;
   const onSelect = opts.onSelect || null;
   const blurOnSelect = opts.blurOnSelect === true;
+  const rankMatches = opts.rankMatches;
   const isItemDisabled = typeof opts.isItemDisabled === 'function'
     ? opts.isItemDisabled
     : () => false;
@@ -2869,15 +2884,20 @@ function createAutocomplete(selectEl, list, opts = {}) {
   
   // Create dropdown
   const dropdown = document.createElement('div');
+  dropdown.id = `${selectEl.id}-options`;
   dropdown.className = 'autocomplete-dropdown';
   // Limit dropdown height to 5 items and make it scrollable
   dropdown.style.maxHeight = '160px'; // ~32px per item * 5
   dropdown.style.overflowY = 'auto';
+  dropdown.setAttribute('role', 'listbox');
+  input.setAttribute('role', 'combobox');
+  input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('aria-controls', dropdown.id);
+  input.setAttribute('aria-expanded', 'false');
 
   let dropdownButton = null;
   if (opts.dropdownButtonLabel) {
     wrapper.classList.add('autocomplete-with-toggle');
-    dropdown.id = `${selectEl.id}-options`;
     dropdownButton = document.createElement('button');
     dropdownButton.type = 'button';
     dropdownButton.className = 'autocomplete-toggle';
@@ -2891,22 +2911,22 @@ function createAutocomplete(selectEl, list, opts = {}) {
       const wasOpen = dropdown.classList.contains('show');
       input.focus();
       if (wasOpen) hideDropdown();
-      else {
-        renderDropdown(items);
-        setDropdownOpen(true);
-        dropdown.querySelector(`.autocomplete-item[data-id="${selectedId}"]`)?.scrollIntoView({ block: 'nearest' });
-      }
+      else openDropdown(items, selectedId);
     });
   }
 
   function setDropdownOpen(open) {
     dropdown.classList.toggle('show', open);
     dropdownButton?.setAttribute('aria-expanded', String(open));
+    input.setAttribute('aria-expanded', String(open));
+    if (!open) input.removeAttribute('aria-activedescendant');
   }
   
   // Store current selection
   let selectedId = '';
   let selectedIndex = -1;
+  let displayedItems = [];
+  let selectableOptions = [];
   
   // Expose value property on wrapper for compatibility
   Object.defineProperty(wrapper, 'value', {
@@ -2985,6 +3005,7 @@ function createAutocomplete(selectEl, list, opts = {}) {
   };
   
   function filterItems(query) {
+    if (rankMatches) return rankMatches(items, query);
     const q = query.toLowerCase().trim();
     if (!q) return items;
     return items.filter(item => item.name.toLowerCase().includes(q));
@@ -2992,7 +3013,11 @@ function createAutocomplete(selectEl, list, opts = {}) {
   
   function renderDropdown(filtered) {
     dropdown.innerHTML = '';
+    dropdown.scrollTop = 0;
+    input.removeAttribute('aria-activedescendant');
     selectedIndex = -1;
+    displayedItems = filtered;
+    selectableOptions = [];
     
     if (filtered.length === 0) {
       const noResults = document.createElement('div');
@@ -3014,10 +3039,15 @@ function createAutocomplete(selectEl, list, opts = {}) {
       }
       const div = document.createElement('div');
       div.className = 'autocomplete-item';
+      div.id = `${dropdown.id}-${idx}`;
+      div.setAttribute('role', 'option');
+      div.setAttribute('aria-selected', 'false');
       const disabled = itemIsDisabled(item);
       if (disabled) {
         div.classList.add('disabled');
         div.setAttribute('aria-disabled', 'true');
+      } else {
+        selectableOptions.push(div);
       }
       const name = document.createElement('span');
       name.className = 'autocomplete-item-name';
@@ -3062,10 +3092,11 @@ function createAutocomplete(selectEl, list, opts = {}) {
     }
   }
   
-  function showDropdown() {
-    const filtered = filterItems(input.value);
+  function openDropdown(filtered, preferredId) {
     renderDropdown(filtered);
     setDropdownOpen(true);
+    const preferredIndex = selectableOptions.findIndex(option => option.dataset.id === preferredId);
+    updateSelectedItem(Math.max(0, preferredIndex), { scroll: preferredIndex > 0 });
   }
   
   function hideDropdown() {
@@ -3073,31 +3104,15 @@ function createAutocomplete(selectEl, list, opts = {}) {
   }
   
   // Event listeners
-  input.addEventListener('input', (e) => {
-    const query = e.target.value;
-    const filtered = filterItems(query);
-    renderDropdown(filtered);
-    setDropdownOpen(true);
-    
-    // Clear selected ID when typing (user is searching)
+  input.addEventListener('input', () => {
     selectedId = '';
+    openDropdown(filterItems(input.value));
   });
   
   input.addEventListener('focus', () => {
     // If a value is already selected, show ALL options so the user can
     // browse and pick a different one (instead of filtering by current text).
-    if (selectedId) {
-      renderDropdown(items);
-      setDropdownOpen(true);
-      // Scroll the currently selected item into view
-      const active = dropdown.querySelector(`.autocomplete-item[data-id="${selectedId}"]`);
-      if (active) {
-        active.classList.add('selected');
-        active.scrollIntoView({ block: 'nearest' });
-      }
-    } else {
-      showDropdown();
-    }
+    openDropdown(selectedId ? items : filterItems(input.value), selectedId);
   });
   
   const handleBlur = () => {
@@ -3110,9 +3125,8 @@ function createAutocomplete(selectEl, list, opts = {}) {
         // Skip auto-resolve when Manual Override is active (import or PID
         // Finder result applied) to prevent any async preset application.
         if (suppressPresetApply) return;
-        const exactMatch = items.find(item => 
-          item.name.toLowerCase() === input.value.toLowerCase()
-        );
+        const query = rankMatches ? input.value.trim() : input.value;
+        const exactMatch = items.find(item => item.name.toLowerCase() === query.toLowerCase());
         if (exactMatch && !itemIsDisabled(exactMatch)) {
           selectItem(exactMatch);
         } else {
@@ -3127,41 +3141,37 @@ function createAutocomplete(selectEl, list, opts = {}) {
   dropdownButton?.addEventListener('blur', handleBlur);
   
   input.addEventListener('keydown', (e) => {
-    const allItems = Array.from(dropdown.querySelectorAll('.autocomplete-item'));
-    const selectableItems = allItems.filter(el => !el.classList.contains('disabled'));
-    if (allItems.length === 0) return;
+    if (e.isComposing || !dropdown.classList.contains('show')) return;
+    if (e.key === 'Escape') {
+      hideDropdown();
+      return;
+    }
+    if (!selectableOptions.length) return;
     
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      if (selectableItems.length === 0) return;
-      selectedIndex = Math.min(selectedIndex + 1, selectableItems.length - 1);
-      updateSelectedItem(selectableItems, allItems);
+      updateSelectedItem(Math.min(selectedIndex + 1, selectableOptions.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      if (selectableItems.length === 0) return;
-      selectedIndex = Math.max(selectedIndex - 1, 0);
-      updateSelectedItem(selectableItems, allItems);
+      updateSelectedItem(Math.max(selectedIndex - 1, 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (selectedIndex >= 0 && selectableItems[selectedIndex]) {
-        const id = selectableItems[selectedIndex].dataset.id;
-        const filtered = filterItems(input.value);
-        const item = filtered.find(i => i.id === id);
-        if (item) selectItem(item);
-      }
-    } else if (e.key === 'Escape') {
-      hideDropdown();
+      const option = selectableOptions[selectedIndex];
+      if (option) selectItem(displayedItems[Number(option.dataset.index)]);
     }
   });
   
-  function updateSelectedItem(selectableItems, allItems) {
-    allItems.forEach(el => {
-      el.classList.remove('selected');
-    });
-    if (selectableItems[selectedIndex]) {
-      selectableItems[selectedIndex].classList.add('selected');
-      selectableItems[selectedIndex].scrollIntoView({ block: 'nearest' });
-    }
+  function updateSelectedItem(index, { scroll = true } = {}) {
+    const active = selectableOptions[index];
+    if (!active) return;
+    const previous = selectableOptions[selectedIndex];
+    previous?.classList.remove('selected');
+    previous?.setAttribute('aria-selected', 'false');
+    selectedIndex = index;
+    active.classList.add('selected');
+    active.setAttribute('aria-selected', 'true');
+    input.setAttribute('aria-activedescendant', active.id);
+    if (scroll) active.scrollIntoView({ block: 'nearest' });
   }
   
   // Replace select with autocomplete
@@ -3736,8 +3746,37 @@ function getFieldFocusTarget(target) {
   return target.querySelector?.('input, select, textarea, button, [tabindex]:not([tabindex="-1"])') || null;
 }
 
+function getDesktopEncounterBlocker() {
+  if (document.body.classList.contains('encounter-browser-mode') && !$('#species').value) {
+    const browseFields = [
+      ['encounterBrowseCategory', 'Choose an encounter source to continue.'],
+      ['encounterBrowseSubcategory', 'Choose an encounter category to continue.'],
+      ['encounterBrowseSpecies', 'Choose a Pokémon to continue.'],
+    ];
+    const missing = browseFields.find(([id]) => !document.getElementById(id).value);
+    if (missing) {
+      const [id, message] = missing;
+      const field = document.getElementById(id);
+      return field.disabled
+        ? { fields: ['encounterBrowseSubcategory'], message: 'Choose a category with available Pokémon.' }
+        : { fields: [id], message };
+    }
+  }
+  if (!$('#species').value) return { fields: ['species-input'], message: 'Choose a Pokémon to continue.' };
+  if ($('#pokemonOrigin').value) {
+    if (currentEncounterMode === 'static') return { fields: ['staticEncounter'], message: 'Choose the exact encounter to continue.' };
+    if (currentEncounterMode === 'mystery') return { fields: ['mysteryEvent'], message: 'Choose the exact distribution to continue.' };
+    if (currentEncounterMode === 'cxd_shadow') return { fields: ['shadowEncounter'], message: 'Choose the exact Colosseum or XD encounter to continue.' };
+  }
+  return { fields: ['pokemonOrigin'], message: 'Choose how this Pokémon was obtained to continue.' };
+}
+
 function scrollToMissingField(target, focusTarget = null) {
   if (!target?.scrollIntoView) return;
+  if (revealDesktopBuilderField(target)) {
+    (focusTarget || getFieldFocusTarget(target))?.focus({ preventScroll: true });
+    return;
+  }
   const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
   const behavior = prefersReducedMotion ? 'auto' : 'smooth';
 
@@ -3947,6 +3986,7 @@ function updateDesktopPokemonPreviewSprite(speciesId) {
   const preview = document.getElementById('desktopPokemonPreview');
   renderSpeciesSprite(img, speciesId);
   preview?.classList.toggle('has-sprite', Boolean(img?.classList.contains('visible')));
+  queueBuilderPreview();
 }
 
 function updateUnownPreviewSprites(formIndex) {
@@ -4615,9 +4655,9 @@ function boot(){
 
     if (!guidance) return;
     if (resolved && currentEncounterMode === 'imported') {
-      guidance.textContent = 'Imported Pokémon loaded. Review or customize its details below.';
+      guidance.textContent = 'Imported Pokémon loaded. Review its details or open Codes.';
     } else if (resolved) {
-      guidance.textContent = 'Setup complete. You can now customize the Pokémon below.';
+      guidance.textContent = 'Encounter selected. You can now customize the Pokémon.';
     } else if (!speciesId) {
       guidance.textContent = 'Start by choosing the Pokémon you want to create.';
     } else if (!originMode) {
@@ -4654,7 +4694,8 @@ function boot(){
                     (move2Value && move2Value !== '0') || 
                     (move3Value && move3Value !== '0') || 
                     (move4Value && move4Value !== '0');
-    const hasLegalMoves = updateMoveLegalityUi().length === 0;
+    const invalidMoveSlots = updateMoveLegalityUi();
+    const hasLegalMoves = invalidMoveSlots.length === 0;
     const hasMysteryGiftLegalPid = hasRequiredMysteryGiftPidFinderSelection();
     const hasLegalRSTrainerId = getRSTrainerIdValidation().valid;
     const hasRequiredParityPid = hasRequiredPidFinderForPidParitySelection();
@@ -4662,6 +4703,33 @@ function boot(){
     const hasRequiredCXDEncounterPid = hasRequiredCXDEncounterPidFinderSelection();
     const hasResolvedOrigin = hasResolvedOriginSelection();
     syncBuilderProgressiveDisclosure(hasResolvedOrigin);
+    const hasRequiredPid = hasMysteryGiftLegalPid && hasRequiredParityPid && hasRequiredWildStaticPid && hasRequiredCXDEncounterPid;
+    const isImported = currentEncounterMode === 'imported' && importedRoundTripBaseline !== null;
+    const missingTrainerFields = ['tid', 'sid', 'otName'].filter(id => {
+      const field = document.getElementById(id);
+      return !field.disabled && !field.value.trim();
+    });
+    setDesktopBuilderProgress({
+      originReady: hasResolvedOrigin,
+      blockers: {
+        builderTabEncounter: hasResolvedOrigin ? null : getDesktopEncounterBlocker(),
+        builderTabTrainer: isImported ? null : missingTrainerFields.length
+          ? { fields: missingTrainerFields, message: 'Fill in the highlighted trainer fields to continue.' }
+          : !hasLegalRSTrainerId
+            ? { fields: ['tid', 'sid'], message: 'Enter a valid Ruby or Sapphire trainer ID pair to continue.' }
+            : null,
+        builderTabPid: isImported ? null : !hasNature
+          ? { fields: ['nature'], message: 'Choose a nature or apply a result from Set Legal PID/Shiny.' }
+          : !hasRequiredPid
+            ? { fields: ['pidFinderBtn'], message: 'Use Set Legal PID/Shiny and confirm a result to continue.' }
+            : null,
+        builderTabMoves: isImported ? null : !hasMove
+          ? { fields: ['move1-input'], message: 'Choose at least one move to continue.' }
+          : !hasLegalMoves
+            ? { fields: invalidMoveSlots.map(index => `move${index + 1}-input`), message: 'Replace the highlighted moves to continue.' }
+            : null,
+      },
+    });
 
     if (pidFinderBtn && hasMysteryGiftLegalPid) {
       pidFinderBtn.classList.remove('field-error');
@@ -4691,6 +4759,7 @@ function boot(){
   }
 
   _validateForm = validateForm;
+  $('#builderNextStep')?.addEventListener('click', validateForm, { capture: true });
 
   // Expose post-import update callback so module-level import functions
   // (onLoadFromHex, Smogon import) can access boot()-scoped helpers.
@@ -5550,6 +5619,7 @@ function boot(){
   const startupSpeciesHadFocus = document.activeElement === startupSpeciesInput;
   speciesAutocomplete = createAutocomplete($('#species'), getSupportedSpecies(), {
     blurOnSelect: true,
+    rankMatches: rankSpeciesMatches,
     onSelect: (item) => {
       const speciesId = Number(item.id);
       const importedMode = currentEncounterMode === 'imported';
@@ -6263,7 +6333,7 @@ function boot(){
 
     const closeAll = (except = null) => {
       wrappers.forEach((wrap) => {
-        if (except && wrap === except) return;
+        if (wrap === except || !wrap.classList.contains('is-open')) return;
         wrap.classList.remove('is-open');
         const btn = wrap.querySelector('.tooltip-toggle');
         if (btn) btn.setAttribute('aria-expanded', 'false');
@@ -7225,6 +7295,8 @@ function boot(){
         metEl.value = '0';
         setControlLockState(metEl, true);
       } else if (shouldLockStaticEncounterMetFields()) {
+        const encounter = getSelectedStaticEncounter();
+        if (encounter?.lockMetFields) metEl.value = String(encounter.level);
         setControlLockState(metEl, true);
       } else if (pidFinderLockedMetLevel) {
         // PID Finder set a specific met level — keep it locked
@@ -7331,6 +7403,8 @@ function boot(){
           }
 
           if (currentEncounterMode === 'static' && shouldLockStaticEncounterMetFields()) {
+            const encounter = getSelectedStaticEncounter();
+            if (encounter?.lockMetFields && metLocationEl) metLocationEl.value = String(encounter.location);
             setMetLocationLock(true);
           }
 
@@ -10083,6 +10157,7 @@ function boot(){
       }
       if (!strategy) throw new Error('This generation could not be matched to the current builder.');
       restoreGeneratedOutput(snapshot.generated);
+      if (snapshot.generated?.base64Text && $('#generateBtn').dataset.disabled === 'false') showDesktopBuilderCodes();
       lastProfileTrainerSignature = getProfileTrainerSignature();
       await new Promise(resolve => setTimeout(resolve, 0));
       return { strategy };
@@ -11060,6 +11135,8 @@ function boot(){
       // Update active tab content
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       document.querySelector(`[data-tab-content="${tab}"]`)?.classList.add('active');
+      if (tab === 'base64') alignBase64PreviewGlyphs($('#base64CodeDisplay'));
+      showPhoneBuilderField(getPhoneCodeStart());
     });
   });
 
@@ -11093,7 +11170,7 @@ function boot(){
   const generateButton = $('#generateBtn');
   generateButton.addEventListener('click', () => {
     resetManualSwitchBoxConversion();
-    onGenerate();
+    if (onGenerate()) showPhoneBuilderField(getPhoneCodeStart());
   });
   $('#randomizeIvsBtn')?.addEventListener('click', randomizeHatchedIvs);
   $('#randomizeTrainerIdsBtn')?.addEventListener('click', randomizeTrainerIds);
@@ -11107,6 +11184,7 @@ function boot(){
   generateButton.addEventListener('pointerenter', preloadValidator);
   generateButton.addEventListener('focus', preloadValidator);
   $('#pkhexReportBtn')?.addEventListener('click', openPkhexLegalityReport);
+  $('#builderPreviewReport')?.addEventListener('click', openPkhexLegalityReport);
   $('#pkhexRetryBtn')?.addEventListener('click', retryPkhexVerification);
   $('#pkhexReportClose')?.addEventListener('click', closePkhexLegalityReport);
   document.getElementById('pkhexReportOverlay')?.addEventListener('click', event => {
@@ -11121,6 +11199,7 @@ function boot(){
     const target = event.target;
     if (!target?.matches?.('input, select, textarea')) return;
     if (target.matches('.autocomplete-input')) return;
+    if (target.closest('#outputCard')) return;
     if (!target.closest('#basicsCard, #builderDetailsCard')) return;
     markGeneratedCodeStale();
   };
@@ -11143,8 +11222,22 @@ function boot(){
   });
   const base64CodeDisplay = $('#base64CodeDisplay');
   base64CodeDisplay?.addEventListener('click', inspectBase64DisplayCharacter);
+  base64CodeDisplay?.addEventListener('scroll', hideBase64CharacterInspector);
   base64CodeDisplay?.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') hideBase64CharacterInspector();
+  });
+  $('#gbaTextPreviewFont')?.addEventListener('change', () => {
+    renderBase64CodeDisplay(getBase64OutputText());
+  });
+  let gameGlyphPixelRatio = window.devicePixelRatio;
+  window.addEventListener('resize', () => {
+    if (gameGlyphPixelRatio === window.devicePixelRatio) {
+      alignBase64PreviewGlyphs(base64CodeDisplay);
+      return;
+    }
+    gameGlyphPixelRatio = window.devicePixelRatio;
+    const text = getBase64OutputText();
+    if (text) renderBase64CodeDisplay(text);
   });
   renderBase64CodeDisplay(base64Output?.value || '');
   document.getElementById('base64CharacterInspector')?.addEventListener('click', hideBase64CharacterInspector);
@@ -11286,6 +11379,7 @@ function boot(){
     if (!target || typeof target.closest !== 'function') return;
 
     const id = target.id || '';
+    if (target.closest('#outputCard')) return;
     const inDataCards = Boolean(target.closest('#basicsCard') || target.closest('#builderDetailsCard'));
     const shouldDirty = shouldMarkImportedDirtyFromEvent({
       event,
@@ -11705,8 +11799,23 @@ function initPidFinder() {
   const rngPresetBtn = document.getElementById('pfRngPreset');
   const rngStatusBadge = document.getElementById('pfRngStatusBadge');
   const manipFrameHeader = document.getElementById('pfManipFrameHeader');
+  const finderPages = document.getElementById('pidFinderScroll');
+  const resultsSection = document.getElementById('pidFinderResults');
+  const resultsScroll = resultsSection.querySelector('.pid-finder-results-scroll');
+  const phoneFinderNavigation = document.getElementById('pidFinderPhonePages');
+  const phoneFinderBack = phoneFinderNavigation.querySelector('[data-page-back]');
+  const phonePidPager = connectPhonePageControls(
+    finderPages,
+    () => finderPages.querySelectorAll('#pidFinderSummary, .pid-shiny-panel, .pid-finder-identity-grid, #pfHatchedNotice, .pid-finder-filters > div, #pfRngManipulation, .pid-finder-iv-section, #pidFinderResults:has(#pfResultCount:not(:empty))'),
+    phoneFinderNavigation,
+    () => {
+      const showingResults = resultsSection.matches('[data-phone-page-item]:not([data-phone-offscreen])');
+      phoneFinderBack.textContent = showingResults ? 'Back to settings' : 'Previous';
+    },
+  );
   let pendingPidFinderResult = null;
   let pendingPidFinderRow = null;
+  let hasClickedSearch = false;
   let modalConfirmed = false;
   let modalOriginalOriginGame = '';
   let activeRngWindow = null;
@@ -11854,7 +11963,7 @@ function initPidFinder() {
     if (resultsBody) resultsBody.innerHTML = '';
     if (resultCount) resultCount.textContent = '';
     pfAllResults = [];
-    if (confirmBtn) confirmBtn.disabled = currentEncounterMode !== 'hatched';
+    if (confirmBtn) confirmBtn.disabled = currentEncounterMode !== 'hatched' && hasClickedSearch;
     setConfirmNextStep(false);
     if (pendingStatus && message) pendingStatus.textContent = message;
   }
@@ -12071,7 +12180,7 @@ function initPidFinder() {
   // Live re-filter when HP type / HP power filters change
   const pfHpTypeSelect = document.getElementById('pfHpType');
   const pfHpPowerInput = document.getElementById('pfHpPower');
-  const refilter = () => { if (pfAllResults.length > 0) displayResults(); };
+  const refilter = () => { if (pfAllResults.length > 0) displayResults({ showPhoneResults: false }); };
   if (pfHpTypeSelect) pfHpTypeSelect.addEventListener('change', refilter);
   if (pfHpPowerInput) pfHpPowerInput.addEventListener('input', refilter);
 
@@ -12129,6 +12238,7 @@ function initPidFinder() {
 
   function openModal() {
     modalConfirmed = false;
+    hasClickedSearch = false;
     modalOriginalOriginGame = String($('#originGame')?.value || '');
     pendingPidFinderResult = null;
     pendingPidFinderRow = null;
@@ -12544,12 +12654,18 @@ function initPidFinder() {
 
     overlay.scrollTop = 0;
     overlay.classList.add('open');
+    phonePidPager.reset();
+    if (document.body.classList.contains('builder-mobile')) {
+      document.getElementById('pidFinderClose').focus({ preventScroll: true });
+    }
   }
 
   function closeModal() {
+    searchBtn.classList.remove('is-search-required');
     setConfirmNextStep(false);
     overlay.classList.remove('open');
     stopSearch();
+    if (document.body.classList.contains('builder-mobile')) btn.focus({ preventScroll: true });
   }
 
   function cancelModal() {
@@ -12611,6 +12727,11 @@ function initPidFinder() {
   /* â”€â”€ Start search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   searchBtn.addEventListener('click', () => {
+    if (!hasClickedSearch) {
+      hasClickedSearch = true;
+      searchBtn.classList.remove('is-search-required');
+      if (confirmBtn) confirmBtn.disabled = true;
+    }
     const speciesId      = Number($('#species').value) || 0;
     const nature         = Number(document.getElementById('pfNature')?.value ?? $('#nature').value ?? 0);
     let   ability        = Number(document.getElementById('pfAbility').value);
@@ -12917,7 +13038,7 @@ function initPidFinder() {
 
   /* â”€â”€ Display results table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-  function displayResults() {
+  function displayResults({ showPhoneResults = true } = {}) {
     // For truncated roamers, post-process IVs: apply the roaming IV bug
     // The RNG generates normal Method 1 IVs, but only HP (0-31) and ATK (0-7) survive
     if (pfIsRoamerTruncated) {
@@ -13145,6 +13266,10 @@ function initPidFinder() {
       tr.querySelector('.select-btn').addEventListener('click', () => selectResult(r, tr));
       resultsBody.appendChild(tr);
     }
+    if (showPhoneResults && overlay.classList.contains('open') && document.body.classList.contains('builder-mobile')) {
+      phonePidPager.refresh(resultsSection);
+      resultsScroll.scrollTo(0, 0);
+    }
   }
 
   function ivTd(v) {
@@ -13170,11 +13295,6 @@ function initPidFinder() {
         : wantShinyCheckbox?.checked
           ? 'Legal shiny PID selected. Confirm to apply it.'
           : 'Legal non-shiny PID selected. Confirm to apply it.';
-    }
-    if (confirmBtn && window.matchMedia('(max-width: 700px)').matches) {
-      requestAnimationFrame(() => {
-        confirmBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      });
     }
   }
 
@@ -13413,6 +13533,15 @@ function initPidFinder() {
   }
 
   confirmBtn?.addEventListener('click', () => {
+    if (currentEncounterMode !== 'hatched' && !hasClickedSearch) {
+      searchBtn.classList.add('is-search-required');
+      searchBtn.focus({ preventScroll: true });
+      if (!document.body.classList.contains('builder-mobile')) searchBtn.scrollIntoView({ block: 'nearest' });
+      if (pendingStatus && !searchBtn.disabled) {
+        pendingStatus.textContent = 'Click Search, then select a legal PID to confirm.';
+      }
+      return;
+    }
     const sidStatus = document.getElementById('sidShinyStatus');
     const wantsShiny = Boolean(wantShinyCheckbox?.checked);
     const hasShinyStrategy = Boolean(keepSidRadio?.checked || autoSidRadio?.checked);
@@ -14071,12 +14200,34 @@ function setBase64OutputText(text) {
   const output = document.getElementById('base64Output');
   if (output) output.value = value;
   renderBase64CodeDisplay(value);
+  const phoneHex = $('#builderPhoneHexDisplay');
+  const hex = $('#hexOutput')?.value.trim();
+  phoneHex.replaceChildren(...(hex || 'Generate a code to see its hex here.').split('\n').map(line => {
+    const row = document.createElement('span');
+    row.textContent = line;
+    return row;
+  }));
   updateSwitchBoxConverterUi();
+}
+
+function getPhoneCodeStart() {
+  return document.querySelector('[data-tab-content="hex"].active')
+    ? $('#builderPhoneHexDisplay > span')
+    : $('#base64CodeDisplay .base64-box-row') || $('#base64CodeDisplay');
 }
 
 function renderBase64CodeDisplay(text) {
   const display = document.getElementById('base64CodeDisplay');
-  renderBase64Code(display, text);
+  const fontSelect = document.getElementById('gbaTextPreviewFont');
+  const originGame = document.getElementById('originGame')?.value;
+  const autoUsesFrlg = isNintendoSwitchCodeTarget() || originGame === '4' || originGame === '5';
+  const autoProfile = autoUsesFrlg ? 'frlg' : 'emerald';
+  const selectedProfile = fontSelect?.value || 'auto';
+  if (fontSelect) {
+    fontSelect.closest('label').hidden = !text;
+    fontSelect.options[0].textContent = autoUsesFrlg ? 'Auto (FireRed / LeafGreen)' : 'Auto (Emerald)';
+  }
+  renderBase64Code(display, text, selectedProfile === 'auto' ? autoProfile : selectedProfile);
 }
 
 function inspectBase64DisplayCharacter(event) {

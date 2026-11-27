@@ -122,7 +122,7 @@ function createShell() {
           <div id="recentFolderContent" class="workspace-folder-content" hidden>
             <p class="workspace-folder-note">The latest 30 successful generations are saved automatically.</p>
             <div class="recent-generation-picker">
-              <button id="recentGenerationPickerButton" class="recent-generation-picker-button" type="button" aria-haspopup="listbox" aria-expanded="false">
+              <button id="recentGenerationPickerButton" class="recent-generation-picker-button" type="button" aria-haspopup="listbox" aria-controls="recentGenerationPickerList" aria-expanded="false">
                 <span id="recentGenerationPickerLabel">Choose a generation</span>
                 <span class="recent-generation-picker-arrow" aria-hidden="true">▾</span>
               </button>
@@ -175,6 +175,7 @@ export async function initProfileWorkspace({
   const get = id => root.querySelector(`#${id}`);
   const drawer = get('profileDrawer');
   const toggle = get('profileDrawerToggle');
+  const desktopToggle = document.getElementById('desktopBuilderTools');
   const backdrop = get('profileDrawerBackdrop');
   const status = get('profileWorkspaceStatus');
   const profileSelect = get('profileSelect');
@@ -196,6 +197,7 @@ export async function initProfileWorkspace({
     document.documentElement.classList.toggle('profile-drawer-open', isOpen);
     drawer.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
     toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    desktopToggle?.setAttribute('aria-expanded', String(isOpen));
     toggle.setAttribute('aria-label', isOpen ? 'Close builder tools' : 'Open builder tools');
     backdrop.hidden = !isOpen;
     if (isOpen) requestAnimationFrame(() => drawer.focus?.());
@@ -212,8 +214,15 @@ export async function initProfileWorkspace({
 
   function setRecentPickerOpen(open) {
     const isOpen = Boolean(open) && workspace.recents.length > 0;
+    const focusWasInList = recentPickerList.contains(document.activeElement);
     recentPickerList.hidden = !isOpen;
     recentPickerButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    if (isOpen) {
+      const option = recentPickerList.querySelector('[aria-selected="true"]') || recentPickerList.firstElementChild;
+      option?.focus();
+    } else if (focusWasInList) {
+      recentPickerButton.focus();
+    }
   }
 
   async function persist({ notifyProfile = false } = {}) {
@@ -357,6 +366,10 @@ export async function initProfileWorkspace({
   }
 
   toggle.addEventListener('click', () => setDrawerOpen(!document.body.classList.contains('profile-drawer-open')));
+  if (desktopToggle) {
+    desktopToggle.disabled = false;
+    desktopToggle.addEventListener('click', () => toggle.click());
+  }
   get('profileDrawerClose').addEventListener('click', () => setDrawerOpen(false));
   backdrop.addEventListener('click', () => setDrawerOpen(false));
   get('usefulCreationsOpen').addEventListener('click', () => {
@@ -376,6 +389,19 @@ export async function initProfileWorkspace({
     setRecentPickerOpen(recentPickerButton.getAttribute('aria-expanded') !== 'true');
   });
   recentPickerList.addEventListener('click', event => event.stopPropagation());
+  recentPickerList.addEventListener('keydown', event => {
+    const options = Array.from(recentPickerList.children);
+    const index = options.indexOf(event.target);
+    const focusIndex = {
+      ArrowDown: Math.min(index + 1, options.length - 1),
+      ArrowUp: Math.max(index - 1, 0),
+      Home: 0,
+      End: options.length - 1,
+    }[event.key];
+    if (focusIndex === undefined) return;
+    event.preventDefault();
+    options[focusIndex]?.focus();
+  });
   document.addEventListener('click', event => {
     if (!event.target.closest?.('.recent-generation-picker')) setRecentPickerOpen(false);
   });

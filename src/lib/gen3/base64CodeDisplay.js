@@ -1,3 +1,5 @@
+import { renderGen3BoxNameGlyphs } from './gen3HexGlyphRenderer.js';
+
 export function getAceCodeCharacterClass(ch) {
   if (ch === '.' || ch === ',') return 'code-char-flexible';
   if (ch === '-' || ch === '\u2010' || ch === '\u2011' || ch === '\u2012' || ch === '\u2013' || ch === '\u2014') {
@@ -22,7 +24,25 @@ export function appendColorizedCodeText(parent, text, rawStartOffset = null) {
   }
 }
 
-export function renderBase64Code(display, text) {
+export function alignBase64PreviewGlyphs(display) {
+  if (!display?.getClientRects().length) return;
+  const canvases = [...display.querySelectorAll('.gba-box-name-preview canvas')];
+  const ratio = window.devicePixelRatio || 1;
+
+  // Snap each bitmap to the physical pixel grid without moving its box-name row.
+  for (const canvas of canvases) {
+    canvas.style.left = '';
+    canvas.style.top = '';
+  }
+  const positions = canvases.map(canvas => canvas.getBoundingClientRect());
+  canvases.forEach((canvas, index) => {
+    const { x, y } = positions[index];
+    canvas.style.left = `${Math.round(x * ratio) / ratio - x}px`;
+    canvas.style.top = `${Math.round(y * ratio) / ratio - y}px`;
+  });
+}
+
+export function renderBase64Code(display, text, fontProfile = 'emerald') {
   if (!display) return;
 
   const value = String(text || '');
@@ -30,6 +50,8 @@ export function renderBase64Code(display, text) {
   if (!value) return;
 
   const lines = value.split('\n');
+  const hasShiftedBoxes = value.includes('no trailing spaces!');
+  const previews = [];
   let lineStartOffset = 0;
 
   lines.forEach((rawLine) => {
@@ -40,29 +62,54 @@ export function renderBase64Code(display, text) {
     const boxMatch = line.match(/^(\s*)(Box\s+\d+:)(\s*)(\([^)]*\))(.*)$/i);
     if (boxMatch) {
       const [, leading, prefixText, prefixSpace, codeText, annotationText] = boxMatch;
+      lineElement.classList.add('base64-box-row');
+      const entry = document.createElement('span');
+      entry.className = 'base64-code-entry';
 
       const prefix = document.createElement('span');
       prefix.className = 'code-box-prefix';
       prefix.textContent = prefixText;
-      lineElement.appendChild(prefix);
+      entry.appendChild(prefix);
 
       const code = document.createElement('span');
       code.className = 'code-box-main';
       appendColorizedCodeText(code, codeText, lineStartOffset + leading.length + prefixText.length + prefixSpace.length);
-      lineElement.appendChild(code);
+      entry.appendChild(code);
 
       if (annotationText) {
         const annotation = document.createElement('span');
         annotation.className = 'code-box-annotation';
         annotation.textContent = annotationText;
-        lineElement.appendChild(annotation);
+        entry.appendChild(annotation);
       }
+
+      const preview = document.createElement('span');
+      preview.className = 'gba-box-name-preview';
+      preview.setAttribute('aria-hidden', 'true');
+      const canvas = document.createElement('canvas');
+      preview.appendChild(canvas);
+      lineElement.append(entry, preview);
+
+      previews.push(renderGen3BoxNameGlyphs(canvas, codeText.slice(1, -1), fontProfile).catch(() => {
+        preview.remove();
+      }));
     } else {
       lineElement.classList.add('base64-code-header');
-      lineElement.textContent = line;
+      if (hasShiftedBoxes && line === 'Box names (BASE64):') {
+        const title = document.createElement('span');
+        title.className = 'base64-code-default-title';
+        title.textContent = line;
+        const phoneTitle = document.createElement('span');
+        phoneTitle.className = 'base64-code-phone-title';
+        phoneTitle.textContent = 'Box names · No trailing spaces';
+        lineElement.append(title, phoneTitle);
+      } else {
+        lineElement.textContent = line;
+      }
     }
 
     display.appendChild(lineElement);
     lineStartOffset += rawLine.length + 1;
   });
+  Promise.all(previews).then(() => alignBase64PreviewGlyphs(display));
 }

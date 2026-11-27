@@ -1,9 +1,11 @@
 import { GEN3_HEX_FONT_SHEETS } from '../../data/gen3HexFontSheets.js';
-import { EMERALD_CHAR_MAP } from '../../data/gen3CharMap.js';
+import { FRLG_FONT_NORMAL_COPY_1_WIDTHS, GBA_FONT_NORMAL_WIDTHS } from '../../data/gbaFontNormalWidths.js';
+import { EMERALD_CHAR_MAP, FRLG_CHAR_MAP } from '../../data/gen3CharMap.js';
 
 const GLYPH_SIZE = 16;
 const GLYPH_COLUMNS = 16;
 const GLYPH_ADVANCE = 7;
+const BOX_NAME_GLYPH_HEIGHT = 14;
 const HEX_CHARACTERS = '0123456789ABCDEF';
 const imagePromises = new Map();
 const pixelSources = new WeakMap();
@@ -49,14 +51,12 @@ function isBackgroundPixel(source, offset) {
     && source.data[offset + 3] === background[3];
 }
 
-function drawGlyph(context, source, character, outputX, scale) {
-  const glyphIndex = EMERALD_CHAR_MAP[character];
-  if (glyphIndex === undefined) return;
+function drawGlyph(context, source, glyphIndex, outputX, scale, width = GLYPH_SIZE) {
   const sourceX = (glyphIndex % GLYPH_COLUMNS) * GLYPH_SIZE;
   const sourceY = Math.floor(glyphIndex / GLYPH_COLUMNS) * GLYPH_SIZE;
 
   for (let y = 0; y < GLYPH_SIZE; y++) {
-    for (let x = 0; x < GLYPH_SIZE; x++) {
+    for (let x = 0; x < width; x++) {
       const offset = (((sourceY + y) * source.width) + sourceX + x) * 4;
       if (source.data[offset + 3] === 0 || isBackgroundPixel(source, offset)) continue;
       context.fillStyle = `rgba(${source.data[offset]}, ${source.data[offset + 1]}, ${source.data[offset + 2]}, ${source.data[offset + 3] / 255})`;
@@ -137,6 +137,36 @@ export async function renderGen3HexGlyphs(canvas, text, profile = 'emerald', opt
   context.imageSmoothingEnabled = false;
   context.clearRect(0, 0, width, height);
   value.split('').forEach((character, index) => {
-    drawGlyph(context, source, character, index * GLYPH_ADVANCE * scale, scale);
+    drawGlyph(context, source, EMERALD_CHAR_MAP[character], index * GLYPH_ADVANCE * scale, scale);
   });
+}
+
+export async function renderGen3BoxNameGlyphs(canvas, boxName, profile) {
+  const isFrlg = profile === 'frlg';
+  const charMap = isFrlg ? FRLG_CHAR_MAP : EMERALD_CHAR_MAP;
+  const widths = isFrlg ? FRLG_FONT_NORMAL_COPY_1_WIDTHS : GBA_FONT_NORMAL_WIDTHS;
+  const glyphs = Array.from(boxName, character => charMap[character]);
+  if (glyphs.some(index => index === undefined)) {
+    throw new Error('The box name contains a character outside the Gen 3 font.');
+  }
+
+  const image = await loadFontImage(profile);
+  const source = getPixelSource(image);
+  // Keep each source pixel the same size regardless of its position in the name.
+  const pixelRatio = window.devicePixelRatio || 1;
+  const scale = Math.max(1, Math.floor(2 * pixelRatio));
+  const nameWidth = glyphs.reduce((width, index) => width + widths[index], 0);
+  canvas.width = Math.max(1, nameWidth * scale);
+  canvas.height = BOX_NAME_GLYPH_HEIGHT * scale;
+  canvas.style.width = `${canvas.width / pixelRatio}px`;
+  canvas.style.height = `${canvas.height / pixelRatio}px`;
+  const context = canvas.getContext('2d');
+  // The two sheets leave different blank rows around the box-name glyphs.
+  if (!isFrlg) context.translate(0, -scale);
+  let x = 0;
+  for (const index of glyphs) {
+    const width = widths[index];
+    drawGlyph(context, source, index, x, scale, width);
+    x += width * scale;
+  }
 }

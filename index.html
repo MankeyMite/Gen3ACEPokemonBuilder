@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content" />
   <title>Gen 3 ACE Pokémon Builder</title>
   <link rel="icon" type="image/png" sizes="16x16" href="./src/assets/icons/byteforge-icon-16.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="./src/assets/icons/byteforge-icon-32.png" />
@@ -2111,21 +2111,6 @@
       min-width: 0;
     }
 
-    .gba-text-preview-panel {
-      min-width: 0;
-      box-sizing: border-box;
-      padding: 0.55rem 0.75rem 0.25rem;
-      border: 1px solid var(--border-soft);
-      border-radius: 8px;
-      background: var(--card-2);
-      overflow-x: hidden;
-      overflow-y: auto;
-    }
-
-    .gba-text-preview-panel[hidden] {
-      display: none !important;
-    }
-
     /* Shiny indicator */
     .shiny-indicator {
       display: inline-flex;
@@ -2902,6 +2887,8 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="./src/builderDesktop.css" />
+  <link rel="stylesheet" href="./src/builderMobile.css" />
 </head>
 <body class="builder-setup-pending">
   <!-- Pokéball shadow background -->
@@ -2943,16 +2930,31 @@
     </svg>
   </div>
 
-  <header class="container">
+  <header class="container builder-site-header">
+    <img class="builder-brand-icon desktop-builder-only" src="./src/assets/icons/byteforge-icon-48.png" width="36" height="36" alt="" />
     <h1>Gen 3 ACE Pokémon Builder</h1>
-    <p class="muted" style="margin-top: -0.75rem; margin-bottom: 1rem;">
+    <p class="muted builder-version" style="margin-top: -0.75rem; margin-bottom: 1rem;">
       <a href="./docs/patch-notes.html" target="_blank" rel="noopener" class="version-link" title="View latest patch notes">v.0.5.4</a>
     </p>
-    <p class="muted">Generate any Pokémon and make them spawn in your in-game PC, using a stable ACE species with a Base64 writer! No external tools needed. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
+    <button id="desktopBuilderTools" class="desktop-builder-only" type="button" aria-controls="profileDrawer" aria-expanded="false" disabled>Tools</button>
+    <p class="muted builder-intro">Generate any Pokémon and make them spawn in your in-game PC, using a stable ACE species with a Base64 writer! No external tools needed. This tool is unfinished, and bugs are expected. Any feedback is appreciated! Contact me on Discord: MankeyMite#9981</p>
   </header>
 
   <main class="container layout-vertical">
-    <section class="how-it-works-card" aria-labelledby="howItWorksTitle">
+    <div class="builder-setup-bar desktop-builder-only">
+      <div class="builder-setup-title">
+        <strong>Base64 writer setup</strong>
+        <span class="builder-spawn-slot">Pokémon spawn in Box 14, Slot 30</span>
+      </div>
+      <div class="builder-setup-actions">
+        <details class="builder-guide">
+          <summary>How to use</summary>
+          <div id="builderGuideDock"></div>
+        </details>
+        <a href="./docs/spawn-setup-interactive.html" target="_blank" rel="noopener">Open setup guide</a>
+      </div>
+    </div>
+    <section class="how-it-works-card" data-builder-dock="builderGuideDock" aria-labelledby="howItWorksTitle">
       <h2 id="howItWorksTitle">How it works</h2>
       <ol>
         <li>Set up the Base64 writer first. <a href="./docs/spawn-setup-interactive.html" target="_blank" rel="noopener" class="guide-button">Click here</a></li>
@@ -2963,6 +2965,8 @@
       <p class="how-tip">Tip: Pokémon made with this tool is designed to be legal for transfer through Pokémon Bank/Home. Turning Legal Mode off allows more customization, but can create illegal combinations.</p>
     </section>
 
+    <div class="builder-workspace">
+    <div class="builder-workbench">
     <!-- BUILDER FORM CARD -->
     <section class="card" id="basicsCard">
       <div class="builder-card-header">
@@ -2978,13 +2982,76 @@
         </div>
       </div>
 
-      <p id="builderSetupGuidance" class="builder-setup-guidance" aria-live="polite">
+      <div id="builderDesktopEditor" class="desktop-builder-only">
+        <div class="builder-tabs" role="tablist" aria-label="Build steps">
+          <button type="button" role="tab" id="builderTabEncounter" aria-controls="builderEncounterPanel" aria-selected="true">Encounter</button>
+          <button type="button" role="tab" id="builderTabTrainer" aria-controls="builderTrainerPanel" aria-selected="false" tabindex="-1" disabled>Trainer</button>
+          <button type="button" role="tab" id="builderTabPid" aria-controls="builderPidPanel" aria-selected="false" tabindex="-1" disabled>PID &amp; Stats</button>
+          <button type="button" role="tab" id="builderTabMoves" aria-controls="builderMovesPanel" aria-selected="false" tabindex="-1" disabled>Moves</button>
+          <button type="button" role="tab" id="builderTabExtras" aria-controls="builderExtrasPanel" aria-selected="false" tabindex="-1" disabled>Extras</button>
+          <button type="button" role="tab" id="builderTabCodes" aria-controls="builderCodesPanel" aria-selected="false" tabindex="-1" disabled>Codes</button>
+        </div>
+        <div class="builder-panels">
+          <section class="builder-panel builder-encounter-panel" id="builderEncounterPanel" role="tabpanel" aria-labelledby="builderTabEncounter">
+            <div id="builderSelectionDock"></div>
+            <div id="builderEncounterDock"></div>
+          </section>
+          <section class="builder-panel" id="builderTrainerPanel" role="tabpanel" aria-labelledby="builderTabTrainer" hidden>
+            <h3>Original trainer</h3>
+            <div id="builderTrainerDock"></div>
+          </section>
+          <section class="builder-panel builder-pid-panel" id="builderPidPanel" role="tabpanel" aria-labelledby="builderTabPid" hidden>
+            <div class="builder-pid-editor">
+              <h3>Personality</h3>
+              <div id="builderTraitsDock"></div>
+              <div id="builderPidDock"></div>
+            </div>
+            <div class="builder-stat-editor">
+              <h3>Individual &amp; effort values</h3>
+              <div id="builderStatsDock"></div>
+            </div>
+          </section>
+          <section class="builder-panel" id="builderMovesPanel" role="tabpanel" aria-labelledby="builderTabMoves" hidden>
+            <h3>Moveset</h3>
+            <div id="builderMovesDock"></div>
+          </section>
+          <section class="builder-panel" id="builderExtrasPanel" role="tabpanel" aria-labelledby="builderTabExtras" hidden>
+            <h3>Extra data</h3>
+            <div id="builderExtrasDock"></div>
+          </section>
+          <section class="builder-panel builder-codes-panel" id="builderCodesPanel" role="tabpanel" aria-labelledby="builderTabCodes" hidden>
+            <div id="builderCodesDock"></div>
+          </section>
+        </div>
+        <div id="builderPhoneVerificationDock"></div>
+        <div class="builder-step-footer">
+          <button id="builderPreviousStep" type="button" hidden>Back</button>
+          <div id="builderStepMessage" class="builder-step-message" role="status"></div>
+          <div id="builderGuidanceDock" class="builder-step-message"></div>
+          <span id="builderPhonePageCount" aria-live="polite" hidden></span>
+          <button id="builderNextStep" type="button">Continue to Trainer</button>
+        </div>
+        <dialog id="builderPhoneDetails" class="builder-phone-sheet" aria-labelledby="builderPhoneDetailsTitle">
+          <header>
+            <h3 id="builderPhoneDetailsTitle"></h3>
+            <form method="dialog"><button type="submit">Done</button></form>
+          </header>
+          <div id="builderPhoneDetailsContent"></div>
+          <nav id="builderPhoneDetailsPages" class="builder-phone-pages" aria-label="Details pages">
+            <button type="button" data-page-back>Previous</button>
+            <span data-page-count aria-live="polite"></span>
+            <button type="button" data-page-next>Next</button>
+          </nav>
+        </dialog>
+      </div>
+
+      <p id="builderSetupGuidance" class="builder-setup-guidance" data-builder-dock="builderGuidanceDock" aria-live="polite">
         Start by choosing the Pokémon you want to create.
       </p>
 
-      <div id="builderSetupStage" class="builder-setup-stage">
+      <div id="builderSetupStage" class="builder-setup-stage" data-builder-dock="builderSelectionDock">
 
-      <div id="desktopPokemonPreview" class="desktop-pokemon-preview" aria-label="Pokémon stasis tank preview">
+      <div id="desktopPokemonPreview" class="desktop-pokemon-preview" data-builder-dock="builderPreviewDock" aria-label="Pokémon stasis tank preview">
         <div class="desktop-pokemon-preview-screen">
           <span class="desktop-pokemon-preview-bubbles" aria-hidden="true">
             <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
@@ -3115,11 +3182,12 @@
     <section class="card" id="builderDetailsCard" aria-labelledby="builderDetailsTitle">
       <h2 id="builderDetailsTitle">Customize Your Pokémon</h2>
 
-      <div class="row" id="unownFormRow" style="display:none;">
+      <div class="row" data-builder-dock="builderPidDock" id="unownFormRow" style="display:none;">
         <label for="unownForm">Form</label>
         <select id="unownForm"></select>
       </div>
 
+      <div class="builder-field-group builder-level-fields" data-builder-dock="builderEncounterDock">
       <div class="row">
         <label for="nickname">Nickname</label>
         <input id="nickname" type="text" maxlength="10" autocomplete="off" />
@@ -3134,7 +3202,9 @@
         <label for="expTotal">Total EXP</label>
         <input id="expTotal" type="number" min="0" max="9999999" value="0" />
       </div>
+      </div>
 
+      <div class="builder-field-group builder-traits" data-builder-dock="builderTraitsDock">
       <div class="row">
         <label for="nature">Nature</label>
         <select id="nature"></select>
@@ -3171,12 +3241,14 @@
           <option value="female">Female</option>
         </select>
       </div>
+      </div>
 
-      <div class="row">
+      <div class="row" data-builder-dock="builderMovesDock">
         <label for="item-input">Item</label>
         <select id="item"></select>
       </div>
 
+      <div class="builder-field-group" data-builder-dock="builderMovesDock">
       <div class="row moves-row">
         <label>Moves</label>
         <div class="column move-list">
@@ -3249,9 +3321,11 @@
           </div>
         </div>
       </div>
+      </div>
 
       <h3 class="form-section-title">Trainer details</h3>
 
+      <div class="builder-field-group builder-trainer-fields" data-builder-dock="builderTrainerDock">
       <div class="row two trainer-id-row">
         <div>
           <label for="tid">
@@ -3305,17 +3379,6 @@
       </div>
 
       <div class="row">
-        <label for="language">
-          Language
-          <span class="inline-tooltip">
-            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Language info" aria-describedby="languageInfoTooltip" aria-expanded="false">?</button>
-            <span id="languageInfoTooltip" class="inline-tooltip-content" role="tooltip">Language controls the Pokémon's language of origin and affects text encoding for names. Some events or egg outputs may require a specific language for legality or compatibility.</span>
-          </span>
-        </label>
-        <select id="language"></select>
-      </div>
-
-      <div class="row">
         <label for="otGender">
           OT Gender
           <span class="inline-tooltip">
@@ -3329,8 +3392,21 @@
         </select>
       </div>
 
+      <div class="row">
+        <label for="language">
+          Language
+          <span class="inline-tooltip">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Language info" aria-describedby="languageInfoTooltip" aria-expanded="false">?</button>
+            <span id="languageInfoTooltip" class="inline-tooltip-content" role="tooltip">Language controls the Pokémon's language of origin and affects text encoding for names. Some events or egg outputs may require a specific language for legality or compatibility.</span>
+          </span>
+        </label>
+        <select id="language"></select>
+      </div>
+      </div>
+
       <h3 class="form-section-title">Encounter details</h3>
 
+      <div class="builder-field-group builder-met-fields" data-builder-dock="builderEncounterDock">
       <div class="row" id="originGameDetailRow">
         <label for="originGame">
           Origin Game
@@ -3383,7 +3459,9 @@
         </label>
         <input id="fatefulEncounter" type="checkbox" disabled />
       </div>
+      </div>
 
+      <div class="builder-field-group builder-pid-fields" data-builder-dock="builderPidDock">
       <div class="row wild-or-legend" id="pidFinderRow">
         <label>
           Legality
@@ -3407,8 +3485,9 @@
         <input id="pid" type="text" placeholder="0x12345678" value="0x0" />
         <span id="shinyIndicator" class="shiny-indicator" title="This Pokémon is shiny!">✨</span>
       </div>
+      </div>
 
-      <div class="row checkbox-row">
+      <div class="row checkbox-row" data-builder-dock="builderEncounterDock">
         <label for="isEgg">
           Is Egg
           <span class="inline-tooltip">
@@ -3421,6 +3500,7 @@
 
       <h3 class="form-section-title">Stats</h3>
 
+      <div class="builder-field-group" data-builder-dock="builderStatsDock">
       <div id="statGraph" class="stat-graph">
         <div class="stat-graph-header">
           <span></span>
@@ -3550,9 +3630,11 @@
           <span id="hiddenPowerPower" style="color: var(--muted);">Power: 70</span>
         </div>
       </div>
+      </div>
 
       <h3 class="form-section-title">Extra data</h3>
 
+      <div class="builder-field-group builder-extras-fields" data-builder-dock="builderExtrasDock">
       <div class="row">
         <label for="friendship">Friendship</label>
         <input id="friendship" type="number" min="0" max="255" value="70" />
@@ -3567,7 +3649,7 @@
         </select>
       </div>
 
-      <div class="row">
+      <div class="row builder-markings-row">
         <label>Markings</label>
         <div class="markings-control">
           <input id="markCircle" type="checkbox" class="marking-checkbox" />
@@ -3583,8 +3665,9 @@
           <label for="markHeart" class="marking-symbol" data-marking="markHeart" aria-label="Heart marking" title="Heart marking">♥</label>
         </div>
       </div>
+      </div>
 
-      <details class="contest-stats-section">
+      <details class="contest-stats-section" data-builder-dock="builderExtrasDock">
         <summary style="cursor: pointer; font-weight: bold; margin: 1rem 0 0.5rem 0;">Contest Stats</summary>
 
         <div style="padding-left: 1rem;">
@@ -3629,7 +3712,7 @@
         </div>
       </details>
 
-      <details class="ribbons-section">
+      <details class="ribbons-section" data-builder-dock="builderExtrasDock">
         <summary style="cursor: pointer; font-weight: bold; margin: 1rem 0 0.5rem 0;">Ribbons</summary>
 
         <div style="padding-left: 1rem;">
@@ -3760,15 +3843,30 @@
     </section>
 
     <!-- OUTPUT CARD -->
-    <section class="card" id="outputCard">
+    <section class="card" id="outputCard" data-builder-dock="builderCodesDock">
       <div class="output-header-row">
         <h2>Codes</h2>
-        <div id="codeHelpInline" class="output-help-inline">
-          <span class="output-help-text">If you have problems with the code, click on me!</span>
+        <div id="codeHelpInline" class="output-help-inline" data-builder-dock="builderCodeHelpDock">
           <a id="codeHelpMetangLink" class="output-help-metang-link" href="./docs/code-troubleshooting.html" target="_blank" rel="noopener noreferrer" aria-label="Open code troubleshooting guide in a new tab">
-            <img id="codeHelpMetangSprite" alt="Metang help sprite" loading="lazy" />
+            <img id="codeHelpMetangSprite" alt="" loading="lazy" />
+            <span class="output-help-text">Need help? Click on me!</span>
           </a>
         </div>
+      </div>
+
+      <div class="builder-output-controls">
+      <div class="builder-output-settings">
+      <div class="code-target-tabs" role="group" aria-label="Code target">
+        <span class="code-target-option">
+          <button id="codeTargetConsole" type="button" class="code-target-btn active" data-code-target="console" aria-pressed="true">Console / Emulator</button>
+        </span>
+        <span class="code-target-option has-help">
+          <button id="codeTargetSwitch" type="button" class="code-target-btn" data-code-target="switch" aria-pressed="false">Nintendo Switch</button>
+          <span class="inline-tooltip code-target-help">
+            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Nintendo Switch code info" aria-describedby="switchCodeTargetTooltip" aria-expanded="false">?</button>
+            <span id="switchCodeTargetTooltip" class="inline-tooltip-content" role="tooltip">Nintendo Switch may block some box names with its profanity filter. This mode only shows a different code when a filtered box name is detected, then tries to shift the code or swap safe equivalent symbols. If a box name still cannot be typed, click Metang on the right and follow the troubleshooting steps.</span>
+          </span>
+        </span>
       </div>
 
       <!-- Legality Checker -->
@@ -3792,28 +3890,20 @@
         </div>
       </div>
 
-      <div class="code-target-tabs" role="group" aria-label="Code target">
-        <span class="code-target-option">
-          <button id="codeTargetConsole" type="button" class="code-target-btn active" data-code-target="console" aria-pressed="true">Console / Emulator</button>
-        </span>
-        <span class="code-target-option has-help">
-          <button id="codeTargetSwitch" type="button" class="code-target-btn" data-code-target="switch" aria-pressed="false">Nintendo Switch</button>
-          <span class="inline-tooltip code-target-help">
-            <button type="button" class="tooltip-icon tooltip-toggle" aria-label="Nintendo Switch code info" aria-describedby="switchCodeTargetTooltip" aria-expanded="false">?</button>
-            <span id="switchCodeTargetTooltip" class="inline-tooltip-content" role="tooltip">Nintendo Switch may block some box names with its profanity filter. This mode only shows a different code when a filtered box name is detected, then tries to shift the code or swap safe equivalent symbols. If a box name still cannot be typed, click Metang on the right and follow the troubleshooting steps.</span>
-          </span>
-        </span>
-      </div>
-
       <!-- Tab buttons -->
       <div class="output-tabs">
         <button type="button" class="tab-btn active" data-tab="base64">Box names (Base64)</button>
         <button type="button" class="tab-btn" data-tab="hex">Hex</button>
       </div>
+      </div>
+      <div id="builderCodeToolsDock" class="desktop-builder-only"></div>
+      </div>
 
       <!-- Tab content -->
+      <div class="builder-output-workspace">
+      <div id="builderMobileOutputActionsDock"></div>
       <div class="tab-content active" data-tab-content="base64">
-        <div id="switchBoxConverter" class="switch-box-converter" hidden>
+        <div id="switchBoxConverter" class="switch-box-converter" data-builder-dock="builderCodeToolsDock" hidden>
           <span>Only if Switch refuses a box name:</span>
           <label for="switchBlockedBoxNumber">
             Box
@@ -3843,23 +3933,41 @@
           <span id="switchBoxConverterStatus" class="switch-box-converter-status" role="status" aria-live="polite" hidden></span>
           <span id="switchLegacyFilterNotice" class="switch-box-converter-status" role="status" hidden>Legacy backup filter is active. <a id="switchCurrentFilterLink" href="?">Use the current filter</a>.</span>
         </div>
-        <div class="box-code-output-grid">
+        <div class="builder-code-heading">
+          <div id="profanityWarning" class="profanity-warning" style="display:none;"></div>
+          <div id="substitutionWarning" class="profanity-warning" style="display:none;"></div>
+          <div class="base64-code-key-row">
+            <ul class="base64-color-key" aria-label="Box-name color key">
+              <li><span class="base64-color-swatch code-char-upper" role="img" aria-label="Blue"></span> Uppercase</li>
+              <li><span class="base64-color-swatch code-char-lower" role="img" aria-label="Orange"></span> Lowercase</li>
+              <li><span class="base64-color-swatch code-char-symbol" role="img" aria-label="Green"></span> Numbers and symbols</li>
+            </ul>
+            <label class="base64-glyph-control" hidden>
+              Game glyphs
+              <select id="gbaTextPreviewFont">
+                <option value="auto">Auto</option>
+                <option value="emerald">Emerald</option>
+                <option value="frlg">FireRed / LeafGreen</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="box-code-output-grid" data-phone-page-alone>
           <div class="box-code-output-main">
-            <div id="profanityWarning" class="profanity-warning" style="display:none;"></div>
-            <div id="substitutionWarning" class="profanity-warning" style="display:none;"></div>
             <div class="base64-output-wrap">
               <textarea id="base64Output" spellcheck="false" readonly hidden aria-hidden="true"></textarea>
               <pre id="base64CodeDisplay" class="base64-code-display" tabindex="0" role="textbox" aria-readonly="true" aria-label="Generated Base64 box-name code" title="Click a box-name character to identify whether it is uppercase, lowercase, a number, or a symbol."></pre>
               <div id="base64CharacterInspector" class="base64-character-inspector" role="status" aria-live="polite" hidden></div>
             </div>
           </div>
-          <aside id="gbaTextPreviewPanel" class="gba-text-preview-panel" hidden></aside>
         </div>
       </div>
       <div class="tab-content" data-tab-content="hex">
-        <textarea id="hexOutput" rows="15" spellcheck="false"></textarea>
+        <textarea id="hexOutput" rows="15" spellcheck="false" aria-label="Generated Hex code"></textarea>
+        <pre id="builderPhoneHexDisplay" aria-label="Generated Hex code"><span>Generate a code to see its hex here.</span></pre>
       </div>
-
+      <div class="builder-code-sidebar">
+      <div class="builder-output-actions">
       <div class="row two output-action-row">
         <div style="display: flex; flex-direction: column; align-items: center; flex: 1;">
           <button id="copyBase64Btn" type="button" style="width: 100%;">Copy Base64</button>
@@ -3875,8 +3983,59 @@
         <button id="exportEk3Btn" type="button" style="flex: 1;">Export .ek3</button>
         <button id="exportPk3Btn" type="button" style="flex: 1;">Export .pk3</button>
       </div>
+      </div>
+      <div id="builderCodeHelpDock" class="desktop-builder-only"></div>
+      </div>
+      </div>
       <input type="file" id="pk3FileInput" accept=".ek3,.pk3" style="display: none;">
     </section>
+
+    </div>
+
+    <aside id="builderPreview" class="builder-preview desktop-builder-only" aria-labelledby="builderPreviewTitle">
+      <div class="builder-preview-header">
+        <h2 id="builderPreviewTitle">Pokémon preview</h2>
+        <span id="builderPreviewNumber"></span>
+      </div>
+      <div class="builder-preview-display">
+        <div id="builderPreviewDock"></div>
+        <img id="builderPreviewPokerusActive" class="builder-preview-pokerus" src="./src/assets/icons/pokerus-active.png" width="44" height="16" alt="Active Pokérus" title="Active Pokérus" hidden />
+        <img id="builderPreviewPokerusCured" class="builder-preview-pokerus" src="./src/assets/icons/pokerus-cured.png" width="6" height="6" alt="Cured Pokérus" title="Cured Pokérus" hidden />
+      </div>
+      <div class="builder-preview-identity">
+        <div class="builder-preview-name-row">
+          <h3 id="builderPreviewName">No Pokémon selected</h3>
+          <span id="builderPreviewLevel"></span>
+        </div>
+        <p id="builderPreviewTraits" class="builder-preview-detail"></p>
+        <p id="builderPreviewOrigin" class="builder-preview-detail"></p>
+      </div>
+      <dl class="builder-preview-equipment">
+        <div><dt>Held item</dt><dd id="builderPreviewItem">–</dd></div>
+        <div><dt>Ribbons</dt><dd id="builderPreviewRibbons">–</dd></div>
+      </dl>
+      <dl class="builder-preview-stats" aria-label="Calculated stats">
+        <div><dt>HP</dt><dd data-stat-source="finalStatHp">–</dd></div>
+        <div><dt>Attack</dt><dd data-stat-source="finalStatAtk">–</dd></div>
+        <div><dt>Defense</dt><dd data-stat-source="finalStatDef">–</dd></div>
+        <div><dt>Sp. Atk</dt><dd data-stat-source="finalStatSpAtk">–</dd></div>
+        <div><dt>Sp. Def</dt><dd data-stat-source="finalStatSpDef">–</dd></div>
+        <div><dt>Speed</dt><dd data-stat-source="finalStatSpe">–</dd></div>
+      </dl>
+      <div class="builder-preview-experience">
+        <progress id="builderPreviewExpBar" max="1" value="0" aria-label="Experience toward next level"></progress>
+        <dl>
+          <div><dt>Exp. points</dt><dd id="builderPreviewExp">–</dd></div>
+          <div><dt>Next level</dt><dd id="builderPreviewNextExp">–</dd></div>
+        </dl>
+      </div>
+      <div class="builder-preview-status" id="builderPreviewStatus" hidden>
+        <span id="builderPreviewVerification"></span>
+        <button id="builderPreviewReport" type="button" hidden>View legality report</button>
+      </div>
+    </aside>
+
+    </div>
 
     <!-- PKHeX.Core post-generation legality report -->
     <div id="pkhexReportOverlay" class="pid-finder-overlay pkhex-report-overlay" role="dialog" aria-modal="true" aria-labelledby="pkhexReportTitle" aria-hidden="true">
@@ -3993,13 +4152,14 @@ Trailing = padding is restored automatically.</pre>
     </div>
 
     <!-- ── PID Finder Modal ─────────────────────────────── -->
-    <div id="pidFinderOverlay" class="pid-finder-overlay">
+    <div id="pidFinderOverlay" class="pid-finder-overlay" role="dialog" aria-modal="true" aria-labelledby="pidFinderTitle">
       <div class="pid-finder-modal">
         <div class="pid-finder-header">
-          <h3>Set Legal PID/Shiny</h3>
+          <h3 id="pidFinderTitle">Set Legal PID/Shiny</h3>
           <button id="pidFinderClose" class="pid-finder-close" type="button" aria-label="Cancel and close">&times;</button>
         </div>
         <div class="pid-finder-body">
+          <div id="pidFinderScroll">
           <div class="pid-finder-summary" id="pidFinderSummary"></div>
 
           <section class="pid-shiny-panel" aria-labelledby="pfShinyHeading">
@@ -4160,6 +4320,7 @@ Trailing = padding is restored automatically.</pre>
             </div>
           </details>
 
+          <div class="pid-finder-iv-ranges">
           <div class="pid-finder-iv-section">
             <label class="pid-finder-label">Minimum IVs</label>
             <div class="pid-finder-iv-grid">
@@ -4183,6 +4344,7 @@ Trailing = padding is restored automatically.</pre>
               <div><label for="pfMaxSpe">Spe</label><input id="pfMaxSpe" type="number" min="0" max="31" value="31"></div>
             </div>
           </div>
+          </div>
 
           <div class="pid-finder-methods">
             <label><input type="checkbox" id="pfMethod1" checked> Method H-1</label>
@@ -4190,7 +4352,7 @@ Trailing = padding is restored automatically.</pre>
             <label><input type="checkbox" id="pfMethod4" checked> Method H-4</label>
           </div>
 
-          <div class="pid-finder-controls">
+          <div class="pid-finder-controls" id="pidFinderSearchControls">
             <button id="pfSearch" type="button">Search</button>
             <button id="pfStop" type="button" disabled>Stop</button>
             <div class="pid-finder-progress">
@@ -4199,9 +4361,9 @@ Trailing = padding is restored automatically.</pre>
             </div>
           </div>
 
-          <div class="pid-finder-results-section">
+          <div id="pidFinderResults" class="pid-finder-results-section" data-phone-page-alone>
             <div id="pfResultCount" class="pid-finder-result-count"></div>
-            <div class="pid-finder-results-scroll">
+            <div class="pid-finder-results-scroll" data-phone-page-scroll role="region" aria-label="PID search results" tabindex="0">
               <table class="pid-finder-table">
                 <thead>
                   <tr>
@@ -4226,8 +4388,15 @@ Trailing = padding is restored automatically.</pre>
             </div>
           </div>
           </div>
+          </div>
 
           <div class="pid-finder-footer">
+            <nav id="pidFinderPhonePages" class="builder-phone-pages" aria-label="PID finder pages" data-single-page>
+              <button type="button" data-page-back>Previous</button>
+              <span data-page-count aria-live="polite"></span>
+              <button type="button" data-page-next>Next</button>
+            </nav>
+            <div id="pidFinderMobileSearchDock"></div>
             <span id="pfPendingStatus" role="status">Choose settings, then search for a legal PID.</span>
             <div>
               <button id="pfCancel" type="button" class="pid-finder-secondary">Cancel</button>

@@ -1,4 +1,8 @@
 import { SPECIES } from './data/species.gen3.js';
+import { initDesktopBuilder } from './builderDesktop.js';
+import { rankSpeciesMatches } from './domain/speciesSearch.js';
+
+initDesktopBuilder();
 
 const STARTUP_PICKER_LIMIT = 80;
 window.__aceEarlySpeciesState = { selectedId: '', query: '' };
@@ -28,9 +32,15 @@ function createStartupSpeciesPicker(selectElement, onSelect) {
   input.autocomplete = 'off';
 
   const dropdown = document.createElement('div');
+  dropdown.id = `${selectElement.id}-options`;
   dropdown.className = 'autocomplete-dropdown';
   dropdown.style.maxHeight = '160px';
   dropdown.style.overflowY = 'auto';
+  dropdown.setAttribute('role', 'listbox');
+  input.setAttribute('role', 'combobox');
+  input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('aria-controls', dropdown.id);
+  input.setAttribute('aria-expanded', 'false');
 
   Object.defineProperty(wrapper, 'value', {
     configurable: true,
@@ -43,11 +53,10 @@ function createStartupSpeciesPicker(selectElement, onSelect) {
     },
   });
 
-  function filterItems(query) {
-    const normalized = String(query || '').trim().toLowerCase();
-    return normalized
-      ? items.filter(item => item.name.toLowerCase().includes(normalized))
-      : items;
+  function closeDropdown() {
+    dropdown.classList.remove('show');
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
   }
 
   function chooseItem(item) {
@@ -55,7 +64,7 @@ function createStartupSpeciesPicker(selectElement, onSelect) {
     input.value = item.name;
     wrapper.dataset.earlySelectedId = selectedId;
     window.__aceEarlySpeciesState = { selectedId, query: item.name };
-    dropdown.classList.remove('show');
+    closeDropdown();
     onSelect?.(item);
   }
 
@@ -74,10 +83,13 @@ function createStartupSpeciesPicker(selectElement, onSelect) {
 
     visibleItems.forEach((item, index) => {
       const option = document.createElement('div');
+      option.id = `${dropdown.id}-${item.id}`;
       option.className = 'autocomplete-item';
       option.textContent = item.name;
       option.dataset.id = item.id;
       option.dataset.index = String(index);
+      option.setAttribute('role', 'option');
+      option.setAttribute('aria-selected', 'false');
       option.addEventListener('mousedown', event => {
         event.preventDefault();
         chooseItem(item);
@@ -94,15 +106,26 @@ function createStartupSpeciesPicker(selectElement, onSelect) {
   }
 
   function showMatches() {
-    renderDropdown(filterItems(input.value));
+    renderDropdown(rankSpeciesMatches(items, input.value));
     dropdown.classList.add('show');
+    input.setAttribute('aria-expanded', 'true');
+    if (visibleItems.length) selectedIndex = 0;
+    updateKeyboardSelection({ scroll: false });
   }
 
-  function updateKeyboardSelection() {
+  function updateKeyboardSelection({ scroll = true } = {}) {
     const options = Array.from(dropdown.querySelectorAll('.autocomplete-item'));
-    options.forEach(option => option.classList.remove('selected'));
-    options[selectedIndex]?.classList.add('selected');
-    options[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+    const active = options[selectedIndex];
+    for (const option of options) {
+      option.classList.toggle('selected', option === active);
+      option.setAttribute('aria-selected', String(option === active));
+    }
+    if (active) {
+      input.setAttribute('aria-activedescendant', active.id);
+      if (scroll) active.scrollIntoView({ block: 'nearest' });
+    } else {
+      input.removeAttribute('aria-activedescendant');
+    }
   }
 
   input.addEventListener('focus', showMatches);
@@ -113,6 +136,8 @@ function createStartupSpeciesPicker(selectElement, onSelect) {
     showMatches();
   });
   input.addEventListener('keydown', event => {
+    if (event.isComposing || !dropdown.classList.contains('show')) return;
+    if (!visibleItems.length && event.key !== 'Escape') return;
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       selectedIndex = Math.min(selectedIndex + 1, visibleItems.length - 1);
@@ -125,14 +150,14 @@ function createStartupSpeciesPicker(selectElement, onSelect) {
       event.preventDefault();
       chooseItem(visibleItems[selectedIndex]);
     } else if (event.key === 'Escape') {
-      dropdown.classList.remove('show');
+      closeDropdown();
     }
   });
   input.addEventListener('blur', () => {
     setTimeout(() => {
-      dropdown.classList.remove('show');
+      closeDropdown();
       if (!input.value || selectedId) return;
-      const exact = items.find(item => item.name.toLowerCase() === input.value.toLowerCase());
+      const exact = items.find(item => item.name.toLowerCase() === input.value.trim().toLowerCase());
       if (exact) chooseItem(exact);
       else input.value = '';
     }, 150);
