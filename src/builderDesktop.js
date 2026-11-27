@@ -93,6 +93,11 @@ export function initDesktopBuilder() {
   const verificationPosition = document.createComment('code verification status');
   verificationStatus.before(verificationPosition);
   const phoneVerificationDock = document.getElementById('builderPhoneVerificationDock');
+  const phoneStatActions = document.getElementById('phoneStatActions');
+  const [ivHeading, evHeading] = document.querySelectorAll('#statGraph .stat-graph-header-label');
+  const randomizeIvs = document.getElementById('randomizeIvsBtn');
+  const ivHelp = ivHeading.querySelector('.inline-tooltip');
+  const evHelp = evHeading.querySelector('.inline-tooltip');
   let active = 0;
   let attemptedStep = null;
   let highlightedFields = new Set();
@@ -254,11 +259,14 @@ export function initDesktopBuilder() {
       outputSidebar.prepend(outputActions);
       verificationPosition.after(verificationStatus);
       guideDock.append(guide);
+      ivHeading.append(randomizeIvs, ivHelp);
+      evHeading.append(evHelp);
     } else {
       mobileSearchDock.append(searchControls);
       mobileOutputActionsDock.append(outputActions);
       phoneVerificationDock.append(verificationStatus);
       phoneGuideDock.append(guide);
+      phoneStatActions.append(randomizeIvs, ivHelp, evHelp);
     }
     document.body.classList.toggle('builder-desktop', desktop);
     document.body.classList.toggle('builder-mobile', !desktop);

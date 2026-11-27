@@ -1368,6 +1368,12 @@
       min-width: 0;
     }
 
+    .stat-graph-phone-heading,
+    .stat-graph-actions,
+    .stat-graph-action-label {
+      display: none;
+    }
+
     .iv-randomize-btn,
     .trainer-id-randomize-btn {
       display: none;
@@ -3009,7 +3015,10 @@
               <div id="builderPidDock"></div>
             </div>
             <div class="builder-stat-editor">
-              <h3>Individual &amp; effort values</h3>
+              <div class="builder-stat-heading">
+                <h3><span class="stat-graph-desktop-heading">Individual &amp; effort values</span><span class="stat-graph-phone-heading">Stats</span></h3>
+                <div id="phoneStatActions" class="stat-graph-actions" role="group" aria-label="Stat controls"></div>
+              </div>
               <div id="builderStatsDock"></div>
             </div>
           </section>
@@ -3519,16 +3528,23 @@
                 <circle cx="3" cy="9" r="1.25"></circle>
                 <circle cx="9" cy="9" r="1.25"></circle>
               </svg>
+              <span class="stat-graph-action-label">Randomize IVs</span>
             </button>
             <span class="inline-tooltip">
-              <button type="button" class="tooltip-icon tooltip-toggle" aria-label="IV legality info" aria-describedby="ivInfoTooltip" aria-expanded="false">?</button>
+              <button type="button" class="tooltip-icon tooltip-toggle" aria-label="IV info" aria-describedby="ivInfoTooltip" aria-expanded="false">
+                <span class="stat-graph-help-icon" aria-hidden="true">?</span>
+                <span class="stat-graph-action-label">IV info</span>
+              </button>
               <span id="ivInfoTooltip" class="inline-tooltip-content" role="tooltip">IVs range from 0 to 31 in each stat, and each point equals 1 stat point at level 100. IVs are controlled by the selected legal encounter. In hatched mode, any combination is automatically legal.</span>
             </span>
           </span>
           <span class="stat-graph-header-label">
             EV
             <span class="inline-tooltip">
-              <button type="button" class="tooltip-icon tooltip-toggle" aria-label="EV training info" aria-describedby="evInfoTooltip" aria-expanded="false">?</button>
+              <button type="button" class="tooltip-icon tooltip-toggle" aria-label="EV info" aria-describedby="evInfoTooltip" aria-expanded="false">
+                <span class="stat-graph-help-icon" aria-hidden="true">?</span>
+                <span class="stat-graph-action-label">EV info</span>
+              </button>
               <span id="evInfoTooltip" class="inline-tooltip-content" role="tooltip">EVs add extra stat points, scaling to 1 stat point per 4 EVs at level 100. You can use up to 510 EVs total. 252 is the highest useful value per stat, because the stored maximum is 255 and reaching the next stat point would require 256 EVs. This tool therefore caps each stat at 252.</span>
             </span>
           </span>

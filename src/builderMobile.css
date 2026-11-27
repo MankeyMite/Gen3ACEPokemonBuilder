@@ -398,6 +398,20 @@
   gap: 0.5rem;
 }
 
+@media (max-width: 640px) {
+  .builder-mobile .ability-control-group {
+    display: contents;
+  }
+
+  .builder-mobile .pid-parity-control {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    column-gap: normal;
+    align-items: start;
+  }
+}
+
 .builder-mobile #pidFinderRow.pid-finder-visible {
   grid-template-columns: minmax(0, 1fr);
   gap: 0.35rem;
@@ -417,9 +431,78 @@
   white-space: normal;
 }
 
+.builder-mobile .stat-graph {
+  gap: 0.35rem;
+}
+
 .builder-mobile .stat-graph :is(.stat-graph-header, .stat-graph-row) {
   grid-template-columns: 2.14rem 1.55rem minmax(0, 1fr) 2.75rem 2.75rem 1.75rem;
   gap: 0.22rem;
+}
+
+.builder-mobile .stat-graph-header-label {
+  justify-content: center;
+}
+
+.builder-mobile .builder-stat-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.65rem;
+}
+
+.builder-mobile .builder-stat-heading h3 {
+  margin: 0;
+}
+
+.builder-mobile .stat-graph-desktop-heading {
+  display: none;
+}
+
+.builder-mobile .stat-graph-phone-heading {
+  display: inline;
+}
+
+.builder-mobile .stat-graph-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.builder-mobile .stat-graph-actions :is(.iv-randomize-btn, .tooltip-toggle) {
+  width: auto;
+  height: auto;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--label);
+}
+
+.builder-mobile .stat-graph-actions .iv-randomize-btn {
+  grid-auto-flow: column;
+  gap: 0.4rem;
+}
+
+.builder-mobile .stat-graph-actions .stat-graph-help-icon {
+  display: none;
+}
+
+.builder-mobile .stat-graph-actions .stat-graph-action-label {
+  display: inline;
+}
+
+@media (max-width: 360px) {
+  .builder-mobile .stat-graph-actions .iv-randomize-btn {
+    min-width: 2.75rem;
+  }
+
+  .builder-mobile .stat-graph-actions .iv-randomize-btn .stat-graph-action-label {
+    display: none;
+  }
 }
 
 .builder-mobile .stat-graph-input {
