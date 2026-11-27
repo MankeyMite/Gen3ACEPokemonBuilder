@@ -126,6 +126,8 @@ try {
   const client = await connectDebugger(target.webSocketDebuggerUrl);
   browserSocket = client.socket;
   await client.send('Runtime.enable');
+  const desktopMetrics = { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false };
+  await client.send('Emulation.setDeviceMetricsOverride', desktopMetrics);
   await waitFor(client, "document.documentElement?.classList?.contains('builder-ready') === true");
 
   const experienceDefaults = await evaluate(client, `(async () => {
@@ -246,19 +248,23 @@ try {
     return { games, shinyUpdated: true, mysteryHidden: true, gameCubeReachable: true, fixedTrainersHidden: true };
   })()`);
 
-  const moveDiscoveryHints = await evaluate(client, `(() => {
+  const moveDiscoveryHints = await evaluate(client, `(async () => {
+    const { revealDesktopBuilderField } = await import('./src/builderDesktop.js');
     const encounterMode = document.querySelector('#encounterMode');
     encounterMode.value = 'wild';
     encounterMode.dispatchEvent(new Event('change', { bubbles: true }));
     const species = document.querySelector('#species');
-    if (!species.selectById(395)) return { error: 'Could not select Bagon.' };
+    if (!species.selectById(395)) throw new Error('Could not select Bagon.');
     const level = document.querySelector('#level');
     level.value = '23';
     level.dispatchEvent(new Event('input', { bubbles: true }));
     level.dispatchEvent(new Event('change', { bubbles: true }));
 
     const moveInput = document.querySelector('#move1-input');
+    // This fixture checks move discovery before applying a wild PID result.
+    revealDesktopBuilderField(moveInput);
     moveInput.focus();
+    const dropdownOpen = moveInput.getAttribute('aria-expanded') === 'true';
     const dropdown = document.querySelector('#move1 .autocomplete-dropdown');
     const alternatives = [...dropdown.querySelectorAll('.autocomplete-item.disabled')].map(item => ({
       name: item.querySelector('.autocomplete-item-name')?.textContent,
@@ -269,13 +275,15 @@ try {
     dropdown.querySelector('.autocomplete-item.disabled')?.dispatchEvent(
       new MouseEvent('mousedown', { bubbles: true, cancelable: true }),
     );
+    document.querySelector('#builderTabEncounter').click();
     return {
+      dropdownOpen,
       heading,
       alternatives,
       disabledSelectionBlocked: document.querySelector('#move1').value === selectedBefore,
     };
   })()`);
-  if (moveDiscoveryHints.error || moveDiscoveryHints.heading !== 'Available with a different encounter' ||
+  if (!moveDiscoveryHints.dropdownOpen || moveDiscoveryHints.heading !== 'Available with a different encounter' ||
       !moveDiscoveryHints.alternatives.some(item => /^Level\s+\d+$/.test(String(item.hint || ''))) ||
       !moveDiscoveryHints.alternatives.some(item => item.hint === 'Egg move') ||
       !moveDiscoveryHints.disabledSelectionBlocked) {
@@ -481,6 +489,7 @@ try {
   await evaluate(client, `(() => {
     document.querySelector('#importHexInput').value = ${legalHex};
     document.querySelector('#importHexBtn').click();
+    document.querySelector('#builderTabCodes').click();
     document.querySelector('#codeTargetSwitch').click();
     return true;
   })()`);
@@ -499,19 +508,17 @@ try {
   }
   await evaluate(client, "document.querySelector('#pkhexReportClose').click()");
 
-  await client.send('Emulation.setDeviceMetricsOverride', {
-    width: 1280,
-    height: 900,
-    deviceScaleFactor: 1,
-    mobile: false,
-  });
-  await delay(100);
   const desktopLayout = await evaluate(client, `(() => {
     const generate = document.querySelector('#generateBtn').getBoundingClientRect();
     const status = document.querySelector('#pkhexVerificationStatus').getBoundingClientRect();
-    return { inline: status.left >= generate.right && Math.abs(status.top - generate.top) < 12 };
+    return {
+      visible: generate.width > 0 && status.width > 0,
+      inline: status.left >= generate.right && Math.abs(status.top - generate.top) < 12,
+    };
   })()`);
-  if (!desktopLayout.inline) throw new Error('PKHeX status is not inline to the right of Generate on desktop.');
+  if (!desktopLayout.visible || !desktopLayout.inline) {
+    throw new Error(`Unexpected desktop verification layout: ${JSON.stringify(desktopLayout)}`);
+  }
 
   await client.send('Emulation.setDeviceMetricsOverride', {
     width: 390,
@@ -519,26 +526,22 @@ try {
     deviceScaleFactor: 1,
     mobile: true,
   });
-  await delay(100);
+  await waitFor(client, "document.body.classList.contains('builder-mobile')");
   const mobileLayout = await evaluate(client, `(() => {
-    const generate = document.querySelector('#generateBtn').getBoundingClientRect();
-    const status = document.querySelector('#pkhexVerificationStatus').getBoundingClientRect();
+    document.querySelector('#builderCodesPanel .output-tabs .tab-btn.active').click();
+    const status = document.querySelector('#pkhexVerificationStatus');
+    const bounds = status.getBoundingClientRect();
     return {
-      wrapped: status.top >= generate.bottom - 1,
+      visibleInDock: status.parentElement.id === 'builderPhoneVerificationDock' && bounds.width > 0 && bounds.height > 0,
       noHorizontalOverflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
     };
   })()`);
-  if (!mobileLayout.wrapped || !mobileLayout.noHorizontalOverflow) {
+  if (!mobileLayout.visibleInDock || !mobileLayout.noHorizontalOverflow) {
     throw new Error(`Unexpected mobile layout: ${JSON.stringify(mobileLayout)}`);
   }
 
-  await client.send('Emulation.setDeviceMetricsOverride', {
-    width: 1280,
-    height: 900,
-    deviceScaleFactor: 1,
-    mobile: false,
-  });
-  await delay(100);
+  await client.send('Emulation.setDeviceMetricsOverride', desktopMetrics);
+  await waitFor(client, "document.body.classList.contains('builder-desktop')");
 
   const rebuiltImmediate = await evaluate(client, `(() => {
     const field = document.querySelector('#otName');
